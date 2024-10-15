@@ -138,7 +138,7 @@ def meihua():
             line = 9 if val == '1' else 6  # 老阳为9，老阴为6
         hex_lines.append(line)
 
-    return lines
+    return hex_lines
 
 
 def coin():
