@@ -1,0 +1,66 @@
+Hexagram, Binary, Meaning
+
+乾为天, 111111, The Creative: strength and creativity.
+坤为地, 000000, The Receptive: devotion and receptiveness.
+水雷屯, 100010, Difficulty at the Beginning: hardship and perseverance.
+山水蒙, 010001, Youthful Folly: inexperience and learning.
+水天需, 111010, Waiting: patience and preparedness.
+天水讼, 010111, Conflict: disagreement and caution.
+地水师, 010000, The Army: leadership and organization.
+水地比, 000010, Holding Together: unity and shared goals.
+风天小畜, 111011, Small Taming: small challenges to be overcome.
+天泽履, 110111, Treading: prudence and caution.
+地天泰, 111000, Peace: harmony and balance.
+天地否, 000111, Standstill: stagnation and waiting.
+天火同人, 101111, Fellowship with Men: teamwork and collaboration.
+火天大有, 111101, Great Possession: wealth and abundance.
+地山谦, 001000, Modesty: humility and groundedness.
+雷地豫, 000100, Enthusiasm: vitality and optimism.
+泽雷随, 100110, Following: adherence and guidance.
+山风蛊, 011001, Work on What Has Been Spoiled: improvement and renewal.
+地泽临, 110000, Approach: progress and new beginnings.
+风地观, 000011, Contemplation: observation and introspection.
+火雷噬嗑, 100101, Biting Through: action and resolution.
+山火贲, 101001, Grace: beauty and form.
+山地剥, 100000, Splitting Apart: separation and release.
+地雷复, 000001, Return: renewal and returning to the source.
+天雷无妄, 100111, Innocence: simplicity and purity.
+山天大畜, 111001, The Taming Power of the Great: control and restraint.
+山雷颐, 100001, The Corners of the Mouth: nourishment and health.
+泽风大过, 011110, Preponderance of the Great: excess and responsibility.
+坎为水, 010010, The Abysmal: danger and unpredictability.
+离为火, 101101, The Clinging: clarity and illumination.
+泽山咸, 001110, Influence: attraction and impact.
+雷风恒, 011100, Duration: stability and persistence.
+天山遁, 001111, Retreat: strategic withdrawal.
+雷天大壮, 111100, Great Power: strength and assertiveness.
+火地晋, 000101, Progress: movement and development.
+地火明夷, 101000, Darkening of the Light: caution and temporary restraint.
+风火家人, 101011, The Family: kinship and loyalty.
+火泽睽, 110101, Opposition: conflict and contrast.
+水山蹇, 001010, Obstruction: blockage and barriers.
+雷水解, 010100, Deliverance: freedom and release.
+山泽损, 110001, Decrease: loss and humility.
+风雷益, 100011, Increase: growth and prosperity.
+泽天夬, 111110, Breakthrough: achievement and success.
+天风姤, 011111, Coming to Meet: interaction and opportunity.
+泽地萃, 000110, Gathering Together: unity and convergence.
+地风升, 011000, Pushing Upward: progress and aspiration.
+泽水困, 010110, Oppression: hardship and exhaustion.
+水风井, 011010, The Well: resources and nourishment.
+泽火革, 101110, Revolution: transformation and change.
+火风鼎, 011101, The Cauldron: nourishment and culture.
+震为雷, 100100, The Arousing: shock and movement.
+艮为山, 001001, Keeping Still: tranquility and meditation.
+风山渐, 001011, Development: gradual progress.
+雷泽归妹, 110100, The Marrying Maiden: relationships and adaptation.
+雷火丰, 101100, Abundance: wealth and prosperity.
+火山旅, 001101, The Wanderer: journeys and exploration.
+巽为风, 011011, The Gentle: influence and flexibility.
+兑为泽, 110110, The Joyous: pleasure and satisfaction.
+风水涣, 010011, Dispersion: scattering and renewal.
+水泽节, 110010, Limitation: restraint and order.
+风泽中孚, 110011, Inner Truth: sincerity and communication.
+雷山小过, 001100, Small Exceeding: minor excesses and adjustments.
+水火既济, 101010, After Completion: the successful conclusion.
+火水未济, 010101, Before Completion: preparation and anticipation.
