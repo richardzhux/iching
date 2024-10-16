@@ -67,7 +67,7 @@ def shicao():
 def meihua():
     # 获取当前日期和时间
     print("\n您选择了梅花易数法占卜，将使用当前年月日时。") # 似乎一直都没有变卦
-    time.sleep(1)
+    time.sleep(2.5)
     now = datetime.now()
 
     # 上卦（外卦）：（月 + 日）模8，0按8计算
