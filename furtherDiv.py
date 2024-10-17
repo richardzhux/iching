@@ -104,6 +104,15 @@ def split_gua_into_sections(content):
                 sections[current_section_title] += line + '\n'
     return sections
 
+
+
+
+
+
+
+
+import re
+
 def process_gua_file(input_file, hexagram_data, output_folder):
     """Processes a single Gua file and outputs the result to the output folder."""
     if not os.path.exists(output_folder):
@@ -113,9 +122,11 @@ def process_gua_file(input_file, hexagram_data, output_folder):
     with open(input_file, 'r', encoding='utf-8') as file:
         content = file.read()
 
+    # Extract gua_number and gua_name from the filename
     filename = os.path.basename(input_file)
     filename_without_ext = os.path.splitext(filename)[0]
 
+    # Regex pattern to extract gua number and gua name from filename
     filename_pattern = re.compile(r'^第([一二三四五六七八九十百零\d]+)卦[_：](.*?)[\(\uFF08]')
     match = filename_pattern.match(filename_without_ext)
     if not match:
@@ -125,6 +136,7 @@ def process_gua_file(input_file, hexagram_data, output_folder):
     gua_number_str = match.group(1).strip()
     gua_name = match.group(2).strip()
 
+    # Convert Chinese numerals to Arabic numerals if necessary
     try:
         if gua_number_str.isdigit():
             gua_number = int(gua_number_str)
@@ -136,8 +148,9 @@ def process_gua_file(input_file, hexagram_data, output_folder):
 
     print(f"Extracted gua_number: {gua_number}, gua_name: {gua_name}")
 
+    # Check if the gua number exists in hexagram_data
     if gua_number not in hexagram_data:
-        print(f"No hexagram data found for gua number {gua_number}")
+        print(f"No hexagram data found for gua number {gua_number}. Hexagram data keys: {list(hexagram_data.keys())}")
         return
 
     gua_data = hexagram_data[gua_number]
@@ -150,8 +163,10 @@ def process_gua_file(input_file, hexagram_data, output_folder):
     output_file = os.path.join(output_folder, f"{gua_number}.{gua_name}.txt")
     print(f"Creating file: {output_file}")
     with open(output_file, 'w', encoding='utf-8') as out_file:
+        # Write the main sections
         out_file.write(f"{gua_number}.周易第{gua_number}卦详解\n\n")
 
+        # List of section titles and their prefixes
         main_sections = [
             (f"{gua_name}原文", f"{gua_number}.original.{gua_name}原文"),
             ('白话文解释', f"{gua_number}.raw.白话文解释"),
@@ -167,39 +182,60 @@ def process_gua_file(input_file, hexagram_data, output_folder):
                 out_file.write(f"{prefix}\n")
                 out_file.write(content + '\n')
 
-        for key in sections.keys():
-            if '哲学含义' in key:
-                prefix = f"{gua_number}.philos.{key}"
-                content = sections[key]
-                out_file.write(f"{prefix}\n")
-                out_file.write(content + '\n')
-                break  # Assume only one philosophical meaning section
-
+        # Write the yao sections (1 to 6)
+        yao_positions = ['初', '二', '三', '四', '五', '上']  # Yao positions from 初 to 上
         for idx in range(6):
             yao_index = idx + 1
             position_prefix = f"{gua_number}.{yao_index}"
-            yao_name = yao_names[idx]
+            yao_position = yao_positions[idx]
 
-            yao_section_title = f"{yao_name}爻详解"
-            variation_section_title = f"{yao_name}变卦"
-            philosophy_section_title = f"{yao_name}爻的哲学含义"
+            # Look for sections by skipping the Yin/Yang indicator (六 or 九)
+            yao_section_title = f"{yao_position}爻详解"
+            original_section_title = f"{yao_position}爻辞"
+            variation_section_title = f"{yao_position}变卦"
+            philosophy_section_title = f"{yao_position}爻的哲学含义"
 
-            yao_content = sections.get(yao_section_title, '')
-            variation_content = sections.get(variation_section_title, '')
-            philosophy_content = sections.get(philosophy_section_title, '')
+            # Create regex patterns to match the sections, ignoring 六/九
+            yao_section_regex = re.compile(f"[九六]?{yao_position}爻详解")
+            original_regex = re.compile(f"[九六]?{yao_position}爻辞")
+            variation_regex = re.compile(f"[九六]?{yao_position}变卦")
+            philosophy_regex = re.compile(f"[九六]?{yao_position}爻的哲学含义")
 
+            # Extract the relevant content by matching the sections
+            yao_content = extract_section_by_regex(sections, yao_section_regex)
+            original_content = extract_section_by_regex(sections, original_regex)
+            variation_content = extract_section_by_regex(sections, variation_regex)
+            philosophy_content = extract_section_by_regex(sections, philosophy_regex)
+
+            # Write the yao, original, var, and philos content for each Yao
             if yao_content:
-                out_file.write(f"{position_prefix}.周易第{gua_number}卦{yao_name}爻详解\n\n")
-                out_file.write(f"{position_prefix}.original.{yao_name}爻辞\n")
+                out_file.write(f"{position_prefix}.周易第{gua_number}卦{yao_position}爻详解\n\n")
                 out_file.write(yao_content + '\n')
+            if original_content:
+                out_file.write(f"{position_prefix}.original.{yao_position}爻辞\n")
+                out_file.write(original_content + '\n')
             if variation_content:
-                out_file.write(f"{position_prefix}.var.{yao_name}变卦\n")
+                out_file.write(f"{position_prefix}.var.{yao_position}变卦\n")
                 out_file.write(variation_content + '\n')
             if philosophy_content:
-                out_file.write(f"{position_prefix}.philos.{yao_name}爻的哲学含义\n")
+                out_file.write(f"{position_prefix}.philos.{yao_position}爻的哲学含义\n")
                 out_file.write(philosophy_content + '\n')
 
     print(f"Completed writing to file: {output_file}")
+
+def extract_section_by_regex(sections, regex):
+    """Extracts a section from the content based on the regex pattern."""
+    for key, content in sections.items():
+        if regex.search(key):
+            return content
+    return None
+
+
+
+
+
+
+
     
 def process_all_gua_files(gua_folder, hexagram_data, output_folder):
     """Processes all Gua files in the given folder and outputs the results to the output folder."""
