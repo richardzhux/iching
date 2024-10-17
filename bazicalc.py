@@ -199,5 +199,4 @@ def main(hex_lines):
         output_hexagram_info(results['changed'][0], "变卦")
 
 if __name__ == "__main__":
-    hex_lines = [7, 8, 6, 7, 9, 9]  # Example input
-    main(hex_lines)
+    main()
