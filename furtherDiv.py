@@ -109,10 +109,6 @@ def split_gua_into_sections(content):
 
 
 
-
-
-import re
-
 def process_gua_file(input_file, hexagram_data, output_folder):
     """Processes a single Gua file and outputs the result to the output folder."""
     if not os.path.exists(output_folder):
@@ -223,16 +219,15 @@ def process_gua_file(input_file, hexagram_data, output_folder):
 
     print(f"Completed writing to file: {output_file}")
 
+
+
+
 def extract_section_by_regex(sections, regex):
     """Extracts a section from the content based on the regex pattern."""
     for key, content in sections.items():
         if regex.search(key):
             return content
     return None
-
-
-
-
 
 
 

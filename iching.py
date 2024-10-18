@@ -20,7 +20,7 @@ def main():
             bazicalc.main(initiate.meihua())
 
         elif user_input == 'q':
-            print("感谢您使用易经占卜应用，再见！\n")
+            print("\n感谢您使用易经占卜应用，再见！\n")
             break
 
         else:
