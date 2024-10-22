@@ -152,7 +152,7 @@ def calculate_all_hexagrams(hex_lines, hexagrams):
     }
 
 # Function to search for a corresponding hexagram file
-def find_hexagram_file(hexagram_name, folder='guaci'):
+def find_hexagram_file(hexagram_name, folder='iching/guaci'):
     # Iterate over all files in the specified folder
     for file_name in os.listdir(folder):
         if hexagram_name in file_name:  # Look for a file containing the hexagram name
@@ -162,7 +162,7 @@ def find_hexagram_file(hexagram_name, folder='guaci'):
 
 # Function to output hexagram explanation
 def output_hexagram_info(hexagram_name, file_type):
-    folder = 'guaci'
+    folder = 'iching/guaci'
     file_path = find_hexagram_file(hexagram_name, folder)
     
     if file_path:
@@ -175,7 +175,7 @@ def output_hexagram_info(hexagram_name, file_type):
 
 # Main function to calculate hexagrams and output results
 def main(hex_lines):
-    hexagrams = load_hexagrams('guaxiang.txt')     
+    hexagrams = load_hexagrams('iching/guaxiang.txt')     
     reversed_lines = hex_lines[::-1]
 
     print("\n您的卦象:")

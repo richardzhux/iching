@@ -3,7 +3,7 @@ import re
 
 def split_gua_file(input_file):
     # 创建文件夹来保存每个卦的单独文件
-    output_folder = "guaci"
+    output_folder = "iching/guaci"
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
