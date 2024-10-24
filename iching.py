@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import random, time
 import bazitime, bazicalc, initiate, userinput
 
