@@ -1,4 +1,124 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import time
+import os
+
+# Set path to ChromeDriver
+service = Service('/Users/rx/Downloads/chromedriver-mac-arm64/chromedriver')  # Path to ChromeDriver
+
+# Set up options for Chrome
+chrome_options = Options()
+chrome_options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--headless")  # Optional: run without GUI for speed
+
+# Initialize WebDriver with ChromeDriver
+driver = webdriver.Chrome(service=service, options=chrome_options)
+
+# Create a folder to save the files if it doesn't exist
+if not os.path.exists('scraped_files'):
+    os.makedirs('scraped_files')
+
+# Open the file containing the list of URLs
+with open('/Users/rx/Documents/VSCode/scraped_files/all64list.txt', 'r') as file:
+    urls = file.readlines()
+
+# Loop through each URL in the list
+for idx, url in enumerate(urls, start=1):
+    url = url.strip()  # Remove any leading/trailing whitespace
+    if not url:
+        continue  # Skip empty lines if any
+
+    print(f"Scraping URL {idx}: {url}")
+
+    # Open the specific page to scrape
+    driver.get(url)
+    time.sleep(3)  # Give the page some time to load
+
+    try:
+        # Use the correct selector to get the content inside <div class="content">
+        content = driver.find_element(By.CLASS_NAME, 'content')  # Target the div with class "content"
+
+        if content:
+            page_text = content.text
+
+            # Save the content to a file named numerically
+            with open(f'scraped_files/{idx}.txt', 'w', encoding='utf-8') as file:
+                file.write(page_text)
+
+            print(f"Page {idx} scraped successfully.")
+        else:
+            print(f"Content not found on URL {idx}.")
+
+    except Exception as e:
+        print(f"Error scraping URL {idx}: {e}")
+
+# Close the browser
+driver.quit()
+
+
+
 """
+
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import time
+
+# Set path to ChromeDriver
+service = Service('/Users/rx/Downloads/chromedriver-mac-arm64/chromedriver')  # Path to ChromeDriver
+
+# Set up options for Arc Browser
+chrome_options = Options()
+chrome_options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+chrome_options.add_argument("--remote-debugging-port=9222")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--headless")  # Opti
+# Initialize WebDriver with ChromeDriver and Arc Browser
+driver = webdriver.Chrome(service=service, options=chrome_options)
+
+# URL range for scraping
+url_range = range(4103, 4264)
+valid_content = []
+
+for page_number in url_range:
+    url = f'https://www.zhouyi.cc/zhouyi/yijing64/{page_number}.html'
+    try:
+        driver.get(url)
+        time.sleep(2)  # Wait for the page to fully load
+
+        # Find the content using class name
+        content = driver.find_element(By.CLASS_NAME, 'main_left')
+
+        if content:
+            page_text = content.text
+            valid_content.append(f"---- Page {page_number} ----\n\n{page_text}\n")
+            print(f"Page {page_number} scraped successfully.")
+        else:
+            print(f"Content not found for Page {page_number}.")
+    
+    except Exception as e:
+        print(f"Error scraping Page {page_number}: {e}")
+
+# Save the results to a file
+with open('yijing_full_content.txt', 'w', encoding='utf-8') as file:
+    for item in valid_content:
+        file.write(item)
+
+# Close the browser
+driver.quit()
+
+
+
+
+
+
 import requests
 from bs4 import BeautifulSoup
 import time
@@ -72,53 +192,3 @@ with open('yijing_full_content.txt', 'w', encoding='utf-8') as file:
         file.write(item)
 
 """
-
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-import time
-
-# Set path to ChromeDriver
-service = Service('/Users/rx/Downloads/chromedriver-mac-arm64/chromedriver')  # Path to ChromeDriver
-
-# Set up options for Arc Browser
-chrome_options = Options()
-chrome_options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-chrome_options.add_argument("--remote-debugging-port=9222")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--headless")  # Opti
-# Initialize WebDriver with ChromeDriver and Arc Browser
-driver = webdriver.Chrome(service=service, options=chrome_options)
-
-# URL range for scraping
-url_range = range(4103, 4264)
-valid_content = []
-
-for page_number in url_range:
-    url = f'https://www.zhouyi.cc/zhouyi/yijing64/{page_number}.html'
-    try:
-        driver.get(url)
-        time.sleep(2)  # Wait for the page to fully load
-
-        # Find the content using class name
-        content = driver.find_element(By.CLASS_NAME, 'main_left')
-
-        if content:
-            page_text = content.text
-            valid_content.append(f"---- Page {page_number} ----\n\n{page_text}\n")
-            print(f"Page {page_number} scraped successfully.")
-        else:
-            print(f"Content not found for Page {page_number}.")
-    
-    except Exception as e:
-        print(f"Error scraping Page {page_number}: {e}")
-
-# Save the results to a file
-with open('yijing_full_content.txt', 'w', encoding='utf-8') as file:
-    for item in valid_content:
-        file.write(item)
-
-# Close the browser
-driver.quit()
