@@ -57,3 +57,7 @@ https://github.com/yanyaming/yxf_yixue_py/blob/master/yxf_yixue/liuyao/_paipan.p
 旺相休囚和生旺墓绝可能比较复杂
 
 都实现之后可以使用用神等进行下一步分析
+
+1. **六神模块**：根据卦象分配六神。
+2. **旬空模块**：根据当前的干支旬空进行计算。
+3. **神煞模块**：根据特定的干支组合，计算神煞。

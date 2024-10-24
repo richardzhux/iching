@@ -71,7 +71,7 @@ def main():
     """
     Main function to get user input for Gua in the format of 6-9 and a custom time.
     """
-    hexagrams = bazicalc.load_hexagrams('iching/guaxiang.txt')  # Adjust the path as needed
+    hexagrams = bazicalc.load_hexagrams('guaxiang.txt')  # Adjust the path as needed
 
     while True:
         # Get Gua input from the user
