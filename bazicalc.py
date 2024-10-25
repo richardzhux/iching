@@ -1,113 +1,114 @@
 import os
-import random
-import bazicalc
 
-# Function to load hexagrams from file
-def load_hexagrams(file_path):
-    hexagrams = {}
-    with open(file_path, 'r', encoding='utf-8') as file:
-        lines = file.readlines()
-        for line in lines[1:]:  # Skip the header
-            parts = line.strip().split(', ')
-            if len(parts) == 3:
-                gua, binary, jieshi = parts
-                hexagrams[binary] = (gua, jieshi)
-    return hexagrams
+class Hexagram:
+    """Represents a hexagram and its related calculations."""
 
-# Function to calculate main, transformed, mutual, inverse, and reverse hexagrams
-def calculate_all_hexagrams(hex_lines, hexagrams):
-    # Original hexagram binary
-    binary = ''.join(['1' if x in [7, 9] else '0' for x in hex_lines])
-    
-    # Lookup the main hexagram
-    gua, jieshi = hexagrams.get(binary, (None, "卦象未找到"))
-    
-    # Calculate changed hexagram (only if there are old yin or old yang lines)
-    changed_binary_list = list(binary)
-    has_moving_line = False
-    for idx, x in enumerate(hex_lines):
-        if x == 9:
-            changed_binary_list[idx] = '0'  # Old Yang changes to Yin
-            has_moving_line = True
-        elif x == 6:
-            changed_binary_list[idx] = '1'  # Old Yin changes to Yang
-            has_moving_line = True
-    if has_moving_line:
-        changed_binary = ''.join(changed_binary_list)
-        changed_gua, changed_jieshi = hexagrams.get(changed_binary, (None, "变卦未找到"))
-    else:
-        changed_gua, changed_jieshi = None, "没有动爻，故无变卦"
-    
-    # Calculate inverse hexagram (错卦)
-    inverse_binary = ''.join(['1' if b == '0' else '0' for b in binary])
-    inverse_gua, inverse_jieshi = hexagrams.get(inverse_binary, (None, "错卦未找到"))
-    
-    # Calculate reverse hexagram (综卦)
-    reverse_binary = binary[::-1]
-    reverse_gua, reverse_jieshi = hexagrams.get(reverse_binary, (None, "综卦未找到"))
-    
-    # Calculate mutual hexagram (互卦): Take lines 2-4 (middle) and form new binary
-    if len(binary) == 6:
-        mutual_binary = binary[1:4] + binary[2:5]
-        mutual_gua, mutual_jieshi = hexagrams.get(mutual_binary, (None, "互卦未找到"))
-    else:
-        mutual_gua, mutual_jieshi = None, "互卦未找到"
-    
-    # Output all results
-    return {
-        "main": (gua, jieshi),
-        "changed": (changed_gua, changed_jieshi),
-        "inverse": (inverse_gua, inverse_jieshi),
-        "reverse": (reverse_gua, reverse_jieshi),
-        "mutual": (mutual_gua, mutual_jieshi)
-    }
+    def __init__(self, lines, hexagrams_dict):
+        self.lines = lines  # List of 6 integers (6-9)
+        self.hexagrams_dict = hexagrams_dict
+        self.binary = ''.join(['1' if x in [7, 9] else '0' for x in self.lines])
+        self.name, self.explanation = hexagrams_dict.get(self.binary, ("未知卦", "未找到解释"))
+        self.changed_hexagram = self.calculate_changed_hexagram()
+        self.inverse_hexagram = self.calculate_inverse_hexagram()
+        self.reverse_hexagram = self.calculate_reverse_hexagram()
+        self.mutual_hexagram = self.calculate_mutual_hexagram()
 
-# Function to search for a corresponding hexagram file
-def find_hexagram_file(hexagram_name, folder='guaci'):
-    # Iterate over all files in the specified folder
-    for file_name in os.listdir(folder):
-        if hexagram_name in file_name:  # Look for a file containing the hexagram name
-            file_path = os.path.join(folder, file_name)
-            return file_path
-    return None
-
-# Function to output hexagram explanation
-def output_hexagram_info(hexagram_name, file_type):
-    folder = 'guaci'
-    file_path = find_hexagram_file(hexagram_name, folder)
-    
-    if file_path:
-        print(f"\n{file_type}: {hexagram_name} 对应的文件: {file_path}")
+    @staticmethod
+    def load_hexagrams(file_path):
+        hexagrams = {}
         with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-            print(f"内容: \n{content}\n")
-    else:
-        print(f"未找到 {file_type} 对应的文件: {hexagram_name}")
+            lines = file.readlines()
+            for line in lines[1:]:
+                parts = line.strip().split(', ')
+                if len(parts) == 3:
+                    gua, binary, jieshi = parts
+                    hexagrams[binary] = (gua, jieshi)
+        return hexagrams
 
-# Main function to calculate hexagrams and output results
-def main(hex_lines):
-    hexagrams = load_hexagrams('guaxiang.txt')     
-    reversed_lines = hex_lines[::-1]
+    def calculate_changed_hexagram(self):
+        changed_lines = []
+        has_moving_line = False
+        for x in self.lines:
+            if x == 9:
+                changed_lines.append(8)  # Old Yang changes to Yin
+                has_moving_line = True
+            elif x == 6:
+                changed_lines.append(7)  # Old Yin changes to Yang
+                has_moving_line = True
+            else:
+                changed_lines.append(x)
+        if has_moving_line:
+            return Hexagram(changed_lines, self.hexagrams_dict)
+        else:
+            return None  # No changing lines
 
-    print("\n您的卦象:")
-    for i, line in enumerate(reversed_lines):
-        print(f"第 {6 - i} 爻: {'--- 阳' if line in [7, 9] else '- - 阴'} {' O' if line == 9 else ' X' if line == 6 else ''}")
-            
-    results = calculate_all_hexagrams(hex_lines, hexagrams)
-    
-    print(hex_lines)
-    print(f"\n本卦: {results['main'][0]} - 解释: {results['main'][1]}")
-    print(f"变卦: {results['changed'][0]} - 解释: {results['changed'][1]}")
-    print(f"互卦: {results['mutual'][0]} - 解释: {results['mutual'][1]}")
-    print(f"错卦: {results['inverse'][0]} - 解释: {results['inverse'][1]}")
-    print(f"综卦: {results['reverse'][0]} - 解释: {results['reverse'][1]}\n")
+    def calculate_inverse_hexagram(self):
+        inverse_binary = ''.join(['1' if b == '0' else '0' for b in self.binary])
+        name, explanation = self.hexagrams_dict.get(inverse_binary, ("未知卦", "未找到解释"))
+        return name, explanation
 
-    # Output the corresponding hexagram files based on 本卦 and 变卦
-    if results['main'][0]:
-        output_hexagram_info(results['main'][0], "本卦")
-    
-    if results['changed'][0] and results['changed'][0] != "没有动爻，故无变卦":
-        output_hexagram_info(results['changed'][0], "变卦")
+    def calculate_reverse_hexagram(self):
+        reverse_binary = self.binary[::-1]
+        name, explanation = self.hexagrams_dict.get(reverse_binary, ("未知卦", "未找到解释"))
+        return name, explanation
 
-if __name__ == "__main__":
-    main()
+    def calculate_mutual_hexagram(self):
+        if len(self.binary) == 6:
+            mutual_binary = self.binary[1:4] + self.binary[2:5]
+            name, explanation = self.hexagrams_dict.get(mutual_binary, ("未知卦", "未找到解释"))
+            return name, explanation
+        else:
+            return None, None
+
+    def find_explanation_file(self, folder='guaci'):
+        """Find the file corresponding to this hexagram's name in the given folder."""
+        for file_name in os.listdir(folder):
+            if self.name in file_name:
+                file_path = os.path.join(folder, file_name)
+                return file_path
+        return None
+
+    def output_explanation(self, file_type="本卦", folder='guaci'):
+        """Output the explanation from the corresponding file."""
+        file_path = self.find_explanation_file(folder)
+        if file_path:
+            print(f"\n{file_type}: {self.name} 对应的文件: {file_path}")
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+                print(f"内容:\n{content}\n")
+        else:
+            print(f"未找到 {file_type} 对应的文件: {self.name}")
+
+    def display(self):
+        print("\n您的卦象:")
+        reversed_lines = self.lines[::-1]
+        for i, line in enumerate(reversed_lines):
+            symbol = '---' if line in [7, 9] else '- -'
+            moving = ' O' if line == 9 else ' X' if line == 6 else ''
+            print(f"第 {6 - i} 爻: {symbol}{moving}")
+
+        print(f"\n本卦: {self.name} - 解释: {self.explanation}")
+        # Output the explanation from file
+
+        if self.changed_hexagram:
+            print(f"变卦: {self.changed_hexagram.name} - 解释: {self.changed_hexagram.explanation}")
+            # Output the explanation for the changed hexagram
+            self.output_explanation(file_type="本卦")
+            self.changed_hexagram.output_explanation(file_type="变卦")
+        else:
+            print("变卦：没有动爻，故无变卦 - 404 Not Found。")
+            self.output_explanation(file_type="本卦")
+
+        
+
+        inverse_name, inverse_explanation = self.inverse_hexagram
+        print(f"错卦: {inverse_name} - 解释: {inverse_explanation}")
+
+        reverse_name, reverse_explanation = self.reverse_hexagram
+        print(f"综卦: {reverse_name} - 解释: {reverse_explanation}")
+
+        mutual_name, mutual_explanation = self.mutual_hexagram
+        if mutual_name:
+            print(f"互卦: {mutual_name} - 解释: {mutual_explanation}")
+        else:
+            print("互卦未找到。")

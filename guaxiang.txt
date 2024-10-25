@@ -22,8 +22,8 @@ Hexagram, Binary, Meaning
 风地观, 000011, Contemplation: observation and introspection.
 火雷噬嗑, 100101, Biting Through: action and resolution.
 山火贲, 101001, Grace: beauty and form. 
-山地剥, 100000, Splitting Apart: separation and release. # 错了 大错特错❌
-地雷复, 000001, Return: renewal and returning to the source.
+山地剥, 000001, Splitting Apart: separation and release.
+地雷复, 100000, Return: renewal and returning to the source.
 天雷无妄, 100111, Innocence: simplicity and purity.
 山天大畜, 111001, The Taming Power of the Great: control and restraint.
 山雷颐, 100001, The Corners of the Mouth: nourishment and health.

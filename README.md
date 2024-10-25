@@ -4,6 +4,13 @@ The repository also includes tools to calculate BaZi (八字) and the correspond
 
 
 Next steps 
+-4. ENTIRELY REWRITE AND RESTRUCTURE FOR CLARITY AND UNTANGLE EVERYTHING ✅ 10.23
+    make everything into class and subclass
+-3. 纠正山地剥的错误binary code ✅ 10.24
+-2. check takashima and fupeirong and current file sys, cover full book，加入自然意象
+-1. meihua make 3 3digit nums ✅ 10.24
+0. count and classify jixiong in each yao, rate
+
 1. 旺相休囚和生旺墓绝 十二长生
 解释: 旺相休囚与生旺墓绝主要是描述天干地支在不同季节和时辰的状态。比如，在某些季节，某个天干是旺的，而在其他季节可能是休的。
 现有工具: sxtwl 已经提供了天干地支的计算，但关于旺相休囚和生旺墓绝的具体规则，需要自行编写，基于五行与季节的关联。你可以根据传统的旺相休囚、生旺墓绝规则，用天干地支来映射这些状态。

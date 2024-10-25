@@ -1,32 +1,76 @@
 #!/usr/bin/env python3
 
-import random, time
-import bazitime, bazicalc, initiate, userinput
-
+import time
+from qigua import ShicaoMethod, CoinMethod, MeihuaMethod, ManualInputMethod
+from validateTime import get_current_time, get_user_time_input
+from bazitime import BaZiCalculator
+from bazicalc import Hexagram
 def main():
     print("\n欢迎使用理查德猪的易经占卜应用！")
 
+    methods = {
+        '1': ShicaoMethod,
+        '2': CoinMethod,
+        '3': MeihuaMethod,
+        '4': ManualInputMethod
+    }
+
     while True:
-        user_input = input("输入 'r' 以使用五十筮草法占卜，'x'来输入占好的卦，'3'以使用硬币起卦，'m'以使用梅花易数，或 'q' 退出: ").lower()
-        if user_input == 'r':
-            bazitime.main()
-            bazicalc.main(initiate.shicao())
+        user_choice = input(
+            "\n请选择占卜方法：\n"
+            "1. 五十蓍草法占卜 (输入 '1')\n"
+            "2. 三枚铜钱法占卜 (输入 '2')\n"
+            "3. 梅花易数法占卜 (输入 '3')\n"
+            "4. 输入您自己的卦 (输入 '4')\n"
+            "q. 退出 (输入 'q')\n"
+            "您的选择: "
+        ).lower()
 
-        elif user_input == 'x':
-            userinput.main()
-
-        elif user_input == '3':
-            bazicalc.main(initiate.coin())
-
-        elif user_input == 'm':
-            bazicalc.main(initiate.meihua())
-
-        elif user_input == 'q':
+        if user_choice in methods:
+            method_class = methods[user_choice]
+            method = method_class()
+            lines = method.perform_divination()
+            if user_choice == '4':
+                # For manual input, ask for time
+                time_choice = input("\n使用当前时间进行计算请输入 '1'，输入您自己的时间请输入 '2': ").strip()
+                if time_choice == '1':
+                    current_time = get_current_time()
+                elif time_choice == '2':
+                    current_time = get_user_time_input()
+                else:
+                    print("你好蠢啊，这是无效输入，将默认使用当前时间。")
+                    current_time = get_current_time()
+            else:
+                # For methods 1-3, use current time automatically
+                current_time = get_current_time()
+        elif user_choice == 'q':
             print("\n感谢您使用易经占卜应用，再见！\n")
             break
-
         else:
-            print("无效输入。请输入 either r, x, 3, m, q")
+            print("无效输入，请重新选择。")
+            continue
+
+        # Calculate BaZi and Five Elements
+        bazi_calculator = BaZiCalculator(current_time)
+        bazi_output, elements_output = bazi_calculator.calculate_bazi()
+
+        print("\n时间信息:")
+        print(current_time.strftime("%Y.%m.%d %H:%M"))
+        print(bazi_output)
+        print(elements_output)
+
+        # Load hexagram data
+        hexagrams_dict = Hexagram.load_hexagrams('guaxiang.txt')
+
+        # Create the main hexagram
+        main_hexagram = Hexagram(lines, hexagrams_dict)
+        main_hexagram.display()
+
+        # Ask the user if they want to perform another divination
+        again = input("\n是否要再次占卜？(y/n): ").lower()
+        if again != 'y':
+            print("\n感谢您使用易经占卜应用，再见！\n")
+            break
 
 if __name__ == "__main__":
     main()
