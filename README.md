@@ -4,11 +4,15 @@ The repository also includes tools to calculate BaZi (八字) and the correspond
 
 
 Next steps 
--4. ENTIRELY REWRITE AND RESTRUCTURE FOR CLARITY AND UNTANGLE EVERYTHING ✅ 10.23
-    make everything into class and subclass
+-4. ENTIRELY REWRITE AND RESTRUCTURE FOR CLARITY AND UNTANGLE EVERYTHING
+    by making everything into class and subclass ✅ 10.23
+
 -3. 纠正山地剥的错误binary code ✅ 10.24
+
 -2. check takashima and fupeirong and current file sys, cover full book，加入自然意象
+
 -1. meihua make 3 3digit nums ✅ 10.24
+
 0. count and classify jixiong in each yao, rate
 
 1. 旺相休囚和生旺墓绝 十二长生
