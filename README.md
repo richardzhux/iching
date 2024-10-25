@@ -3,7 +3,8 @@ allowing users to perform traditional divination using methods such as the 50-ya
 The repository also includes tools to calculate BaZi (八字) and the corresponding five elements (五行).
 
 
-Next steps 
+Next steps
+
 -4. ENTIRELY REWRITE AND RESTRUCTURE FOR CLARITY AND UNTANGLE EVERYTHING
     by making everything into class and subclass ✅ 10.23
 
