@@ -38,7 +38,7 @@ def main():
                 elif time_choice == '2':
                     current_time = get_user_time_input()
                 else:
-                    print("你好蠢啊，这是无效输入，将默认使用当前时间。")
+                    print("无效输入，将默认使用当前时间。")
                     current_time = get_current_time()
             else:
                 # For methods 1-3, use current time automatically
