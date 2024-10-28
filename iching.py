@@ -9,19 +9,19 @@ def main():
     print("\n欢迎使用理查德猪的易经占卜应用！")
 
     methods = {
-        '1': ShicaoMethod,
-        '2': CoinMethod,
-        '3': MeihuaMethod,
-        '4': ManualInputMethod
+        's': ShicaoMethod,
+        'c': CoinMethod,
+        'm': MeihuaMethod,
+        'x': ManualInputMethod
     }
 
     while True:
         user_choice = input(
             "\n请选择占卜方法：\n"
-            "1. 五十蓍草法占卜 (输入 '1')\n"
-            "2. 三枚铜钱法占卜 (输入 '2')\n"
-            "3. 梅花易数法占卜 (输入 '3')\n"
-            "4. 输入您自己的卦 (输入 '4')\n"
+            "1. 五十蓍草法占卜 (输入 's')\n"
+            "2. 三枚铜钱法占卜 (输入 'c')\n"
+            "3. 梅花易数法占卜 (输入 'm')\n"
+            "4. 输入您自己的卦 (输入 'x')\n"
             "q. 退出 (输入 'q')\n\n"
             "您的选择: "
         ).lower()
@@ -30,7 +30,7 @@ def main():
             method_class = methods[user_choice]
             method = method_class()
             lines = method.perform_divination()
-            if user_choice == '4':
+            if user_choice == 'x':
                 # For manual input, ask for time
                 time_choice = input("\n使用当前时间进行计算请输入 '1'，输入您自己的时间请输入 '2': ").strip()
                 if time_choice == '1':
@@ -67,7 +67,7 @@ def main():
         main_hexagram.display()
 
         # Ask the user if they want to perform another divination
-        again = input("\n是否要再次占卜？(y/n): ").lower()
+        again = input("\n是否要再次占卜？(如继续，请输入'y'): ").lower()
         if again != 'y':
             print("\n感谢您使用易经占卜应用，再见！\n")
             break
