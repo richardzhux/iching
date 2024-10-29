@@ -5,20 +5,19 @@ The repository also includes tools to calculate BaZi (八字) and the correspond
 
 Next steps
 
--4. ENTIRELY REWRITE AND RESTRUCTURE FOR CLARITY AND UNTANGLE EVERYTHING
-    by making everything into class and subclass ✅ 10.23
+-4. ENTIRELY RESTRUCTURE FOR CLARITY, use more class and subclass ✅ 10.23
 
 -3. 纠正山地剥的错误binary code ✅ 10.24
 
--2. check takashima and organize current file sys, cover full book
+-2. check takashima and organize current file sys, cover full book 🔥 expected 10.29
 
--1.6 加入自然意象
+-1.6 加入自然意象 🔥 expected 10.29
 
 -1.3 校对傅佩荣 ✅ 10.27
 
 -1. meihua make 3 3digit nums ✅ 10.24
 
-0. count and classify jixiong in each yao, rate ❌ expected 10.30
+0. count and classify jixiong in each yao, rate 🔥 expected before 11.1
 利 - 无攸利
 吉 - 元吉，吉，贞吉，终吉
 吝 - 
