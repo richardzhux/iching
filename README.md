@@ -11,10 +11,19 @@ Next steps
 -3. 纠正山地剥的错误binary code ✅ 10.24
 
 -2. check takashima and fupeirong and current file sys, cover full book，加入自然意象
+-1. 加入
 
 -1. meihua make 3 3digit nums ✅ 10.24
 
 0. count and classify jixiong in each yao, rate
+利 - 无攸利
+吉 - 元吉，吉，贞吉，终吉
+吝 - 
+厉 - 
+悔 - 悔亡
+咎 - 无咎
+凶 - 贞凶
+
 
 1. 旺相休囚和生旺墓绝 十二长生
 解释: 旺相休囚与生旺墓绝主要是描述天干地支在不同季节和时辰的状态。比如，在某些季节，某个天干是旺的，而在其他季节可能是休的。
