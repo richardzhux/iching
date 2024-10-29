@@ -10,12 +10,15 @@ Next steps
 
 -3. 纠正山地剥的错误binary code ✅ 10.24
 
--2. check takashima and fupeirong and current file sys, cover full book，加入自然意象
--1. 加入
+-2. check takashima and organize current file sys, cover full book
+
+-1.6 加入自然意象
+
+-1.3 校对傅佩荣 ✅ 10.27
 
 -1. meihua make 3 3digit nums ✅ 10.24
 
-0. count and classify jixiong in each yao, rate
+0. count and classify jixiong in each yao, rate ❌ expected 10.30
 利 - 无攸利
 吉 - 元吉，吉，贞吉，终吉
 吝 - 
