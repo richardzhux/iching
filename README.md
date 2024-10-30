@@ -6,18 +6,11 @@ The repository also includes tools to calculate BaZi (八字) and the correspond
 Next steps
 
 -4. ENTIRELY RESTRUCTURE FOR CLARITY, use more class and subclass ✅ 10.23
-
 -3. 纠正山地剥的错误binary code ✅ 10.24
-
--2. check takashima and organize current file sys, cover full book 🔥 expected 11.7
-
--1.6 加入自然意象 🔥 expected 11.7
-
 -1.3 校对傅佩荣 ✅ 10.27
-
 -1. meihua make 3 3digit nums ✅ 10.24
+-0.5. count and classify jixiong in each yao, rate ✅ 10.30
 
-0. count and classify jixiong in each yao, rate ✅ 10.30
 利 - 无攸利，无不利，利见大人，利涉大川，喜
 亨 - 亨，元亨，利贞
 吉 - 元吉，贞吉，终吉, 征吉，吉，大吉，夙吉
@@ -61,7 +54,9 @@ sorted_terms_with_scores = {
 统计没有关键词的/有的
 爻，卦分开统计
 
-
+0. BUILDING PostgreSQL database 🔥 expected 11.4
+-2. check takashima and organize current file sys, cover full book
+-1.6 加入自然意象 
 
 1. 旺相休囚和生旺墓绝 十二长生
 解释: 旺相休囚与生旺墓绝主要是描述天干地支在不同季节和时辰的状态。比如，在某些季节，某个天干是旺的，而在其他季节可能是休的。
