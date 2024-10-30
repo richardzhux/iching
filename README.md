@@ -18,13 +18,16 @@ Next steps
 -1. meihua make 3 3digit nums ✅ 10.24
 
 0. count and classify jixiong in each yao, rate 🔥 expected before 11.1
-利 - 无攸利
-吉 - 元吉，吉，贞吉，终吉
+利 - 无攸利，无不利，利见大人
+亨 - 亨，元亨利贞
+吉 - 元吉，贞吉，终吉
 吝 - 
-厉 - 
-悔 - 悔亡
+厉 - 厉，贞厉
+悔 - 悔亡，有悔
 咎 - 无咎
 凶 - 贞凶
+
+
 
 
 1. 旺相休囚和生旺墓绝 十二长生
