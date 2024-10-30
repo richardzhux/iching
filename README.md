@@ -55,6 +55,7 @@ sorted_terms_with_scores = {
 爻，卦分开统计
 
 0. BUILDING PostgreSQL database 🔥 expected 11.4
+一卦一卦弄 一爻一爻弄 仔细校对好 别着急
 -2. check takashima and organize current file sys, cover full book
 -1.6 加入自然意象 
 
