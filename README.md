@@ -18,15 +18,17 @@ Next steps
 -1. meihua make 3 3digit nums ✅ 10.24
 
 0. count and classify jixiong in each yao, rate 🔥 expected before 11.1
-利 - 无攸利，无不利，利见大人
-亨 - 亨，元亨利贞
-吉 - 元吉，贞吉，终吉
+利 - 无攸利，无不利，利见大人，利涉大川，喜
+亨 - 亨，元亨，利贞
+吉 - 元吉，贞吉，终吉, 征吉
 吝 - 
 厉 - 厉，贞厉
 悔 - 悔亡，有悔
 咎 - 无咎
-凶 - 贞凶
+凶 - 凶，贞凶
 
+不利有攸往，一个字只能算在一个词里
+不能同时识别成利有攸往
 
 
 
