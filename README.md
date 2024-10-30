@@ -9,15 +9,15 @@ Next steps
 
 -3. 纠正山地剥的错误binary code ✅ 10.24
 
--2. check takashima and organize current file sys, cover full book 🔥 expected 10.29
+-2. check takashima and organize current file sys, cover full book 🔥 expected 11.7
 
--1.6 加入自然意象 🔥 expected 10.29
+-1.6 加入自然意象 🔥 expected 11.7
 
 -1.3 校对傅佩荣 ✅ 10.27
 
 -1. meihua make 3 3digit nums ✅ 10.24
 
-0. count and classify jixiong in each yao, rate 🔥 expected before 11.1
+0. count and classify jixiong in each yao, rate ✅ 10.30
 利 - 无攸利，无不利，利见大人，利涉大川，喜
 亨 - 亨，元亨，利贞
 吉 - 元吉，贞吉，终吉, 征吉，吉，大吉，夙吉
@@ -54,12 +54,6 @@ sorted_terms_with_scores = {
     "凶": 0,
     "贞凶": 0
 }
-
-# Display the dictionary
-print("Sorted Terms with Scores:")
-for term, score in sorted_terms_with_scores.items():
-    print(f"{term}: {score}")
-
 
 不利有攸往，一个字只能算在一个词里
 不能同时识别成利有攸往
