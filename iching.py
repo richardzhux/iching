@@ -67,7 +67,7 @@ def main():
         main_hexagram.display()
 
         # Ask the user if they want to perform another divination
-        again = input("\n是否要再次占卜？(如继续，请输入'y'): ").lower()
+        again = input("\n是否要再次占卜？(如继续，请输入'y'，任何其他输入为退出): ").lower()
         if again != 'y':
             print("\n感谢您使用易经占卜应用，再见！\n")
             break
