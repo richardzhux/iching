@@ -54,7 +54,7 @@ def main():
         bazi_calculator = BaZiCalculator(current_time)
         bazi_output, elements_output = bazi_calculator.calculate_bazi()
 
-        print("\n时间信息:")
+        print("\n起卦时间:")
         print(current_time.strftime("%Y.%m.%d %H:%M"))
         print(bazi_output)
         print(elements_output)
