@@ -63,5 +63,22 @@ rtime:
 	@figlet -f big "$(shell date +"%H:%M:%S")" | lolcat
 
 
+america great again:
+	@figlet -c -f big "TRUMP" | lolcat   
+	@figlet -c -f big "VANCE" | lolcat   
+	@echo "                      *    *    *    *    *" | lolcat   
+	@figlet -c "MAKE AMERICA GREAT AGAIN!" | lolcat   
+	@figlet -c "2024" | lolcat   
+
+penn deep blue:
+	@figlet -c -f big "HARRIS" | lolcat   
+	
+	@figlet -c -f big "WALZ" | lolcat   
+	
+	@echo "      *    *    *    *    *" | lolcat   
+	
+	@figlet -c "2024" | lolcat   
+
+
 
 
