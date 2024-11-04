@@ -14,10 +14,10 @@ reset:
 	git reset --hard origin/main
 
 
-code2flow:
+flowchart:
 	@echo "Generating Code2Flow diagram for the iching project..."
-	@code2flow /Users/rx/Documents/VSCode/iching/*.py -o iching_flowchart.png > /dev/null 2>&1
-	@echo "Flowchart generated at iching_flowchart.png"
+	@code2flow /Users/rx/Documents/VSCode/iching/*.py -o flowchart.png > /dev/null 2>&1
+	@echo "Flowchart generated at flowchart.png"
 
 SCRIPT = /Users/rx/Documents/VSCode/iching/GRAPHS/ast/ast_graph.py
 ast:
