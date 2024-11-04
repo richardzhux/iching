@@ -1,6 +1,8 @@
 # NEW FEATURE:
 
-To welcome the election day, try entering `make america great again` and `make penn deep blue` in the terminal!
+To welcome the election day, try entering `make america great again` and `make penn deep blue` in the terminal!*
+
+*requires lolcat, figlet
 
 Welcome to the I Ching Project! This repository is designed to offer an interactive experience with I Ching (The Book of Changes), 
 allowing users to perform traditional divination using methods such as the 50-yarrow stalk method, three-coin toss, or Meihua Yishu. 
