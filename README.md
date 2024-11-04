@@ -18,8 +18,9 @@ d. meihua make 3 3digit nums ✅ 10.24
 e. count and classify jixiong in each yao, rate ✅ 10.30  
 f. generate flow chart ✅ 11.2  
 g. 加入自然意象 ✅ 11.3  
+f. 加入psutil, tqdm ✅ 11.4    
 
-0. BUILDING PostgreSQL database 🔥 expected 11.4
+0. BUILDING PostgreSQL database 🔥 expected 11.10
 一卦一卦弄 一爻一爻弄 仔细校对好 别着急
 -2. check takashima and organize current file sys, cover full book
 

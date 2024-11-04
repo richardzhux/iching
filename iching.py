@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-import time
+import time 
 from qigua import ShicaoMethod, CoinMethod, MeihuaMethod, ManualInputMethod
 from validateTime import get_current_time, get_user_time_input
+from sysusage import display_system_usage
 from bazitime import BaZiCalculator
 from bazicalc import Hexagram
+
 def main():
     print("\n欢迎使用理查德猪的易经占卜应用！")
 
@@ -14,6 +16,7 @@ def main():
         'm': MeihuaMethod,
         'x': ManualInputMethod
     }
+
 
     while True:
         user_choice = input(
@@ -43,6 +46,9 @@ def main():
             else:
                 # For methods 1-3, use current time automatically
                 current_time = get_current_time()
+        elif user_choice == 'r':
+            display_system_usage()
+            continue
         elif user_choice == 'q':
             print("\n感谢您使用易经占卜应用，再见！\n")
             break
