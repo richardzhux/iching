@@ -12,13 +12,12 @@ The repository also includes tools to calculate BaZi (八字) and the correspond
 
 Next steps
 
-a. ENTIRELY RESTRUCTURE FOR CLARITY, use more class and subclass ✅ 10.23 \n
-b. 纠正山地剥的错误binary code ✅ 10.24 \n
-c. 校对傅佩荣 ✅ 10.27 \n
-d. meihua make 3 3digit nums ✅ 10.24
-e. count and classify jixiong in each yao, rate ✅ 10.30
-f. generate flow chart
-
+a. ENTIRELY RESTRUCTURE FOR CLARITY, use more class and subclass ✅ 10.23  
+b. 纠正山地剥的错误binary code ✅ 10.24  
+c. 校对傅佩荣 ✅ 10.27  
+d. meihua make 3 3digit nums ✅ 10.24  
+e. count and classify jixiong in each yao, rate ✅ 10.30  
+f. generate flow chart ✅ 11.2  
 
 0. BUILDING PostgreSQL database 🔥 expected 11.4
 一卦一卦弄 一爻一爻弄 仔细校对好 别着急
