@@ -14,6 +14,29 @@ reset:
 	git reset --hard origin/main
 
 
+code2flow:
+	@echo "Generating Code2Flow diagram for the iching project..."
+	@code2flow /Users/rx/Documents/VSCode/iching/*.py -o iching_flowchart.png > /dev/null 2>&1
+	@echo "Flowchart generated at iching_flowchart.png"
+
+SCRIPT = /Users/rx/Documents/VSCode/iching/GRAPHS/ast/ast_graph.py
+ast:
+	@echo "Running AST analysis to generate individual control flow graphs for each Python file..."
+	@python3 $(SCRIPT)
+	@echo "Control flow graphs generated successfully."
+
+clean:
+	@echo "Cleaning up generated control flow graphs..."
+	rm -f *.png
+	@echo "Clean-up completed."
+
+
+
+
+
+
+
+
 .PHONY: heart us hello newton
 
 heart:
