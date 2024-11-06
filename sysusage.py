@@ -45,6 +45,3 @@ def display_system_usage():
     print(f"磁盘空余量: {free_gb:.2f} GB")
     print(f"磁盘已使用: {used_gb:.2f} GB")
     print(f"磁盘使用率: {usage_percent:.1f}%")
-
-# Test the function
-display_system_usage()
