@@ -31,7 +31,17 @@ clean:
 	@echo "Clean-up completed."
 
 
+MP3_FILE := /Users/rx/Documents/IU.mp3
 
+iu:
+	@bash -c ' \
+		echo "灰飞烟灭中......"; \
+		afplay "$(MP3_FILE)" & \
+		PID=$$!; \
+		trap "kill $$PID" EXIT; \
+		read -n 1 -s; \
+		kill $$PID; \
+	'
 
 
 
