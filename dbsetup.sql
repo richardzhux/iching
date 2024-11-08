@@ -1,3 +1,55 @@
+-- Create schemas
+CREATE SCHEMA IF NOT EXISTS guaci;
+CREATE SCHEMA IF NOT EXISTS takashima;
+CREATE SCHEMA IF NOT EXISTS translation;
+CREATE SCHEMA IF NOT EXISTS symbolic;
+
+-- PL/pgSQL block for creating 64 tables in 'guaci', 'takashima', and 'translation' schemas
+DO $$
+DECLARE
+    hexagram_num INT;
+BEGIN
+    FOR hexagram_num IN 1..64 LOOP
+        EXECUTE format('
+            CREATE TABLE IF NOT EXISTS guaci.hexagram_%s (
+                id SERIAL PRIMARY KEY,
+                entry_name VARCHAR(50),
+                content TEXT
+            );', hexagram_num);
+
+        EXECUTE format('
+            CREATE TABLE IF NOT EXISTS takashima.hexagram_%s (
+                id SERIAL PRIMARY KEY,
+                entry_name VARCHAR(50),
+                content TEXT
+            );', hexagram_num);
+
+        EXECUTE format('
+            CREATE TABLE IF NOT EXISTS translation.hexagram_%s (
+                id SERIAL PRIMARY KEY,
+                entry_name VARCHAR(50),
+                content TEXT
+            );', hexagram_num);
+    END LOOP;
+END $$;
+
+-- Creating 8 tables in the 'symbolic' schema
+DO $$
+DECLARE
+    symbolic_num INT;
+BEGIN
+    FOR symbolic_num IN 1..8 LOOP
+        EXECUTE format('
+            CREATE TABLE IF NOT EXISTS symbolic.symbolic_%s (
+                id SERIAL PRIMARY KEY,
+                entry_name VARCHAR(50),
+                content TEXT
+            );', symbolic_num);
+    END LOOP;
+END $$;
+
+
+
 
 INSERT INTO Interpretations (hexagram_id, section, source, content)
 VALUES (
@@ -73,3 +125,6 @@ SELECT: Retrieves data from tables with optional filtering using WHERE.
 UPDATE: Modifies existing data.
 DELETE: Removes data.
 JOIN: Combines data from multiple tables based on a common key (like hexagram_id).
+
+
+-- psql -U your_username -d your_database -f setup.sql
