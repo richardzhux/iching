@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 
-import time 
+import time
 from qigua import ShicaoMethod, CoinMethod, MeihuaMethod, ManualInputMethod
 from validateTime import get_current_time, get_user_time_input
 from sysusage import display_system_usage
 from bazitime import BaZiCalculator
 from bazicalc import Hexagram
 
+
 def main():
     print("\n欢迎使用理查德猪的易经占卜应用！")
 
     methods = {
-        's': ShicaoMethod,
-        'c': CoinMethod,
-        'm': MeihuaMethod,
-        'x': ManualInputMethod
+        "s": ShicaoMethod,
+        "c": CoinMethod,
+        "m": MeihuaMethod,
+        "x": ManualInputMethod,
     }
-
 
     while True:
         user_choice = input(
@@ -33,12 +33,14 @@ def main():
             method_class = methods[user_choice]
             method = method_class()
             lines = method.perform_divination()
-            if user_choice == 'x':
+            if user_choice == "x":
                 # For manual input, ask for time
-                time_choice = input("\n使用当前时间进行计算请输入 '1'，输入您自己的时间请输入 '2': ").strip()
-                if time_choice == '1':
+                time_choice = input(
+                    "\n使用当前时间进行计算请输入 '1'，输入您自己的时间请输入 '2': "
+                ).strip()
+                if time_choice == "1":
                     current_time = get_current_time()
-                elif time_choice == '2':
+                elif time_choice == "2":
                     current_time = get_user_time_input()
                 else:
                     print("无效输入，将默认使用当前时间。")
@@ -46,10 +48,10 @@ def main():
             else:
                 # For methods 1-3, use current time automatically
                 current_time = get_current_time()
-        elif user_choice == 'r':
+        elif user_choice == "r":
             display_system_usage()
             continue
-        elif user_choice == 'q':
+        elif user_choice == "q":
             print("\n感谢您使用易经占卜应用，再见！\n")
             break
         else:
@@ -66,17 +68,20 @@ def main():
         print(elements_output)
 
         # Load hexagram data
-        hexagrams_dict = Hexagram.load_hexagrams('guaxiang.txt')
+        hexagrams_dict = Hexagram.load_hexagrams("guaxiang.txt")
 
         # Create the main hexagram
         main_hexagram = Hexagram(lines, hexagrams_dict)
         main_hexagram.display()
 
         # Ask the user if they want to perform another divination
-        again = input("\n请问您是否要再次卜卦？(如继续，请输入'y'，任何其他输入为退出): ").lower()
-        if again != 'y':
+        again = input(
+            "\n请问您是否要再次卜卦？(如继续，请输入'y'，任何其他输入为退出): "
+        ).lower()
+        if again != "y":
             print("\n感谢您使用易经占卜应用，再见！\n")
             break
+
 
 if __name__ == "__main__":
     main()

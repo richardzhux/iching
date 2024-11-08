@@ -6,7 +6,7 @@ conn = psycopg2.connect(
     user="your_username",
     password="your_password",
     host="localhost",
-    port="5432"
+    port="5432",
 )
 
 cursor = conn.cursor()
@@ -29,10 +29,8 @@ for section, source, content in results:
     print(f"Source: {source}")
     print("Content:")
     print(content)  # This will preserve multi-paragraph formatting
-    print("\n" + "-"*40 + "\n")  # Divider for readability
+    print("\n" + "-" * 40 + "\n")  # Divider for readability
 
 # Close the cursor and connection
 cursor.close()
 conn.close()
-
-

@@ -3,22 +3,42 @@ import re
 
 # Define the expected section prefixes using 'xx' placeholders
 expected_section_prefixes = [
-    'xx.original', 'xx.raw', 'xx.duan', 'xx.zhao', 'xx.fu', 'xx.traditional',
-    'xx.1.original', 'xx.1.var', 'xx.1.philos', 
-    'xx.2.original', 'xx.2.var', 'xx.2.philos', 
-    'xx.3.original', 'xx.3.var', 'xx.3.philos', 
-    'xx.4.original', 'xx.4.var', 'xx.4.philos', 
-    'xx.5.original', 'xx.5.var', 'xx.5.philos', 
-    'xx.6.original', 'xx.6.var', 'xx.6.philos'
+    "xx.original",
+    "xx.raw",
+    "xx.duan",
+    "xx.zhao",
+    "xx.fu",
+    "xx.traditional",
+    "xx.1.original",
+    "xx.1.var",
+    "xx.1.philos",
+    "xx.2.original",
+    "xx.2.var",
+    "xx.2.philos",
+    "xx.3.original",
+    "xx.3.var",
+    "xx.3.philos",
+    "xx.4.original",
+    "xx.4.var",
+    "xx.4.philos",
+    "xx.5.original",
+    "xx.5.var",
+    "xx.5.philos",
+    "xx.6.original",
+    "xx.6.var",
+    "xx.6.philos",
 ]
+
 
 def check_file_for_missing_sections(file_path, gua_number):
     """Check a single gua file for missing sections, replacing 'xx' with actual gua number."""
-    with open(file_path, 'r', encoding='utf-8') as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         content = file.read()
 
     # Replace 'xx' with the actual gua number in expected sections
-    actual_section_prefixes = [prefix.replace('xx', str(gua_number)) for prefix in expected_section_prefixes]
+    actual_section_prefixes = [
+        prefix.replace("xx", str(gua_number)) for prefix in expected_section_prefixes
+    ]
 
     # Find all the section titles in the file
     found_sections = set()
@@ -27,13 +47,16 @@ def check_file_for_missing_sections(file_path, gua_number):
             found_sections.add(section)
 
     # Determine which sections are missing
-    missing_sections = [section for section in actual_section_prefixes if section not in found_sections]
+    missing_sections = [
+        section for section in actual_section_prefixes if section not in found_sections
+    ]
 
     return missing_sections
 
+
 def generate_report(folder_path):
     """Generate a report of missing sections for all files in the folder, sorted by numeric order."""
-    gua_files = [f for f in os.listdir(folder_path) if f.endswith('.txt')]
+    gua_files = [f for f in os.listdir(folder_path) if f.endswith(".txt")]
 
     if not gua_files:
         print("No Gua files found in the folder.")
@@ -42,7 +65,7 @@ def generate_report(folder_path):
     print("Missing Sections Report:\n")
 
     # Regex pattern to extract gua number from filenames in format like "39.蹇卦.txt"
-    filename_pattern = re.compile(r'^(\d+)\.')
+    filename_pattern = re.compile(r"^(\d+)\.")
 
     # Create a list of tuples (gua_number, gua_file) for sorting
     gua_files_with_numbers = []
@@ -71,8 +94,9 @@ def generate_report(folder_path):
         except Exception as e:
             print(f"Error processing file {gua_file}: {e}")
 
+
 # Example usage:
-generated_folder_path = '/Users/rx/Documents/VSCode/iching/ped_guaci'
+generated_folder_path = "/Users/rx/Documents/VSCode/iching/ped_guaci"
 generate_report(generated_folder_path)
 
 """

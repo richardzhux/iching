@@ -1,15 +1,20 @@
 import time
 from datetime import datetime
 
+
 def get_current_time():
     return datetime.now()
 
+
 def get_user_time_input():
     while True:
-        time_input = input("请输入您得到卦象的时间 (格式为 'yyyy.mm.dd.hhmm'): ").strip()
+        time_input = input(
+            "请输入您得到卦象的时间 (格式为 'yyyy.mm.dd.hhmm'): "
+        ).strip()
         time_obj = validate_time_input(time_input)
         if time_obj:
             return time_obj
+
 
 def validate_time_input(time_input_str):
     """
@@ -17,7 +22,7 @@ def validate_time_input(time_input_str):
     Returns a datetime object if valid; prints an error message if invalid.
     """
     try:
-        parts = time_input_str.strip().split('.')
+        parts = time_input_str.strip().split(".")
         if len(parts) != 4:
             print("时间格式无效。请按照 'yyyy.mm.dd.hhmm' 的格式输入。")
             return None

@@ -6,11 +6,13 @@ import time
 import os
 
 # Set path to ChromeDriver
-service = Service('/chromedriver')  # Path to ChromeDriver
+service = Service("/chromedriver")  # Path to ChromeDriver
 
 # Set up options for Chrome
 chrome_options = Options()
-chrome_options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+chrome_options.binary_location = (
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+)
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("--headless")  # Optional: run without GUI for speed
@@ -19,11 +21,11 @@ chrome_options.add_argument("--headless")  # Optional: run without GUI for speed
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Create a folder to save the files if it doesn't exist
-if not os.path.exists('scraped_files'):
-    os.makedirs('scraped_files')
+if not os.path.exists("scraped_files"):
+    os.makedirs("scraped_files")
 
 # Open the file containing the list of URLs
-with open('/weburl.txt', 'r') as file:
+with open("/weburl.txt", "r") as file:
     urls = file.readlines()
 
 # Loop through each URL in the list
@@ -40,13 +42,15 @@ for idx, url in enumerate(urls, start=1):
 
     try:
         # Use the correct selector to get the content inside <div class="content">
-        content = driver.find_element(By.CLASS_NAME, 'content')  # Target the div with class "content"
+        content = driver.find_element(
+            By.CLASS_NAME, "content"
+        )  # Target the div with class "content"
 
         if content:
             page_text = content.text
 
             # Save the content to a file named numerically
-            with open(f'scraped_files/{idx}.txt', 'w', encoding='utf-8') as file:
+            with open(f"scraped_files/{idx}.txt", "w", encoding="utf-8") as file:
                 file.write(page_text)
 
             print(f"Page {idx} scraped successfully.")
@@ -58,7 +62,6 @@ for idx, url in enumerate(urls, start=1):
 
 # Close the browser
 driver.quit()
-
 
 
 """
