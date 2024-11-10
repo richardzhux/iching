@@ -26,6 +26,9 @@ sorted_terms_with_scores = {
     "贞凶": 0,
 }
 
+for hexagram in hexagram
+
+
 """
 不利有攸往，一个字只能算在一个词里
 不能同时识别成利有攸往
