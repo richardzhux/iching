@@ -81,3 +81,47 @@ https://github.com/yanyaming/yxf_yixue_py/blob/master/yxf_yixue/liuyao/_paipan.p
 1. **六神模块**：根据卦象分配六神。
 2. **旬空模块**：根据当前的干支旬空进行计算。
 3. **神煞模块**：根据特定的干支组合，计算神煞。
+
+#####################################################################################
+#                                                                                   #
+#                               **DISCLAIMER AND WAIVER OF LIABILITY**              #
+#                                                                                   #
+#   WARNING: THE MAKEFILE IN THIS REPOSITORY CONTAINS COMMANDS THAT MAY RESULT IN   #
+#   THE PERMANENT DELETION OF DATA OR SYSTEM DAMAGE.                                #
+#                                                                                   #
+#   By accessing and using this repository, including running any commands within   #
+#   the Makefile, you acknowledge and agree to the following:                       #
+#                                                                                   #
+#   1. **Assumption of Risk**: You understand that the Makefile included in this    #
+#      repository may contain commands that could lead to the irreversible deletion #
+#      of files, data loss, or system-level changes. Running these commands is      #
+#      entirely at your own risk.                                                   #
+#                                                                                   #
+#   2. **No Liability**: Under no circumstances shall the creator(s) or             #
+#      contributors of this repository be liable for any damages, loss of data,     #
+#      or harm resulting from the use of this Makefile, regardless of whether such  #
+#      damages were foreseeable. This includes, but is not limited to, damage to    #
+#      your computer systems, data corruption, or operational failure.              #
+#                                                                                   #
+#   3. **No Warranty**: This repository and all files within it are provided        #
+#      "as is," without any warranty, express or implied, including but not limited #
+#      to the implied warranties of merchantability, fitness for a particular       #
+#      purpose, or non-infringement. The creator(s) of this repository do not       #
+#      guarantee the Makefile will function as expected or without risk.            #
+#                                                                                   #
+#   4. **User Responsibility**: By using this repository, you agree to assume all   #
+#      responsibility for any actions you take. You accept full liability for any   #
+#      consequences resulting from running the Makefile or other files, including   #
+#      but not limited to the loss or corruption of data, damage to hardware or     #
+#      software, and security vulnerabilities.                                      #
+#                                                                                   #
+#   Acknowledgment                                                                  #
+#   By proceeding, you confirm that you have read, understood, and agreed to this   #
+#   disclaimer. You also confirm that you are acting with full awareness of the     #
+#   potential consequences and assume all associated risks.                         #
+#                                                                                   #
+#   **DO NOT RUN THIS MAKEFILE UNLESS YOU ARE PREPARED FOR PERMANENT DATA LOSS      #
+#      OR SYSTEM DAMAGE. USE ONLY IN A SECURE, ISOLATED ENVIRONMENT FOR TESTING     #
+#      PURPOSES.**                                                                  #
+#                                                                                   #
+
