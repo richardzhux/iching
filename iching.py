@@ -18,13 +18,19 @@ from session_logger import TeeLogger
 from dotenv import load_dotenv
 load_dotenv()  # loads .env into environment variables
 
-def get_valid_choice(prompt, choices, quit_char="q", err_msg="输入无效，请重新输入。"):
-    """Loop until user enters a valid choice from choices or quits."""
+# At the very top of your main script (e.g., iching.py)
+COMPLETE_DIR = "~/Documents/Hexarchive/guilty"
+ACQUITTAL_DIR = "~/Documents/Hexarchive/acquittal"
+
+def get_valid_choice(prompt, choices, logger=None, quit_char="q", err_msg="输入无效，请重新输入。"):
     valid_choices = set(c.lower() for c in choices) | {quit_char}
     while True:
         ans = input(prompt).strip().lower()
         if ans == quit_char:
             print("\n感谢您使用易经占卜应用，再见！\n")
+            if logger:
+                logger.output_dir = ACQUITTAL_DIR
+                logger.save()
             exit(0)
         if ans in valid_choices:
             return ans
@@ -52,15 +58,18 @@ def main():
     }
 
     while True:
-        with TeeLogger() as logger:
+        output_dir = COMPLETE_DIR
+        with TeeLogger(output_dir) as logger:
             try:
                 print("\n请选择本次占卜主题：")
                 for k, v in topic_map.items():
                     print(f"{k}. {v}")
 
-                topic_choice = get_valid_choice("\n请输入主题编号 (1-6): ", topic_map.keys())
+                topic_choice = get_valid_choice("\n请输入主题编号 (1-6): ", topic_map.keys(),logger=logger)
                 if topic_choice.lower() == "q":
                     print("\n感谢您使用易经占卜应用，再见！\n")
+                    logger.output_dir = ACQUITTAL_DIR
+                    logger.save()
                     exit(0)
                 topic = topic_map[topic_choice]
 
@@ -70,6 +79,8 @@ def main():
                     user_question = input("\n请输入您的具体问题（按回车结束，或输入 'q' 退出）：").strip()
                     if user_question.lower() == "q":
                         print("\n感谢您使用易经占卜应用，再见！\n")
+                        logger.output_dir = ACQUITTAL_DIR
+                        logger.save()
                         exit(0)
                     if not user_question:
                         user_question = None
@@ -103,6 +114,8 @@ def main():
                 elif user_choice == "r":
                     display_system_usage()
                     print("\n感谢您使用易经占卜应用，再见！\n")
+                    logger.output_dir = ACQUITTAL_DIR
+                    logger.save()
                     exit(0)
 
                 # Calculate BaZi and Five Elements
@@ -163,10 +176,11 @@ def main():
                     break
             except Exception as exc:
                 print(f"发生异常: {exc}")
+                logger.output_dir = ACQUITTAL_DIR
                 logger.save()
                 break
 
 if __name__ == "__main__":
     main()
 
-# 下一步：纳甲，api level fine tune，context长度，回答风格，连接命主的八字和大运
+# 下一步：纳甲，context长度，回答风格，api level fine tune，
