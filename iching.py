@@ -9,7 +9,7 @@ from bazicalc import Hexagram
 
 from rateJiXiong import analyze_file as keyword_analyze_file
 
-from closeai import closeai
+from closeai import closeai, get_combined_explanation
 import os
 
 from dotenv import load_dotenv
@@ -53,16 +53,16 @@ def main():
         for k, v in topic_map.items():
             print(f"{k}. {v}")
 
-        topic_choice = get_valid_choice("请输入主题编号 (1-6): ", topic_map.keys())
+        topic_choice = get_valid_choice("\n请输入主题编号 (1-6): ", topic_map.keys())
         if topic_choice.lower() == "q":
             print("\n感谢您使用易经占卜应用，再见！\n")
             exit(0)
         topic = topic_map[topic_choice]
 
-        specify_q = get_valid_choice("是否要输入一个具体问题？(y/n): ", {"y", "n"})
+        specify_q = get_valid_choice("\n是否要输入一个具体问题？(y/n): ", {"y", "n"})
         user_question = None
         if specify_q == "y":
-            user_question = input("请输入您的具体问题（按回车结束，或输入 'q' 退出）：").strip()
+            user_question = input("\n请输入您的具体问题（按回车结束，或输入 'q' 退出）：").strip()
             if user_question.lower() == "q":
                 print("\n感谢您使用易经占卜应用，再见！\n")
                 exit(0)
@@ -79,7 +79,7 @@ def main():
             "q. 退出 (输入 'q')"
         )
 
-        user_choice = get_valid_choice("您的选择: ", set(methods.keys()) | {"r"})
+        user_choice = get_valid_choice("\n您的选择: ", set(methods.keys()) | {"r"})
         if user_choice in methods:
             method_class = methods[user_choice]
             method = method_class()
@@ -116,14 +116,22 @@ def main():
         main_hexagram = Hexagram(lines, hexagrams_dict)
         main_hexagram.display()
 
-        explanation_path = main_hexagram.find_explanation_file()
-        if explanation_path:
+
+        bengua = main_hexagram.find_explanation_file()
+        zhigua = None
+        if main_hexagram.changed_hexagram:
+            zhigua = main_hexagram.changed_hexagram.find_explanation_file()
+
+        explanation_text = get_combined_explanation(bengua, zhigua)
+
+
+        if explanation_text:
             ai_choice = input("\n是否使用 OpenAI API 分析卦辞？(如分析请输入'y'，其他任意键跳过): ").strip().lower()
             if ai_choice == "y":
                 api_key = os.environ.get("OPENAI_API_KEY")
                 try:
                     analysis = closeai(
-                        explanation_path,
+                        explanation_text,
                         api_key=api_key,
                         topic=topic,
                         user_question=user_question
@@ -131,11 +139,6 @@ def main():
                     print("\nAI 分析结果:\n" + analysis)
                 except Exception as exc:
                     print(f"AI 分析失败: {exc}")
-
-            try:
-                print("\n" + keyword_analyze_file(explanation_path))
-            except Exception as exc:
-                print(f"关键字分析失败: {exc}")
 
         again = input("\n请问您是否要再次卜卦？(如继续，请输入'y'，任何其他视为退出): ").strip().lower()
         if again != "y":
