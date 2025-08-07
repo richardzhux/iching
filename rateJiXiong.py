@@ -26,7 +26,47 @@ sorted_terms_with_scores = {
     "贞凶": 0,
 }
 
-for hexagram in hexagram
+
+from statistics import mean, median
+
+
+def analyze_text(text: str) -> str:
+    """Return a formatted analysis of auspicious keywords in the given text."""
+
+    # Work on a copy so we can remove matched keywords and avoid double counting
+    remaining = text
+    found: dict[str, int] = {}
+
+    # Sort keywords by length so longer phrases are matched first
+    for term in sorted(sorted_terms_with_scores.keys(), key=len, reverse=True):
+        count = remaining.count(term)
+        if count:
+            found[term] = count
+            remaining = remaining.replace(term, " " * len(term))
+
+    scores: list[int] = []
+    for term, cnt in found.items():
+        scores.extend([sorted_terms_with_scores[term]] * cnt)
+
+    lines = ["Found"]
+    for term, cnt in found.items():
+        lines.append(f"{term} x{cnt}")
+
+    if scores:
+        lines.append(f"Average Score: {mean(scores):.2f}")
+        lines.append(f"Median Score: {median(scores):.2f}")
+    else:
+        lines.append("Average Score: N/A")
+        lines.append("Median Score: N/A")
+
+    return "\n".join(lines)
+
+
+def analyze_file(file_path: str) -> str:
+    """Load a file and analyze its contents for auspicious keywords."""
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    return analyze_text(content)
 
 
 """
