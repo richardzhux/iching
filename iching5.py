@@ -1,0 +1,2 @@
+from bazicalc5 import run_iching_console
+run_iching_console()

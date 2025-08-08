@@ -134,23 +134,8 @@ def main():
                 main_hexagram = Hexagram(lines, hexagrams_dict)
                 main_hexagram.display()
 
-                from najia.najia import Najia
-                params = [1 if x in [7,9] else 0 for x in lines]
-                date_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
-                najia = Najia()
-                najia.compile(params=params, date=date_str)
-
-                print("\n【纳甲六亲、六神、动爻等详细信息】")
-                for k, v in najia.data.items():
-                    print(f"{k}: {v}")
-
-
-                bengua = main_hexagram.find_explanation_file()
-                zhigua = None
-                if main_hexagram.changed_hexagram:
-                    zhigua = main_hexagram.changed_hexagram.find_explanation_file()
-
-                explanation_text = get_combined_explanation(bengua, zhigua)
+                # AI section
+                explanation_text = main_hexagram.to_text()
 
 
                 if explanation_text:
@@ -183,4 +168,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# 下一步：纳甲，context长度，回答风格，api level fine tune，
+# 下一步：纳甲，回答context长度，回答风格api fine tune，

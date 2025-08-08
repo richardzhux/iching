@@ -88,6 +88,50 @@ class Hexagram:
         else:
             print(f"未找到 {file_type} 对应的文件: {self.name}")
 
+
+    def to_text(self):
+        """Build EXACTLY what display() shows, but as a string."""
+        out = []
+        out.append("\n您的卦象:")
+        reversed_lines = self.lines[::-1]
+        for i, line in enumerate(reversed_lines):
+            symbol = "---" if line in [7, 9] else "- -"
+            moving = " O" if line == 9 else " X" if line == 6 else ""
+            out.append(f"第 {6 - i} 爻: {symbol}{moving}")
+
+        out.append(f"\n本卦: {self.name} - 解释: {self.explanation}")
+
+        if self.changed_hexagram:
+            out.append(f"变卦: {self.changed_hexagram.name} - 解释: {self.changed_hexagram.explanation}")
+            # embed file contents instead of printing:
+            out.append(self._explanation_file_text(file_type="本卦"))
+            out.append(self.changed_hexagram._explanation_file_text(file_type="变卦"))
+        else:
+            out.append("变卦：没有动爻，故无变卦 - 404 Not Found。")
+            out.append(self._explanation_file_text(file_type="本卦"))
+
+        inverse_name, inverse_explanation = self.inverse_hexagram
+        out.append(f"错卦: {inverse_name} - 解释: {inverse_explanation}")
+
+        reverse_name, reverse_explanation = self.reverse_hexagram
+        out.append(f"综卦: {reverse_name} - 解释: {reverse_explanation}")
+
+        mutual_name, mutual_explanation = self.mutual_hexagram
+        if mutual_name:
+            out.append(f"互卦: {mutual_name} - 解释: {mutual_explanation}")
+        else:
+            out.append("互卦未找到。")
+
+        return "\n".join(out)
+    
+    def _explanation_file_text(self, file_type="本卦", folder="guaci"):
+        file_path = self.find_explanation_file(folder)
+        if not file_path:
+            return f"未找到 {file_type} 对应的文件: {self.name}\n"
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return f"\n{file_type}: {self.name} 对应的文件: {file_path}\n内容:\n{content}\n"
+
     def display(self):
         print("\n您的卦象:")
         reversed_lines = self.lines[::-1]
