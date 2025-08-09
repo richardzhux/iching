@@ -1,3 +1,6 @@
+# depreciated
+
+
 sorted_terms_with_scores = {
     "元吉": 100,
     "大吉": 98,

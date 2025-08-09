@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+### WARNING: DEPRECIATED!
+
 import time
 from qigua import ShicaoMethod, CoinMethod, MeihuaMethod, ManualInputMethod
 from validateTime import get_current_time, get_user_time_input
