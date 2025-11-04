@@ -8,12 +8,13 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import gradio as gr
 
 from iching.config import PATHS, build_app_config
 from iching.core.system import display_system_usage
+from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES
 from iching.services.session import SessionResult, SessionService
 
 CONFIG = build_app_config()
@@ -21,7 +22,23 @@ SERVICE = SessionService(config=CONFIG)
 
 TOPICS = [value for key, value in SERVICE.TOPIC_MAP.items() if key != "q"]
 METHODS = [(method.name, method.key) for method in SERVICE.methods.values()]
-AI_MODELS = ["gpt-5-nano", "gpt-5", "o3"]
+AI_MODELS = ["gpt-5-nano", "gpt-4.1-nano", "gpt-5", "o3"]
+AI_REASONING_LEVELS = [
+    ("极简", "minimal"),
+    ("低", "low"),
+    ("中", "medium"),
+    ("高", "high"),
+]
+AI_VERBOSITY_LEVELS = [
+    ("简洁", "low"),
+    ("适中", "medium"),
+    ("详尽", "high"),
+]
+
+REASONING_LABEL_TO_VALUE = {label: value for label, value in AI_REASONING_LEVELS}
+REASONING_VALUE_TO_LABEL = {value: label for label, value in AI_REASONING_LEVELS}
+VERBOSITY_LABEL_TO_VALUE = {label: value for label, value in AI_VERBOSITY_LEVELS}
+VERBOSITY_VALUE_TO_LABEL = {value: label for label, value in AI_VERBOSITY_LEVELS}
 
 
 def _parse_manual_lines(raw: str) -> Optional[list[int]]:
@@ -94,6 +111,8 @@ def _run_session(
     enable_ai: bool,
     access_pw: str,
     ai_model: str,
+    ai_reasoning_label: Optional[str],
+    ai_verbosity_label: Optional[str],
 ) -> Tuple[str, str, str, str, dict, Optional[str]]:
     method_lookup = {name: key for name, key in METHODS}
     method_key = method_lookup[method_label]
@@ -121,6 +140,31 @@ def _run_session(
                 _make_download(message),
             )
 
+    capabilities = MODEL_CAPABILITIES.get(ai_model, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    allowed_reasoning = capabilities.get("reasoning", [])
+    default_reasoning = capabilities.get("default_reasoning")
+
+    reasoning_value: Optional[str]
+    if allowed_reasoning:
+        requested_reasoning = REASONING_LABEL_TO_VALUE.get(ai_reasoning_label or "")
+        if requested_reasoning in allowed_reasoning:
+            reasoning_value = requested_reasoning
+        else:
+            reasoning_value = default_reasoning or allowed_reasoning[0]
+    else:
+        reasoning_value = None
+
+    verbosity_value: Optional[str]
+    if capabilities.get("verbosity"):
+        default_verbosity = capabilities.get("default_verbosity", "medium")
+        requested_verbosity = VERBOSITY_LABEL_TO_VALUE.get(ai_verbosity_label or "")
+        if requested_verbosity in {"low", "medium", "high"}:
+            verbosity_value = requested_verbosity
+        else:
+            verbosity_value = default_verbosity
+    else:
+        verbosity_value = None
+
     result = SERVICE.create_session(
         topic=topic,
         user_question=(question or None),
@@ -130,6 +174,8 @@ def _run_session(
         manual_lines=manual_lines,
         enable_ai=ai_allowed,
         ai_model=ai_model,
+        ai_reasoning=reasoning_value,
+        ai_verbosity=verbosity_value,
         interactive=False,
     )
 
@@ -157,6 +203,77 @@ def _run_session(
         session_dict,
         download_path,
     )
+
+
+def _reasoning_choices_for(model: str) -> list[str]:
+    capabilities = MODEL_CAPABILITIES.get(model, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    allowed = capabilities.get("reasoning", [])
+    return [label for label, value in AI_REASONING_LEVELS if value in allowed]
+
+
+def _default_reasoning_label(model: str) -> Optional[str]:
+    choices = _reasoning_choices_for(model)
+    if not choices:
+        return None
+    capabilities = MODEL_CAPABILITIES.get(model, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    default_value = capabilities.get("default_reasoning") or next(
+        (value for label, value in AI_REASONING_LEVELS if label in choices),
+        None,
+    )
+    if default_value is None:
+        return None
+    return REASONING_VALUE_TO_LABEL.get(default_value)
+
+
+def _default_verbosity_label(model: str) -> Optional[str]:
+    capabilities = MODEL_CAPABILITIES.get(model, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    if not capabilities.get("verbosity"):
+        return None
+    default_value = capabilities.get("default_verbosity", "medium")
+    return VERBOSITY_VALUE_TO_LABEL.get(default_value, VERBOSITY_VALUE_TO_LABEL["medium"])
+
+
+def _verbosity_visible(model: str) -> bool:
+    capabilities = MODEL_CAPABILITIES.get(model, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    return bool(capabilities.get("verbosity"))
+
+
+def update_ai_controls(
+    selected_model: str,
+    current_reasoning_label: Optional[str],
+    current_verbosity_label: Optional[str],
+) -> Tuple[Any, Any]:
+    capabilities = MODEL_CAPABILITIES.get(selected_model, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    allowed_reasoning = capabilities.get("reasoning", [])
+    if allowed_reasoning:
+        reasoning_choices = _reasoning_choices_for(selected_model)
+        requested_value = REASONING_LABEL_TO_VALUE.get(current_reasoning_label or "")
+        if requested_value not in allowed_reasoning:
+            requested_value = capabilities.get("default_reasoning") or allowed_reasoning[0]
+        reasoning_label = REASONING_VALUE_TO_LABEL.get(requested_value, reasoning_choices[0])
+        reasoning_update = gr.update(
+            visible=True,
+            choices=reasoning_choices,
+            value=reasoning_label,
+        )
+    else:
+        reasoning_update = gr.update(visible=False, choices=[], value=None)
+
+    if capabilities.get("verbosity"):
+        default_verbosity = capabilities.get("default_verbosity", "medium")
+        requested_verbosity = VERBOSITY_LABEL_TO_VALUE.get(current_verbosity_label or "")
+        if requested_verbosity not in {"low", "medium", "high"}:
+            requested_verbosity = default_verbosity
+        verbosity_label = VERBOSITY_VALUE_TO_LABEL.get(requested_verbosity, VERBOSITY_VALUE_TO_LABEL["medium"])
+        verbosity_update = gr.update(
+            visible=True,
+            choices=[label for label, _ in AI_VERBOSITY_LEVELS],
+            value=verbosity_label,
+        )
+    else:
+        verbosity_update = gr.update(visible=False, choices=[], value=None)
+
+    return reasoning_update, verbosity_update
 
 
 def _abort_with_message(reason: str) -> Tuple[str, str, str, str, dict, Optional[str]]:
@@ -244,7 +361,23 @@ with gr.Blocks(
                     label="访问密码（与环境变量 OPENAI_PW 匹配）", type="password"
                 )
                 ai_model = gr.Dropdown(
-                    choices=AI_MODELS, value=AI_MODELS[0], label="模型"
+                    choices=AI_MODELS,
+                    value=DEFAULT_MODEL,
+                    label="模型",
+                )
+                ai_reasoning = gr.Radio(
+                    choices=_reasoning_choices_for(DEFAULT_MODEL),
+                    value=_default_reasoning_label(DEFAULT_MODEL),
+                    label="推理力度",
+                    info="极简=最快；力度越高越慢但推理更充分",
+                    visible=bool(_reasoning_choices_for(DEFAULT_MODEL)),
+                )
+                ai_verbosity = gr.Radio(
+                    choices=[label for label, _ in AI_VERBOSITY_LEVELS],
+                    value=_default_verbosity_label(DEFAULT_MODEL),
+                    label="输出篇幅",
+                    info="仅 GPT-5 系列支持：控制回答的简洁程度与篇幅。",
+                    visible=_verbosity_visible(DEFAULT_MODEL),
                 )
 
             with gr.Row():
@@ -282,6 +415,12 @@ with gr.Blocks(
 
     use_now.change(toggle_time_field, inputs=[use_now], outputs=[custom_dt])
 
+    ai_model.change(
+        update_ai_controls,
+        inputs=[ai_model, ai_reasoning, ai_verbosity],
+        outputs=[ai_reasoning, ai_verbosity],
+    )
+
     run_btn.click(
         _run_session,
         inputs=[
@@ -294,6 +433,8 @@ with gr.Blocks(
             enable_ai,
             access_pw,
             ai_model,
+            ai_reasoning,
+            ai_verbosity,
         ],
         outputs=[out_summary, out_hex, out_najia, out_ai, out_session, out_file],
         queue=True,

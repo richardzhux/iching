@@ -10,7 +10,7 @@ from iching.core.bazi import BaZiCalculator
 from iching.core.divination import AVAILABLE_METHODS, DivinationMethod
 from iching.core.hexagram import Hexagram, load_hexagram_definitions
 from iching.core.time_utils import get_current_time
-from iching.integrations.ai import analyze_session
+from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES, analyze_session
 from iching.integrations.najia.najia import Najia
 
 
@@ -31,6 +31,9 @@ class SessionResult:
     hex_text: str
     najia_text: str
     najia_data: Dict[str, object]
+    ai_model: Optional[str]
+    ai_reasoning: Optional[str]
+    ai_verbosity: Optional[str]
     ai_analysis: Optional[str]
     full_text: str = field(repr=False)
 
@@ -213,6 +216,8 @@ class SessionService:
         lines_override: Optional[List[int]] = None,
         enable_ai: Optional[bool] = None,
         ai_model: Optional[str] = None,
+        ai_reasoning: Optional[str] = None,
+        ai_verbosity: Optional[str] = None,
         api_key: Optional[str] = None,
         interactive: bool = False,
         input_func: Callable[[str], str] = _default_input,
@@ -249,6 +254,28 @@ class SessionService:
 
         ai_analysis_text = None
         should_use_ai = self.config.enable_ai if enable_ai is None else enable_ai
+        model_hint = ai_model or self.config.preferred_ai_model or DEFAULT_MODEL
+        capabilities = MODEL_CAPABILITIES.get(model_hint, MODEL_CAPABILITIES[DEFAULT_MODEL])
+
+        allowed_reasoning = capabilities.get("reasoning", [])
+        default_reasoning = capabilities.get("default_reasoning")
+        if allowed_reasoning:
+            if ai_reasoning in allowed_reasoning:
+                reasoning_effort = ai_reasoning
+            else:
+                reasoning_effort = default_reasoning or allowed_reasoning[0]
+        else:
+            reasoning_effort = None
+
+        supports_verbosity = bool(capabilities.get("verbosity"))
+        if supports_verbosity:
+            default_verbosity = capabilities.get("default_verbosity", "medium")
+            if ai_verbosity in {"low", "medium", "high"}:
+                verbosity_level = ai_verbosity
+            else:
+                verbosity_level = default_verbosity
+        else:
+            verbosity_level = None
         if should_use_ai:
             session_payload = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -263,12 +290,17 @@ class SessionService:
                 "najia_data": dict(najia.data),
                 "najia_text": najia_text,
                 "ai_analysis": None,
+                "ai_model": model_hint,
+                "ai_reasoning": reasoning_effort,
+                "ai_verbosity": verbosity_level,
             }
             ai_analysis_text = analyze_session(
                 session_payload,
                 api_key=api_key,
-                model_hint=ai_model or self.config.preferred_ai_model,
+                model_hint=model_hint,
                 interactive=interactive,
+                reasoning_effort=reasoning_effort,
+                verbosity=verbosity_level,
             )
             session_payload["ai_analysis"] = ai_analysis_text
         else:
@@ -285,6 +317,9 @@ class SessionService:
                 "najia_data": dict(najia.data),
                 "najia_text": najia_text,
                 "ai_analysis": None,
+                "ai_model": model_hint,
+                "ai_reasoning": reasoning_effort,
+                "ai_verbosity": verbosity_level,
             }
 
         chunks = [
@@ -311,6 +346,9 @@ class SessionService:
             hex_text=hex_text,
             najia_text=najia_text,
             najia_data=session_payload["najia_data"],
+            ai_model=session_payload.get("ai_model"),
+            ai_reasoning=session_payload.get("ai_reasoning"),
+            ai_verbosity=session_payload.get("ai_verbosity"),
             ai_analysis=ai_analysis_text,
             full_text=full_text,
         )

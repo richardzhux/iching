@@ -5,8 +5,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+# Load environment variables from the project .env if available.
+load_dotenv(PROJECT_ROOT / ".env", override=False)
 
 
 @dataclass(frozen=True, slots=True)

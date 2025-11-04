@@ -4,12 +4,41 @@ import json
 import os
 from typing import Any, Callable, Dict, Optional
 
-from openai import OpenAI
+from openai import BadRequestError, OpenAI
+
+MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
+    "gpt-5-nano": {
+        "reasoning": ["minimal", "low", "medium", "high"],
+        "default_reasoning": "minimal",
+        "verbosity": True,
+        "default_verbosity": "medium",
+    },
+    "gpt-4.1-nano": {
+        "reasoning": [],
+        "default_reasoning": None,
+        "verbosity": False,
+        "default_verbosity": None,
+    },
+    "gpt-5": {
+        "reasoning": ["minimal", "low", "medium", "high"],
+        "default_reasoning": "minimal",
+        "verbosity": True,
+        "default_verbosity": "medium",
+    },
+    "o3": {
+        "reasoning": ["low", "medium", "high"],
+        "default_reasoning": "low",
+        "verbosity": False,
+        "default_verbosity": None,
+    },
+}
+
+DEFAULT_MODEL = "gpt-5-nano"
 
 
 SYSTEM_PROMPT_PRO = """
 你是一位收费数千元/次的资深《易》学占断专家与专业顾问。你的风格是：严谨、可验证、可执行、避免玄谈。
-你会在内心进行逐步推理，但只输出结构化结论（JSON），不要暴露推理草稿。
+你会在内心进行逐步推理，但面向用户的输出需以中文段落或要点呈现，条理清晰、易读，不要使用 JSON 或代码块格式，也不要暴露推理草稿。
 
 【输入】
 你将接收一个“完整会话字典”，包含：
@@ -49,8 +78,9 @@ SYSTEM_PROMPT_PRO = """
 - 主题与问题不匹配：先澄清假设，再做两分支判断。
 
 【输出要求】
-- 仿照流程与规则中的格式，尽可能说明细节。
-- 若信息缺失，显式留空或给“缺失”说明，禁止编造。
+- 按照“动爻判定/五行旺衰/多卦参照/应期/行动方案/风险与不确定性/总结”的顺序输出，每个部分使用小标题或编号开头，说明要点可用短段落或精炼子弹列举。
+- 保持专业语气和可执行性，如需引用卦辞或象义请简要说明来源。
+- 若信息缺失，显式说明“缺失”或“不适用”，禁止编造。
 """
 
 
@@ -80,6 +110,26 @@ def _build_prompt(data: Dict[str, Any]) -> str:
         except Exception:
             blocks.append("纳甲六亲/六神/动爻（原始）:\n" + str(najia_data))
 
+    reasoning = data.get("ai_reasoning")
+    reasoning_note = ""
+    if reasoning == "minimal":
+        reasoning_note = "推理力度: 极简。聚焦关键依据与结论，压缩篇幅，避免重复。"
+    elif reasoning == "low":
+        reasoning_note = "推理力度: 低。给出主要推理链条，保留必要的解释，但保持简洁。"
+    elif reasoning == "medium":
+        reasoning_note = "推理力度: 中。完整展示核心推演步骤与支撑证据，适度展开。"
+    elif reasoning == "high":
+        reasoning_note = "推理力度: 高。详尽阐述推理过程、备选解释与权衡，同时给出清晰结构。"
+
+    verbosity = data.get("ai_verbosity")
+    verbosity_note = ""
+    if verbosity == "low":
+        verbosity_note = "输出篇幅: 简洁。以要点式段落呈现，避免冗长。"
+    elif verbosity == "medium":
+        verbosity_note = "输出篇幅: 适中。保持结构完整与适度细节。"
+    elif verbosity == "high":
+        verbosity_note = "输出篇幅: 详尽。充分展开背景、推理与建议。"
+
     blocks.append(
         "请按以下顺序给出专业判断与建议：\n"
         "1) 动爻判定与取舍规则（逐条说明理由）；\n"
@@ -90,6 +140,10 @@ def _build_prompt(data: Dict[str, Any]) -> str:
         "6) 风险与不确定性（给出触发条件与应对）；\n"
         "7) 总结（一句话总断，避免空话）。"
     )
+    if reasoning_note:
+        blocks.append(reasoning_note)
+    if verbosity_note:
+        blocks.append(verbosity_note)
     return "\n\n".join(blocks)
 
 
@@ -108,9 +162,10 @@ def _prompt_for_password() -> None:
 
 def _interactive_model_selector() -> str:
     options = [
-        ("A", "gpt-5-nano", "最快 (推荐日常批量/工具/低成本)"),
-        ("B", "gpt-5", "最均衡 (推荐复杂文本、推理)"),
-        ("C", "o3", "最强/最慢 (复杂推理、大模型实验)"),
+        ("A", "gpt-5-nano", "默认 (性能与成本平衡)"),
+        ("B", "gpt-4.1-nano", "极速 (最低成本/延迟)"),
+        ("C", "gpt-5", "高阶文本与推理"),
+        ("D", "o3", "最强推理 (更慢/更贵)"),
     ]
     print("\n请选择OpenAI模型（默认：gpt-5-nano）：")
     for letter, model, desc in options:
@@ -119,8 +174,10 @@ def _interactive_model_selector() -> str:
     if choice in ("", "A"):
         return "gpt-5-nano"
     if choice == "B":
-        return "gpt-5"
+        return "gpt-4.1-nano"
     if choice == "C":
+        return "gpt-5"
+    if choice == "D":
         return "o3"
     print("警告：输入无效，已自动使用默认模型 gpt-5-nano。")
     return "gpt-5-nano"
@@ -134,6 +191,8 @@ def analyze_session(
     interactive: bool = True,
     password_provider: Optional[Callable[[], None]] = None,
     model_selector: Optional[Callable[[], str]] = None,
+    reasoning_effort: Optional[str] = None,
+    verbosity: Optional[str] = None,
 ) -> Optional[str]:
     """
     Send the session dictionary to OpenAI and return the textual response.
@@ -158,19 +217,96 @@ def analyze_session(
         return None
 
     choose_model = model_selector or _interactive_model_selector
-    model_name = model_hint or (choose_model() if interactive else "gpt-5-nano")
+    model_name = model_hint or (choose_model() if interactive else DEFAULT_MODEL)
+
+    capabilities = MODEL_CAPABILITIES.get(model_name, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    allowed_reasoning = capabilities.get("reasoning", [])
+    default_reasoning = capabilities.get("default_reasoning")
+
+    selected_reasoning = reasoning_effort or data.get("ai_reasoning")
+    if not allowed_reasoning:
+        selected_reasoning = None
+    else:
+        if selected_reasoning not in allowed_reasoning:
+            selected_reasoning = default_reasoning or allowed_reasoning[0]
+
+    supports_verbosity = bool(capabilities.get("verbosity"))
+    selected_verbosity = verbosity or data.get("ai_verbosity")
+    if supports_verbosity:
+        if selected_verbosity not in {"low", "medium", "high"}:
+            selected_verbosity = capabilities.get("default_verbosity", "medium")
+    else:
+        selected_verbosity = None
 
     client = OpenAI(api_key=api_key)
     user_prompt = _build_prompt(data)
-    response = client.chat.completions.create(
-        model=model_name,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT_PRO.strip()},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=1,
-    )
-    content = response.choices[0].message.content
+
+    def _invoke(use_reasoning: bool, use_verbosity: bool):
+        payload: Dict[str, Any] = {
+            "model": model_name,
+            "input": [
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT_PRO.strip(),
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt,
+                },
+            ],
+        }
+        if use_reasoning and selected_reasoning:
+            payload["reasoning"] = {"effort": selected_reasoning}
+        if use_verbosity and selected_verbosity:
+            payload["text"] = {"verbosity": selected_verbosity}
+        return client.responses.create(**payload)
+
+    use_reasoning_flag = selected_reasoning is not None
+    use_verbosity_flag = selected_verbosity is not None
+
+    try:
+        response = _invoke(use_reasoning_flag, use_verbosity_flag)
+    except BadRequestError as exc:
+        error_text = str(exc).lower()
+        retried = False
+        if use_reasoning_flag and "reasoning" in error_text:
+            use_reasoning_flag = False
+            try:
+                response = _invoke(use_reasoning_flag, use_verbosity_flag)
+                retried = True
+            except BadRequestError as inner_exc:
+                error_text = str(inner_exc).lower()
+                if use_verbosity_flag and ("text" in error_text or "verbosity" in error_text):
+                    use_verbosity_flag = False
+                    response = _invoke(use_reasoning_flag, use_verbosity_flag)
+                    retried = True
+                else:
+                    raise
+        if not retried:
+            if use_verbosity_flag and ("text" in error_text or "verbosity" in error_text):
+                use_verbosity_flag = False
+                try:
+                    response = _invoke(use_reasoning_flag, use_verbosity_flag)
+                except BadRequestError as inner_exc:
+                    error_text = str(inner_exc).lower()
+                    if use_reasoning_flag and "reasoning" in error_text:
+                        use_reasoning_flag = False
+                        response = _invoke(use_reasoning_flag, use_verbosity_flag)
+                    else:
+                        raise
+            else:
+                raise
+
+    if hasattr(response, "output_text") and response.output_text:
+        content = response.output_text
+    else:
+        chunks = []
+        for item in getattr(response, "output", []) or []:
+            for part in getattr(item, "content", []) or []:
+                text = part.get("text") if isinstance(part, dict) else getattr(part, "text", None)
+                if text:
+                    chunks.append(text)
+        content = "".join(chunks)
     return content.strip() if content else None
 
 
