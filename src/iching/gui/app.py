@@ -94,7 +94,7 @@ def _run_session(
     enable_ai: bool,
     access_pw: str,
     ai_model: str,
-) -> Tuple[str, str, dict, str, dict, Optional[str]]:
+) -> Tuple[str, str, str, str, dict, Optional[str]]:
     method_lookup = {name: key for name, key in METHODS}
     method_key = method_lookup[method_label]
 
@@ -115,7 +115,7 @@ def _run_session(
             return (
                 message,
                 "",
-                {},
+                "",
                 "",
                 {},
                 _make_download(message),
@@ -152,18 +152,18 @@ def _run_session(
     return (
         "\n".join(summary),
         result.hex_text,
-        session_dict.get("najia_data", {}),
+        result.najia_text,
         result.ai_analysis or "",
         session_dict,
         download_path,
     )
 
 
-def _abort_with_message(reason: str) -> Tuple[str, str, dict, str, dict, Optional[str]]:
+def _abort_with_message(reason: str) -> Tuple[str, str, str, str, dict, Optional[str]]:
     msg = f"会话已中止：{reason}\n时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     archive_path = _save_archive(CONFIG.paths.archive_acquittal_dir, "acquittal", msg)
     download_path = _make_download(msg)
-    return (msg + f"\n\n日志已保存：{archive_path}", "", {}, "", {}, download_path)
+    return (msg + f"\n\n日志已保存：{archive_path}", "", "", "", {}, download_path)
 
 
 def _shutdown_after_delay() -> None:
@@ -175,7 +175,7 @@ def _shutdown_after_delay() -> None:
     os._exit(0)
 
 
-def run_resources() -> Tuple[str, str, dict, str, dict, Optional[str]]:
+def run_resources() -> Tuple[str, str, str, str, dict, Optional[str]]:
     try:
         usage = _capture_system_usage()
         msg = (
@@ -189,7 +189,7 @@ def run_resources() -> Tuple[str, str, dict, str, dict, Optional[str]]:
         return _abort_with_message(f"获取系统资源失败：{exc}")
 
 
-def quit_now() -> Tuple[str, str, dict, str, dict, Optional[str]]:
+def quit_now() -> Tuple[str, str, str, str, dict, Optional[str]]:
     threading.Thread(target=_shutdown_after_delay, daemon=True).start()
     return _abort_with_message("用户点击了退出")
 
@@ -258,7 +258,7 @@ with gr.Blocks(
             with gr.Tab("卦辞与解释"):
                 out_hex = gr.Textbox(label="全文", lines=18)
             with gr.Tab("纳甲数据"):
-                out_najia = gr.JSON(label="najia_data（结构化）")
+                out_najia = gr.Textbox(label="纳甲排盘", lines=12)
             with gr.Tab("AI 分析"):
                 out_ai = gr.Textbox(label="AI 输出", lines=16)
             with gr.Tab("会话字典（调试用）"):

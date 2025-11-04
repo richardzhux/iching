@@ -15,3 +15,20 @@ def test_hexagram_basic_properties():
     text = hexagram.to_text(guaci_path=PATHS.guaci_dir)
     assert "本卦" in text
     assert "错卦" in text
+    assert "对应的文件" not in text
+    assert "内容:" not in text
+    assert "变卦：没有动爻，故无变卦" in text
+
+
+def test_hexagram_single_moving_line_focuses_on_that_line():
+    definitions = load_hexagram_definitions(PATHS.gua_index_file)
+    # Only初六动
+    lines = [6, 7, 7, 7, 7, 7]
+    hexagram = Hexagram(lines, definitions)
+    text = hexagram.to_text(guaci_path=PATHS.guaci_dir)
+
+    assert "对应的文件" not in text
+    assert "内容:" not in text
+    assert "初六" in text
+    assert "九二爻辞" not in text
+    assert "变卦:" in text

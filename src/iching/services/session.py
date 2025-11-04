@@ -29,6 +29,7 @@ class SessionResult:
     bazi_output: str
     elements_output: str
     hex_text: str
+    najia_text: str
     najia_data: Dict[str, object]
     ai_analysis: Optional[str]
     full_text: str = field(repr=False)
@@ -181,8 +182,7 @@ class SessionService:
                     print_func(result.elements_output)
                     print_func(result.hex_text)
                     print_func("\n【纳甲六亲、六神、动爻等详细信息】")
-                    for key, value in result.najia_data.items():
-                        print_func(f"{key}: {value}")
+                    print_func(result.najia_text or "(无数据)")
                     if result.ai_analysis:
                         print_func("\nAI 分析结果:\n" + result.ai_analysis)
 
@@ -240,10 +240,12 @@ class SessionService:
         hexagram = Hexagram(lines, self.definitions)
         hex_text = hexagram.to_text(guaci_path=self.config.paths.guaci_dir)
 
-        params = [1 if value in (7, 9) else 0 for value in lines]
+        params_map = {7: 1, 9: 4, 8: 0, 6: 3}
+        params = [params_map.get(value, 0) for value in lines]
         date_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
         najia = Najia()
-        najia.compile(params=params, date=date_str)
+        najia.compile(params=params, date=date_str, title=topic or "", guaci=False)
+        najia_text = najia.render().strip()
 
         ai_analysis_text = None
         should_use_ai = self.config.enable_ai if enable_ai is None else enable_ai
@@ -259,6 +261,7 @@ class SessionService:
                 "elements_output": elements_output,
                 "hex_text": hex_text,
                 "najia_data": dict(najia.data),
+                "najia_text": najia_text,
                 "ai_analysis": None,
             }
             ai_analysis_text = analyze_session(
@@ -280,6 +283,7 @@ class SessionService:
                 "elements_output": elements_output,
                 "hex_text": hex_text,
                 "najia_data": dict(najia.data),
+                "najia_text": najia_text,
                 "ai_analysis": None,
             }
 
@@ -289,9 +293,8 @@ class SessionService:
             elements_output,
             hex_text,
             "\n【纳甲六亲、六神、动爻等详细信息】",
+            najia_text or "(无纳甲数据)",
         ]
-        for key, value in session_payload["najia_data"].items():
-            chunks.append(f"{key}: {value}")
         if ai_analysis_text:
             chunks.append("\n【AI 分析】\n" + ai_analysis_text)
         full_text = "\n".join(chunks)
@@ -306,6 +309,7 @@ class SessionService:
             bazi_output=bazi_output,
             elements_output=elements_output,
             hex_text=hex_text,
+            najia_text=najia_text,
             najia_data=session_payload["najia_data"],
             ai_analysis=ai_analysis_text,
             full_text=full_text,

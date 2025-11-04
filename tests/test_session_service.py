@@ -18,5 +18,7 @@ def test_session_service_manual_lines_without_ai():
     assert result.topic == "事业"
     assert result.lines == [7, 8, 7, 8, 7, 8]
     assert "najia_data" in result.to_dict()
+    assert "najia_text" in result.to_dict()
+    assert "青龙" in result.najia_text
     assert result.ai_analysis is None
     assert "起卦时间" in result.full_text
