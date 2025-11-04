@@ -16,10 +16,11 @@ reset:
 
 flowchart:
 	@echo "Generating Code2Flow diagram for the iching project..."
-	@code2flow /Users/rx/Documents/VSCode/iching/*.py -o flowchart.png > /dev/null 2>&1
-	@echo "Flowchart generated at flowchart.png"
+	@code2flow /Users/rx/Documents/VSCode/iching/src/iching/**/*.py -o docs/assets/flowchart.png > /dev/null 2>&1
+	@echo "Flowchart generated at docs/assets/flowchart.png"
 
 SCRIPT = /Users/rx/Documents/VSCode/iching/GRAPHS/ast/ast_graph.py
+
 ast:
 	@echo "Running AST analysis to generate individual control flow graphs for each Python file..."
 	@python3 $(SCRIPT)
@@ -145,7 +146,5 @@ deep:
 
 blue:
 	@figlet -c "2024" | lolcat   
-
-
 
 

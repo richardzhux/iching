@@ -3,11 +3,41 @@
 To welcome the election day, try entering `make america great again` and `make penn deep blue` in the terminal!*  
 *requires lolcat, figlet
 
-Welcome to my I Ching Project! This repository is designed to offer an interactive experience with I Ching (The Book of Changes), 
-allowing users to perform traditional divination using methods such as the 50-yarrow stalk method, three-coin toss, or Meihua Yishu. 
+Welcome to my I Ching Project! This repository is designed to offer an interactive experience with I Ching (The Book of Changes),
+allowing users to perform traditional divination using methods such as the 50-yarrow stalk method, three-coin toss, or Meihua Yishu.
 The repository also includes tools to calculate BaZi (八字) and the corresponding five elements (五行).
 
-![Project Structure](flowchart.png)
+## Project Layout
+
+```
+├── src/iching
+│   ├── cli/runner.py          # Console entry point
+│   ├── core/                  # Domain logic (hexagrams, divination, BaZi, time utils)
+│   ├── gui/app.py             # Gradio web interface
+│   ├── integrations/          # AI + Najia adapters
+│   └── services/session.py    # Session orchestration layer
+├── data/                      # Textual resources (guaci, takashima, etc.)
+├── legacy/                    # Archived pre-refactor scripts
+├── tests/                     # Pytest-based smoke tests
+├── bazicalc5.py               # Back-compat helper around the new package
+└── iching5.py                 # CLI bootstrapper (uses the refactored package)
+```
+
+## Usage
+
+```bash
+# install dependencies
+pip install -r requirements.txt
+
+# run the interactive console
+python iching5.py
+
+# launch the Gradio UI
+python gui.py
+
+# execute automated tests
+pytest
+```
 
 # Next steps
 

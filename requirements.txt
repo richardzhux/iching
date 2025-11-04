@@ -14,3 +14,4 @@ python-dotenv==1.1.1
 selenium==4.34.2
 sxtwl==2.0.7
 yue==0.0.1004
+pytest==8.3.3
