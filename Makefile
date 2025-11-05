@@ -3,6 +3,7 @@ commit:
 	@current_time=$$(date "+%Y-%m-%d %H:%M:%S") && \
 	git add . && \
 	git commit -m "Auto commit at $$current_time" && \
+	git pull --rebase origin main && \
 	git push origin main
 
 del:
@@ -146,5 +147,4 @@ deep:
 
 blue:
 	@figlet -c "2024" | lolcat   
-
 
