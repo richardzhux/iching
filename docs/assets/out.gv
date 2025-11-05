@@ -1,0 +1,76 @@
+digraph G {
+concentrate=true;
+splines="ortho";
+rankdir="LR";
+subgraph legend{
+    rank = min;
+    label = "legend";
+    Legend [shape=none, margin=0, label = <
+        <table cellspacing="0" cellpadding="0" border="1"><tr><td>Code2flow Legend</td></tr><tr><td>
+        <table cellspacing="0">
+        <tr><td>Regular function</td><td width="50px" bgcolor='#cccccc'></td></tr>
+        <tr><td>Trunk function (nothing calls this)</td><td bgcolor='#966F33'></td></tr>
+        <tr><td>Leaf function (this calls nothing else)</td><td bgcolor='#6db33f'></td></tr>
+        <tr><td>Function call</td><td><font color='black'>&#8594;</font></td></tr>
+        </table></td></tr></table>
+        >];
+}node_ec793dca [label="0: (global)()" name="app::(global)" shape="rect" style="rounded,filled" fillcolor="#966F33" ];
+node_5c6c9f40 [label="470: _badge()" name="app::_badge" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_63c47ec6 [label="210: _default_reasoning_label()" name="app::_default_reasoning_label" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_f9fbd4ab [label="224: _default_verbosity_label()" name="app::_default_verbosity_label" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_98c52347 [label="70: _ensure_dir()" name="app::_ensure_dir" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_6f447c9e [label="511: _handle_run_button()" name="app::_handle_run_button" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_17f7459b [label="486: _init_session_state()" name="app::_init_session_state" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_6b7d8cdc [label="275: _inject_streamlit_css()" name="app::_inject_streamlit_css" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_2d47a5c3 [label="83: _make_download()" name="app::_make_download" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_d21674cd [label="59: _parse_datetime()" name="app::_parse_datetime" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_3076e833 [label="46: _parse_manual_lines()" name="app::_parse_manual_lines" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_b3db3d53 [label="204: _reasoning_choices_for()" name="app::_reasoning_choices_for" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_793875bf [label="478: _render_output_section()" name="app::_render_output_section" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_dc6e6690 [label="474: _render_text_area()" name="app::_render_text_area" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_a03c4c30 [label="100: _run_session()" name="app::_run_session" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_331a8fac [label="75: _save_archive()" name="app::_save_archive" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_467cf024 [label="89: _validate_ai_password()" name="app::_validate_ai_password" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_a4ab6731 [label="570: main()" name="app::main" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_d6534727 [label="237: update_ai_controls()" name="app::update_ai_controls" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_ec793dca -> node_a4ab6731 [color="#56B4E9" penwidth="2"];
+node_63c47ec6 -> node_b3db3d53 [color="#D55E00" penwidth="2"];
+node_6f447c9e -> node_a03c4c30 [color="#D55E00" penwidth="2"];
+node_17f7459b -> node_63c47ec6 [color="#009E73" penwidth="2"];
+node_17f7459b -> node_f9fbd4ab [color="#009E73" penwidth="2"];
+node_793875bf -> node_dc6e6690 [color="#CC79A7" penwidth="2"];
+node_a03c4c30 -> node_2d47a5c3 [color="#000000" penwidth="2"];
+node_a03c4c30 -> node_2d47a5c3 [color="#000000" penwidth="2"];
+node_a03c4c30 -> node_d21674cd [color="#000000" penwidth="2"];
+node_a03c4c30 -> node_3076e833 [color="#000000" penwidth="2"];
+node_a03c4c30 -> node_331a8fac [color="#000000" penwidth="2"];
+node_a03c4c30 -> node_467cf024 [color="#000000" penwidth="2"];
+node_331a8fac -> node_98c52347 [color="#F0E442" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_5c6c9f40 [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_6f447c9e [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_17f7459b [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_6b7d8cdc [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_793875bf [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_793875bf [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_793875bf [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_793875bf [color="#E69F00" penwidth="2"];
+node_a4ab6731 -> node_d6534727 [color="#E69F00" penwidth="2"];
+node_d6534727 -> node_b3db3d53 [color="#CC79A7" penwidth="2"];
+subgraph cluster_d55691cd {
+    node_3076e833 node_d21674cd node_98c52347 node_331a8fac node_2d47a5c3 node_467cf024 node_a03c4c30 node_b3db3d53 node_63c47ec6 node_f9fbd4ab node_d6534727 node_6b7d8cdc node_5c6c9f40 node_dc6e6690 node_793875bf node_17f7459b node_6f447c9e node_a4ab6731 node_ec793dca;
+    label="File: app";
+    name="app";
+    style="filled";
+    graph[style=dotted];
+};
+}

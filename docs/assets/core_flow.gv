@@ -1,0 +1,38 @@
+digraph G {
+concentrate=true;
+splines="ortho";
+rankdir="LR";
+subgraph legend{
+    rank = min;
+    label = "legend";
+    Legend [shape=none, margin=0, label = <
+        <table cellspacing="0" cellpadding="0" border="1"><tr><td>Code2flow Legend</td></tr><tr><td>
+        <table cellspacing="0">
+        <tr><td>Regular function</td><td width="50px" bgcolor='#cccccc'></td></tr>
+        <tr><td>Trunk function (nothing calls this)</td><td bgcolor='#966F33'></td></tr>
+        <tr><td>Leaf function (this calls nothing else)</td><td bgcolor='#6db33f'></td></tr>
+        <tr><td>Function call</td><td><font color='black'>&#8594;</font></td></tr>
+        </table></td></tr></table>
+        >];
+}node_6fd63cf8 [label="358: _get_valid_choice()" name="session::SessionService._get_valid_choice" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_bda7de84 [label="207: create_session()" name="session::SessionService.create_session" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_7d073c0c [label="72: run_console()" name="session::SessionService.run_console" shape="rect" style="rounded,filled" fillcolor="#966F33" ];
+node_7d073c0c -> node_6fd63cf8 [color="#F0E442" penwidth="2"];
+node_7d073c0c -> node_6fd63cf8 [color="#F0E442" penwidth="2"];
+node_7d073c0c -> node_6fd63cf8 [color="#F0E442" penwidth="2"];
+node_7d073c0c -> node_6fd63cf8 [color="#F0E442" penwidth="2"];
+node_7d073c0c -> node_bda7de84 [color="#F0E442" penwidth="2"];
+subgraph cluster_a7d050b9 {
+    label="File: session";
+    name="session";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_3449f35b {
+        node_7d073c0c node_bda7de84 node_6fd63cf8;
+        label="Class: SessionService";
+        name="SessionService";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+}
