@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-import io
 import os
 import re
 import tempfile
-import threading
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-import gradio as gr
+import sys
+
+import streamlit as st
+
+SRC_DIR = Path(__file__).resolve().parents[2]
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from iching.config import PATHS, build_app_config
-from iching.core.system import display_system_usage
 from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES
-from iching.services.session import SessionResult, SessionService
+from iching.services.session import SessionService
 
 CONFIG = build_app_config()
 SERVICE = SessionService(config=CONFIG)
@@ -63,12 +65,6 @@ def _parse_datetime(raw: str) -> datetime:
     if len(hhmm) != 4 or not hhmm.isdigit():
         raise ValueError("时间格式错误：请用 yyyy.mm.dd.hhmm")
     return datetime(int(year), int(month), int(day), int(hhmm[:2]), int(hhmm[2:]))
-
-
-def _capture_system_usage() -> str:
-    buffer = io.StringIO()
-    buffer.write(display_system_usage())
-    return buffer.getvalue()
 
 
 def _ensure_dir(directory: Path) -> Path:
@@ -242,7 +238,7 @@ def update_ai_controls(
     selected_model: str,
     current_reasoning_label: Optional[str],
     current_verbosity_label: Optional[str],
-) -> Tuple[Any, Any]:
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     capabilities = MODEL_CAPABILITIES.get(selected_model, MODEL_CAPABILITIES[DEFAULT_MODEL])
     allowed_reasoning = capabilities.get("reasoning", [])
     if allowed_reasoning:
@@ -251,13 +247,13 @@ def update_ai_controls(
         if requested_value not in allowed_reasoning:
             requested_value = capabilities.get("default_reasoning") or allowed_reasoning[0]
         reasoning_label = REASONING_VALUE_TO_LABEL.get(requested_value, reasoning_choices[0])
-        reasoning_update = gr.update(
-            visible=True,
-            choices=reasoning_choices,
-            value=reasoning_label,
-        )
+        reasoning_update = {
+            "visible": True,
+            "choices": reasoning_choices,
+            "value": reasoning_label,
+        }
     else:
-        reasoning_update = gr.update(visible=False, choices=[], value=None)
+        reasoning_update = {"visible": False, "choices": [], "value": None}
 
     if capabilities.get("verbosity"):
         default_verbosity = capabilities.get("default_verbosity", "medium")
@@ -265,167 +261,277 @@ def update_ai_controls(
         if requested_verbosity not in {"low", "medium", "high"}:
             requested_verbosity = default_verbosity
         verbosity_label = VERBOSITY_VALUE_TO_LABEL.get(requested_verbosity, VERBOSITY_VALUE_TO_LABEL["medium"])
-        verbosity_update = gr.update(
-            visible=True,
-            choices=[label for label, _ in AI_VERBOSITY_LEVELS],
-            value=verbosity_label,
-        )
+        verbosity_update = {
+            "visible": True,
+            "choices": [label for label, _ in AI_VERBOSITY_LEVELS],
+            "value": verbosity_label,
+        }
     else:
-        verbosity_update = gr.update(visible=False, choices=[], value=None)
+        verbosity_update = {"visible": False, "choices": [], "value": None}
 
     return reasoning_update, verbosity_update
 
 
-def _abort_with_message(reason: str) -> Tuple[str, str, str, str, dict, Optional[str]]:
-    msg = f"会话已中止：{reason}\n时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    archive_path = _save_archive(CONFIG.paths.archive_acquittal_dir, "acquittal", msg)
-    download_path = _make_download(msg)
-    return (msg + f"\n\n日志已保存：{archive_path}", "", "", "", {}, download_path)
-
-
-def _shutdown_after_delay() -> None:
-    time.sleep(1.0)
-    try:
-        demo.close()
-    except Exception:
-        pass
-    os._exit(0)
-
-
-def run_resources() -> Tuple[str, str, str, str, dict, Optional[str]]:
-    try:
-        usage = _capture_system_usage()
-        msg = (
-            "系统资源使用情况：\n"
-            f"{usage}\n\n"
-            f"时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-        threading.Thread(target=_shutdown_after_delay, daemon=True).start()
-        return _abort_with_message("系统资源查看后退出")
-    except Exception as exc:
-        return _abort_with_message(f"获取系统资源失败：{exc}")
-
-
-def quit_now() -> Tuple[str, str, str, str, dict, Optional[str]]:
-    threading.Thread(target=_shutdown_after_delay, daemon=True).start()
-    return _abort_with_message("用户点击了退出")
-
-
-with gr.Blocks(
-    theme=gr.themes.Soft(primary_hue="indigo", neutral_hue="slate"),
-    css="""
-    .gradio-container {font-family: Inter, ui-sans-serif, system-ui, -apple-system;}
-    .header h1 {font-weight: 800; letter-spacing: 0.2px;}
-    .subtle {opacity: 0.75}
-    .footer {opacity: 0.6; font-size: 12px; margin-top: 8px}
-    """,
-) as demo:
-    gr.Markdown(
+def _inject_streamlit_css() -> None:
+    st.markdown(
         """
-        <div class="header">
-          <h1>🔮 I Ching — Web</h1>
-          <div class="subtle">现代化界面 · 手动/随机起卦 · 可选 AI 分析 · 自动归档</div>
-        </div>
+        <style>
+        :root {
+            --nw-purple: #4E2A84;
+            --nw-purple-dark: #401F68;
+            --text-dark: #1F2937;
+        }
+        [data-testid="stAppViewContainer"] {
+            background:
+                radial-gradient(120% 160% at 0% 0%, rgba(255, 126, 185, 0.55), transparent),
+                radial-gradient(140% 180% at 100% 0%, rgba(255, 182, 111, 0.45), transparent),
+                radial-gradient(120% 160% at 0% 100%, rgba(152, 119, 255, 0.45), transparent),
+                radial-gradient(140% 180% at 100% 100%, rgba(111, 210, 255, 0.25), transparent),
+                #ffe2fc !important;
+            color: #3a0f40;
+            min-height: 100vh;
+        }
+        [data-testid="stAppViewContainer"] .main .block-container {
+            padding-top: 2.5rem;
+            padding-bottom: 3.2rem;
+            max-width: 920px;
+        }
+        .header h1 {
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+            color: #430d4d;
+        }
+        .header .subtle {
+            opacity: 0.78;
+            color: #5a1c64;
+            font-size: 0.95rem;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 20px;
+            padding: 24px 26px;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            box-shadow: 0 28px 64px -36px rgba(78, 42, 132, 0.35);
+            backdrop-filter: blur(26px);
+            -webkit-backdrop-filter: blur(26px);
+            color: var(--text-dark);
+            margin-bottom: 22px;
+        }
+        .glass-panel div[data-testid="column"] {
+            padding: 6px 8px;
+        }
+        .badge-label {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(78, 42, 132, 0.82);
+            color: #F9FAFB;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 999px;
+            padding: 6px 18px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            margin-bottom: 10px;
+            transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .badge-label:hover {
+            background: rgba(64, 31, 104, 0.9);
+            border-color: rgba(255, 255, 255, 0.65);
+            box-shadow: 0 10px 24px -16px rgba(64, 31, 104, 0.45);
+        }
+        div[data-testid="stTextInput"] label,
+        div[data-testid="stTextArea"] label,
+        div[data-testid="stSelectbox"] label,
+        div[data-testid="stRadio"] label,
+        div[data-testid="stCheckbox"] label,
+        div[data-testid="stNumberInput"] label {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        div[data-testid="stTextInput"] input,
+        div[data-testid="stTextArea"] textarea,
+        div[data-testid="stSelectbox"] div[role="combobox"],
+        div[data-testid="stNumberInput"] input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(78, 42, 132, 0.25);
+            color: var(--text-dark);
+            border-radius: 12px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            caret-color: var(--nw-purple);
+        }
+        div[data-testid="stTextInput"] input::placeholder,
+        div[data-testid="stTextArea"] textarea::placeholder {
+            color: rgba(55, 65, 81, 0.62);
+        }
+        div[data-testid="stTextInput"] input:focus,
+        div[data-testid="stTextArea"] textarea:focus,
+        div[data-testid="stSelectbox"] div[role="combobox"]:focus,
+        div[data-testid="stSelectbox"] div[role="combobox"]:focus-within {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(78, 42, 132, 0.35);
+            border-color: rgba(78, 42, 132, 0.55);
+            background: rgba(255, 255, 255, 0.98);
+        }
+        div[data-testid="stSelectbox"] div[role="listbox"] {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(78, 42, 132, 0.25);
+            backdrop-filter: blur(18px);
+        }
+        div[data-testid="stSelectbox"] div[role="option"] {
+            color: var(--text-dark);
+        }
+        div[data-testid="stSelectbox"] div[role="option"]:hover {
+            background: rgba(78, 42, 132, 0.1);
+        }
+        div[data-testid="stCheckbox"] input {
+            accent-color: var(--nw-purple);
+        }
+        div[data-testid="stRadio"] div[role="radiogroup"] {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        div[data-testid="stRadio"] div[role="radio"] {
+            background: rgba(78, 42, 132, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            border-radius: 14px;
+            padding: 6px 18px;
+            color: #F9FAFB;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        div[data-testid="stRadio"] div[role="radio"]:hover {
+            background: rgba(64, 31, 104, 0.85);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 24px -18px rgba(64, 31, 104, 0.45);
+        }
+        div[data-testid="stRadio"] div[role="radio"][aria-checked="true"] {
+            background: rgba(64, 31, 104, 0.9);
+            border-color: rgba(255, 255, 255, 0.7);
+            font-weight: 700;
+        }
+        .stButton > button {
+            width: 100%;
+            border-radius: 999px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            color: #2D0D56;
+            font-weight: 700;
+            box-shadow: 0 18px 44px -30px rgba(78, 42, 132, 0.4);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            text-shadow: 0 1px 10px rgba(255, 255, 255, 0.55);
+            transition: background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+        }
+        .stButton > button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 22px 54px -30px rgba(64, 31, 104, 0.5);
+            color: #23094B;
+        }
+        .output-section {
+            background: rgba(255, 247, 252, 0.65);
+            padding: 20px 24px 18px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 189, 249, 0.6);
+            box-shadow: 0 28px 52px -30px rgba(200, 70, 200, 0.45);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            margin-bottom: 22px;
+        }
+        .output-section h2 {
+            margin-bottom: 12px;
+            color: #3d0f45;
+            font-weight: 700;
+        }
+        .output-section pre {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 189, 249, 0.5);
+            color: #321042;
+            border-radius: 12px;
+            padding: 14px;
+            white-space: pre-wrap;
+        }
+        .footer {
+            opacity: 0.7;
+            font-size: 12px;
+            margin-top: 18px;
+            color: #5e2468;
+        }
+        </style>
         """,
+        unsafe_allow_html=True,
     )
 
-    with gr.Row():
-        with gr.Column(scale=3, min_width=360):
-            topic = gr.Dropdown(TOPICS, label="占卜主题", value=TOPICS[0])
-            user_question = gr.Textbox(
-                label="具体问题（可空）", placeholder="例如：今年是否适合换工作？"
-            )
 
-            method_label = gr.Radio(
-                [label for label, _ in METHODS],
-                label="占卜方法",
-                value=METHODS[0][0],
-            )
+def _badge(label: str) -> None:
+    st.markdown(f'<div class="badge-label">{label}</div>', unsafe_allow_html=True)
 
-            manual_lines_text = gr.Textbox(
-                label="手动输入六爻（自下而上；可直接输入 6 位数字如 898789）",
-                placeholder="例如：898789 或 8,9,8,7,8,9",
-                visible=False,
-            )
 
-            with gr.Row():
-                use_now = gr.Checkbox(True, label="使用当前时间")
-                custom_dt = gr.Textbox(
-                    label="自定义起卦时间（yyyy.mm.dd.hhmm）",
-                    value=datetime.now().strftime("%Y.%m.%d.%H%M"),
-                )
+def _render_text_area(label: str, value: str, key: str, height: int = 220) -> None:
+    st.text_area(label, value=value, key=key, height=height, label_visibility="collapsed")
 
-            with gr.Accordion("OpenAI（可选；仅密码）", open=False):
-                enable_ai = gr.Checkbox(False, label="启用 AI 分析")
-                access_pw = gr.Textbox(
-                    label="访问密码（与环境变量 OPENAI_PW 匹配）", type="password"
-                )
-                ai_model = gr.Dropdown(
-                    choices=AI_MODELS,
-                    value=DEFAULT_MODEL,
-                    label="模型",
-                )
-                ai_reasoning = gr.Radio(
-                    choices=_reasoning_choices_for(DEFAULT_MODEL),
-                    value=_default_reasoning_label(DEFAULT_MODEL),
-                    label="推理力度",
-                    info="极简=最快；力度越高越慢但推理更充分",
-                    visible=bool(_reasoning_choices_for(DEFAULT_MODEL)),
-                )
-                ai_verbosity = gr.Radio(
-                    choices=[label for label, _ in AI_VERBOSITY_LEVELS],
-                    value=_default_verbosity_label(DEFAULT_MODEL),
-                    label="输出篇幅",
-                    info="仅 GPT-5 系列支持：控制回答的简洁程度与篇幅。",
-                    visible=_verbosity_visible(DEFAULT_MODEL),
-                )
 
-            with gr.Row():
-                run_btn = gr.Button("▶️ 开始起卦", variant="primary")
-                r_btn = gr.Button("🖥️ 系统资源 (r)", variant="secondary")
-                quit_btn = gr.Button("⛔ 退出 (q)", variant="stop")
+def _render_output_section(title: str, body: str, key: str, height: int = 220) -> None:
+    if not body:
+        return
+    st.markdown(f'<div class="output-section"><h2>{title}</h2>', unsafe_allow_html=True)
+    _render_text_area("", body, key=key, height=height)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-        with gr.Column(scale=5):
-            with gr.Tab("概览"):
-                out_summary = gr.Textbox(label="概要", lines=8)
-            with gr.Tab("卦辞与解释"):
-                out_hex = gr.Textbox(label="全文", lines=18)
-            with gr.Tab("纳甲数据"):
-                out_najia = gr.Textbox(label="纳甲排盘", lines=12)
-            with gr.Tab("AI 分析"):
-                out_ai = gr.Textbox(label="AI 输出", lines=16)
-            with gr.Tab("会话字典（调试用）"):
-                out_session = gr.JSON(label="session_dict")
-            out_file = gr.File(label="下载结果（.txt）")
 
-    def toggle_manual_visibility(selected_method: str):
-        return gr.update(visible=(selected_method == "手动输入"))
+def _init_session_state() -> None:
+    defaults = {
+        "topic": TOPICS[0],
+        "user_question": "",
+        "method": METHODS[0][0],
+        "manual_lines": "",
+        "use_now": True,
+        "custom_dt": datetime.now().strftime("%Y.%m.%d.%H%M"),
+        "enable_ai": False,
+        "access_pw": "",
+        "ai_model": DEFAULT_MODEL,
+        "ai_reasoning": _default_reasoning_label(DEFAULT_MODEL),
+        "ai_verbosity": _default_verbosity_label(DEFAULT_MODEL),
+    }
+    for key, value in defaults.items():
+        st.session_state.setdefault(key, value)
+    st.session_state.setdefault("run_error", "")
+    st.session_state.setdefault("summary_text", "")
+    st.session_state.setdefault("hex_text", "")
+    st.session_state.setdefault("najia_text", "")
+    st.session_state.setdefault("ai_text", "")
+    st.session_state.setdefault("session_json", {})
+    st.session_state.setdefault("download_path", None)
 
-    method_label.change(
-        toggle_manual_visibility,
-        inputs=[method_label],
-        outputs=[manual_lines_text],
-    )
 
-    def toggle_time_field(checked: bool):
-        if checked:
-            now_str = datetime.now().strftime("%Y.%m.%d.%H%M")
-            return gr.update(value=now_str, interactive=False)
-        return gr.update(interactive=True)
-
-    use_now.change(toggle_time_field, inputs=[use_now], outputs=[custom_dt])
-
-    ai_model.change(
-        update_ai_controls,
-        inputs=[ai_model, ai_reasoning, ai_verbosity],
-        outputs=[ai_reasoning, ai_verbosity],
-    )
-
-    run_btn.click(
-        _run_session,
-        inputs=[
+def _handle_run_button(
+    topic: str,
+    question: str,
+    method_label: str,
+    manual_lines_text: str,
+    use_now: bool,
+    custom_dt: str,
+    enable_ai: bool,
+    access_pw: str,
+    ai_model: str,
+    ai_reasoning_label: Optional[str],
+    ai_verbosity_label: Optional[str],
+) -> None:
+    try:
+        (
+            summary,
+            hex_text,
+            najia_text,
+            ai_text,
+            session_dict,
+            download_path,
+        ) = _run_session(
             topic,
-            user_question,
+            question,
             method_label,
             manual_lines_text,
             use_now,
@@ -433,35 +539,193 @@ with gr.Blocks(
             enable_ai,
             access_pw,
             ai_model,
-            ai_reasoning,
-            ai_verbosity,
-        ],
-        outputs=[out_summary, out_hex, out_najia, out_ai, out_session, out_file],
-        queue=True,
+            ai_reasoning_label,
+            ai_verbosity_label,
+        )
+        st.session_state.update(
+            {
+                "summary_text": summary,
+                "hex_text": hex_text,
+                "najia_text": najia_text,
+                "ai_text": ai_text,
+                "session_json": session_dict,
+                "download_path": download_path,
+                "run_error": "",
+            }
+        )
+    except Exception as exc:  # noqa: BLE001
+        st.session_state.update(
+            {
+                "run_error": str(exc),
+                "summary_text": "",
+                "hex_text": "",
+                "najia_text": "",
+                "ai_text": "",
+                "session_json": {},
+                "download_path": None,
+            }
+        )
+
+
+def main() -> None:
+    st.set_page_config(page_title="I Ching — Web", page_icon="🔮", layout="wide")
+    _inject_streamlit_css()
+    _init_session_state()
+
+    st.markdown(
+        """
+        <div class="header">
+          <h1>🔮 I Ching — Web</h1>
+          <div class="subtle">现代化界面 · 手动/随机起卦 · 可选 AI 分析 · 自动归档</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    quit_btn.click(
-        quit_now,
-        inputs=None,
-        outputs=[out_summary, out_hex, out_najia, out_ai, out_session, out_file],
-        queue=False,
-    )
+    with st.container():
+        st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
 
-    r_btn.click(
-        run_resources,
-        inputs=None,
-        outputs=[out_summary, out_hex, out_najia, out_ai, out_session, out_file],
-        queue=False,
-    )
+        col1, col2 = st.columns([1, 2], gap="medium")
+        with col1:
+            _badge("占卜主题")
+            st.selectbox("", TOPICS, index=TOPICS.index(st.session_state.topic), key="topic", label_visibility="collapsed")
+        with col2:
+            _badge("具体问题（可空）")
+            st.text_input("", key="user_question", placeholder="例如：今年是否适合换工作？", label_visibility="collapsed")
 
-    gr.Markdown(
-        f'<div class="footer">数据目录: <code>{PATHS.data_dir}</code> · guaci 目录: <code>{PATHS.guaci_dir}</code></div>'
-    )
+        col_left, col_right = st.columns(2, gap="medium")
+        with col_left:
+            _badge("占卜方法")
+            method_choices = [label for label, _ in METHODS]
+            default_index = method_choices.index(st.session_state.method)
+            st.radio("", method_choices, index=default_index, key="method", label_visibility="collapsed")
+            if st.session_state.method == "手动输入":
+                _badge("手动输入六爻（自下而上；可直接输入 6 位数字如 898789）")
+                st.text_input("", key="manual_lines", placeholder="例如：898789 或 8,9,8,7,8,9", label_visibility="collapsed")
 
+        with col_right:
+            _badge("时间设置")
+            use_now_value = st.checkbox("使用当前时间", value=st.session_state.use_now, key="use_now")
+            if use_now_value:
+                st.session_state.custom_dt = datetime.now().strftime("%Y.%m.%d.%H%M")
+            _badge("自定义起卦时间（yyyy.mm.dd.hhmm）")
+            st.text_input(
+                "",
+                key="custom_dt",
+                value=st.session_state.custom_dt,
+                label_visibility="collapsed",
+                disabled=use_now_value,
+            )
+
+        col_a, col_b, col_c = st.columns([1, 1, 1], gap="medium")
+        with col_a:
+            _badge("启用 AI 分析")
+            st.checkbox("启用", value=st.session_state.enable_ai, key="enable_ai")
+            _badge("访问密码")
+            st.text_input("", key="access_pw", type="password", label_visibility="collapsed", placeholder="输入访问密码")
+
+        with col_b:
+            _badge("模型")
+            st.selectbox("", AI_MODELS, index=AI_MODELS.index(st.session_state.ai_model), key="ai_model", label_visibility="collapsed")
+
+            reasoning_config, verbosity_config = update_ai_controls(
+                st.session_state.ai_model,
+                st.session_state.get("ai_reasoning"),
+                st.session_state.get("ai_verbosity"),
+            )
+
+            if reasoning_config["visible"]:
+                _badge("推理力度")
+                target_value = reasoning_config["value"] or reasoning_config["choices"][0]
+                if st.session_state.get("ai_reasoning") not in reasoning_config["choices"]:
+                    st.session_state.ai_reasoning = target_value
+                st.radio(
+                    "",
+                    reasoning_config["choices"],
+                    index=reasoning_config["choices"].index(st.session_state.ai_reasoning),
+                    key="ai_reasoning",
+                    label_visibility="collapsed",
+                )
+            else:
+                st.session_state.ai_reasoning = None
+
+        with col_c:
+            if verbosity_config["visible"]:
+                _badge("输出篇幅")
+                target_value = verbosity_config["value"] or verbosity_config["choices"][0]
+                if st.session_state.get("ai_verbosity") not in verbosity_config["choices"]:
+                    st.session_state.ai_verbosity = target_value
+                st.radio(
+                    "",
+                    verbosity_config["choices"],
+                    index=verbosity_config["choices"].index(st.session_state.ai_verbosity),
+                    key="ai_verbosity",
+                    label_visibility="collapsed",
+                )
+                st.caption("仅 GPT-5 系列支持：控制回答的简洁程度与篇幅。")
+            else:
+                st.session_state.ai_verbosity = None
+                st.caption("当前模型不支持调整输出篇幅。")
+
+        run_clicked = st.button("▶️ 开始起卦", use_container_width=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if run_clicked:
+        _handle_run_button(
+            st.session_state.topic,
+            st.session_state.user_question,
+            st.session_state.method,
+            st.session_state.manual_lines,
+            st.session_state.use_now,
+            st.session_state.custom_dt,
+            st.session_state.enable_ai,
+            st.session_state.access_pw,
+            st.session_state.ai_model,
+            st.session_state.ai_reasoning,
+            st.session_state.ai_verbosity,
+        )
+
+    if st.session_state.run_error:
+        st.error(st.session_state.run_error)
+
+    _render_output_section("概要", st.session_state.summary_text, key="summary_output", height=240)
+    _render_output_section("卦辞与解释", st.session_state.hex_text, key="hex_output", height=360)
+    _render_output_section("纳甲数据", st.session_state.najia_text, key="najia_output", height=280)
+    _render_output_section("AI 分析", st.session_state.ai_text, key="ai_output", height=280)
+
+    if st.session_state.session_json:
+        st.markdown('<div class="output-section"><h2>会话字典（调试用）</h2>', unsafe_allow_html=True)
+        st.json(st.session_state.session_json)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.download_path:
+        try:
+            with open(st.session_state.download_path, "rb") as handle:
+                file_bytes = handle.read()
+            st.download_button(
+                "下载结果（.txt）",
+                data=file_bytes,
+                file_name="iching_session.txt",
+                mime="text/plain",
+            )
+        except FileNotFoundError:
+            st.warning("找不到下载文件，请重新生成。")
 
 def launch(*, inbrowser: bool = True) -> None:
-    demo.launch(inbrowser=inbrowser)
+    """Launch the Streamlit app as a subprocess for compatibility with previous API."""
+    script_path = Path(__file__).resolve()
+    command = ["streamlit", "run", str(script_path)]
+    env = os.environ.copy()
+    if not inbrowser:
+        env["STREAMLIT_SERVER_HEADLESS"] = "true"
+    try:
+        import subprocess
+
+        subprocess.run(command, check=True, env=env)
+    except FileNotFoundError as exc:  # noqa: PERF203
+        raise RuntimeError("未找到 streamlit 命令，请先安装 streamlit。") from exc
 
 
 if __name__ == "__main__":
-    launch()
+    main()
