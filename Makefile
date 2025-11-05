@@ -3,7 +3,7 @@ commit:
 	@current_time=$$(date "+%Y-%m-%d %H:%M:%S") && \
 	git add . && \
 	git commit -m "Auto commit at $$current_time" && \
-	git push origin main
+	$(MAKE) push
 
 del:
 	git rm -r --cached specified_path && \
