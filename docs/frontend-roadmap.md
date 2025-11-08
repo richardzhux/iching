@@ -7,7 +7,7 @@ The FastAPI backend is ready for consumption. Use this guide to stand up the new
 ```bash
 cd frontend
 npx create-next-app@latest . \
-  --ts --tailwind --eslint --app --src-dir --import-alias "@/*"
+nd --eslint --app --src-dir --import-alias "@/*"
 npm install @tanstack/react-query zustand class-variance-authority clsx lucide-react
 ```
 
