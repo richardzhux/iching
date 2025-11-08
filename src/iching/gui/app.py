@@ -15,12 +15,15 @@ SRC_DIR = Path(__file__).resolve().parents[2]
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from iching.config import PATHS, build_app_config
+from iching.config import build_app_config
 from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES
 from iching.services.session import SessionService
+from iching.web.models import SessionCreateRequest
+from iching.web.service import AccessDeniedError, get_session_runner
 
 CONFIG = build_app_config()
 SERVICE = SessionService(config=CONFIG)
+RUNNER = get_session_runner()
 
 TOPICS = [value for key, value in SERVICE.TOPIC_MAP.items() if key != "q"]
 METHODS = [(method.name, method.key) for method in SERVICE.methods.values()]
@@ -67,34 +70,10 @@ def _parse_datetime(raw: str) -> datetime:
     return datetime(int(year), int(month), int(day), int(hhmm[:2]), int(hhmm[2:]))
 
 
-def _ensure_dir(directory: Path) -> Path:
-    directory.mkdir(parents=True, exist_ok=True)
-    return directory
-
-
-def _save_archive(directory: Path, prefix: str, content: str) -> Path:
-    directory = _ensure_dir(directory)
-    timestamp = datetime.now().strftime("%Y.%m.%d.%H%M%S")
-    path = directory / f"{prefix}_{timestamp}.txt"
-    path.write_text(content, encoding="utf-8")
-    return path
-
-
 def _make_download(content: str) -> str:
     with tempfile.NamedTemporaryFile("w", delete=False, suffix=".txt", encoding="utf-8") as handle:
         handle.write(content)
         return handle.name
-
-
-def _validate_ai_password(password: str) -> Tuple[bool, str]:
-    expected = os.getenv("OPENAI_PW", "")
-    if not expected:
-        return False, "❌ 环境变量 OPENAI_PW 未设置。"
-    if not password:
-        return False, "❌ 未提供访问密码。"
-    if password != expected:
-        return False, "❌ 密码错误：请检查访问密码（与环境变量 OPENAI_PW 对比）。"
-    return True, ""
 
 
 def _run_session(
@@ -123,19 +102,6 @@ def _run_session(
     if not use_now:
         timestamp = _parse_datetime(custom_dt)
 
-    ai_allowed = False
-    if enable_ai:
-        ai_allowed, message = _validate_ai_password(access_pw)
-        if not ai_allowed:
-            return (
-                message,
-                "",
-                "",
-                "",
-                {},
-                _make_download(message),
-            )
-
     capabilities = MODEL_CAPABILITIES.get(ai_model, MODEL_CAPABILITIES[DEFAULT_MODEL])
     allowed_reasoning = capabilities.get("reasoning", [])
     default_reasoning = capabilities.get("default_reasoning")
@@ -161,42 +127,29 @@ def _run_session(
     else:
         verbosity_value = None
 
-    result = SERVICE.create_session(
+    request = SessionCreateRequest(
         topic=topic,
-        user_question=(question or None),
+        user_question=question or None,
         method_key=method_key,
+        manual_lines=manual_lines,
         use_current_time=use_now,
         timestamp=timestamp,
-        manual_lines=manual_lines,
-        enable_ai=ai_allowed,
+        enable_ai=enable_ai,
+        access_password=access_pw or None,
         ai_model=ai_model,
         ai_reasoning=reasoning_value,
         ai_verbosity=verbosity_value,
-        interactive=False,
     )
 
-    archive_path = _save_archive(CONFIG.paths.archive_complete_dir, "guilty", result.full_text)
-
-    summary = [
-        f"主题: {result.topic or '（未填）'}",
-        f"问题: {result.user_question or '（无）'}",
-        f"方法: {result.method}",
-        f"时间: {result.current_time_str}",
-        f"六爻: {result.lines}",
-        f"已保存: {archive_path}",
-    ]
-
-    session_dict = result.to_dict()
-    session_dict["ai_analysis"] = result.ai_analysis
-
-    download_path = _make_download(result.full_text)
+    payload = RUNNER.run(request)
+    download_path = _make_download(payload.full_text)
 
     return (
-        "\n".join(summary),
-        result.hex_text,
-        result.najia_text,
-        result.ai_analysis or "",
-        session_dict,
+        payload.summary_text,
+        payload.hex_text,
+        payload.najia_text,
+        payload.ai_text,
+        payload.session_dict,
         download_path,
     )
 
@@ -227,11 +180,6 @@ def _default_verbosity_label(model: str) -> Optional[str]:
         return None
     default_value = capabilities.get("default_verbosity", "medium")
     return VERBOSITY_VALUE_TO_LABEL.get(default_value, VERBOSITY_VALUE_TO_LABEL["medium"])
-
-
-def _verbosity_visible(model: str) -> bool:
-    capabilities = MODEL_CAPABILITIES.get(model, MODEL_CAPABILITIES[DEFAULT_MODEL])
-    return bool(capabilities.get("verbosity"))
 
 
 def update_ai_controls(
@@ -551,6 +499,18 @@ def _handle_run_button(
                 "session_json": session_dict,
                 "download_path": download_path,
                 "run_error": "",
+            }
+        )
+    except AccessDeniedError as exc:
+        st.session_state.update(
+            {
+                "run_error": str(exc),
+                "summary_text": "",
+                "hex_text": "",
+                "najia_text": "",
+                "ai_text": "",
+                "session_json": {},
+                "download_path": None,
             }
         )
     except Exception as exc:  # noqa: BLE001

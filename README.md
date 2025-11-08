@@ -31,9 +31,24 @@ python iching5.py
 # launch the Gradio UI
 python gui.py
 
+# run the FastAPI backend (development)
+uvicorn iching.web.api.main:app --reload
+
 # execute automated tests
 pytest
 ```
+
+## Web Architecture & Roadmap
+
+The app is now split into three independent layers:
+
+1. **Core domain (`src/iching`)** – divination, BaZi, Najia, and AI orchestration.
+2. **FastAPI backend (`iching.web.api`)** – exposes `/api/config`, `/api/sessions`, and `/api/health`, handling validation, AI gating, and archiving.
+3. **React frontend (planned)** – a Next.js + Tailwind + shadcn/ui app deployed on Vercel that consumes the FastAPI API. See `docs/frontend-roadmap.md` for scaffolding instructions.
+
+`gui.py` (Streamlit) remains for debugging, but all non-visual logic now lives inside reusable services so upcoming clients can share the same engine over HTTP.
+
+Deployment checklists for Render/Vercel live in `docs/deployment.md`.
 
 # Next steps
 
