@@ -13,7 +13,10 @@ async function handleResponse<T>(response: Response): Promise<T> {
         if (typeof data.detail === "string") {
           message = data.detail
         } else if (Array.isArray(data.detail)) {
-          message = data.detail.map((item) => item.msg || item.detail).join("；")
+          message = data.detail
+            .map((item: { msg?: string; detail?: string }) => item?.msg || item?.detail)
+            .filter(Boolean)
+            .join("；")
         }
       }
     } catch {
