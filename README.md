@@ -73,10 +73,9 @@ Key behaviors:
 
 - **Backend**: Render service pointing at repo root, running `uvicorn iching.web.api.main:app`. Environment:
   - `PYTHONPATH=src` (or installed via `pip install -e .`).
-  - `OPENAI_API_KEY` + `OPENAI_PW` for AI flows.
   - `ICHING_ALLOWED_ORIGINS` list of frontend URLs (localhost + Vercel preview/prod).
   - Archives are written inside Render’s container (e.g., `/app/data/Hexarchive/guilty/...`). Swap to cloud storage later by overriding `CONFIG.paths`.
-- **Frontend**: Vercel project targeting `frontend/`, env vars `NEXT_PUBLIC_API_BASE_URL=https://iching-p9j9.onrender.com`, `NEXT_PUBLIC_APP_NAME=I Ching Web`. Build command `npm run build`, automatic CDN + preview deploys, custom domain ready.
+- **Frontend**: Vercel project targeting `frontend/`, env vars `NEXT_PUBLIC_API_BASE_URL=<hello>`, `NEXT_PUBLIC_APP_NAME=<world>`. Build command `npm run build`, automatic CDN + preview deploys, custom domain ready.
 - **CI**: `.github/workflows/frontend-ci.yml` executes `npm ci`, `npm run lint`, `npm run build` for any `frontend/**` changes, preventing regressions before Vercel deploys.
 
 ## Development Workflow
