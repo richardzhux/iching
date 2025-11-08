@@ -32,6 +32,10 @@ export function CastWorkspace() {
     )
   }
 
+  if (!data) {
+    return null
+  }
+
   return (
     <div
       className={cn(
