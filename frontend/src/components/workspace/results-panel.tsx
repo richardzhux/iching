@@ -5,9 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useWorkspaceStore } from "@/lib/store"
 
 export function ResultsPanel() {
-  const { result } = useWorkspaceStore((state) => ({
-    result: state.result,
-  }))
+  const result = useWorkspaceStore((state) => state.result)
 
   if (!result) {
     return (

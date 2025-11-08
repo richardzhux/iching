@@ -24,12 +24,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             返回主站
           </Link>
           <a
-            href="https://docs.google.com"
+            href="https://github.com/richardzhux/iching"
             target="_blank"
             rel="noreferrer"
             className={cn(buttonVariants({ variant: "default" }), "rounded-full bg-white text-primary")}
           >
-            开发文档
+            GitHub 仓库
           </a>
         </div>
       </header>

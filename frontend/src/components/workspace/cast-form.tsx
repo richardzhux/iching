@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -23,12 +23,11 @@ type Props = {
 }
 
 export function CastForm({ config }: Props) {
-  const { form, updateForm, setForm, setResult } = useWorkspaceStore((state) => ({
-    form: state.form,
-    updateForm: state.updateForm,
-    setForm: state.setForm,
-    setResult: state.setResult,
-  }))
+  const defaultsHydrated = useRef(false)
+  const form = useWorkspaceStore((state) => state.form)
+  const updateForm = useWorkspaceStore((state) => state.updateForm)
+  const setForm = useWorkspaceStore((state) => state.setForm)
+  const setResult = useWorkspaceStore((state) => state.setResult)
 
   const activeModel = useMemo<ModelInfo | undefined>(
     () => config.ai_models.find((model) => model.name === form.aiModel),
@@ -36,14 +35,17 @@ export function CastForm({ config }: Props) {
   )
 
   useEffect(() => {
+    if (defaultsHydrated.current) return
     if (!config.topics.length || !config.methods.length) return
 
+    const current = useWorkspaceStore.getState().form
     setForm({
-      topic: form.topic || config.topics[0].label,
-      methodKey: form.methodKey || config.methods[0].key,
-      aiModel: form.aiModel || config.ai_models[0]?.name || "gpt-5-nano",
+      topic: current.topic || config.topics[0]?.label || "",
+      methodKey: current.methodKey || config.methods[0]?.key || "",
+      aiModel: current.aiModel || config.ai_models[0]?.name || "gpt-5-nano",
     })
-  }, [config, form.aiModel, form.methodKey, form.topic, setForm])
+    defaultsHydrated.current = true
+  }, [config, setForm])
 
   useEffect(() => {
     if (!activeModel) return
@@ -69,7 +71,12 @@ export function CastForm({ config }: Props) {
       toast.success("起卦完成，结果已生成。")
     },
     onError: (error) => {
-      toast.error(error.message || "请求失败")
+      const detail = error.message?.trim()
+      const friendly =
+        detail === "未知的占卜方法: "
+          ? "请选择占卜方法后再起卦。"
+          : detail || "请求失败，请稍后再试。"
+      toast.error(friendly)
     },
   })
 
@@ -181,7 +188,6 @@ export function CastForm({ config }: Props) {
         <div className="flex items-center justify-between">
           <div>
             <p className="panel-heading">AI 分析</p>
-            <p className="text-sm text-white/75">需要在 Render 设置访问密码（OPENAI_PW）。</p>
           </div>
           <Switch checked={form.enableAi} onCheckedChange={(checked) => updateForm("enableAi", checked)} />
         </div>

@@ -4,8 +4,26 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000"
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || "请求失败")
+    let message = "请求失败，请稍后再试。"
+    try {
+      const data = await response.json()
+      if (typeof data === "string") {
+        message = data
+      } else if (data?.detail) {
+        if (typeof data.detail === "string") {
+          message = data.detail
+        } else if (Array.isArray(data.detail)) {
+          message = data.detail.map((item) => item.msg || item.detail).join("；")
+        }
+      }
+    } catch {
+      try {
+        message = await response.text()
+      } catch {
+        // ignore
+      }
+    }
+    throw new Error(message)
   }
   return response.json() as Promise<T>
 }

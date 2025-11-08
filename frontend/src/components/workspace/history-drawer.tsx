@@ -12,9 +12,7 @@ import {
 import { useWorkspaceStore } from "@/lib/store"
 
 export function HistoryDrawer() {
-  const { history } = useWorkspaceStore((state) => ({
-    history: state.history,
-  }))
+  const history = useWorkspaceStore((state) => state.history)
 
   return (
     <Sheet>
