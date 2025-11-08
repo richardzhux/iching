@@ -2,7 +2,7 @@ commit:
 	@echo "Running auto commit with current timestamp..."
 	@current_time=$$(date "+%Y-%m-%d %H:%M:%S") && \
 	git add . && \
-	git commit -m "Minor fix for Vercel null glitch at $$current_time" && \
+	git commit -m "Added merge protection by checking lint/build on github at $$current_time" && \
 	git pull --rebase origin main && \
 	git push origin main
 
