@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AppProviders } from "@/components/providers/app-providers"
+import Script from "next/script"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -25,6 +26,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hans" suppressHydrationWarning>
+      <head>
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-FGD47JMEXQ" strategy="afterInteractive" />
+        <Script id="ga-gtag" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-FGD47JMEXQ');
+          `}
+        </Script>
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground`}>
         <AppProviders>
           <div className="relative min-h-screen bg-app-radial bg-cover bg-fixed bg-center">
