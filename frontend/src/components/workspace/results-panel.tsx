@@ -30,7 +30,7 @@ export function ResultsPanel() {
   return (
     <Card className="glass-panel border-transparent text-foreground">
       <CardHeader>
-        <CardTitle className="text-lg">会话结果</CardTitle>
+        <CardTitle className="text-lg">占卜结果</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="summary">

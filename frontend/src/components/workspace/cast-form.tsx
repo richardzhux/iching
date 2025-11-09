@@ -107,9 +107,15 @@ export function CastForm({ config }: Props) {
     if (!config.topics.length || !config.methods.length) return
 
     const current = useWorkspaceStore.getState().form
+    const preferredTopic =
+      config.topics.find((topic) => topic.label === "事业")?.label || config.topics[0]?.label || ""
+    const preferredMethod =
+      config.methods.find(
+        (method) => method.label === "五十蓍草法" || method.name === "五十蓍草法"
+      )?.key || config.methods[0]?.key || ""
     setForm({
-      topic: current.topic || config.topics[0]?.label || "",
-      methodKey: current.methodKey || config.methods[0]?.key || "",
+      topic: current.topic || preferredTopic,
+      methodKey: current.methodKey || preferredMethod,
       aiModel: current.aiModel || config.ai_models[0]?.name || "gpt-5-nano",
     })
     defaultsHydrated.current = true
@@ -203,12 +209,15 @@ export function CastForm({ config }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="glass-panel space-y-6 rounded-3xl p-6">
-        <div className="space-y-2">
-          <p className="panel-heading">占卜主题</p>
-          <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="选择主题" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">占卜主题</p>
+          <div className="glass-panel space-y-6 rounded-3xl p-6">
+            <div className="space-y-2">
+            <p className="panel-heading">占卜主题</p>
+            <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="选择主题" />
             </SelectTrigger>
             <SelectContent>
               {config.topics.map((topic) => (
@@ -276,31 +285,34 @@ export function CastForm({ config }: Props) {
           </div>
         )}
 
-        <div className="space-y-4 rounded-2xl border border-border/50 bg-foreground/[0.04] p-4 dark:border-white/15 dark:bg-white/5">
-          <div className="panel-heading">时间设置</div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">使用当前时间</span>
-            <Switch
-              checked={form.useCurrentTime}
-              onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
+          <div className="space-y-4 rounded-2xl border border-border/50 bg-foreground/[0.04] p-4 dark:border-white/15 dark:bg-white/5">
+            <div className="panel-heading">时间设置</div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">使用当前时间</span>
+              <Switch
+                checked={form.useCurrentTime}
+                onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
+              />
+            </div>
+            <Input
+              type="datetime-local"
+              value={form.customTimestamp}
+              disabled={form.useCurrentTime}
+              onChange={(event) => updateForm("customTimestamp", event.target.value)}
             />
           </div>
-          <Input
-            type="datetime-local"
-            value={form.customTimestamp}
-            disabled={form.useCurrentTime}
-            onChange={(event) => updateForm("customTimestamp", event.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="glass-panel space-y-4 rounded-3xl p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="panel-heading">AI 分析</p>
           </div>
-          <Switch checked={form.enableAi} onCheckedChange={(checked) => updateForm("enableAi", checked)} />
-        </div>
+          </section>
+
+        <section className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">AI 控制</p>
+          <div className="glass-panel space-y-4 rounded-3xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="panel-heading">AI 分析</p>
+              </div>
+              <Switch checked={form.enableAi} onCheckedChange={(checked) => updateForm("enableAi", checked)} />
+            </div>
 
         {form.enableAi && (
           <div className="space-y-4">
@@ -438,6 +450,8 @@ export function CastForm({ config }: Props) {
             </div>
           </div>
         )}
+          </div>
+        </section>
       </div>
 
       <Button

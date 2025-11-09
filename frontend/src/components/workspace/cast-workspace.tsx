@@ -37,20 +37,10 @@ export function CastWorkspace() {
   }
 
   return (
-    <div
-      className={cn(
-        "grid gap-8",
-        "lg:grid-cols-[minmax(320px,380px),1fr]",
-        "xl:grid-cols-[360px,1fr]",
-      )}
-    >
-      <div className="space-y-6">
-        <CastForm config={data} />
-      </div>
-      <div className="space-y-6">
-        <ResultsPanel />
-        <HistoryDrawer />
-      </div>
+    <div className={cn("space-y-8", "xl:space-y-10")}>
+      <CastForm config={data} />
+      <ResultsPanel />
+      <HistoryDrawer />
     </div>
   )
 }

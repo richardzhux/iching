@@ -12,8 +12,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setMounted(true))
-    return () => cancelAnimationFrame(frame)
+    setMounted(true)
   }, [])
 
   const nextTheme = () => {
@@ -23,6 +22,26 @@ export function ThemeToggle({ className }: { className?: string }) {
     } else {
       setTheme("dark")
     }
+  }
+
+  if (!mounted) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-label="切换主题"
+        title="切换主题"
+        className={cn(
+          "rounded-full border-border/70 bg-background/80 text-foreground shadow-lg backdrop-blur",
+          className
+        )}
+        data-state="loading"
+        disabled
+      >
+        <span className="h-3 w-12 animate-pulse rounded-full bg-foreground/20" />
+      </Button>
+    )
   }
 
   const label = resolvedTheme === "dark" ? "切换至浅色模式" : "切换至深色模式"

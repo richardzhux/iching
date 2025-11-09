@@ -35,9 +35,9 @@ type WorkspaceState = {
 }
 
 const defaultForm: WorkspaceForm = {
-  topic: "",
+  topic: "事业",
   userQuestion: "",
-  methodKey: "",
+  methodKey: "s",
   manualLines: "",
   useCurrentTime: true,
   customTimestamp: formatDateInput(new Date()),
