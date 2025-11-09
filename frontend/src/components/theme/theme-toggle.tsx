@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { MoonStar, SunMedium } from "lucide-react"
 import { useTheme } from "next-themes"
 
@@ -9,11 +9,7 @@ import { cn } from "@/lib/utils"
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { setTheme, theme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const [mounted] = useState(() => typeof window !== "undefined")
 
   const nextTheme = () => {
     if (!mounted) return

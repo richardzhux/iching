@@ -56,13 +56,13 @@ export function ResultsPanel() {
 
 function HexResultBlock({ result }: { result: SessionPayload }) {
   const [showFull, setShowFull] = useState(false)
-  const sections = result.hex_sections || []
 
   const { primarySections, secondarySections } = useMemo(() => {
+    const sections = result.hex_sections || []
     const primary = sections.filter((section) => section.visible_by_default)
     const secondary = sections.filter((section) => !section.visible_by_default)
     return { primarySections: primary, secondarySections: secondary }
-  }, [sections])
+  }, [result.hex_sections])
 
   const hasHiddenSections = secondarySections.length > 0
   const hasPrimary = primarySections.length > 0
