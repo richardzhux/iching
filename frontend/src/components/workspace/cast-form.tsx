@@ -110,9 +110,9 @@ export function CastForm({ config }: Props) {
     const preferredTopic =
       config.topics.find((topic) => topic.label === "事业")?.label || config.topics[0]?.label || ""
     const preferredMethod =
-      config.methods.find(
-        (method) => method.label === "五十蓍草法" || method.name === "五十蓍草法"
-      )?.key || config.methods[0]?.key || ""
+      config.methods.find((method) => method.label === "五十蓍草法")?.key ||
+      config.methods[0]?.key ||
+      ""
     setForm({
       topic: current.topic || preferredTopic,
       methodKey: current.methodKey || preferredMethod,
