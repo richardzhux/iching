@@ -82,6 +82,7 @@ class SessionRunner:
             ai_model=request.ai_model or DEFAULT_MODEL,
             ai_reasoning=request.ai_reasoning,
             ai_verbosity=request.ai_verbosity,
+            ai_tone=request.ai_tone,
             interactive=False,
         )
 
@@ -106,7 +107,10 @@ class SessionRunner:
         payload = SessionPayload(
             summary_text="\n".join(summary),
             hex_text=result.hex_text,
+            hex_sections=result.hex_sections,
+            hex_overview=result.hex_overview,
             najia_text=result.najia_text,
+            najia_table=result.najia_table,
             ai_text=result.ai_analysis or "",
             session_dict=safe_session,
             archive_path=str(archive_path),

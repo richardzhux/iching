@@ -32,3 +32,18 @@ def test_hexagram_single_moving_line_focuses_on_that_line():
     assert "初六" in text
     assert "九二爻辞" not in text
     assert "变卦:" in text
+
+
+def test_hexagram_text_package_exposes_additional_sections():
+    definitions = load_hexagram_definitions(PATHS.gua_index_file)
+    lines = [6, 7, 8, 7, 7, 7]
+    hexagram = Hexagram(lines, definitions)
+
+    summary, sections, overview = hexagram.to_text_package(guaci_path=PATHS.guaci_dir)
+    legacy_text = hexagram.to_text(guaci_path=PATHS.guaci_dir)
+
+    assert summary == legacy_text
+    assert sections, "expected structured sections for the hexagram text"
+    assert any(section["importance"] == "secondary" for section in sections)
+    assert all("visible_by_default" in section for section in sections)
+    assert overview["lines"], "expected line overview metadata"

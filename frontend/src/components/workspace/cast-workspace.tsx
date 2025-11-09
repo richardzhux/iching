@@ -13,7 +13,7 @@ export function CastWorkspace() {
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="glass-panel inline-flex items-center gap-3 rounded-2xl px-6 py-4 text-white/80">
+        <div className="glass-panel inline-flex items-center gap-3 rounded-2xl px-6 py-4 text-muted-foreground">
           <Loader2 className="size-5 animate-spin" />
           正在加载配置…
         </div>
@@ -24,7 +24,7 @@ export function CastWorkspace() {
   if (error) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="glass-panel rounded-2xl px-6 py-4 text-center text-red-100">
+        <div className="glass-panel rounded-2xl px-6 py-4 text-center text-destructive">
           无法获取后端配置，请检查 FastAPI 服务是否运行。<br />
           {(error as Error).message}
         </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef } from "react"
+import { CircleHelp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useSessionMutation } from "@/lib/queries"
 import { parseManualLines } from "@/lib/api"
 import { useWorkspaceStore } from "@/lib/store"
@@ -22,12 +24,78 @@ type Props = {
   config: ConfigResponse
 }
 
+const pad = (value: number) => value.toString().padStart(2, "0")
+const toneOptions = [
+  { value: "normal", label: "标准", description: "沉稳专业、贴近现代书面语。" },
+  { value: "wenyan", label: "文言（庄子风）", description: "仿先秦典籍的文言文语气。" },
+  { value: "modern", label: "暧昧现代", description: "俏皮亲昵，可少量 emoji。" },
+  { value: "academic", label: "学术期刊", description: "如 Nature / Harvard Law Review 式严谨论述。" },
+]
+const infoButtonClass =
+  "flex size-8 items-center justify-center rounded-full border border-border/80 bg-background/60 text-foreground shadow-glass transition hover:bg-foreground/10 dark:border-white/30 dark:bg-white/10 dark:text-white"
+
+const modelSpeedLines = [
+  "GPT-4.1 nano · fastest response (~5s) for quick sanity checks.",
+  "GPT-5 nano · ~15s baseline, balanced cost/performance.",
+  "GPT-5 · premium chain-of-thought, starts around 40-45s.",
+  "O3 · most capable, expect ≥60s even for short prompts.",
+]
+const modelQualityLine =
+  "GPT-5 and O3 are most faithful—set reasoning ≥Medium and allow ~1 minute when accuracy matters."
+
+function getReasoningLines(modelName?: string) {
+  const name = modelName?.toLowerCase() ?? ""
+  if (name.includes("gpt-5-nano")) {
+    return [
+      "Minimal ≈10s",
+      "Low ≈30s",
+      "Medium ≈90s",
+      "High ≥2 min — reserve for deep dives.",
+    ]
+  }
+  if (name.includes("gpt-5")) {
+    return [
+      "Minimal ≈45s",
+      "Low ≈70s",
+      "Medium/High ≥2 min; best accuracy when you can wait.",
+    ]
+  }
+  if (name.includes("o3")) {
+    return [
+      "No Minimal tier.",
+      "Low ≈1 min.",
+      "Medium/High ≥2 min; launch only when you have ample time.",
+    ]
+  }
+  return ["This model does not expose reasoning-depth controls."]
+}
+
+const verbosityLines = [
+  "Higher output adds only ~5–10s to latency.",
+  "Use when you need richer narrative, more citations, or export-ready text.",
+]
+
+function formatOffsetISOString(date: Date) {
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1)
+  const day = pad(date.getDate())
+  const hours = pad(date.getHours())
+  const minutes = pad(date.getMinutes())
+  const seconds = pad(date.getSeconds())
+  const offsetMinutes = date.getTimezoneOffset()
+  const offsetSign = offsetMinutes <= 0 ? "+" : "-"
+  const offsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60))
+  const offsetMins = pad(Math.abs(offsetMinutes % 60))
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMins}`
+}
+
 export function CastForm({ config }: Props) {
   const defaultsHydrated = useRef(false)
   const form = useWorkspaceStore((state) => state.form)
   const updateForm = useWorkspaceStore((state) => state.updateForm)
   const setForm = useWorkspaceStore((state) => state.setForm)
   const setResult = useWorkspaceStore((state) => state.setResult)
+  const activeToneOption = toneOptions.find((option) => option.value === form.aiTone)
 
   const activeModel = useMemo<ModelInfo | undefined>(
     () => config.ai_models.find((model) => model.name === form.aiModel),
@@ -93,18 +161,41 @@ export function CastForm({ config }: Props) {
       }
     }
 
+    let timestamp: string | null = null
+
+    if (form.useCurrentTime) {
+      timestamp = formatOffsetISOString(new Date())
+    } else {
+      if (!form.customTimestamp) {
+        toast.error("请输入自定义时间。")
+        return
+      }
+      const customDate = new Date(form.customTimestamp)
+      if (Number.isNaN(customDate.getTime())) {
+        toast.error("时间格式无效，请重新输入。")
+        return
+      }
+      timestamp = formatOffsetISOString(customDate)
+    }
+
+    if (!timestamp) {
+      toast.error("无法解析时间，请稍后再试。")
+      return
+    }
+
     const payload: SessionRequest = {
       topic: form.topic,
       user_question: form.userQuestion || undefined,
       method_key: form.methodKey,
       manual_lines: manualLines,
-      use_current_time: form.useCurrentTime,
-      timestamp: form.useCurrentTime ? null : form.customTimestamp || null,
+      use_current_time: false,
+      timestamp,
       enable_ai: form.enableAi,
       access_password: form.enableAi ? form.accessPassword || null : null,
       ai_model: form.aiModel,
       ai_reasoning: form.aiReasoning || null,
       ai_verbosity: form.aiVerbosity || null,
+      ai_tone: form.aiTone,
     }
 
     mutation.mutate(payload)
@@ -157,7 +248,26 @@ export function CastForm({ config }: Props) {
 
         {form.methodKey === "x" && (
           <div className="space-y-2">
-            <p className="panel-heading">手动输入六爻（自下而上）</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="panel-heading">手动输入六爻（自下而上）</p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className={`${infoButtonClass} size-9`}
+                  >
+                    <CircleHelp className="size-5" aria-hidden="true" />
+                    <span className="sr-only">六爻输入说明</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
+                  <p>6 · 老阴，例如三枚铜钱全为正面</p>
+                  <p>7 · 少阳，例如两枚为正、一枚为反</p>
+                  <p>8 · 少阴，例如两枚为反、一枚为正</p>
+                  <p>9 · 老阳，例如三枚铜钱全为反面</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Input
               value={form.manualLines}
               onChange={(event) => updateForm("manualLines", event.target.value)}
@@ -166,10 +276,10 @@ export function CastForm({ config }: Props) {
           </div>
         )}
 
-        <div className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-4">
+        <div className="space-y-4 rounded-2xl border border-border/50 bg-foreground/[0.04] p-4 dark:border-white/15 dark:bg-white/5">
           <div className="panel-heading">时间设置</div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-white/80">使用当前时间</span>
+            <span className="text-sm text-muted-foreground">使用当前时间</span>
             <Switch
               checked={form.useCurrentTime}
               onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
@@ -205,7 +315,23 @@ export function CastForm({ config }: Props) {
             </div>
 
             <div className="space-y-2">
-              <p className="panel-heading">模型</p>
+              <div className="flex items-center gap-2">
+                <p className="panel-heading">模型</p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className={`${infoButtonClass} size-9`}>
+                      <CircleHelp className="size-5" aria-hidden="true" />
+                      <span className="sr-only">Model speed info</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
+                    {modelSpeedLines.map((line) => (
+                      <p key={line}>{line}</p>
+                    ))}
+                    <p className="pt-1 opacity-80">{modelQualityLine}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Select value={form.aiModel} onValueChange={(value) => updateForm("aiModel", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择模型" />
@@ -222,7 +348,22 @@ export function CastForm({ config }: Props) {
 
             {!!activeModel?.reasoning.length && (
               <div className="space-y-2">
-                <p className="panel-heading">推理力度</p>
+                <div className="flex items-center gap-2">
+                  <p className="panel-heading">推理力度</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                    <button type="button" className={`${infoButtonClass} size-9`}>
+                      <CircleHelp className="size-5" aria-hidden="true" />
+                        <span className="sr-only">Reasoning latency info</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
+                      {getReasoningLines(activeModel?.name).map((line) => (
+                        <p key={line}>{line}</p>
+                      ))}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Select
                   value={form.aiReasoning ?? ""}
                   onValueChange={(value) => updateForm("aiReasoning", value)}
@@ -243,7 +384,22 @@ export function CastForm({ config }: Props) {
 
             {activeModel?.verbosity && (
               <div className="space-y-2">
-                <p className="panel-heading">输出篇幅</p>
+                <div className="flex items-center gap-2">
+                  <p className="panel-heading">输出篇幅</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className={`${infoButtonClass} size-9`}>
+                        <CircleHelp className="size-5" aria-hidden="true" />
+                        <span className="sr-only">Verbosity info</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
+                      {verbosityLines.map((line) => (
+                        <p key={line}>{line}</p>
+                      ))}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Select
                   value={form.aiVerbosity ?? ""}
                   onValueChange={(value) => updateForm("aiVerbosity", value)}
@@ -261,6 +417,25 @@ export function CastForm({ config }: Props) {
                 </Select>
               </div>
             )}
+
+            <div className="space-y-2">
+              <p className="panel-heading">语气风格</p>
+              <Select value={form.aiTone} onValueChange={(value) => updateForm("aiTone", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择语气" />
+                </SelectTrigger>
+                <SelectContent>
+                  {toneOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {activeToneOption?.description ?? "请选择偏好的语气与写作声线。"}
+              </p>
+            </div>
           </div>
         )}
       </div>

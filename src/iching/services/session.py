@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from iching.config import AppConfig, PATHS, build_app_config
 from iching.core.bazi import BaZiCalculator
@@ -18,6 +18,86 @@ def _default_input(prompt: str) -> str:
     return input(prompt)
 
 
+def _normalize_list(value: Optional[Any], *, length: int = 6) -> List[str]:
+    if isinstance(value, list):
+        data = value[:]
+    elif value is None:
+        data = []
+    else:
+        data = list(value)
+    if len(data) < length:
+        data.extend([""] * (length - len(data)))
+    return [str(item) if item is not None else "" for item in data[:length]]
+
+
+def _build_najia_table(
+    najia_data: Optional[Dict[str, Any]], line_overview: List[Dict[str, object]]
+) -> Dict[str, object]:
+    if not najia_data:
+        return {"meta": {"main": None, "changed": None}, "rows": []}
+
+    main_meta = najia_data.get("main") or {}
+    changed_meta = najia_data.get("bian") or {}
+    meta = {
+        "main": {
+            "name": main_meta.get("name") or najia_data.get("name"),
+            "gong": main_meta.get("gong") or najia_data.get("gong"),
+            "type": main_meta.get("type") or "",
+        },
+        "changed": None,
+    }
+    if changed_meta.get("name"):
+        meta["changed"] = {
+            "name": changed_meta.get("name"),
+            "gong": changed_meta.get("gong"),
+            "type": changed_meta.get("type") or "",
+        }
+
+    god6 = _normalize_list(najia_data.get("god6"))
+    hidden = _normalize_list((najia_data.get("hide") or {}).get("qin6"))
+    qin6 = _normalize_list(najia_data.get("qin6"))
+    qinx = _normalize_list(najia_data.get("qinx"))
+    shiy = _normalize_list(najia_data.get("shiy"))
+    dyao = _normalize_list(najia_data.get("dyao"))
+    main_marks = _normalize_list((najia_data.get("main") or {}).get("mark"))
+    changed_qin6 = _normalize_list(changed_meta.get("qin6"))
+    changed_marks = _normalize_list(changed_meta.get("mark"))
+
+    overview = list(line_overview or [])
+    if len(overview) < 6:
+        overview.extend({} for _ in range(6 - len(overview)))
+
+    rows: List[Dict[str, object]] = []
+    for idx in range(6):
+        source_idx = 5 - idx
+        line_info = overview[idx] if idx < len(overview) else {}
+        position = line_info.get("position", 6 - idx)
+        line_type = line_info.get("line_type", "yang")
+        changed_line_type = line_info.get("changed_line_type", line_type)
+        is_moving = bool(line_info.get("is_moving"))
+        moving_symbol = line_info.get("moving_symbol", "")
+
+        rows.append(
+            {
+                "position": position,
+                "line_type": line_type,
+                "changed_line_type": changed_line_type,
+                "is_moving": is_moving,
+                "moving_symbol": moving_symbol,
+                "god": god6[source_idx].strip(),
+                "hidden": hidden[source_idx].strip(),
+                "main_relation": f"{qin6[source_idx]}{qinx[source_idx]}".strip(),
+                "main_mark": main_marks[source_idx],
+                "marker": shiy[source_idx].strip(),
+                "movement_tag": dyao[source_idx].strip(),
+                "changed_relation": changed_qin6[source_idx].strip(),
+                "changed_mark": changed_marks[source_idx],
+            }
+        )
+
+    return {"meta": meta, "rows": rows}
+
+
 @dataclass(slots=True)
 class SessionResult:
     timestamp: str
@@ -29,11 +109,15 @@ class SessionResult:
     bazi_output: str
     elements_output: str
     hex_text: str
+    hex_sections: List[Dict[str, object]]
+    hex_overview: Dict[str, object]
     najia_text: str
     najia_data: Dict[str, object]
+    najia_table: Dict[str, object]
     ai_model: Optional[str]
     ai_reasoning: Optional[str]
     ai_verbosity: Optional[str]
+    ai_tone: Optional[str]
     ai_analysis: Optional[str]
     full_text: str = field(repr=False)
 
@@ -218,6 +302,7 @@ class SessionService:
         ai_model: Optional[str] = None,
         ai_reasoning: Optional[str] = None,
         ai_verbosity: Optional[str] = None,
+        ai_tone: Optional[str] = "normal",
         api_key: Optional[str] = None,
         interactive: bool = False,
         input_func: Callable[[str], str] = _default_input,
@@ -243,7 +328,9 @@ class SessionService:
         bazi_output, elements_output = bazi_calculator.calculate()
 
         hexagram = Hexagram(lines, self.definitions)
-        hex_text = hexagram.to_text(guaci_path=self.config.paths.guaci_dir)
+        hex_text, hex_sections, hex_overview = hexagram.to_text_package(
+            guaci_path=self.config.paths.guaci_dir
+        )
 
         params_map = {7: 1, 9: 4, 8: 0, 6: 3}
         params = [params_map.get(value, 0) for value in lines]
@@ -253,6 +340,7 @@ class SessionService:
         najia_text = najia.render().strip()
 
         ai_analysis_text = None
+        tone_profile = ai_tone or "normal"
         should_use_ai = self.config.enable_ai if enable_ai is None else enable_ai
         model_hint = ai_model or self.config.preferred_ai_model or DEFAULT_MODEL
         capabilities = MODEL_CAPABILITIES.get(model_hint, MODEL_CAPABILITIES[DEFAULT_MODEL])
@@ -276,6 +364,8 @@ class SessionService:
                 verbosity_level = default_verbosity
         else:
             verbosity_level = None
+        najia_table = _build_najia_table(najia.data, hex_overview.get("lines", []))
+
         if should_use_ai:
             session_payload = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -287,12 +377,16 @@ class SessionService:
                 "bazi_output": bazi_output,
                 "elements_output": elements_output,
                 "hex_text": hex_text,
+                "hex_sections": hex_sections,
+                "hex_overview": hex_overview,
                 "najia_data": dict(najia.data),
                 "najia_text": najia_text,
+                "najia_table": najia_table,
                 "ai_analysis": None,
                 "ai_model": model_hint,
                 "ai_reasoning": reasoning_effort,
                 "ai_verbosity": verbosity_level,
+                "ai_tone": tone_profile,
             }
             ai_analysis_text = analyze_session(
                 session_payload,
@@ -301,6 +395,7 @@ class SessionService:
                 interactive=interactive,
                 reasoning_effort=reasoning_effort,
                 verbosity=verbosity_level,
+                tone=tone_profile,
             )
             session_payload["ai_analysis"] = ai_analysis_text
         else:
@@ -314,12 +409,16 @@ class SessionService:
                 "bazi_output": bazi_output,
                 "elements_output": elements_output,
                 "hex_text": hex_text,
+                "hex_sections": hex_sections,
+                "hex_overview": hex_overview,
                 "najia_data": dict(najia.data),
                 "najia_text": najia_text,
+                "najia_table": najia_table,
                 "ai_analysis": None,
                 "ai_model": model_hint,
                 "ai_reasoning": reasoning_effort,
                 "ai_verbosity": verbosity_level,
+                "ai_tone": tone_profile,
             }
 
         chunks = [
@@ -344,11 +443,15 @@ class SessionService:
             bazi_output=bazi_output,
             elements_output=elements_output,
             hex_text=hex_text,
+            hex_sections=hex_sections,
+            hex_overview=hex_overview,
             najia_text=najia_text,
             najia_data=session_payload["najia_data"],
+            najia_table=najia_table,
             ai_model=session_payload.get("ai_model"),
             ai_reasoning=session_payload.get("ai_reasoning"),
             ai_verbosity=session_payload.get("ai_verbosity"),
+            ai_tone=session_payload.get("ai_tone"),
             ai_analysis=ai_analysis_text,
             full_text=full_text,
         )

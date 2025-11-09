@@ -31,7 +31,7 @@ class GuaciText:
             text = self.top_sections.get(key)
             if text:
                 pieces.append(text)
-        return "\n".join(pieces).strip()
+        return "\n\n".join(pieces).strip()
 
     def combine_line(self, line_key: str) -> Optional[str]:
         line = self.line_sections.get(line_key)
@@ -42,7 +42,7 @@ class GuaciText:
             text = line.sections.get(key)
             if text:
                 pieces.append(text)
-        return "\n".join(pieces).strip()
+        return "\n\n".join(pieces).strip()
 
 
 @lru_cache(maxsize=None)

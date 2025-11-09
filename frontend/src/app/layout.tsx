@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AppProviders } from "@/components/providers/app-providers"
+import { ThemeToggle } from "@/components/theme/theme-toggle"
 import Script from "next/script"
 import "./globals.css"
 
@@ -40,7 +41,10 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground`}>
         <AppProviders>
           <div className="relative min-h-screen bg-app-radial bg-cover bg-fixed bg-center">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%)]" />
+            <div className="app-overlay absolute inset-0 pointer-events-none" />
+            <div className="absolute right-6 top-6 z-20 flex items-center gap-2">
+              <ThemeToggle />
+            </div>
             <div className="relative z-10 min-h-screen">{children}</div>
           </div>
         </AppProviders>

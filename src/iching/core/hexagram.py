@@ -105,23 +105,67 @@ class Hexagram:
         return rendered
 
     def to_text(self, *, guaci_path: Optional[Path] = None) -> str:
-        """Build the textual representation with focused guaci content."""
+        """Build the legacy textual representation used by downstream consumers."""
+        summary, _, _ = self.to_text_package(guaci_path=guaci_path)
+        return summary
+
+    def to_text_package(
+        self, *, guaci_path: Optional[Path] = None
+    ) -> Tuple[str, List[Dict[str, object]], Dict[str, object]]:
+        """Return the focused summary text, structured sections, and overview metadata."""
+        selection = self._select_line_strategy()
+        main_text, main_line_text, changed_header, changed_text = self._build_interpretation(
+            guaci_path=guaci_path, selection=selection
+        )
+        summary = self._compose_summary(
+            selection, main_text, main_line_text, changed_header, changed_text
+        )
+        sections = self._collect_sections(selection, guaci_path)
+        overview = self._build_overview()
+        return summary, sections, overview
+
+    def _compose_summary(
+        self,
+        selection: Optional[object],
+        main_text: Optional[str],
+        main_line_text: Optional[str],
+        changed_header: Optional[str],
+        changed_text: Optional[str],
+    ) -> str:
         chunks: List[str] = ["\n您的卦象:"]
         chunks.extend(self.render_lines())
-        chunks.append(f"\n本卦: {self.name} - 解释: {self.explanation}")
+        chunks.append("")
+        chunks.append(f"本卦: {self.name} - 解释: {self.explanation}")
 
-        main_text, main_line_text, changed_header, changed_text = self._build_interpretation(
-            guaci_path=guaci_path
-        )
+        top_changed_line: Optional[str] = None
+        if self.changed_hexagram:
+            top_changed_line = (
+                f"变卦: {self.changed_hexagram.name} - 解释: {self.changed_hexagram.explanation}"
+            )
+        elif changed_header and "没有动爻" in changed_header:
+            top_changed_line = changed_header.strip()
+            changed_header = None
+
+        if top_changed_line:
+            chunks.append(top_changed_line)
+
+        chunks.append("────────────────────────")
+
         if main_text:
             chunks.append(main_text)
         if main_line_text:
             chunks.append(main_line_text)
 
-        if changed_header:
-            chunks.append(changed_header)
         if changed_text:
-            chunks.append(changed_text)
+            if self.changed_hexagram:
+                label = "变卦详解" if selection == "all-move-other" else "变卦动爻"
+                chunks.append(f"\n【{label}】\n{changed_text}")
+            else:
+                if changed_header:
+                    chunks.append(changed_header)
+                chunks.append(changed_text)
+        elif changed_header and not self.changed_hexagram:
+            chunks.append(changed_header)
 
         inverse_name, inverse_explanation = self.inverse_hexagram
         chunks.append(f"错卦: {inverse_name} - 解释: {inverse_explanation}")
@@ -142,7 +186,7 @@ class Hexagram:
     # ------------------------------------------------------------------ #
 
     def _build_interpretation(
-        self, *, guaci_path: Optional[Path]
+        self, *, guaci_path: Optional[Path], selection: Optional[object]
     ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
         if not guaci_path:
             return None, None, None, None
@@ -152,7 +196,6 @@ class Hexagram:
         except FileNotFoundError:
             return None, None, None, None
 
-        selection = self._select_line_strategy()
         main_top_text = main_guaci.combine_top() or None
         main_line_text: Optional[str] = None
         changed_header: Optional[str] = None
@@ -203,6 +246,164 @@ class Hexagram:
                         )
                         changed_text = changed_line
         return main_top_text, main_line_text, changed_header, changed_text
+
+    def _collect_sections(
+        self, selection: Optional[object], guaci_path: Optional[Path]
+    ) -> List[Dict[str, object]]:
+        if not guaci_path:
+            return []
+
+        sections: List[Dict[str, object]] = []
+
+        try:
+            main_guaci = load_guaci_by_name(self.name, guaci_path)
+        except FileNotFoundError:
+            main_guaci = None
+
+        changed_data = None
+        if self.changed_hexagram:
+            try:
+                changed_data = load_guaci_by_name(self.changed_hexagram.name, guaci_path)
+            except FileNotFoundError:
+                changed_data = None
+
+        def add_section(
+            hex_type: str,
+            name: str,
+            section_kind: str,
+            line_key: Optional[str],
+            content: Optional[str],
+            visible: bool,
+        ) -> None:
+            if not content:
+                return
+            prefix = "本卦" if hex_type == "main" else "变卦"
+            if section_kind == "top":
+                title = f"{prefix} · 卦辞总览"
+            elif line_key == "all":
+                title = f"{prefix} · 全爻总览"
+            else:
+                title = f"{prefix} · 第{line_key}爻"
+            sections.append(
+                {
+                    "id": f"{hex_type}-{section_kind}-{line_key or 'top'}",
+                    "hexagram_type": hex_type,
+                    "hexagram_name": name,
+                    "section_kind": section_kind,
+                    "line_key": line_key,
+                    "title": title,
+                    "content": content,
+                    "importance": "primary" if visible else "secondary",
+                    "visible_by_default": visible,
+                }
+            )
+
+        def sorted_keys(entries: Dict[str, object]) -> List[str]:
+            def sort_key(value: str) -> Tuple[int, str]:
+                if value == "all":
+                    return (99, value)
+                try:
+                    return (int(value), value)
+                except ValueError:
+                    return (100, value)
+
+            return sorted(entries.keys(), key=sort_key)
+
+        # Main hexagram sections
+        if main_guaci:
+            main_top = main_guaci.combine_top()
+            show_main_top = selection != "all-move-other"
+            add_section("main", self.name, "top", None, main_top, show_main_top)
+
+            selected_main_line: Optional[str] = None
+            if selection == "all":
+                selected_main_line = "all"
+            elif isinstance(selection, int):
+                selected_main_line = str(selection + 1)
+
+            for key in sorted_keys(main_guaci.line_sections):
+                content = main_guaci.combine_line(key)
+                add_section(
+                    "main",
+                    self.name,
+                    "line",
+                    key,
+                    content,
+                    visible=(key == selected_main_line),
+                )
+
+        # Changed hexagram sections
+        if self.changed_hexagram and changed_data:
+            changed_top = changed_data.combine_top()
+            show_changed_top = selection == "all-move-other"
+            add_section(
+                "changed",
+                self.changed_hexagram.name,
+                "top",
+                None,
+                changed_top,
+                show_changed_top,
+            )
+
+            selected_changed_line: Optional[str] = None
+            if selection == "all":
+                selected_changed_line = "all"
+            elif isinstance(selection, int):
+                selected_changed_line = str(selection + 1)
+
+            for key in sorted_keys(changed_data.line_sections):
+                content = changed_data.combine_line(key)
+                add_section(
+                    "changed",
+                    self.changed_hexagram.name,
+                    "line",
+                    key,
+                    content,
+                    visible=(key == selected_changed_line and selection != "all-move-other"),
+                )
+
+        return sections
+
+    def _build_overview(self) -> Dict[str, object]:
+        lines_info: List[Dict[str, object]] = []
+        ordered_lines = list(reversed(self.lines))
+        changed_lines = (
+            list(reversed(self.changed_hexagram.lines)) if self.changed_hexagram else None
+        )
+
+        for idx, value in enumerate(ordered_lines, start=1):
+            position = 7 - idx
+            line_type = "yang" if value in (7, 9) else "yin"
+            is_moving = value in (6, 9)
+            moving_symbol = "O" if value == 9 else "X" if value == 6 else ""
+            changed_value = (
+                changed_lines[idx - 1] if changed_lines and len(changed_lines) >= idx else value
+            )
+            changed_type = "yang" if changed_value in (7, 9) else "yin"
+            lines_info.append(
+                {
+                    "position": position,
+                    "value": value,
+                    "line_type": line_type,
+                    "is_moving": is_moving,
+                    "moving_symbol": moving_symbol,
+                    "changed_value": changed_value,
+                    "changed_type": changed_type,
+                    "changed_line_type": changed_type,
+                }
+            )
+
+        overview = {
+            "lines": lines_info,
+            "main_hexagram": {"name": self.name, "explanation": self.explanation},
+            "changed_hexagram": None,
+        }
+        if self.changed_hexagram:
+            overview["changed_hexagram"] = {
+                "name": self.changed_hexagram.name,
+                "explanation": self.changed_hexagram.explanation,
+            }
+        return overview
 
     def _select_line_strategy(self) -> Optional[object]:
         moving_indices = [idx for idx, value in enumerate(self.lines) if value in (6, 9)]

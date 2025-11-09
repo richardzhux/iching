@@ -3,6 +3,12 @@
 import { create } from "zustand"
 import type { SessionPayload } from "@/types/api"
 
+const pad = (value: number) => value.toString().padStart(2, "0")
+const formatDateInput = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(
+    date.getMinutes()
+  )}`
+
 export type WorkspaceForm = {
   topic: string
   userQuestion: string
@@ -15,6 +21,7 @@ export type WorkspaceForm = {
   aiModel: string
   aiReasoning?: string | null
   aiVerbosity?: string | null
+  aiTone: string
 }
 
 type WorkspaceState = {
@@ -33,12 +40,13 @@ const defaultForm: WorkspaceForm = {
   methodKey: "",
   manualLines: "",
   useCurrentTime: true,
-  customTimestamp: new Date().toISOString().slice(0, 16),
+  customTimestamp: formatDateInput(new Date()),
   enableAi: false,
   accessPassword: "",
   aiModel: "gpt-5-nano",
   aiReasoning: null,
   aiVerbosity: null,
+  aiTone: "normal",
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
@@ -63,7 +71,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     set({
       form: {
         ...defaultForm,
-        customTimestamp: new Date().toISOString().slice(0, 16),
+        customTimestamp: formatDateInput(new Date()),
       },
     }),
   setResult: (payload) =>

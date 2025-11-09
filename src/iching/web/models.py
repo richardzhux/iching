@@ -40,6 +40,7 @@ class SessionCreateRequest(BaseModel):
     ai_model: str = DEFAULT_MODEL
     ai_reasoning: Optional[str] = None
     ai_verbosity: Optional[str] = None
+    ai_tone: Optional[str] = "normal"
 
     model_config = ConfigDict(extra="forbid")
 
@@ -64,7 +65,10 @@ class SessionCreateRequest(BaseModel):
 class SessionPayload(BaseModel):
     summary_text: str
     hex_text: str
+    hex_sections: List[Dict[str, object]]
+    hex_overview: Dict[str, object]
     najia_text: str
+    najia_table: Dict[str, object]
     ai_text: str
     session_dict: Dict[str, object]
     archive_path: str

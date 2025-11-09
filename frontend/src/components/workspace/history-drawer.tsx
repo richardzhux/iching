@@ -17,7 +17,7 @@ export function HistoryDrawer() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" className="w-full rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20">
+        <Button variant="outline" className="w-full rounded-full border-white/30 bg-white/10 text-foreground backdrop-blur hover:bg-white/20 dark:text-white">
           查看会话历史 ({history.length})
         </Button>
       </SheetTrigger>

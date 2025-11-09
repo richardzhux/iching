@@ -4,14 +4,26 @@
 
 :root {
   --radius: 0.875rem;
-  --glass-bg: rgba(255, 255, 255, 0.12);
+  --glass-bg: rgba(255, 255, 255, 0.22);
   --glass-border: rgba(255, 255, 255, 0.2);
   --glass-shadow: 0 25px 60px -35px rgba(80, 25, 100, 0.45);
-  --app-gradient: radial-gradient(120% 120% at 0% 0%, rgba(255, 126, 185, 0.35), transparent),
-    radial-gradient(140% 140% at 100% 0%, rgba(255, 182, 111, 0.25), transparent),
-    radial-gradient(120% 140% at 0% 100%, rgba(152, 119, 255, 0.35), transparent),
-    radial-gradient(140% 140% at 100% 100%, rgba(111, 210, 255, 0.25), transparent),
-    #0b0615;
+  --app-gradient-light: radial-gradient(
+      circle at 18% 20%,
+      rgba(118, 93, 160, 0.85),
+      rgba(118, 93, 160, 0) 52%
+    ),
+    radial-gradient(circle at 70% 25%, rgba(255, 183, 197, 0.85), rgba(255, 183, 197, 0) 45%),
+    radial-gradient(circle at 35% 70%, rgba(255, 183, 197, 0.6), rgba(255, 183, 197, 0) 60%),
+    radial-gradient(circle at 80% 80%, rgba(118, 93, 160, 0.45), rgba(118, 93, 160, 0) 50%),
+    linear-gradient(125deg, #f9f1ff 0%, #ffe2ef 55%, #f6ecff 100%);
+  --app-gradient-dark: radial-gradient(120% 120% at 0% 0%, rgba(255, 126, 185, 0.2), transparent),
+    radial-gradient(120% 120% at 100% 0%, rgba(92, 91, 251, 0.25), transparent),
+    radial-gradient(120% 120% at 100% 100%, rgba(111, 210, 255, 0.25), transparent),
+    #05010d;
+  --app-gradient: var(--app-gradient-light);
+  --app-overlay-light: radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.25), transparent 55%);
+  --app-overlay-dark: radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.08), transparent 55%);
+  --app-overlay: var(--app-overlay-light);
   --background: 300 30% 98%;
   --foreground: 264 80% 6%;
   --card: 0 0% 100%;
@@ -34,12 +46,10 @@
 }
 
 .dark {
-  --glass-bg: rgba(12, 8, 25, 0.75);
+  --glass-bg: rgba(12, 8, 25, 0.85);
   --glass-border: rgba(255, 255, 255, 0.1);
-  --app-gradient: radial-gradient(120% 120% at 0% 0%, rgba(255, 126, 185, 0.2), transparent),
-    radial-gradient(120% 120% at 100% 0%, rgba(92, 91, 251, 0.25), transparent),
-    radial-gradient(120% 120% at 100% 100%, rgba(111, 210, 255, 0.25), transparent),
-    #05010d;
+  --app-gradient: var(--app-gradient-dark);
+  --app-overlay: var(--app-overlay-dark);
   --background: 278 40% 4%;
   --foreground: 280 35% 98%;
   --card: 278 40% 6%;
@@ -121,4 +131,8 @@
   letter-spacing: 0.2rem;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
+}
+
+.app-overlay {
+  background-image: var(--app-overlay);
 }

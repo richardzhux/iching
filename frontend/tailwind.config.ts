@@ -14,8 +14,7 @@ const config: Config = {
     },
     extend: {
       backgroundImage: {
-        "app-radial":
-          "radial-gradient(120% 120% at 0% 0%, rgba(255, 126, 185, 0.4), transparent), radial-gradient(140% 140% at 100% 0%, rgba(255, 182, 111, 0.35), transparent), radial-gradient(120% 140% at 0% 100%, rgba(152, 119, 255, 0.35), transparent), radial-gradient(140% 140% at 100% 100%, rgba(111, 210, 255, 0.2), transparent), #0b0615",
+        "app-radial": "var(--app-gradient)",
       },
       borderRadius: {
         lg: "var(--radius)",

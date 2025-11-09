@@ -11,13 +11,10 @@ export const metadata: Metadata = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12 lg:px-12">
-      <header className="mb-10 flex flex-col gap-4 rounded-3xl border border-white/15 bg-white/5 p-6 text-white shadow-glass backdrop-blur lg:flex-row lg:items-center lg:justify-between">
+      <header className="glass-panel mb-10 flex flex-col gap-4 rounded-3xl p-6 text-foreground lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="panel-heading">I Ching Studio</p>
           <h1 className="text-2xl font-semibold">占卜工作台</h1>
-          <p className="text-sm text-white/80">
-            Next.js 前端消费 FastAPI API · 支持 AI 分析、自动归档与玻璃拟态主题。
-          </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "rounded-full")}>
@@ -27,7 +24,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             href="https://github.com/richardzhux/iching"
             target="_blank"
             rel="noreferrer"
-            className={cn(buttonVariants({ variant: "default" }), "rounded-full bg-white text-primary")}
+            className={cn(buttonVariants({ variant: "default" }), "rounded-full")}
           >
             GitHub 仓库
           </a>
