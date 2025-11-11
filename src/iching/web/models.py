@@ -67,6 +67,7 @@ class SessionPayload(BaseModel):
     hex_text: str
     hex_sections: List[Dict[str, object]]
     hex_overview: Dict[str, object]
+    bazi_detail: List[Dict[str, object]]
     najia_text: str
     najia_table: Dict[str, object]
     ai_text: str

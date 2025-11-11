@@ -24,6 +24,8 @@ type Props = {
   config: ConfigResponse
 }
 
+const QUESTION_LIMIT = 2000
+
 const pad = (value: number) => value.toString().padStart(2, "0")
 const toneOptions = [
   { value: "normal", label: "标准", description: "沉稳专业、贴近现代书面语。" },
@@ -96,6 +98,7 @@ export function CastForm({ config }: Props) {
   const setForm = useWorkspaceStore((state) => state.setForm)
   const setResult = useWorkspaceStore((state) => state.setResult)
   const activeToneOption = toneOptions.find((option) => option.value === form.aiTone)
+  const questionLength = form.userQuestion?.length ?? 0
 
   const activeModel = useMemo<ModelInfo | undefined>(
     () => config.ai_models.find((model) => model.name === form.aiModel),
@@ -230,12 +233,18 @@ export function CastForm({ config }: Props) {
         </div>
 
         <div className="space-y-2">
-          <p className="panel-heading">具体问题</p>
+          <div className="flex items-center justify-between">
+            <p className="panel-heading">具体问题</p>
+            <span className="text-xs text-muted-foreground">
+              {questionLength}/{QUESTION_LIMIT}
+            </span>
+          </div>
           <Textarea
             placeholder="例如：今年是否适合换工作？"
             value={form.userQuestion}
             onChange={(event) => updateForm("userQuestion", event.target.value)}
             rows={3}
+            maxLength={QUESTION_LIMIT}
           />
         </div>
 

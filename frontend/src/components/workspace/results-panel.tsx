@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useWorkspaceStore } from "@/lib/store"
-import type { HexSection, SessionPayload } from "@/types/api"
+import type { BaziPillar, HexSection, SessionPayload } from "@/types/api"
 
 import { HexagramHeader } from "./hexagram-visual"
 import { NajiaTableView } from "./najia-table"
@@ -66,10 +66,24 @@ function HexResultBlock({ result }: { result: SessionPayload }) {
 
   const hasHiddenSections = secondarySections.length > 0
   const hasPrimary = primarySections.length > 0
+  const sessionDetails = result.session_dict as Record<string, unknown> | undefined
+  const rawBazi = sessionDetails?.["bazi_output"]
+  const rawElements = sessionDetails?.["elements_output"]
+  const baziText = typeof rawBazi === "string" ? rawBazi : ""
+  const elementsText = typeof rawElements === "string" ? rawElements : ""
+  const detailFromPayload = result.bazi_detail as BaziPillar[] | undefined
+  const detailFromSession = sessionDetails?.["bazi_detail"] as BaziPillar[] | undefined
+  const baziDetail = detailFromPayload ?? detailFromSession ?? []
 
   return (
     <div className="mt-4 space-y-5">
-      <HexagramHeader overview={result.hex_overview} najiaMeta={result.najia_table?.meta} />
+      <HexagramHeader
+        overview={result.hex_overview}
+        najiaMeta={result.najia_table?.meta}
+        baziText={baziText}
+        elementsText={elementsText}
+        baziDetail={baziDetail}
+      />
       {result.najia_table?.rows?.length ? (
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">六神纳甲</p>

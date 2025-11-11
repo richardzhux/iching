@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Tuple
+from typing import Dict, List, Optional, Tuple
 
 import sxtwl
 
@@ -12,6 +12,8 @@ class BaZiCalculator:
     """Calculate BaZi and Five Elements based on a given datetime."""
 
     datetime_obj: datetime
+    _last_components: Optional[Dict[str, str]] = field(init=False, default=None)
+    _last_detail: Optional[List[Dict[str, object]]] = field(init=False, default=None)
 
     five_elements = {
         "甲": "阳木",
@@ -61,11 +63,68 @@ class BaZiCalculator:
             f"{self.Gan[hour_gz.tg]}{self.Zhi[hour_gz.dz]}时"
         )
 
-        elements_output = (
-            f"{self.five_elements[self.Gan[year_gz.tg]]} {self.five_elements[self.Zhi[year_gz.dz]]}年 "
-            f"{self.five_elements[self.Gan[month_gz.tg]]} {self.five_elements[self.Zhi[month_gz.dz]]}月 "
-            f"{self.five_elements[self.Gan[day_gz.tg]]} {self.five_elements[self.Zhi[day_gz.dz]]}日 "
-            f"{self.five_elements[self.Gan[hour_gz.tg]]} {self.five_elements[self.Zhi[hour_gz.dz]]}时"
+        detail = self._build_detail(year_gz, month_gz, day_gz, hour_gz)
+        elements_output = " ".join(
+            f"{pillar['stem']['element'] or pillar['stem']['value']}"
+            f"{pillar['branch']['element'] or pillar['branch']['value']}"
+            f"{pillar['label']}"
+            for pillar in detail
         )
 
+        self._last_components = {
+            "year_stem": self.Gan[year_gz.tg],
+            "year_branch": self.Zhi[year_gz.dz],
+            "month_stem": self.Gan[month_gz.tg],
+            "month_branch": self.Zhi[month_gz.dz],
+            "day_stem": self.Gan[day_gz.tg],
+            "day_branch": self.Zhi[day_gz.dz],
+            "hour_stem": self.Gan[hour_gz.tg],
+            "hour_branch": self.Zhi[hour_gz.dz],
+        }
+        self._last_detail = detail
+
         return bazi_output, elements_output
+
+    @property
+    def last_components(self) -> Optional[Dict[str, str]]:
+        return self._last_components
+
+    @property
+    def last_detail(self) -> Optional[List[Dict[str, object]]]:
+        return self._last_detail
+
+    def _build_detail(self, year_gz, month_gz, day_gz, hour_gz) -> List[Dict[str, object]]:
+        mapping = [
+            ("年", year_gz.tg, year_gz.dz),
+            ("月", month_gz.tg, month_gz.dz),
+            ("日", day_gz.tg, day_gz.dz),
+            ("时", hour_gz.tg, hour_gz.dz),
+        ]
+        detail: List[Dict[str, object]] = []
+        for label, stem_idx, branch_idx in mapping:
+            stem_value = self.Gan[stem_idx]
+            branch_value = self.Zhi[branch_idx]
+            stem_polarity, stem_element = self._describe_symbol(stem_value)
+            branch_polarity, branch_element = self._describe_symbol(branch_value)
+            detail.append(
+                {
+                    "label": label,
+                    "stem": {
+                        "value": stem_value,
+                        "polarity": stem_polarity,
+                        "element": stem_element,
+                    },
+                    "branch": {
+                        "value": branch_value,
+                        "polarity": branch_polarity,
+                        "element": branch_element,
+                    },
+                }
+            )
+        return detail
+
+    def _describe_symbol(self, symbol: str) -> Tuple[str, str]:
+        descriptor = self.five_elements.get(symbol, "")
+        if not descriptor:
+            return "", ""
+        return descriptor[0], descriptor[1:] or symbol

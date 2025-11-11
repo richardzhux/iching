@@ -35,7 +35,6 @@ export function NajiaTableView({ table }: NajiaTableProps) {
                   label={`第${row.position}爻`}
                   relation={row.main_relation}
                   marker={row.marker}
-                  movement={row.movement_tag}
                   lineType={row.line_type}
                   highlight={row.is_moving}
                 />
@@ -43,7 +42,6 @@ export function NajiaTableView({ table }: NajiaTableProps) {
                   label="变卦"
                   relation={row.changed_relation}
                   marker=""
-                  movement=""
                   lineType={changedType}
                   highlight={row.is_moving}
                   muted
@@ -61,7 +59,6 @@ type NajiaLineColumnProps = {
   label: string
   relation: string
   marker: string
-  movement: string
   lineType: "yang" | "yin"
   highlight?: boolean
   muted?: boolean
@@ -71,11 +68,15 @@ function NajiaLineColumn({
   label,
   relation,
   marker,
-  movement,
   lineType,
   highlight = false,
   muted = false,
 }: NajiaLineColumnProps) {
+  const relationClasses = cn(
+    "text-sm font-semibold",
+    highlight ? "text-amber-600 dark:text-amber-300" : "text-foreground dark:text-white"
+  )
+
   return (
     <div
       className={cn(
@@ -89,12 +90,9 @@ function NajiaLineColumn({
         <span>{label}</span>
         {marker && <span className="text-sky-500">{marker}</span>}
       </div>
-      <p className="text-sm font-semibold text-foreground dark:text-white">{relation || "—"}</p>
+      <p className={relationClasses}>{relation || "—"}</p>
       <div className="flex items-center gap-2">
         <LineGlyph variant={lineType} highlight={highlight} />
-        {movement && (
-          <span className="text-[0.65rem] uppercase tracking-widest text-amber-500">{movement}</span>
-        )}
       </div>
     </div>
   )

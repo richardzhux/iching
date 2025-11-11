@@ -11,71 +11,71 @@ from iching.core.divination import AVAILABLE_METHODS, DivinationMethod
 from iching.core.hexagram import Hexagram, load_hexagram_definitions
 from iching.core.time_utils import get_current_time
 from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES, analyze_session
-from iching.integrations.najia.najia import Najia
+from iching.integrations.najia_repository import NajiaEntry, NajiaRepository
 
 
 def _default_input(prompt: str) -> str:
     return input(prompt)
 
 
-def _normalize_list(value: Optional[Any], *, length: int = 6) -> List[str]:
-    if isinstance(value, list):
-        data = value[:]
-    elif value is None:
-        data = []
-    else:
-        data = list(value)
-    if len(data) < length:
-        data.extend([""] * (length - len(data)))
-    return [str(item) if item is not None else "" for item in data[:length]]
+SIX_GOD_SEQUENCE = ["青龙", "朱雀", "勾陈", "腾蛇", "白虎", "玄武"]
+SIX_GOD_START_INDEX = {
+    "甲": 0,
+    "乙": 0,
+    "丙": 1,
+    "丁": 1,
+    "戊": 2,
+    "己": 3,
+    "庚": 4,
+    "辛": 4,
+    "壬": 5,
+    "癸": 5,
+}
 
 
 def _build_najia_table(
-    najia_data: Optional[Dict[str, Any]], line_overview: List[Dict[str, object]]
+    main_entry: Optional[NajiaEntry],
+    changed_entry: Optional[NajiaEntry],
+    line_overview: List[Dict[str, object]],
+    day_stem: Optional[str],
 ) -> Dict[str, object]:
-    if not najia_data:
-        return {"meta": {"main": None, "changed": None}, "rows": []}
-
-    main_meta = najia_data.get("main") or {}
-    changed_meta = najia_data.get("bian") or {}
-    meta = {
-        "main": {
-            "name": main_meta.get("name") or najia_data.get("name"),
-            "gong": main_meta.get("gong") or najia_data.get("gong"),
-            "type": main_meta.get("type") or "",
-        },
-        "changed": None,
-    }
-    if changed_meta.get("name"):
-        meta["changed"] = {
-            "name": changed_meta.get("name"),
-            "gong": changed_meta.get("gong"),
-            "type": changed_meta.get("type") or "",
+    meta: Dict[str, Optional[Dict[str, Optional[str]]]] = {"main": None, "changed": None}
+    if main_entry:
+        meta["main"] = {
+            "name": main_entry.name,
+            "gong": main_entry.palace,
+            "type": main_entry.descriptor,
         }
-
-    god6 = _normalize_list(najia_data.get("god6"))
-    hidden = _normalize_list((najia_data.get("hide") or {}).get("qin6"))
-    qin6 = _normalize_list(najia_data.get("qin6"))
-    qinx = _normalize_list(najia_data.get("qinx"))
-    shiy = _normalize_list(najia_data.get("shiy"))
-    dyao = _normalize_list(najia_data.get("dyao"))
-    main_marks = _normalize_list((najia_data.get("main") or {}).get("mark"))
-    changed_qin6 = _normalize_list(changed_meta.get("qin6"))
-    changed_marks = _normalize_list(changed_meta.get("mark"))
+    if changed_entry:
+        meta["changed"] = {
+            "name": changed_entry.name,
+            "gong": changed_entry.palace,
+            "type": changed_entry.descriptor,
+        }
+    if not main_entry:
+        return {"meta": meta, "rows": []}
 
     overview = list(line_overview or [])
     if len(overview) < 6:
         overview.extend({} for _ in range(6 - len(overview)))
 
+    six_gods = _derive_six_gods(day_stem)
+    god_map = {index + 1: god for index, god in enumerate(six_gods)}
+
     rows: List[Dict[str, object]] = []
     for idx in range(6):
-        source_idx = 5 - idx
         line_info = overview[idx] if idx < len(overview) else {}
         position = line_info.get("position", 6 - idx)
         line_type = line_info.get("line_type", "yang")
         changed_line_type = line_info.get("changed_line_type", line_type)
         is_moving = bool(line_info.get("is_moving"))
         moving_symbol = line_info.get("moving_symbol", "")
+        value = line_info.get("value")
+
+        main_line = main_entry.get_line_by_top(position)
+        changed_line = (
+            changed_entry.get_line_by_top(position) if changed_entry else None
+        )
 
         rows.append(
             {
@@ -84,18 +84,39 @@ def _build_najia_table(
                 "changed_line_type": changed_line_type,
                 "is_moving": is_moving,
                 "moving_symbol": moving_symbol,
-                "god": god6[source_idx].strip(),
-                "hidden": hidden[source_idx].strip(),
-                "main_relation": f"{qin6[source_idx]}{qinx[source_idx]}".strip(),
-                "main_mark": main_marks[source_idx],
-                "marker": shiy[source_idx].strip(),
-                "movement_tag": dyao[source_idx].strip(),
-                "changed_relation": changed_qin6[source_idx].strip(),
-                "changed_mark": changed_marks[source_idx],
+                "god": god_map.get(position) or (main_line.god if main_line else ""),
+                "hidden": main_line.hidden if main_line else "",
+                "main_relation": main_line.relation if main_line else "",
+                "main_mark": main_line.glyph if main_line else "",
+                "marker": main_line.marker if main_line else "",
+                "movement_tag": _movement_tag_from_value(value),
+                "changed_relation": changed_line.relation if changed_line else "",
+                "changed_mark": changed_line.glyph if changed_line else "",
             }
         )
 
     return {"meta": meta, "rows": rows}
+
+
+def _movement_tag_from_value(value: Optional[int]) -> str:
+    if value == 6:
+        return "○→"
+    if value == 9:
+        return "×→"
+    return ""
+
+
+def _derive_six_gods(day_stem: Optional[str]) -> List[str]:
+    if not day_stem:
+        return [""] * 6
+    start = SIX_GOD_START_INDEX.get(day_stem)
+    if start is None:
+        return [""] * 6
+    order: List[str] = []
+    for offset in range(6):
+        index = (start + offset) % 6
+        order.append(SIX_GOD_SEQUENCE[index])
+    return order
 
 
 @dataclass(slots=True)
@@ -114,6 +135,7 @@ class SessionResult:
     najia_text: str
     najia_data: Dict[str, object]
     najia_table: Dict[str, object]
+    bazi_detail: List[Dict[str, object]]
     ai_model: Optional[str]
     ai_reasoning: Optional[str]
     ai_verbosity: Optional[str]
@@ -143,6 +165,7 @@ class SessionService:
     def __init__(self, config: Optional[AppConfig] = None) -> None:
         self.config = config or build_app_config()
         self.definitions = load_hexagram_definitions(self.config.paths.gua_index_file)
+        self.najia_repo = NajiaRepository(self.config.paths.najia_db)
         self._history: List[SessionResult] = []
 
     @property
@@ -326,18 +349,31 @@ class SessionService:
 
         bazi_calculator = BaZiCalculator(timestamp)
         bazi_output, elements_output = bazi_calculator.calculate()
+        bazi_components = bazi_calculator.last_components or {}
+        bazi_detail = bazi_calculator.last_detail or []
+        day_stem = bazi_components.get("day_stem")
 
         hexagram = Hexagram(lines, self.definitions)
         hex_text, hex_sections, hex_overview = hexagram.to_text_package(
             guaci_path=self.config.paths.guaci_dir
         )
 
-        params_map = {7: 1, 9: 4, 8: 0, 6: 3}
-        params = [params_map.get(value, 0) for value in lines]
-        date_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-        najia = Najia()
-        najia.compile(params=params, date=date_str, title=topic or "", guaci=False)
-        najia_text = najia.render().strip()
+        main_najia_entry = self.najia_repo.get_by_bottom(hexagram.binary[::-1])
+        changed_najia_entry = (
+            self.najia_repo.get_by_bottom(hexagram.changed_hexagram.binary[::-1])
+            if hexagram.changed_hexagram
+            else None
+        )
+        najia_text = main_najia_entry.block_text if main_najia_entry else ""
+        najia_data = {
+            "main": main_najia_entry.to_payload() if main_najia_entry else None,
+            "changed": changed_najia_entry.to_payload() if changed_najia_entry else None,
+            "block_text": najia_text,
+            "day_stem": day_stem,
+        }
+        najia_table = _build_najia_table(
+            main_najia_entry, changed_najia_entry, hex_overview.get("lines", []), day_stem
+        )
 
         ai_analysis_text = None
         tone_profile = ai_tone or "normal"
@@ -364,7 +400,6 @@ class SessionService:
                 verbosity_level = default_verbosity
         else:
             verbosity_level = None
-        najia_table = _build_najia_table(najia.data, hex_overview.get("lines", []))
 
         if should_use_ai:
             session_payload = {
@@ -379,7 +414,8 @@ class SessionService:
                 "hex_text": hex_text,
                 "hex_sections": hex_sections,
                 "hex_overview": hex_overview,
-                "najia_data": dict(najia.data),
+                "bazi_detail": bazi_detail,
+                "najia_data": najia_data,
                 "najia_text": najia_text,
                 "najia_table": najia_table,
                 "ai_analysis": None,
@@ -411,7 +447,8 @@ class SessionService:
                 "hex_text": hex_text,
                 "hex_sections": hex_sections,
                 "hex_overview": hex_overview,
-                "najia_data": dict(najia.data),
+                "bazi_detail": bazi_detail,
+                "najia_data": najia_data,
                 "najia_text": najia_text,
                 "najia_table": najia_table,
                 "ai_analysis": None,
@@ -448,6 +485,7 @@ class SessionService:
             najia_text=najia_text,
             najia_data=session_payload["najia_data"],
             najia_table=najia_table,
+            bazi_detail=bazi_detail,
             ai_model=session_payload.get("ai_model"),
             ai_reasoning=session_payload.get("ai_reasoning"),
             ai_verbosity=session_payload.get("ai_verbosity"),

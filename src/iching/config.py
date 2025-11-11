@@ -21,6 +21,7 @@ class PathConfig:
     project_root: Path
     data_dir: Path
     gua_index_file: Path
+    najia_db: Path
     guaci_dir: Path
     takashima_dir: Path
     symbolic_dir: Path
@@ -74,11 +75,13 @@ def build_path_config() -> PathConfig:
     gua_index_file = _expand(
         os.getenv("ICHING_GUA_INDEX_FILE", data_dir / "guaxiang.txt")
     )
+    najia_db = _expand(os.getenv("ICHING_NAJIA_DB", data_dir / "najia.db"))
 
     paths = PathConfig(
         project_root=PROJECT_ROOT,
         data_dir=data_dir,
         gua_index_file=gua_index_file,
+        najia_db=najia_db,
         guaci_dir=guaci_dir,
         takashima_dir=takashima_dir,
         symbolic_dir=symbolic_dir,

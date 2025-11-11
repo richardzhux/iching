@@ -6,8 +6,8 @@ Modern 易经工作台，覆盖 CLI、Streamlit 调试界面、FastAPI 服务与
 
 ```
 ├── src/iching
-│   ├── core/                     # Hexagram defs, BaZi, Najia, time utils, divination methods
-│   ├── integrations/             # OpenAI analysis + Najia adapters
+│   ├── core/                     # Hexagram defs, BaZi, time utils, divination methods
+│   ├── integrations/             # OpenAI analysis + Najia SQLite repository
 │   ├── services/session.py       # Session orchestration (lines generation, AI glue, archives)
 │   ├── web/api/                  # FastAPI app, routers, CORS middleware
 │   ├── web/models.py             # Pydantic DTOs shared between API + UI
@@ -26,7 +26,7 @@ Modern 易经工作台，覆盖 CLI、Streamlit 调试界面、FastAPI 服务与
 - **Divination engines** – 五十蓍草 (`s`), 三枚铜钱 (`c`), 梅花易数 (`m`), 随机/手动 (`x`) implemented in `iching.core.divination`. Manual mode validates six lines (6/7/8/9) and supports timestamp overrides.
 - **Hexagram data pipeline** – loads Takashima/Guaci resources, renders卦辞文案、动爻、互卦、变卦等 (`iching.core.hexagram`).
 - **BaZi & 五行** – `BaZiCalculator` computes stems/branches, elements strength, 旺相休囚.
-- **Najia + 六亲/六神** – `iching.integrations.najia.Najia` compiles天干地支映射、动静爻、六神等结构化数据。
+- **Najia + 六亲/六神** – `iching.integrations.najia_repository.NajiaRepository` loads `data/najia.db` (64 卦的六神/伏神区块) 并向前端提供结构化本卦/变卦行数据。
 - **AI analysis** – `iching.integrations.ai.analyze_session` calls OpenAI (model/capability map) with optional reasoning + verbosity knobs, protected by `OPENAI_PW`.
 - **SessionService** – single entry point handling method selection, manual lines, timestamp rules, AI gating, archive text generation, history buffer.
 

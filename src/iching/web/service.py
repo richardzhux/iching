@@ -6,7 +6,8 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple
+from threading import Lock
+from typing import Dict, Tuple
 
 from iching.config import AppConfig, build_app_config
 from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES
@@ -21,8 +22,65 @@ from iching.web.models import (
 )
 
 
+MAX_QUESTION_LENGTH = 2000
+MAX_DAILY_ATTEMPTS = 1000
+MAX_DAILY_AI_SUCCESSES = 50
+
+
 class AccessDeniedError(RuntimeError):
     """Raised when an AI-enabled request lacks the proper password."""
+
+
+class RateLimitError(RuntimeError):
+    """Raised when a client exceeds allowed request quotas."""
+
+
+@dataclass
+class RateCounter:
+    date: str
+    attempts: int = 0
+    ai_successes: int = 0
+
+
+class RateLimiter:
+    def __init__(self, max_attempts: int, max_ai_successes: int) -> None:
+        self.max_attempts = max_attempts
+        self.max_ai_successes = max_ai_successes
+        self._lock = Lock()
+        self._counters: Dict[str, RateCounter] = {}
+
+    def record_attempt(self, ip: str) -> None:
+        normalized = self._normalize_ip(ip)
+        with self._lock:
+            counter = self._get_counter(normalized)
+            counter.attempts += 1
+            if counter.attempts > self.max_attempts:
+                raise RateLimitError("请求过于频繁，请明天再试。")
+
+    def ensure_ai_quota(self, ip: str) -> None:
+        normalized = self._normalize_ip(ip)
+        with self._lock:
+            counter = self._get_counter(normalized)
+            if counter.ai_successes >= self.max_ai_successes:
+                raise RateLimitError("AI 请求达到每日上限，请明天再试。")
+
+    def record_ai_success(self, ip: str) -> None:
+        normalized = self._normalize_ip(ip)
+        with self._lock:
+            counter = self._get_counter(normalized)
+            counter.ai_successes += 1
+
+    def _get_counter(self, ip: str) -> RateCounter:
+        today = datetime.utcnow().date().isoformat()
+        counter = self._counters.get(ip)
+        if counter is None or counter.date != today:
+            counter = RateCounter(date=today)
+            self._counters[ip] = counter
+        return counter
+
+    @staticmethod
+    def _normalize_ip(ip: str) -> str:
+        return ip or "unknown"
 
 
 def _ensure_dir(path: Path) -> Path:
@@ -60,12 +118,30 @@ def _validate_ai_password(password: str | None) -> Tuple[bool, str]:
 class SessionRunner:
     service: SessionService
     config: AppConfig
+    rate_limiter: RateLimiter
 
-    def run(self, request: SessionCreateRequest) -> SessionPayload:
+    def run(self, request: SessionCreateRequest, client_ip: str | None = None) -> SessionPayload:
+        ip = client_ip or "unknown"
+        self.rate_limiter.record_attempt(ip)
+
+        if request.user_question and len(request.user_question) > MAX_QUESTION_LENGTH:
+            raise ValueError("question too verbose!")
+
+        allowed_topics = {
+            label for key, label in self.service.TOPIC_MAP.items() if key != "q"
+        }
+        if request.topic not in allowed_topics:
+            raise ValueError(f"未知的占卜主题: {request.topic}")
+
+        allowed_methods = set(self.service.methods.keys())
+        if request.method_key not in allowed_methods:
+            raise ValueError(f"未知的占卜方法: {request.method_key}")
+
         timestamp = request.timestamp if not request.use_current_time else None
 
         ai_allowed = False
         if request.enable_ai:
+            self.rate_limiter.ensure_ai_quota(ip)
             ok, message = _validate_ai_password(request.access_password)
             if not ok:
                 raise AccessDeniedError(message)
@@ -97,6 +173,8 @@ class SessionRunner:
             f"问题: {result.user_question or '（无）'}",
             f"方法: {result.method}",
             f"时间: {result.current_time_str}",
+            f"八字: {result.bazi_output}",
+            f"五行: {result.elements_output}",
             f"六爻: {result.lines}",
             f"已保存: {archive_path}",
         ]
@@ -109,6 +187,7 @@ class SessionRunner:
             hex_text=result.hex_text,
             hex_sections=result.hex_sections,
             hex_overview=result.hex_overview,
+             bazi_detail=result.bazi_detail,
             najia_text=result.najia_text,
             najia_table=result.najia_table,
             ai_text=result.ai_analysis or "",
@@ -116,6 +195,9 @@ class SessionRunner:
             archive_path=str(archive_path),
             full_text=result.full_text,
         )
+        if request.enable_ai and ai_allowed:
+            self.rate_limiter.record_ai_success(ip)
+
         return payload
 
     def config_response(self) -> ConfigResponse:
@@ -143,7 +225,15 @@ class SessionRunner:
 
 _APP_CONFIG = build_app_config()
 _SESSION_SERVICE = SessionService(config=_APP_CONFIG)
-_SESSION_RUNNER = SessionRunner(service=_SESSION_SERVICE, config=_APP_CONFIG)
+_RATE_LIMITER = RateLimiter(
+    max_attempts=MAX_DAILY_ATTEMPTS,
+    max_ai_successes=MAX_DAILY_AI_SUCCESSES,
+)
+_SESSION_RUNNER = SessionRunner(
+    service=_SESSION_SERVICE,
+    config=_APP_CONFIG,
+    rate_limiter=_RATE_LIMITER,
+)
 
 
 def get_session_runner() -> SessionRunner:

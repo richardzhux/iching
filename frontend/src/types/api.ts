@@ -87,11 +87,24 @@ export type NajiaTable = {
   rows: NajiaRow[]
 }
 
+export type BaziElement = {
+  value: string
+  element: string
+  polarity: "阳" | "阴" | ""
+}
+
+export type BaziPillar = {
+  label: string
+  stem: BaziElement
+  branch: BaziElement
+}
+
 export type SessionPayload = {
   summary_text: string
   hex_text: string
   hex_sections: HexSection[]
   hex_overview: HexOverview
+  bazi_detail?: BaziPillar[]
   najia_text: string
   najia_table: NajiaTable
   ai_text: string
