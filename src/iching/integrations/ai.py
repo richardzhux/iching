@@ -2,38 +2,33 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 from openai import BadRequestError, OpenAI
 
 MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
-    "gpt-5-nano": {
-        "reasoning": ["minimal", "low", "medium", "high"],
-        "default_reasoning": "minimal",
-        "verbosity": True,
-        "default_verbosity": "low",
-    },
-    "gpt-4.1-nano": {
+    "gpt-4.1": {
         "reasoning": [],
         "default_reasoning": None,
         "verbosity": False,
         "default_verbosity": None,
     },
-    "gpt-5": {
-        "reasoning": ["minimal", "low", "medium", "high"],
-        "default_reasoning": "minimal",
+    "gpt-5.1": {
+        "reasoning": ["none", "minimal", "low", "medium", "high"],
+        "default_reasoning": "medium",
         "verbosity": True,
-        "default_verbosity": "low",
+        "default_verbosity": "medium",
     },
-    "o3": {
-        "reasoning": ["low", "medium", "high"],
-        "default_reasoning": "low",
-        "verbosity": False,
-        "default_verbosity": None,
+    "gpt-5-mini": {
+        "reasoning": ["minimal", "low", "medium", "high"],
+        "default_reasoning": "medium",
+        "verbosity": True,
+        "default_verbosity": "medium",
     },
 }
 
-DEFAULT_MODEL = "gpt-5-nano"
+DEFAULT_MODEL = "gpt-5.1"
 
 TONE_PROFILES: Dict[str, str] = {
     "normal": "现代中文，温和且专业，适度引用经典，保持礼貌敬语。",
@@ -136,7 +131,9 @@ def _build_prompt(data: Dict[str, Any]) -> str:
 
     reasoning = data.get("ai_reasoning")
     reasoning_note = ""
-    if reasoning == "minimal":
+    if reasoning == "none":
+        reasoning_note = "推理力度: 关闭。跳过链式推理以换取更快响应。"
+    elif reasoning == "minimal":
         reasoning_note = "推理力度: 极简。聚焦关键依据与结论，压缩篇幅，避免重复。"
     elif reasoning == "low":
         reasoning_note = "推理力度: 低。给出主要推理链条，保留必要的解释，但保持简洁。"
@@ -175,6 +172,22 @@ def _build_prompt(data: Dict[str, Any]) -> str:
     return "\n\n".join(blocks)
 
 
+CHAT_CONTINUATION_PROMPT = (
+    "You are continuing a single, already-completed I Ching reading. Do not recast or change the hexagram. "
+    "Ground all answers in the hexagram, the classical text and payload from the initial analysis, and your own prior "
+    "explanation in this thread. Treat each user message as a follow-up about the same situation; if the user wanders "
+    "off to unrelated topics, gently redirect back to this reading.\n\n"
+    + SYSTEM_PROMPT_PRO.strip()
+)
+
+
+@dataclass(slots=True)
+class AIResponseData:
+    text: str
+    response_id: Optional[str]
+    usage: Optional[Dict[str, int]]
+
+
 def _prompt_for_password() -> None:
     password = os.getenv("OPENAI_PW")
     if not password:
@@ -190,28 +203,34 @@ def _prompt_for_password() -> None:
 
 def _interactive_model_selector() -> str:
     options = [
-        ("A", "gpt-5-nano", "默认 (性能与成本平衡)"),
-        ("B", "gpt-4.1-nano", "极速 (最低成本/延迟)"),
-        ("C", "gpt-5", "高阶文本与推理"),
-        ("D", "o3", "最强推理 (更慢/更贵)"),
+        ("A", "gpt-4.1", "默认 (推荐)"),
+        ("B", "gpt-5.1", "深度推理"),
+        ("C", "gpt-5-mini", "兼容/聊天"),
+        ("D", "gpt-4.1-nano", "极速 (最低成本/延迟)"),
+        ("E", "gpt-5", "高阶文本与推理"),
+        ("F", "o3", "最强推理 (更慢/更贵)"),
     ]
-    print("\n请选择OpenAI模型（默认：gpt-5-nano）：")
+    print(f"\n请选择OpenAI模型（默认：{DEFAULT_MODEL}）：")
     for letter, model, desc in options:
         print(f"  [{letter}] {model.ljust(12)} —— {desc}")
     choice = input("请尊贵的用户选择：").strip().upper()
-    if choice in ("", "A"):
-        return "gpt-5-nano"
-    if choice == "B":
-        return "gpt-4.1-nano"
-    if choice == "C":
-        return "gpt-5"
-    if choice == "D":
-        return "o3"
-    print("警告：输入无效，已自动使用默认模型 gpt-5-nano。")
-    return "gpt-5-nano"
+    mapping = {
+        "": DEFAULT_MODEL,
+        "A": "gpt-4.1",
+        "B": "gpt-5.1",
+        "C": "gpt-5-mini",
+        "D": "gpt-4.1-nano",
+        "E": "gpt-5",
+        "F": "o3",
+    }
+    selected = mapping.get(choice)
+    if selected:
+        return selected
+    print(f"警告：输入无效，已自动使用默认模型 {DEFAULT_MODEL}。")
+    return DEFAULT_MODEL
 
 
-def analyze_session(
+def start_analysis(
     data: Dict[str, Any],
     *,
     api_key: Optional[str] = None,
@@ -222,20 +241,14 @@ def analyze_session(
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
     tone: Optional[str] = None,
-) -> Optional[str]:
-    """
-    Send the session dictionary to OpenAI and return the textual response.
-
-    When `interactive=False`, password and model selection prompts are skipped.
-    Callers should handle authentication before invoking this function.
-    """
+) -> Optional[AIResponseData]:
     if not interactive:
         # Non-interactive callers are responsible for pre-validating access.
-        need_password = False
+        include_password_gate = False
     else:
-        need_password = True
+        include_password_gate = True
 
-    if need_password:
+    if include_password_gate:
         (password_provider or _prompt_for_password)()
 
     if api_key is None:
@@ -251,95 +264,232 @@ def analyze_session(
     choose_model = model_selector or _interactive_model_selector
     model_name = model_hint or (choose_model() if interactive else DEFAULT_MODEL)
 
-    capabilities = MODEL_CAPABILITIES.get(model_name, MODEL_CAPABILITIES[DEFAULT_MODEL])
-    allowed_reasoning = capabilities.get("reasoning", [])
-    default_reasoning = capabilities.get("default_reasoning")
-
-    selected_reasoning = reasoning_effort or data.get("ai_reasoning")
-    if not allowed_reasoning:
-        selected_reasoning = None
-    else:
-        if selected_reasoning not in allowed_reasoning:
-            selected_reasoning = default_reasoning or allowed_reasoning[0]
-
-    supports_verbosity = bool(capabilities.get("verbosity"))
-    selected_verbosity = verbosity or data.get("ai_verbosity")
-    if supports_verbosity:
-        if selected_verbosity not in {"low", "medium", "high"}:
-            selected_verbosity = capabilities.get("default_verbosity", "medium")
-    else:
-        selected_verbosity = None
+    selected_reasoning = _normalize_reasoning(model_name, reasoning_effort or data.get("ai_reasoning"))
+    selected_verbosity = _normalize_verbosity(model_name, verbosity or data.get("ai_verbosity"))
+    reasoning_payload = None if selected_reasoning in (None, "none") else selected_reasoning
 
     client = OpenAI(api_key=api_key)
     user_prompt = _build_prompt(data)
+    response = _request_openai_response(
+        client=client,
+        model_name=model_name,
+        instructions=SYSTEM_PROMPT_PRO.strip(),
+        user_input=user_prompt,
+        reasoning=reasoning_payload,
+        verbosity=selected_verbosity,
+    )
+    if response is None:
+        return None
+    text = _extract_response_text(response)
+    if not text:
+        return None
+    usage = _extract_usage(response)
+    return AIResponseData(
+        text=text,
+        response_id=getattr(response, "id", None),
+        usage=usage,
+    )
 
-    def _invoke(use_reasoning: bool, use_verbosity: bool):
+
+def continue_analysis(
+    *,
+    previous_response_id: str,
+    message: str,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None,
+    reasoning_effort: Optional[str] = None,
+    verbosity: Optional[str] = None,
+    tone: Optional[str] = None,
+) -> AIResponseData:
+    if not previous_response_id:
+        raise ValueError("previous_response_id is required for follow-up calls.")
+
+    api_key = api_key or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY not configured on the server.")
+
+    resolved_model = model_name or DEFAULT_MODEL
+    selected_reasoning = _normalize_reasoning(resolved_model, reasoning_effort)
+    selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
+    reasoning_payload = None if selected_reasoning in (None, "none") else selected_reasoning
+
+    instruction_block = CHAT_CONTINUATION_PROMPT
+    if tone:
+        descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
+        instruction_block += f"\n\n语气设定: {tone} —— {descriptor}"
+
+    client = OpenAI(api_key=api_key)
+    response = _request_openai_response(
+        client=client,
+        model_name=resolved_model,
+        instructions=instruction_block,
+        user_input=message,
+        reasoning=reasoning_payload,
+        verbosity=selected_verbosity,
+        previous_response_id=previous_response_id,
+    )
+    if response is None:
+        raise RuntimeError("OpenAI follow-up call failed to produce a response.")
+
+    text = _extract_response_text(response)
+    if not text:
+        raise RuntimeError("OpenAI follow-up call returned an empty response.")
+
+    usage = _extract_usage(response)
+    return AIResponseData(
+        text=text,
+        response_id=getattr(response, "id", None),
+        usage=usage,
+    )
+
+
+def _request_openai_response(
+    *,
+    client: OpenAI,
+    model_name: str,
+    instructions: str,
+    user_input: str,
+    reasoning: Optional[str],
+    verbosity: Optional[str],
+    previous_response_id: Optional[str] = None,
+):
+    def build_payload(use_reasoning: bool, use_verbosity: bool) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
             "model": model_name,
+            "instructions": instructions.strip(),
             "input": [
                 {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT_PRO.strip(),
-                },
-                {
                     "role": "user",
-                    "content": user_prompt,
-                },
+                    "content": user_input,
+                }
             ],
         }
-        if use_reasoning and selected_reasoning:
-            payload["reasoning"] = {"effort": selected_reasoning}
-        if use_verbosity and selected_verbosity:
-            payload["text"] = {"verbosity": selected_verbosity}
-        return client.responses.create(**payload)
+        if previous_response_id:
+            payload["previous_response_id"] = previous_response_id
+        if use_reasoning and reasoning:
+            payload["reasoning"] = {"effort": reasoning}
+        if use_verbosity and verbosity:
+            payload["text"] = {"verbosity": verbosity}
+        return payload
 
-    use_reasoning_flag = selected_reasoning is not None
-    use_verbosity_flag = selected_verbosity is not None
+    use_reasoning = bool(reasoning)
+    use_verbosity = bool(verbosity)
 
     try:
-        response = _invoke(use_reasoning_flag, use_verbosity_flag)
+        return client.responses.create(**build_payload(use_reasoning, use_verbosity))
     except BadRequestError as exc:
         error_text = str(exc).lower()
         retried = False
-        if use_reasoning_flag and "reasoning" in error_text:
-            use_reasoning_flag = False
+        if use_reasoning and "reasoning" in error_text:
+            use_reasoning = False
             try:
-                response = _invoke(use_reasoning_flag, use_verbosity_flag)
+                response = client.responses.create(**build_payload(use_reasoning, use_verbosity))
                 retried = True
             except BadRequestError as inner_exc:
                 error_text = str(inner_exc).lower()
-                if use_verbosity_flag and ("text" in error_text or "verbosity" in error_text):
-                    use_verbosity_flag = False
-                    response = _invoke(use_reasoning_flag, use_verbosity_flag)
+                if use_verbosity and ("text" in error_text or "verbosity" in error_text):
+                    use_verbosity = False
+                    response = client.responses.create(**build_payload(use_reasoning, use_verbosity))
                     retried = True
                 else:
                     raise
         if not retried:
-            if use_verbosity_flag and ("text" in error_text or "verbosity" in error_text):
-                use_verbosity_flag = False
+            if use_verbosity and ("text" in error_text or "verbosity" in error_text):
+                use_verbosity = False
                 try:
-                    response = _invoke(use_reasoning_flag, use_verbosity_flag)
+                    return client.responses.create(**build_payload(use_reasoning, use_verbosity))
                 except BadRequestError as inner_exc:
                     error_text = str(inner_exc).lower()
-                    if use_reasoning_flag and "reasoning" in error_text:
-                        use_reasoning_flag = False
-                        response = _invoke(use_reasoning_flag, use_verbosity_flag)
-                    else:
-                        raise
-            else:
-                raise
+                    if use_reasoning and "reasoning" in error_text:
+                        use_reasoning = False
+                        return client.responses.create(**build_payload(use_reasoning, use_verbosity))
+                    raise
+            raise
+        return response
 
+
+def _extract_response_text(response: Any) -> Optional[str]:
     if hasattr(response, "output_text") and response.output_text:
-        content = response.output_text
-    else:
-        chunks = []
-        for item in getattr(response, "output", []) or []:
-            for part in getattr(item, "content", []) or []:
-                text = part.get("text") if isinstance(part, dict) else getattr(part, "text", None)
-                if text:
-                    chunks.append(text)
-        content = "".join(chunks)
-    return content.strip() if content else None
+        return response.output_text.strip()
+    chunks: list[str] = []
+    for item in getattr(response, "output", []) or []:
+        contents = getattr(item, "content", []) or []
+        for part in contents:
+            if isinstance(part, dict):
+                text = part.get("text")
+            else:
+                text = getattr(part, "text", None)
+            if text:
+                chunks.append(text)
+    combined = "".join(chunks).strip()
+    return combined or None
+
+
+def _extract_usage(response: Any) -> Optional[Dict[str, int]]:
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return None
+    usage_dict: Dict[str, int] = {}
+    for key in ("input_tokens", "output_tokens", "total_tokens"):
+        value = getattr(usage, key, None)
+        if value is None and isinstance(usage, dict):
+            value = usage.get(key)
+        if value is not None:
+            usage_dict[key] = int(value)
+    return usage_dict or None
+
+
+def _normalize_reasoning(model_name: str, requested: Optional[str]) -> Optional[str]:
+    meta = MODEL_CAPABILITIES.get(model_name, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    allowed = meta.get("reasoning", [])
+    if not allowed:
+        return None
+    if requested == "none":
+        return "none"
+    if requested in allowed:
+        return requested
+    default_reasoning = meta.get("default_reasoning")
+    if default_reasoning in allowed:
+        return default_reasoning
+    return allowed[0]
+
+
+def _normalize_verbosity(model_name: str, requested: Optional[str]) -> Optional[str]:
+    meta = MODEL_CAPABILITIES.get(model_name, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    if not meta.get("verbosity"):
+        return None
+    if requested in {"low", "medium", "high"}:
+        return requested
+    default_verbosity = meta.get("default_verbosity")
+    if default_verbosity in {"low", "medium", "high"}:
+        return default_verbosity
+    return "medium"
+
+
+def analyze_session(
+    data: Dict[str, Any],
+    *,
+    api_key: Optional[str] = None,
+    model_hint: Optional[str] = None,
+    interactive: bool = True,
+    password_provider: Optional[Callable[[], None]] = None,
+    model_selector: Optional[Callable[[], str]] = None,
+    reasoning_effort: Optional[str] = None,
+    verbosity: Optional[str] = None,
+    tone: Optional[str] = None,
+) -> Optional[str]:
+    result = start_analysis(
+        data,
+        api_key=api_key,
+        model_hint=model_hint,
+        interactive=interactive,
+        password_provider=password_provider,
+        model_selector=model_selector,
+        reasoning_effort=reasoning_effort,
+        verbosity=verbosity,
+        tone=tone,
+    )
+    return result.text if result else None
 
 
 # Backwards-compatible alias for legacy imports

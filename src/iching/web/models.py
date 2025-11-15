@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -74,9 +74,70 @@ class SessionPayload(BaseModel):
     session_dict: Dict[str, object]
     archive_path: str
     full_text: str
+    session_id: str
+    ai_enabled: bool
+    ai_model: Optional[str] = None
+    ai_reasoning: Optional[str] = None
+    ai_verbosity: Optional[str] = None
+    ai_tone: Optional[str] = None
+    ai_response_id: Optional[str] = None
+    ai_usage: Dict[str, int] = Field(default_factory=dict)
+    user_authenticated: bool = False
 
 
 class ConfigResponse(BaseModel):
     topics: List[TopicInfo]
     methods: List[MethodInfo]
     ai_models: List[ModelInfo]
+
+
+class ChatTurnRequest(BaseModel):
+    message: str
+    reasoning: Optional[str] = None
+    verbosity: Optional[str] = None
+    tone: Optional[str] = None
+    model: Optional[str] = None
+
+
+class ChatMessage(BaseModel):
+    id: Optional[str] = None
+    role: Literal["user", "assistant"]
+    content: str
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
+    created_at: Optional[datetime] = None
+    model: Optional[str] = None
+    reasoning: Optional[str] = None
+    verbosity: Optional[str] = None
+    tone: Optional[str] = None
+
+
+class ChatTurnResponse(BaseModel):
+    session_id: str
+    assistant: ChatMessage
+    usage: Dict[str, int]
+
+
+class ChatTranscriptResponse(BaseModel):
+    session_id: str
+    summary_text: Optional[str] = None
+    initial_ai_text: Optional[str] = None
+    messages: List[ChatMessage]
+    followup_model: Optional[str] = None
+    payload_snapshot: Optional[Dict[str, object]] = None
+
+
+class SessionSummary(BaseModel):
+    session_id: str
+    summary_text: Optional[str] = None
+    created_at: Optional[datetime] = None
+    ai_enabled: bool = False
+    user_email: Optional[str] = None
+    user_display_name: Optional[str] = None
+    user_avatar_url: Optional[str] = None
+    topic_label: Optional[str] = None
+    method_label: Optional[str] = None
+
+
+class SessionHistoryResponse(BaseModel):
+    sessions: List[SessionSummary]

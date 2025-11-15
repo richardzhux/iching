@@ -4,13 +4,19 @@ import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from uuid import uuid4
 
 from iching.config import AppConfig, PATHS, build_app_config
 from iching.core.bazi import BaZiCalculator
 from iching.core.divination import AVAILABLE_METHODS, DivinationMethod
 from iching.core.hexagram import Hexagram, load_hexagram_definitions
 from iching.core.time_utils import get_current_time
-from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES, analyze_session
+from iching.integrations.ai import (
+    DEFAULT_MODEL,
+    MODEL_CAPABILITIES,
+    AIResponseData,
+    start_analysis,
+)
 from iching.integrations.najia_repository import NajiaEntry, NajiaRepository
 
 
@@ -121,6 +127,7 @@ def _derive_six_gods(day_stem: Optional[str]) -> List[str]:
 
 @dataclass(slots=True)
 class SessionResult:
+    session_id: str
     timestamp: str
     topic: str
     user_question: Optional[str]
@@ -141,6 +148,8 @@ class SessionResult:
     ai_verbosity: Optional[str]
     ai_tone: Optional[str]
     ai_analysis: Optional[str]
+    ai_response_id: Optional[str]
+    ai_usage: Optional[Dict[str, int]]
     full_text: str = field(repr=False)
 
     def to_dict(self) -> Dict[str, object]:
@@ -376,6 +385,8 @@ class SessionService:
         )
 
         ai_analysis_text = None
+        ai_response_id: Optional[str] = None
+        ai_usage: Optional[Dict[str, int]] = None
         tone_profile = ai_tone or "normal"
         should_use_ai = self.config.enable_ai if enable_ai is None else enable_ai
         model_hint = ai_model or self.config.preferred_ai_model or DEFAULT_MODEL
@@ -401,30 +412,35 @@ class SessionService:
         else:
             verbosity_level = None
 
+        session_id = str(uuid4())
+        session_payload = {
+            "session_id": session_id,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "topic": topic,
+            "user_question": user_question,
+            "method": method.name,
+            "lines": lines,
+            "current_time_str": current_time_str,
+            "bazi_output": bazi_output,
+            "elements_output": elements_output,
+            "hex_text": hex_text,
+            "hex_sections": hex_sections,
+            "hex_overview": hex_overview,
+            "bazi_detail": bazi_detail,
+            "najia_data": najia_data,
+            "najia_text": najia_text,
+            "najia_table": najia_table,
+            "ai_analysis": None,
+            "ai_model": model_hint,
+            "ai_reasoning": reasoning_effort,
+            "ai_verbosity": verbosity_level,
+            "ai_tone": tone_profile,
+            "ai_response_id": None,
+            "ai_usage": None,
+        }
+
         if should_use_ai:
-            session_payload = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "topic": topic,
-                "user_question": user_question,
-                "method": method.name,
-                "lines": lines,
-                "current_time_str": current_time_str,
-                "bazi_output": bazi_output,
-                "elements_output": elements_output,
-                "hex_text": hex_text,
-                "hex_sections": hex_sections,
-                "hex_overview": hex_overview,
-                "bazi_detail": bazi_detail,
-                "najia_data": najia_data,
-                "najia_text": najia_text,
-                "najia_table": najia_table,
-                "ai_analysis": None,
-                "ai_model": model_hint,
-                "ai_reasoning": reasoning_effort,
-                "ai_verbosity": verbosity_level,
-                "ai_tone": tone_profile,
-            }
-            ai_analysis_text = analyze_session(
+            ai_result = start_analysis(
                 session_payload,
                 api_key=api_key,
                 model_hint=model_hint,
@@ -433,30 +449,13 @@ class SessionService:
                 verbosity=verbosity_level,
                 tone=tone_profile,
             )
-            session_payload["ai_analysis"] = ai_analysis_text
-        else:
-            session_payload = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "topic": topic,
-                "user_question": user_question,
-                "method": method.name,
-                "lines": lines,
-                "current_time_str": current_time_str,
-                "bazi_output": bazi_output,
-                "elements_output": elements_output,
-                "hex_text": hex_text,
-                "hex_sections": hex_sections,
-                "hex_overview": hex_overview,
-                "bazi_detail": bazi_detail,
-                "najia_data": najia_data,
-                "najia_text": najia_text,
-                "najia_table": najia_table,
-                "ai_analysis": None,
-                "ai_model": model_hint,
-                "ai_reasoning": reasoning_effort,
-                "ai_verbosity": verbosity_level,
-                "ai_tone": tone_profile,
-            }
+            if ai_result:
+                ai_analysis_text = ai_result.text
+                ai_response_id = ai_result.response_id
+                ai_usage = ai_result.usage
+                session_payload["ai_analysis"] = ai_analysis_text
+                session_payload["ai_response_id"] = ai_response_id
+                session_payload["ai_usage"] = ai_usage
 
         chunks = [
             "起卦时间: " + current_time_str,
@@ -471,6 +470,7 @@ class SessionService:
         full_text = "\n".join(chunks)
 
         result = SessionResult(
+            session_id=session_id,
             timestamp=session_payload["timestamp"],
             topic=topic,
             user_question=user_question,
@@ -491,6 +491,8 @@ class SessionService:
             ai_verbosity=session_payload.get("ai_verbosity"),
             ai_tone=session_payload.get("ai_tone"),
             ai_analysis=ai_analysis_text,
+            ai_response_id=session_payload.get("ai_response_id"),
+            ai_usage=session_payload.get("ai_usage"),
             full_text=full_text,
         )
         self._history.append(result)

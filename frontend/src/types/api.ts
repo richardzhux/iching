@@ -111,6 +111,15 @@ export type SessionPayload = {
   session_dict: Record<string, unknown>
   archive_path: string
   full_text: string
+  session_id: string
+  ai_enabled: boolean
+  ai_model?: string | null
+  ai_reasoning?: string | null
+  ai_verbosity?: string | null
+  ai_tone?: string | null
+  ai_response_id?: string | null
+  ai_usage: Record<string, number>
+  user_authenticated?: boolean
 }
 
 export type SessionRequest = {
@@ -126,4 +135,57 @@ export type SessionRequest = {
   ai_reasoning?: string | null
   ai_verbosity?: string | null
   ai_tone?: string | null
+}
+
+export type ChatMessage = {
+  id?: string
+  localId?: string
+  role: "user" | "assistant"
+  content: string
+  tokens_in?: number | null
+  tokens_out?: number | null
+  created_at?: string | null
+  model?: string | null
+  reasoning?: string | null
+  verbosity?: string | null
+  tone?: string | null
+}
+
+export type ChatTurnResponse = {
+  session_id: string
+  assistant: ChatMessage
+  usage: Record<string, number>
+}
+
+export type ChatTurnPayload = {
+  message: string
+  reasoning?: string | null
+  verbosity?: string | null
+  tone?: string | null
+  model?: string | null
+}
+
+export type ChatTranscriptResponse = {
+  session_id: string
+  summary_text?: string | null
+  initial_ai_text?: string | null
+  messages: ChatMessage[]
+  payload_snapshot?: SessionPayload
+  followup_model?: string | null
+}
+
+export type SessionSummary = {
+  session_id: string
+  summary_text?: string | null
+  created_at?: string | null
+  ai_enabled: boolean
+  user_email?: string | null
+  user_display_name?: string | null
+  user_avatar_url?: string | null
+  topic_label?: string | null
+  method_label?: string | null
+}
+
+export type SessionHistoryResponse = {
+  sessions: SessionSummary[]
 }

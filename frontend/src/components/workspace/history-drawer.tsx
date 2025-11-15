@@ -1,5 +1,7 @@
 "use client"
 
+import { useMemo, useState } from "react"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -13,6 +15,12 @@ import { useWorkspaceStore } from "@/lib/store"
 
 export function HistoryDrawer() {
   const history = useWorkspaceStore((state) => state.history)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const formattedHistory = useMemo(() => history ?? [], [history])
+
+  function toggleEntry(id: string) {
+    setExpanded((current) => (current === id ? null : id))
+  }
 
   return (
     <Sheet>
@@ -24,27 +32,64 @@ export function HistoryDrawer() {
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>最近 10 次起卦</SheetTitle>
-          <SheetDescription>仅保留当前浏览器内存，刷新后将清空。</SheetDescription>
+          <SheetDescription>
+            仅保留当前浏览器内存，刷新后将清空。登录后可前往个人中心查看完整历史。
+          </SheetDescription>
         </SheetHeader>
-        <div className="mt-6 space-y-5">
-          {history.length === 0 && <p className="text-sm text-muted-foreground">暂无历史记录。</p>}
-          {history.map((item, index) => (
-            <div
-              key={`${item.archive_path}-${index}`}
-              className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm shadow-glass"
-            >
-              <p className="text-xs uppercase tracking-[0.3rem] text-muted-foreground">
-                {item.session_dict?.method as string}
-              </p>
-              <p className="mt-1 font-semibold">{item.session_dict?.topic as string}</p>
-              <p className="text-xs text-muted-foreground">
-                {item.session_dict?.current_time_str as string} · {item.archive_path.split("/").pop()}
-              </p>
-              <pre className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">
-                {(item.session_dict?.user_question as string) || "（未填写问题）"}
-              </pre>
-            </div>
-          ))}
+        <div className="mt-6 space-y-4">
+          {formattedHistory.length === 0 && <p className="text-sm text-muted-foreground">暂无历史记录。</p>}
+          {formattedHistory.map((item, index) => {
+            const key = `${item.session_id}-${index}`
+            const isOpen = expanded === key
+            const topic = (item.session_dict?.["topic"] as string) || "（未填写主题）"
+            const method = (item.session_dict?.["method"] as string) || "未知方法"
+            const timestamp = (item.session_dict?.["current_time_str"] as string) || "未知时间"
+            return (
+              <div
+                key={key}
+                className="rounded-2xl border border-border/70 bg-card/70 p-4 text-sm shadow-glass"
+              >
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                  onClick={() => toggleEntry(key)}
+                >
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3rem] text-muted-foreground">{method}</p>
+                    <p className="mt-1 font-semibold text-foreground">{topic}</p>
+                    <p className="text-xs text-muted-foreground">{timestamp}</p>
+                  </div>
+                  {isOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                </button>
+                {isOpen && (
+                  <div className="mt-4 space-y-4 text-foreground">
+                    <section>
+                      <p className="text-xs uppercase tracking-[0.3rem] text-muted-foreground">概要</p>
+                      <pre className="mt-2 whitespace-pre-wrap rounded-xl border border-border/40 bg-background/70 p-3 text-sm leading-relaxed">
+                        {item.summary_text || "（暂无概要）"}
+                      </pre>
+                    </section>
+                    {item.hex_text && (
+                      <section>
+                        <p className="text-xs uppercase tracking-[0.3rem] text-muted-foreground">卦辞</p>
+                        <pre className="mt-2 whitespace-pre-wrap rounded-xl border border-border/40 bg-background/70 p-3 text-sm leading-relaxed">
+                          {item.hex_text}
+                        </pre>
+                      </section>
+                    )}
+                    {item.ai_text && (
+                      <section>
+                        <p className="text-xs uppercase tracking-[0.3rem] text-muted-foreground">AI 解读</p>
+                        <pre className="mt-2 whitespace-pre-wrap rounded-xl border border-border/40 bg-background/70 p-3 text-sm leading-relaxed">
+                          {item.ai_text}
+                        </pre>
+                      </section>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </SheetContent>
     </Sheet>

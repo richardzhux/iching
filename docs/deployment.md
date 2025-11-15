@@ -15,6 +15,9 @@
    - `OPENAI_API_KEY` – if AI integrations are enabled.
    - `OPENAI_PW` – password that unlocks AI mode via the API/UI.
    - `ICHING_ALLOWED_ORIGINS` – comma-separated list of frontend origins (e.g., `https://iching.vercel.app,https://staging-iching.vercel.app`).
+   - `SUPABASE_URL` & `SUPABASE_SERVICE_KEY` – required for chat persistence + Supabase Auth validation.
+   - Optional quotas: `ICHING_CHAT_TOKEN_LIMIT` (tokens per session, default 150000) and `ICHING_CHAT_MESSAGE_LIMIT` (per-message char cap, default 3000).
+   - Session cache/env tuning: `ICHING_SESSION_CACHE_LIMIT` (default 100), `ICHING_SESSION_CACHE_TTL_SECONDS` (default 6h), and `ICHING_ANON_USER_ID` (UUID used before a user logs in).
    - Any data paths you override from `AppConfig` (defaults work for relative paths).
 5. **Scaling**
    - Minimum instance size: 512 MB RAM is enough; CPU optimized if AI traffic grows.
@@ -29,6 +32,7 @@
 2. **Environment variables**
    - `NEXT_PUBLIC_API_BASE_URL` – URL of the FastAPI deployment.
    - `NEXT_PUBLIC_APP_NAME` – optional string used in the UI.
+   - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` – Supabase Auth client keys for the chat tab.
 3. **Build command** – defaults from `create-next-app` (`pnpm build`, `npm run build`, or `yarn build`).
 4. **Preview branches** – make sure preview URLs are whitelisted in `ICHING_ALLOWED_ORIGINS`.
 5. **Custom domain** – add `CNAME` or `A` record pointing to Vercel once ready.

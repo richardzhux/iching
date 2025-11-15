@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AppProviders } from "@/components/providers/app-providers"
+import { ProfileMenu } from "@/components/profile/profile-menu"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import Script from "next/script"
 import "./globals.css"
@@ -50,6 +51,7 @@ export default function RootLayout({
             <div className="app-overlay absolute inset-0 pointer-events-none" />
             <div className="absolute right-6 top-6 z-20 flex items-center gap-2">
               <ThemeToggle />
+              <ProfileMenu />
             </div>
             <div className="relative z-10 min-h-screen">{children}</div>
           </div>

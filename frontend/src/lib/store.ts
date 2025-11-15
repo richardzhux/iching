@@ -1,6 +1,7 @@
 "use client"
 
 import { create } from "zustand"
+import { persist } from "zustand/middleware"
 import type { SessionPayload } from "@/types/api"
 
 const pad = (value: number) => value.toString().padStart(2, "0")
@@ -24,14 +25,21 @@ export type WorkspaceForm = {
   aiTone: string
 }
 
+export type WorkspaceView = "form" | "results"
+
 type WorkspaceState = {
   form: WorkspaceForm
   result?: SessionPayload
   history: SessionPayload[]
+  view: WorkspaceView
+  lastSessionId?: string
   updateForm: <K extends keyof WorkspaceForm>(key: K, value: WorkspaceForm[K]) => void
   setForm: (values: Partial<WorkspaceForm>) => void
   resetForm: () => void
   setResult: (payload: SessionPayload) => void
+  resetSession: () => void
+  setView: (view: WorkspaceView) => void
+  reopenResults: () => void
 }
 
 const defaultForm: WorkspaceForm = {
@@ -43,40 +51,87 @@ const defaultForm: WorkspaceForm = {
   customTimestamp: formatDateInput(new Date()),
   enableAi: false,
   accessPassword: "",
-  aiModel: "gpt-5-nano",
+  aiModel: "gpt-5.1",
   aiReasoning: null,
   aiVerbosity: null,
   aiTone: "normal",
 }
 
-export const useWorkspaceStore = create<WorkspaceState>((set) => ({
-  form: defaultForm,
-  result: undefined,
-  history: [],
-  updateForm: (key, value) =>
-    set((state) => ({
-      form: {
-        ...state.form,
-        [key]: value,
-      },
-    })),
-  setForm: (values) =>
-    set((state) => ({
-      form: {
-        ...state.form,
-        ...values,
-      },
-    })),
-  resetForm: () =>
-    set({
-      form: {
-        ...defaultForm,
-        customTimestamp: formatDateInput(new Date()),
-      },
+export const useWorkspaceStore = create<WorkspaceState>()(
+  persist(
+    (set) => ({
+      form: defaultForm,
+      result: undefined,
+      history: [],
+      view: "form",
+      lastSessionId: undefined,
+      updateForm: (key, value) =>
+        set((state) => ({
+          form: {
+            ...state.form,
+            [key]: value,
+          },
+        })),
+      setForm: (values) =>
+        set((state) => ({
+          form: {
+            ...state.form,
+            ...values,
+          },
+        })),
+      resetForm: () =>
+        set({
+          form: {
+            ...defaultForm,
+            customTimestamp: formatDateInput(new Date()),
+          },
+        }),
+      setResult: (payload) =>
+        set((state) => {
+          const existing = (state.history ?? []).filter(
+            (entry) => entry.session_id !== payload.session_id,
+          )
+          const nextHistory = [payload, ...existing].slice(0, 10)
+          return {
+            result: payload,
+            history: nextHistory,
+            view: "results",
+            lastSessionId: payload.session_id,
+          }
+        }),
+      resetSession: () =>
+        set({
+          form: {
+            ...defaultForm,
+            customTimestamp: formatDateInput(new Date()),
+          },
+          result: undefined,
+          view: "form",
+          lastSessionId: undefined,
+        }),
+      setView: (view) => set({ view }),
+      reopenResults: () =>
+        set((state) => (state.result ? { view: "results" } : state)),
     }),
-  setResult: (payload) =>
-    set((state) => ({
-      result: payload,
-      history: [payload, ...state.history].slice(0, 10),
-    })),
-}))
+    {
+      name: "iching-workspace",
+      version: 1,
+      partialize: (state) => ({
+        form: state.form,
+        result: state.result,
+        history: state.history,
+        view: state.view,
+        lastSessionId: state.lastSessionId,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state && !state.form?.customTimestamp) {
+          state.form = {
+            ...defaultForm,
+            ...state.form,
+            customTimestamp: formatDateInput(new Date()),
+          }
+        }
+      },
+    },
+  ),
+)

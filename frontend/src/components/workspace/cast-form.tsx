@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useRef } from "react"
 import { CircleHelp } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,6 +15,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuthContext } from "@/components/providers/auth-provider"
 import { useSessionMutation } from "@/lib/queries"
 import { parseManualLines } from "@/lib/api"
 import { useWorkspaceStore } from "@/lib/store"
@@ -37,37 +39,19 @@ const infoButtonClass =
   "flex size-8 items-center justify-center rounded-full border border-border/80 bg-background/60 text-foreground shadow-glass transition hover:bg-foreground/10 dark:border-white/30 dark:bg-white/10 dark:text-white"
 
 const modelSpeedLines = [
-  "GPT-4.1 nano · fastest response (~5s) for quick sanity checks.",
-  "GPT-5 nano · ~15s baseline, balanced cost/performance.",
-  "GPT-5 · premium chain-of-thought, starts around 40-45s.",
-  "O3 · most capable, expect ≥60s even for short prompts.",
+  "GPT-5.1 · 默认中等推理与篇幅，约 45-60s，最可靠的深度分析。",
+  "GPT-5 mini · 中等推理与篇幅，约 20s，速度与成本兼顾。",
+  "GPT-4.1 · 无推理/verbosity 控制，≈5s，适合快速复核或无需长文时使用。",
 ]
-const modelQualityLine =
-  "GPT-5 and O3 are most faithful—set reasoning ≥Medium and allow ~1 minute when accuracy matters."
+const modelQualityLine = "GPT-5.1 最严谨，GPT-5 mini 日常足够，GPT-4.1 为极速 fallback。"
 
 function getReasoningLines(modelName?: string) {
   const name = modelName?.toLowerCase() ?? ""
-  if (name.includes("gpt-5-nano")) {
-    return [
-      "Minimal ≈10s",
-      "Low ≈30s",
-      "Medium ≈90s",
-      "High ≥2 min — reserve for deep dives.",
-    ]
+  if (name.includes("gpt-5.1")) {
+    return ["None ≈30s", "Minimal ≈40s", "Low ≈50s", "Medium ≈65s", "High ≥90s"]
   }
-  if (name.includes("gpt-5")) {
-    return [
-      "Minimal ≈45s",
-      "Low ≈70s",
-      "Medium/High ≥2 min; best accuracy when you can wait.",
-    ]
-  }
-  if (name.includes("o3")) {
-    return [
-      "No Minimal tier.",
-      "Low ≈1 min.",
-      "Medium/High ≥2 min; launch only when you have ample time.",
-    ]
+  if (name.includes("gpt-5-mini")) {
+    return ["Minimal ≈15s", "Low ≈20s", "Medium ≈30s", "High ≥60s"]
   }
   return ["This model does not expose reasoning-depth controls."]
 }
@@ -92,6 +76,7 @@ function formatOffsetISOString(date: Date) {
 }
 
 export function CastForm({ config }: Props) {
+  const auth = useAuthContext()
   const defaultsHydrated = useRef(false)
   const form = useWorkspaceStore((state) => state.form)
   const updateForm = useWorkspaceStore((state) => state.updateForm)
@@ -99,6 +84,14 @@ export function CastForm({ config }: Props) {
   const setResult = useWorkspaceStore((state) => state.setResult)
   const activeToneOption = toneOptions.find((option) => option.value === form.aiTone)
   const questionLength = form.userQuestion?.length ?? 0
+  const canUseAi = Boolean(auth.user)
+
+  useEffect(() => {
+    if (auth.loading) return
+    if (!canUseAi && form.enableAi) {
+      updateForm("enableAi", false)
+    }
+  }, [auth.loading, canUseAi, form.enableAi, updateForm])
 
   const activeModel = useMemo<ModelInfo | undefined>(
     () => config.ai_models.find((model) => model.name === form.aiModel),
@@ -143,6 +136,7 @@ export function CastForm({ config }: Props) {
   }, [activeModel, form.aiReasoning, form.aiVerbosity, updateForm])
 
   const mutation = useSessionMutation({
+    accessToken: auth.accessToken ?? undefined,
     onSuccess: (payload) => {
       setResult(payload)
       toast.success("起卦完成，结果已生成。")
@@ -319,8 +313,21 @@ export function CastForm({ config }: Props) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="panel-heading">AI 分析</p>
+                {!auth.loading && !canUseAi && (
+                  <p className="text-xs text-muted-foreground">
+                    登录后才能启用 AI。前往&nbsp;
+                    <Link href="/profile" className="underline underline-offset-4">
+                      个人中心
+                    </Link>
+                    &nbsp;完成登录。
+                  </p>
+                )}
               </div>
-              <Switch checked={form.enableAi} onCheckedChange={(checked) => updateForm("enableAi", checked)} />
+              <Switch
+                checked={form.enableAi}
+                disabled={auth.loading || !canUseAi}
+                onCheckedChange={(checked) => updateForm("enableAi", checked)}
+              />
             </div>
 
         {form.enableAi && (

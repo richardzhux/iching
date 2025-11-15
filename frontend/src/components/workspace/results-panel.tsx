@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useWorkspaceStore } from "@/lib/store"
+import { motion } from "framer-motion"
 import type { BaziPillar, HexSection, SessionPayload } from "@/types/api"
 
 import { HexagramHeader } from "./hexagram-visual"
 import { NajiaTableView } from "./najia-table"
+import { ChatPanel } from "./chat-panel"
 
 export function ResultsPanel() {
   const result = useWorkspaceStore((state) => state.result)
+  const resetSession = useWorkspaceStore((state) => state.resetSession)
+  const setView = useWorkspaceStore((state) => state.setView)
 
   if (!result) {
     return (
@@ -28,29 +32,41 @@ export function ResultsPanel() {
   }
 
   return (
-    <Card className="glass-panel border-transparent text-foreground">
-      <CardHeader>
-        <CardTitle className="text-lg">占卜结果</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="summary">
-          <TabsList className="grid w-full grid-cols-3 rounded-full bg-foreground/10 text-foreground dark:bg-white/10 dark:text-white">
-            <TabsTrigger value="summary">概要</TabsTrigger>
-            <TabsTrigger value="hex">卦辞纳甲</TabsTrigger>
-            <TabsTrigger value="ai">AI</TabsTrigger>
-          </TabsList>
-          <TabsContent value="summary">
-            <ResultBlock text={result.summary_text} label="概要" />
-          </TabsContent>
-          <TabsContent value="hex">
-            <HexResultBlock result={result} />
-          </TabsContent>
-          <TabsContent value="ai">
-            <ResultBlock text={result.ai_text || "AI 未启用"} label="AI 分析" />
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+      <Card className="glass-panel border-transparent text-foreground">
+        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <CardTitle className="text-lg">占卜结果</CardTitle>
+          <div className="flex gap-2">
+            {result && (
+              <Button variant="outline" size="sm" onClick={() => setView("form")}>
+                返回起卦设定
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" onClick={() => resetSession()}>
+              开始新的占卜
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="summary">
+            <TabsList className="grid w-full grid-cols-3 rounded-full bg-foreground/10 text-foreground dark:bg-white/10 dark:text-white">
+              <TabsTrigger value="summary">概要</TabsTrigger>
+              <TabsTrigger value="hex">卦辞纳甲</TabsTrigger>
+              <TabsTrigger value="ai">AI</TabsTrigger>
+            </TabsList>
+            <TabsContent value="summary">
+              <ResultBlock text={result.summary_text} label="概要" />
+            </TabsContent>
+            <TabsContent value="hex">
+              <HexResultBlock result={result} />
+            </TabsContent>
+            <TabsContent value="ai">
+              <ChatPanel session={result} />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </motion.div>
   )
 }
 
@@ -121,10 +137,22 @@ function HexResultBlock({ result }: { result: SessionPayload }) {
 }
 
 function ResultBlock({ text, label }: { text: string; label: string }) {
+  const [expanded, setExpanded] = useState(true)
   return (
     <div className="mt-4 rounded-2xl border border-border/40 bg-foreground/[0.04] p-4 text-sm leading-relaxed text-foreground dark:border-white/10 dark:bg-white/5">
-      <p className="mb-2 text-xs uppercase tracking-[0.35rem] text-muted-foreground">{label}</p>
-      <pre className="whitespace-pre-wrap font-sans text-sm">{text}</pre>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">{label}</p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs font-semibold tracking-wide text-foreground hover:text-foreground"
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+        >
+          {expanded ? "收起" : "展开"}
+        </Button>
+      </div>
+      {expanded && <pre className="whitespace-pre-wrap font-sans text-sm">{text}</pre>}
     </div>
   )
 }

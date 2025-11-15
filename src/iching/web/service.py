@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 from iching.config import AppConfig, build_app_config
 from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES
+from iching.integrations.supabase_client import SupabaseRestClient, SupabaseUser
 from iching.services.session import SessionService
 from iching.web.models import (
     ConfigResponse,
@@ -114,15 +115,27 @@ def _validate_ai_password(password: str | None) -> Tuple[bool, str]:
     return True, ""
 
 
+from iching.web.chat_state import SessionStateStore
+from iching.web.chat_service import ChatService
+
+
 @dataclass(slots=True)
 class SessionRunner:
     service: SessionService
     config: AppConfig
     rate_limiter: RateLimiter
+    session_state_store: SessionStateStore
+    chat_service: ChatService
 
-    def run(self, request: SessionCreateRequest, client_ip: str | None = None) -> SessionPayload:
+    def run(
+        self,
+        request: SessionCreateRequest,
+        client_ip: str | None = None,
+        user: Optional[SupabaseUser] = None,
+    ) -> SessionPayload:
         ip = client_ip or "unknown"
         self.rate_limiter.record_attempt(ip)
+        user_authenticated = user is not None
 
         if request.user_question and len(request.user_question) > MAX_QUESTION_LENGTH:
             raise ValueError("question too verbose!")
@@ -141,6 +154,8 @@ class SessionRunner:
 
         ai_allowed = False
         if request.enable_ai:
+            if not user_authenticated:
+                raise AccessDeniedError("登录后才能启用 AI 分析。")
             self.rate_limiter.ensure_ai_quota(ip)
             ok, message = _validate_ai_password(request.access_password)
             if not ok:
@@ -176,7 +191,6 @@ class SessionRunner:
             f"八字: {result.bazi_output}",
             f"五行: {result.elements_output}",
             f"六爻: {result.lines}",
-            f"已保存: {archive_path}",
         ]
 
         raw_session = result.to_dict()
@@ -187,16 +201,51 @@ class SessionRunner:
             hex_text=result.hex_text,
             hex_sections=result.hex_sections,
             hex_overview=result.hex_overview,
-             bazi_detail=result.bazi_detail,
+            bazi_detail=result.bazi_detail,
             najia_text=result.najia_text,
             najia_table=result.najia_table,
             ai_text=result.ai_analysis or "",
             session_dict=safe_session,
             archive_path=str(archive_path),
             full_text=result.full_text,
+            session_id=result.session_id,
+            ai_enabled=bool(result.ai_analysis),
+            ai_model=result.ai_model,
+            ai_reasoning=result.ai_reasoning,
+            ai_verbosity=result.ai_verbosity,
+            ai_tone=result.ai_tone,
+            ai_response_id=result.ai_response_id,
+            ai_usage=result.ai_usage or {},
+            user_authenticated=user_authenticated,
         )
-        if request.enable_ai and ai_allowed:
-            self.rate_limiter.record_ai_success(ip)
+        if result.ai_analysis:
+            initial_tokens = 0
+            if isinstance(result.ai_usage, dict):
+                initial_tokens = int(result.ai_usage.get("total_tokens") or 0)
+            self.session_state_store.register(
+                session_id=result.session_id,
+                summary_text=payload.summary_text,
+                ai_text=result.ai_analysis or "",
+                ai_enabled=True,
+                ai_model=result.ai_model,
+                ai_reasoning=result.ai_reasoning,
+                ai_verbosity=result.ai_verbosity,
+                ai_tone=result.ai_tone,
+                last_response_id=result.ai_response_id,
+                initial_tokens=initial_tokens,
+                session_payload=safe_session,
+            )
+            if request.enable_ai and ai_allowed:
+                self.rate_limiter.record_ai_success(ip)
+
+        should_snapshot = bool(user_authenticated) or bool(result.ai_response_id)
+        if should_snapshot:
+            self.chat_service.record_session_snapshot(
+                result=result,
+                summary_text=payload.summary_text,
+                user=user,
+                session_payload=payload.model_dump(),
+            )
 
         return payload
 
@@ -229,12 +278,25 @@ _RATE_LIMITER = RateLimiter(
     max_attempts=MAX_DAILY_ATTEMPTS,
     max_ai_successes=MAX_DAILY_AI_SUCCESSES,
 )
+_SESSION_STATE_STORE = SessionStateStore()
+_SUPABASE_CLIENT = SupabaseRestClient()
+_CHAT_SERVICE = ChatService(store=_SESSION_STATE_STORE, client=_SUPABASE_CLIENT)
 _SESSION_RUNNER = SessionRunner(
     service=_SESSION_SERVICE,
     config=_APP_CONFIG,
     rate_limiter=_RATE_LIMITER,
+    session_state_store=_SESSION_STATE_STORE,
+    chat_service=_CHAT_SERVICE,
 )
 
 
 def get_session_runner() -> SessionRunner:
     return _SESSION_RUNNER
+
+
+def get_session_state_store() -> SessionStateStore:
+    return _SESSION_STATE_STORE
+
+
+def get_chat_service() -> ChatService:
+    return _CHAT_SERVICE
