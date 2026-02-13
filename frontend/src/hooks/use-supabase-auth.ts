@@ -20,12 +20,14 @@ type AuthHook = {
 
 export function useSupabaseAuth(): AuthHook {
   const supabase = useMemo(() => getSupabaseClient(), [])
+  const missingEnvMessage = "Supabase 未配置，当前环境仅支持匿名访问。"
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => Boolean(supabase))
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!supabase) return
     let mounted = true
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return
@@ -48,6 +50,11 @@ export function useSupabaseAuth(): AuthHook {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
+      if (!supabase) {
+        const err = new Error(missingEnvMessage)
+        setError(err.message)
+        throw err
+      }
       setError(null)
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -58,11 +65,16 @@ export function useSupabaseAuth(): AuthHook {
         throw signInError
       }
     },
-    [supabase],
+    [supabase, missingEnvMessage],
   )
 
   const signUp = useCallback(
     async (email: string, password: string) => {
+      if (!supabase) {
+        const err = new Error(missingEnvMessage)
+        setError(err.message)
+        throw err
+      }
       setError(null)
       const redirectTo =
         typeof window !== "undefined" ? `${window.location.origin}/app` : undefined
@@ -78,10 +90,13 @@ export function useSupabaseAuth(): AuthHook {
         throw signUpError
       }
     },
-    [supabase],
+    [supabase, missingEnvMessage],
   )
 
   const signOut = useCallback(async () => {
+    if (!supabase) {
+      return
+    }
     setError(null)
     const { error: signOutError } = await supabase.auth.signOut()
     if (signOutError) {
@@ -92,6 +107,11 @@ export function useSupabaseAuth(): AuthHook {
 
   const signInWithProvider = useCallback(
     async (provider: Provider) => {
+      if (!supabase) {
+        const err = new Error(missingEnvMessage)
+        setError(err.message)
+        throw err
+      }
       setError(null)
       const redirectTo = typeof window !== "undefined" ? window.location.href : undefined
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -105,7 +125,7 @@ export function useSupabaseAuth(): AuthHook {
         throw oauthError
       }
     },
-    [supabase],
+    [supabase, missingEnvMessage],
   )
 
   return {
