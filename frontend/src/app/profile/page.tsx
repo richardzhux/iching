@@ -282,11 +282,11 @@ export default function ProfilePage() {
                             </div>
                           )}
                         </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={exportingId === session.session_id}
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={exportingId === session.session_id}
                             onClick={() => handleDownload(session)}
                           >
                             {exportingId === session.session_id ? (
@@ -296,31 +296,31 @@ export default function ProfilePage() {
                               </>
                             ) : (
                               "下载记录"
+                            )}
+                          </Button>
+                          {session.followup_available ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              disabled={continuingId === session.session_id}
+                              onClick={() => handleContinue(session)}
+                            >
+                              {continuingId === session.session_id ? "载入中..." : "查看详情 / 继续追问"}
+                            </Button>
+                          ) : (
+                            <Button type="button" variant="ghost" disabled>
+                              暂无法追问
+                            </Button>
                           )}
-                        </Button>
-                        {session.ai_enabled ? (
                           <Button
                             type="button"
-                            variant="ghost"
-                            disabled={continuingId === session.session_id}
-                            onClick={() => handleContinue(session)}
+                            variant="destructive"
+                            disabled={deletingId === session.session_id}
+                            onClick={() => handleDelete(session)}
                           >
-                            {continuingId === session.session_id ? "载入中..." : "继续追问"}
+                            {deletingId === session.session_id ? "删除中..." : "删除"}
                           </Button>
-                        ) : (
-                          <Button type="button" variant="ghost" disabled>
-                            无法追问
-                          </Button>
-                        )}
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          disabled={deletingId === session.session_id}
-                          onClick={() => handleDelete(session)}
-                        >
-                          {deletingId === session.session_id ? "删除中..." : "删除"}
-                        </Button>
-                      </div>
+                        </div>
                       </div>
                       <Textarea
                         value={session.summary_text ?? "（暂无概要）"}
@@ -328,9 +328,14 @@ export default function ProfilePage() {
                         rows={4}
                         className="mt-3 min-h-[6rem] resize-none text-sm"
                       />
-                      {!session.ai_enabled && (
+                      {!session.ai_enabled && session.followup_available && (
                         <p className="mt-2 text-xs text-muted-foreground">
-                          未启用 AI，仅保留占卜概要。如需追问，请在下一次起卦时开启 AI 分析。
+                          该记录起卦时未启用 AI。你仍可进入详情并直接开始追问，系统会按当前卦象补开 AI 上下文。
+                        </p>
+                      )}
+                      {!session.followup_available && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          该记录缺少完整会话快照，暂时无法补开 AI 追问。
                         </p>
                       )}
                     </div>

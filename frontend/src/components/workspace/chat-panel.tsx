@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useAuthContext } from "@/components/providers/auth-provider"
+import { MarkdownContent } from "@/components/ui/markdown-content"
 import { fetchChatTranscript, sendChatMessage } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import type { ChatMessage, SessionPayload } from "@/types/api"
@@ -180,14 +181,6 @@ export function ChatPanel({ session }: Props) {
     listRef.current.scrollTop = listRef.current.scrollHeight
   }, [messages])
 
-  if (!session.ai_enabled || !session.ai_text) {
-    return (
-      <div className="mt-4 rounded-2xl border border-dashed border-border/50 p-4 text-sm text-muted-foreground dark:border-white/15">
-        本次占卜未启用 AI 分析，无法继续追问。
-      </div>
-    )
-  }
-
   if (auth.loading) {
     return (
       <div className="mt-4 rounded-2xl border border-border/40 bg-foreground/[0.04] p-4 text-sm text-muted-foreground dark:border-white/10 dark:bg-white/5">
@@ -313,7 +306,7 @@ export function ChatPanel({ session }: Props) {
     </div>
   )
 
-  const initialBlock = (
+  const initialBlock = session.ai_text ? (
     <div className="rounded-2xl border border-border/20 bg-foreground/[0.02] p-4 text-sm leading-relaxed text-foreground shadow-glass dark:border-white/10 dark:bg-white/5">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">AI 首次解读</p>
@@ -327,7 +320,11 @@ export function ChatPanel({ session }: Props) {
           {showInitial ? "收起" : "展开"}
         </Button>
       </div>
-      {showInitial && <pre className="whitespace-pre-wrap font-sans text-sm">{session.ai_text}</pre>}
+      {showInitial && <MarkdownContent content={session.ai_text} />}
+    </div>
+  ) : (
+    <div className="rounded-2xl border border-dashed border-border/50 bg-foreground/[0.02] p-4 text-sm text-muted-foreground dark:border-white/15">
+      该会话起卦时未启用 AI。发送首条追问后，系统会自动基于当前卦象补开 AI 上下文。
     </div>
   )
 
@@ -378,7 +375,7 @@ export function ChatPanel({ session }: Props) {
             <ChatBubble key={message.id ?? message.localId} message={message} />
           ))
         ) : (
-          <p className="text-center text-xs text-muted-foreground">暂无对话，先向左侧 AI 阅读。</p>
+          <p className="text-center text-xs text-muted-foreground">暂无对话，发送首条追问即可开始。</p>
         )}
       </div>
       <div className="text-right text-xs text-muted-foreground">
@@ -485,7 +482,10 @@ function ChatBubble({ message }: { message: ChatMessage }) {
             : "bg-primary text-primary-foreground shadow-glass"
         }`}
       >
-        <pre className="whitespace-pre-wrap font-sans text-sm">{message.content}</pre>
+        <MarkdownContent
+          content={message.content}
+          className={isAssistant ? "text-foreground" : "text-primary-foreground"}
+        />
       </div>
     </div>
   )

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { MarkdownContent } from "@/components/ui/markdown-content"
 import {
   Sheet,
   SheetContent,
@@ -65,24 +66,24 @@ export function HistoryDrawer() {
                   <div className="mt-4 space-y-4 text-foreground">
                     <section>
                       <p className="text-xs uppercase tracking-[0.3rem] text-muted-foreground">概要</p>
-                      <pre className="mt-2 whitespace-pre-wrap rounded-xl border border-border/40 bg-background/70 p-3 text-sm leading-relaxed">
-                        {item.summary_text || "（暂无概要）"}
-                      </pre>
+                      <div className="mt-2 rounded-xl border border-border/40 bg-background/70 p-3">
+                        <MarkdownContent content={item.summary_text || "（暂无概要）"} />
+                      </div>
                     </section>
                     {item.hex_text && (
                       <section>
                         <p className="text-xs uppercase tracking-[0.3rem] text-muted-foreground">卦辞</p>
-                        <pre className="mt-2 whitespace-pre-wrap rounded-xl border border-border/40 bg-background/70 p-3 text-sm leading-relaxed">
-                          {item.hex_text}
-                        </pre>
+                        <div className="mt-2 rounded-xl border border-border/40 bg-background/70 p-3">
+                          <MarkdownContent content={item.hex_text} />
+                        </div>
                       </section>
                     )}
                     {item.ai_text && (
                       <section>
                         <p className="text-xs uppercase tracking-[0.3rem] text-muted-foreground">AI 解读</p>
-                        <pre className="mt-2 whitespace-pre-wrap rounded-xl border border-border/40 bg-background/70 p-3 text-sm leading-relaxed">
-                          {item.ai_text}
-                        </pre>
+                        <div className="mt-2 rounded-xl border border-border/40 bg-background/70 p-3">
+                          <MarkdownContent content={item.ai_text} />
+                        </div>
                       </section>
                     )}
                   </div>

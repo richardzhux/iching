@@ -33,73 +33,61 @@ DEFAULT_MODEL = "gpt-5.1"
 TONE_PROFILES: Dict[str, str] = {
     "normal": "现代中文，温和且专业，适度引用经典，保持礼貌敬语。",
     "wenyan": "仿庄子等战国文士，遣词古雅但需可读。",
-    "modern": "暧昧俏皮、emoji 克制（全篇≤2枚），如亲密伴侣耳语。",
+    "modern": "口语直白、短句表达、亲近但不油腻，优先给清晰结论。",
     "academic": "学术期刊口吻，逻辑严密，引用充分。",
 }
 
 
 SYSTEM_PROMPT_PRO = """
-你是一位收费数千元/次的资深《易》学占断专家与专业顾问。你的风格是：严谨、可验证、可执行、避免玄谈。
-你会在内心进行逐步推理，但面向用户的输出须以中文段落为主、要点为辅，文字连贯流动，避免机械罗列。不得输出 JSON、代码块或裸露推理草稿。
+你是资深《易》学占断顾问。目标是给出清晰、可验证、可执行的判断，优先让普通用户听得懂。
 
-【输入】
-你将接收一个“完整会话字典”，包含：
-- topic（事业/感情/财运/健康/整体运势/其他）
-- user_question（具体问题，可空）
-- current_time_str（起卦时间）
-- lines（六爻自下而上：6=老阴，7=少阳，8=少阴，9=老阳）
-- hex_text（本卦/变卦/错卦/综卦/互卦 + guaci）
-- bazi_output, elements_output（八字/五行概览，可空）
-- najia_data（纳甲、六亲、六神、世应、动爻等，可空）
+【硬性规则】
+- 只依据输入会话数据推断；信息不足就明确写“信息不足”，不得编造。
+- 保持明确立场，避免空泛套话与两头下注。
+- 允许给出直接建议，避免冗余合规口吻。
+- 不输出 JSON、代码块、表格或多级列表。
+- 输出为简体中文 Markdown，只使用标题与顶层 `- ` 列表，禁止嵌套列表。
 
-【流程与规则】
-1) 先判动爻：严格以“图中右侧‘X’或‘O’标记之爻”为动爻，逐条确认位置与阴阳属性。
-2) 取舍规则（务必执行）：
+【核心推断方法】
+1) 先判动爻并按动爻数量规则取主断：
    - 无动爻：取卦辞断（本卦为主，错/综/互参照）。
-   - 一爻动：以动爻爻辞为主，卦辞为辅。
-   - 两爻动：一阴一阳→取阴爻断（“阳主过去，阴主未来”）；同阴/同阳→取上动爻。
+   - 一爻动：动爻爻辞为主，卦辞为辅。
+   - 两爻动：一阴一阳取阴爻；同阴或同阳取上动爻。
    - 三爻动：取中间动爻。
-   - 四爻动：在两静爻中取下静爻对应之义断。
-   - 五爻动：取唯一静爻断。
-   - 六爻全动：乾/坤用“用九/用六”，其余六十二卦取变卦卦辞断。
-3) 纳甲/六亲/六神/世应 与 五行旺衰：
-   - 以纳甲配地支，结合月令/日干支（如有八字），评估用神/忌神、世应强弱、内外卦主客关系。
-   - 旺相休囚死评估，取用：扶抑/通关/化泄。
-4) 多卦参照：本卦为主，错/综/互/变为辅；错/综看反向对照，互卦看过程。
-5) 应期推断：给出可复核的推导链（动爻位次→天/周/月窗口；地支→月/方位/时辰；变卦方向；冲合/旬空/三合六合）。若多重指向，给主应期+次应期，附置信度。
-6) 主题建议（按topic定制）：
-   - 事业：岗位/权责/关键人/升迁窗口/节点；
-   - 感情：主客主动/进退时机/第三方干扰/长期短期走向；
-   - 财运：正偏财/现金流/风险点/可执行动作；
-   - 健康：仅生活方式建议（非医疗诊断），作息/饮食/部位象/季节性提示；
-   - 整体/其他：关键变量与阶段节点。
+   - 四爻动：在两静爻中取下静爻。
+   - 五爻动：取唯一静爻。
+   - 六爻全动：乾坤用“用九/用六”，其余取变卦卦辞。
+2) 本卦为主，变/错/综/互为辅；互卦看过程，错综看反向牵制。
+3) 结合纳甲、六亲、六神、世应、五行旺衰判断主客强弱、用忌与阻力来源。
+4) 应期必须给主次窗口，并写明触发条件。
 
-【语气镜像与语调切换】
-- 在保持专业的前提下，注意镜像用户的语气与礼貌级别。
-- 输入可能包含 ai_tone 设定（normal/wenyan/modern/academic），请依据该设定调整语气：
-  · normal：现代中文对话，温润、庄重。
-  · wenyan：假想为庄子，与弟子对谈，以文言文书写，兼顾可读性。
-  · modern：暧昧俏皮、使用大量emoji，仿亲密伴侣，仍需传达清晰判断。
-  · academic：严格学术口吻，引用具体爻辞/卦辞，逻辑推演严密。
-- 无论何种语气，务必使用简体中文。
-- Emoji 可用但要克制：normal/wenyan/academic 全篇≤1枚或不用。
+【输出结构（严格按顺序）】
+# 一句话结论
+- 一句话给出倾向（利成/延迟/不利）与核心原因。
 
-【引用与慎言】
-- 引述卦辞或爻辞时请点明出处，例如“引《九三》……”，以便复核。
-- 当话题涉及身体、法律、投资，提醒“此为易理推断，非医学/法律/投资建议”。
-- 建议用“宜/可考虑/当慎”等表述，避免列出“步骤1/2/3”或命令式语句。
+# 给普通人的解释
+- 1-2段，先说结果再说原因。
+- 每段至少出现一句“换成大白话：...”。
 
-【冲突解决】
-- 卦辞 vs 纳甲/五行：以动爻规则与旺衰评估优先，卦辞作象征解释并给兼容路径。
-- 应期冲突：给主次顺序+置信度，并说明触发条件。
-- 主题与问题不匹配：先澄清假设，再做两分支判断。
+# 证据短链
+- 3-5条，每条必须使用：
+  `- 结论：...｜依据：...｜白话：...`
+- 依据必须来自动爻、卦辞/爻辞、纳甲/五行中的至少一项。
 
-- 【输出要求】
-- 按照“动爻判定/五行旺衰/多卦参照/应期/行动方案/风险与不确定性/总结”的顺序输出。每个部分先写1-2个紧凑段落，再酌情补充精炼要点。
-- 第5部分的建议须以“宜/可考虑/当心”等语气表达原则与节奏，避免“步骤清单”。
-- 第7部分必须给出一句总断并附0-100%概率；若依据不足，请说明并给50%作为中性值。
-- 无论问题多模糊，也要给出倾向（利成/不利/延迟等）并量化概率；若存在备选结论，请列出并说明触发条件。
-- 若信息缺失，显式说明“缺失”或“不适用”，禁止编造。
+# 应期与条件
+- `- 主应期：...｜条件：...｜置信度：...%`
+- `- 次应期：...｜条件：...｜置信度：...%`
+- 置信度必须绑定条件，不允许裸数字。
+
+# 行动建议
+- 给3条建议，每条都必须包含：
+  `- 动作：...｜节奏：...｜观察指标：...`
+
+# 风险与转折信号
+- 给2-4条可观察信号，说明何时转强或转弱。
+
+# 最终判断
+- 用两句话收束：最终结论 + 下一步最重要动作。
 """
 
 
@@ -151,16 +139,7 @@ def _build_prompt(data: Dict[str, Any]) -> str:
     elif verbosity == "high":
         verbosity_note = "输出篇幅: 详尽。充分展开背景、推理与建议。"
 
-    blocks.append(
-        "请按以下顺序给出专业判断与建议：\n"
-        "1) 动爻判定与取舍规则（逐条说明理由）；\n"
-        "2) 五行旺衰、用忌与世应强弱（结合纳甲/月令/日干支，如有）；\n"
-        "3) 本卦为主，多卦（变/错/综/互）参照的补充含义；\n"
-        "4) 应期推断（位次→时间窗、地支→月/方位/时辰；冲合/旬空/合局；主应期+次应期+置信度）；\n"
-        "5) 围绕主题的可执行行动方案（分步、因果逻辑、风险等级）；\n"
-        "6) 风险与不确定性（给出触发条件与应对）；\n"
-        "7) 总结（一句话总断，避免空话）。"
-    )
+    blocks.append("请严格遵循系统中的固定输出结构，先给明确结论，再给证据短链与可执行动作。")
     if reasoning_note:
         blocks.append(reasoning_note)
     if verbosity_note:
@@ -341,6 +320,99 @@ def continue_analysis(
         response_id=getattr(response, "id", None),
         usage=usage,
     )
+
+
+def continue_analysis_from_session(
+    *,
+    session_data: Dict[str, Any],
+    message: str,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None,
+    reasoning_effort: Optional[str] = None,
+    verbosity: Optional[str] = None,
+    tone: Optional[str] = None,
+) -> AIResponseData:
+    stripped = message.strip()
+    if not stripped:
+        raise ValueError("message is required for bootstrap follow-up calls.")
+
+    context = _build_followup_session_context(session_data)
+    if not context:
+        raise ValueError("session_data is missing required context for bootstrap follow-up.")
+
+    api_key = api_key or os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY not configured on the server.")
+
+    resolved_model = model_name or DEFAULT_MODEL
+    selected_reasoning = _normalize_reasoning(resolved_model, reasoning_effort)
+    selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
+    reasoning_payload = None if selected_reasoning in (None, "none") else selected_reasoning
+
+    instruction_block = CHAT_CONTINUATION_PROMPT
+    if tone:
+        descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
+        instruction_block += f"\n\n语气设定: {tone} —— {descriptor}"
+
+    user_input = (
+        "以下是同一会话的固定占卜上下文，请据此回答用户追问，不要重起卦：\n\n"
+        f"{context}\n\n"
+        f"用户追问：{stripped}"
+    )
+
+    client = OpenAI(api_key=api_key)
+    response = _request_openai_response(
+        client=client,
+        model_name=resolved_model,
+        instructions=instruction_block,
+        user_input=user_input,
+        reasoning=reasoning_payload,
+        verbosity=selected_verbosity,
+    )
+    if response is None:
+        raise RuntimeError("OpenAI bootstrap follow-up call failed to produce a response.")
+
+    text = _extract_response_text(response)
+    if not text:
+        raise RuntimeError("OpenAI bootstrap follow-up call returned an empty response.")
+
+    usage = _extract_usage(response)
+    return AIResponseData(
+        text=text,
+        response_id=getattr(response, "id", None),
+        usage=usage,
+    )
+
+
+def _build_followup_session_context(data: Dict[str, Any]) -> str:
+    if not isinstance(data, dict):
+        return ""
+    blocks: list[str] = []
+    if topic := data.get("topic"):
+        blocks.append(f"主题: {topic}")
+    if question := data.get("user_question"):
+        blocks.append(f"原问题: {question}")
+    if current_time := data.get("current_time_str"):
+        blocks.append(f"起卦时间: {current_time}")
+    if method := data.get("method"):
+        blocks.append(f"起卦方法: {method}")
+    if lines := data.get("lines"):
+        blocks.append(f"六爻(自下而上): {lines}")
+    if bazi := data.get("bazi_output"):
+        blocks.append("八字:\n" + str(bazi))
+    if elements := data.get("elements_output"):
+        blocks.append("五行:\n" + str(elements))
+    if hex_text := data.get("hex_text"):
+        blocks.append("卦象与卦辞:\n" + str(hex_text))
+    najia_data = data.get("najia_data")
+    if najia_data:
+        try:
+            blocks.append("纳甲/六神/六亲:\n" + json.dumps(najia_data, ensure_ascii=False, indent=2))
+        except Exception:
+            blocks.append("纳甲/六神/六亲:\n" + str(najia_data))
+    if ai_analysis := data.get("ai_analysis"):
+        blocks.append("已有 AI 解读（仅作参考）:\n" + str(ai_analysis))
+    return "\n\n".join(blocks).strip()
 
 
 def _request_openai_response(

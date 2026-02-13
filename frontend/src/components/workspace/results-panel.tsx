@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MarkdownContent } from "@/components/ui/markdown-content"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useWorkspaceStore } from "@/lib/store"
 import { motion } from "framer-motion"
@@ -124,7 +125,7 @@ function HexResultBlock({ result }: { result: SessionPayload }) {
         {hasPrimary ? (
           <HexSectionGroup title="重点段落" sections={primarySections} variant="primary" />
         ) : (
-          <pre className="whitespace-pre-wrap font-sans text-sm">{result.hex_text}</pre>
+          <MarkdownContent content={result.hex_text} />
         )}
         {showFull && hasHiddenSections && (
           <div className="mt-6">
@@ -152,7 +153,7 @@ function ResultBlock({ text, label }: { text: string; label: string }) {
           {expanded ? "收起" : "展开"}
         </Button>
       </div>
-      {expanded && <pre className="whitespace-pre-wrap font-sans text-sm">{text}</pre>}
+      {expanded && <MarkdownContent content={text} />}
     </div>
   )
 }
@@ -193,7 +194,7 @@ function HexSectionGroup({
             <div className="mt-1 text-[0.65rem] uppercase tracking-widest text-muted-foreground/80">
               {section.importance === "primary" ? "默认重点" : "扩展参考"}
             </div>
-            <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">{section.content}</pre>
+            <MarkdownContent content={section.content} className="mt-3" />
           </div>
         ))}
       </div>

@@ -179,6 +179,7 @@ export type SessionSummary = {
   summary_text?: string | null
   created_at?: string | null
   ai_enabled: boolean
+  followup_available: boolean
   user_email?: string | null
   user_display_name?: string | null
   user_avatar_url?: string | null

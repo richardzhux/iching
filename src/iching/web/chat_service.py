@@ -6,7 +6,11 @@ from datetime import datetime, timezone
 from threading import Lock
 from typing import Dict, List, Optional
 
-from iching.integrations.ai import AIResponseData, MODEL_CAPABILITIES, continue_analysis
+from iching.integrations.ai import (
+    MODEL_CAPABILITIES,
+    continue_analysis,
+    continue_analysis_from_session,
+)
 from iching.integrations.supabase_client import (
     SupabaseAuthError,
     SupabaseRestClient,
@@ -228,7 +232,10 @@ class ChatService:
         params = {
             "user_id": f"eq.{user.id}",
             "order": "updated_at.desc",
-            "select": "session_id,summary_text,created_at,updated_at,initial_ai_text,user_email,user_display_name,user_avatar_url,payload_snapshot",
+            "select": (
+                "session_id,summary_text,created_at,updated_at,initial_ai_text,"
+                "user_email,user_display_name,user_avatar_url,payload_snapshot"
+            ),
         }
         headers = self.client._service_headers()
         response = self.client._client.get(f"{self.client.rest_base}/sessions", params=params, headers=headers)
@@ -240,6 +247,7 @@ class ChatService:
                 "summary_text": record.get("summary_text"),
                 "created_at": record.get("created_at") or record.get("updated_at"),
                 "ai_enabled": bool(record.get("initial_ai_text")),
+                "followup_available": _is_followup_available(record),
                 "user_email": record.get("user_email"),
                 "user_display_name": record.get("user_display_name"),
                 "user_avatar_url": record.get("user_avatar_url"),
@@ -278,9 +286,6 @@ class ChatService:
         if len(stripped) > CHAT_MESSAGE_CHAR_LIMIT:
             raise ValueError(f"单次追问最多 {CHAT_MESSAGE_CHAR_LIMIT} 字符。")
         record = self.ensure_session_row(session_id, user)
-        last_response_id = record.get("last_response_id")
-        if not last_response_id:
-            raise ValueError("当前会话不支持继续追问，请重新生成。")
         configured_model = record.get("followup_model") or CHAT_FOLLOWUP_MODEL
         chosen_model = model_override or configured_model
         if chosen_model not in MODEL_CAPABILITIES:
@@ -305,14 +310,28 @@ class ChatService:
         applied_verbosity = verbosity if verbosity is not None else record.get("ai_verbosity")
         applied_tone = tone or record.get("ai_tone")
 
-        ai_result = continue_analysis(
-            previous_response_id=last_response_id,
-            message=stripped,
-            model_name=record.get("followup_model") or CHAT_FOLLOWUP_MODEL,
-            reasoning_effort=reasoning,
-            verbosity=verbosity,
-            tone=tone or record.get("ai_tone"),
-        )
+        last_response_id = record.get("last_response_id")
+        if last_response_id:
+            ai_result = continue_analysis(
+                previous_response_id=last_response_id,
+                message=stripped,
+                model_name=record.get("followup_model") or CHAT_FOLLOWUP_MODEL,
+                reasoning_effort=reasoning,
+                verbosity=verbosity,
+                tone=tone or record.get("ai_tone"),
+            )
+        else:
+            session_context = _extract_session_context(record)
+            if not session_context:
+                raise ValueError("当前会话缺少完整快照，暂时无法开启 AI 追问。")
+            ai_result = continue_analysis_from_session(
+                session_data=session_context,
+                message=stripped,
+                model_name=record.get("followup_model") or CHAT_FOLLOWUP_MODEL,
+                reasoning_effort=reasoning,
+                verbosity=verbosity,
+                tone=tone or record.get("ai_tone"),
+            )
 
         usage_dict = ai_result.usage or {}
         prompt_tokens = int(usage_dict.get("input_tokens") or 0)
@@ -413,13 +432,11 @@ def _user_profile_payload(user: Optional[SupabaseUser]) -> Dict[str, Optional[st
 
 
 def _extract_snapshot_field(record: Dict[str, object], key: str) -> Optional[str]:
-    snapshot = record.get("payload_snapshot")
-    if isinstance(snapshot, dict):
-        session_dict = snapshot.get("session_dict")
-        if isinstance(session_dict, dict):
-            value = session_dict.get(key)
-            if isinstance(value, str):
-                return value
+    session_context = _extract_session_context(record)
+    if isinstance(session_context, dict):
+        value = session_context.get(key)
+        if isinstance(value, str):
+            return value
     return None
 
 
@@ -432,4 +449,35 @@ def _infer_label_from_summary(summary: Optional[str], prefix: str) -> Optional[s
             value = stripped[len(prefix) + 1 :].strip()
             if value and not value.startswith("（"):
                 return value
+    return None
+
+
+def _is_followup_available(record: Dict[str, object]) -> bool:
+    return _extract_session_context(record) is not None
+
+
+def _extract_session_context(record: Dict[str, object]) -> Optional[Dict[str, object]]:
+    snapshot = record.get("payload_snapshot")
+    if not isinstance(snapshot, dict):
+        return None
+    session_dict = snapshot.get("session_dict")
+    if isinstance(session_dict, dict):
+        return session_dict
+    # Legacy rows may have stored raw SessionResult dict at top-level.
+    has_context = any(
+        key in snapshot
+        for key in (
+            "topic",
+            "user_question",
+            "current_time_str",
+            "method",
+            "lines",
+            "hex_text",
+            "bazi_output",
+            "elements_output",
+            "najia_data",
+        )
+    )
+    if has_context:
+        return snapshot
     return None

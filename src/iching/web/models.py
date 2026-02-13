@@ -132,6 +132,7 @@ class SessionSummary(BaseModel):
     summary_text: Optional[str] = None
     created_at: Optional[datetime] = None
     ai_enabled: bool = False
+    followup_available: bool = False
     user_email: Optional[str] = None
     user_display_name: Optional[str] = None
     user_avatar_url: Optional[str] = None
