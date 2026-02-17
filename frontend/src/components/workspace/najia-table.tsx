@@ -1,5 +1,6 @@
 "use client"
 
+import { useI18n } from "@/components/providers/i18n-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import type { NajiaTable } from "@/types/api"
@@ -11,12 +12,13 @@ type NajiaTableProps = {
 }
 
 export function NajiaTableView({ table }: NajiaTableProps) {
+  const { messages, locale } = useI18n()
   if (!table || !table.rows?.length) {
     return null
   }
 
   return (
-    <Card className="border-border/40 bg-white/70 shadow-glass dark:border-white/10 dark:bg-white/5">
+    <Card className="surface-card border-border/40">
       <CardContent className="p-5">
         <div className="space-y-3">
           {table.rows.map((row) => {
@@ -27,19 +29,23 @@ export function NajiaTableView({ table }: NajiaTableProps) {
                 className="grid gap-4 rounded-2xl border border-border/40 bg-foreground/[0.03] p-4 text-sm dark:border-white/10 dark:bg-white/5 md:grid-cols-[110px,1fr,1fr]"
               >
                 <div className="flex flex-col gap-1">
-                  <p className="text-[0.65rem] uppercase tracking-[0.4rem] text-muted-foreground">六神</p>
+                  <p className="text-[0.65rem] uppercase tracking-[0.4rem] text-muted-foreground">{messages.workspace.results.sixGodLabel}</p>
                   <p className="text-base font-semibold">{row.god || "—"}</p>
-                  {row.hidden && <p className="text-xs text-muted-foreground">伏神：{row.hidden}</p>}
+                  {row.hidden && (
+                    <p className="text-xs text-muted-foreground">
+                      {locale === "zh" ? "伏神" : "Hidden"}: {row.hidden}
+                    </p>
+                  )}
                 </div>
                 <NajiaLineColumn
-                  label={`第${row.position}爻`}
+                  label={locale === "zh" ? `第${row.position}爻` : `Line ${row.position}`}
                   relation={row.main_relation}
                   marker={row.marker}
                   lineType={row.line_type}
                   highlight={row.is_moving}
                 />
                 <NajiaLineColumn
-                  label="变卦"
+                  label={messages.workspace.results.changedHexLabel}
                   relation={row.changed_relation}
                   marker=""
                   lineType={changedType}

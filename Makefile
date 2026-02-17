@@ -2,7 +2,7 @@ commit:
 	@echo "Running auto commit with current timestamp..."
 	@current_time=$$(date "+%Y-%m-%d %H:%M:%S") && \
 	git add . && \
-	git commit -m "MAJOR MILESTONE: AI CHAT UPGRADE $$current_time" && \
+	git commit -m "Security, AI, and frontend updates" && \
 	git push origin main
 
 flowchart:

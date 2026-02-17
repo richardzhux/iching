@@ -15,6 +15,7 @@ from iching.integrations.ai import (
     DEFAULT_MODEL,
     MODEL_CAPABILITIES,
     AIResponseData,
+    normalize_model_name,
     start_analysis,
 )
 from iching.integrations.najia_repository import NajiaEntry, NajiaRepository
@@ -389,7 +390,7 @@ class SessionService:
         ai_usage: Optional[Dict[str, int]] = None
         tone_profile = ai_tone or "normal"
         should_use_ai = self.config.enable_ai if enable_ai is None else enable_ai
-        model_hint = ai_model or self.config.preferred_ai_model or DEFAULT_MODEL
+        model_hint = normalize_model_name(ai_model or self.config.preferred_ai_model or DEFAULT_MODEL)
         capabilities = MODEL_CAPABILITIES.get(model_hint, MODEL_CAPABILITIES[DEFAULT_MODEL])
 
         allowed_reasoning = capabilities.get("reasoning", [])

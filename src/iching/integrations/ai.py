@@ -8,13 +8,7 @@ from typing import Any, Callable, Dict, Optional
 from openai import BadRequestError, OpenAI
 
 MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
-    "gpt-4.1": {
-        "reasoning": [],
-        "default_reasoning": None,
-        "verbosity": False,
-        "default_verbosity": None,
-    },
-    "gpt-5.1": {
+    "gpt-5.2": {
         "reasoning": ["none", "minimal", "low", "medium", "high"],
         "default_reasoning": "medium",
         "verbosity": True,
@@ -26,9 +20,19 @@ MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
         "verbosity": True,
         "default_verbosity": "medium",
     },
+    "gpt-4.1": {
+        "reasoning": [],
+        "default_reasoning": None,
+        "verbosity": False,
+        "default_verbosity": None,
+    },
 }
 
-DEFAULT_MODEL = "gpt-5.1"
+MODEL_ALIASES: Dict[str, str] = {
+    "gpt-5.1": "gpt-5.2",
+}
+
+DEFAULT_MODEL = "gpt-5.2"
 
 TONE_PROFILES: Dict[str, str] = {
     "normal": "现代中文，温和且专业，适度引用经典，保持礼貌敬语。",
@@ -182,8 +186,8 @@ def _prompt_for_password() -> None:
 
 def _interactive_model_selector() -> str:
     options = [
-        ("A", "gpt-4.1", "默认 (推荐)"),
-        ("B", "gpt-5.1", "深度推理"),
+        ("A", "gpt-4.1", "快速模式"),
+        ("B", "gpt-5.2", "深度推理"),
         ("C", "gpt-5-mini", "兼容/聊天"),
         ("D", "gpt-4.1-nano", "极速 (最低成本/延迟)"),
         ("E", "gpt-5", "高阶文本与推理"),
@@ -196,7 +200,7 @@ def _interactive_model_selector() -> str:
     mapping = {
         "": DEFAULT_MODEL,
         "A": "gpt-4.1",
-        "B": "gpt-5.1",
+        "B": "gpt-5.2",
         "C": "gpt-5-mini",
         "D": "gpt-4.1-nano",
         "E": "gpt-5",
@@ -207,6 +211,12 @@ def _interactive_model_selector() -> str:
         return selected
     print(f"警告：输入无效，已自动使用默认模型 {DEFAULT_MODEL}。")
     return DEFAULT_MODEL
+
+
+def normalize_model_name(model_name: Optional[str]) -> Optional[str]:
+    if model_name is None:
+        return None
+    return MODEL_ALIASES.get(model_name, model_name)
 
 
 def start_analysis(
@@ -241,7 +251,7 @@ def start_analysis(
         data["ai_tone"] = tone
 
     choose_model = model_selector or _interactive_model_selector
-    model_name = model_hint or (choose_model() if interactive else DEFAULT_MODEL)
+    model_name = normalize_model_name(model_hint or (choose_model() if interactive else DEFAULT_MODEL))
 
     selected_reasoning = _normalize_reasoning(model_name, reasoning_effort or data.get("ai_reasoning"))
     selected_verbosity = _normalize_verbosity(model_name, verbosity or data.get("ai_verbosity"))
@@ -287,7 +297,7 @@ def continue_analysis(
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY not configured on the server.")
 
-    resolved_model = model_name or DEFAULT_MODEL
+    resolved_model = normalize_model_name(model_name) or DEFAULT_MODEL
     selected_reasoning = _normalize_reasoning(resolved_model, reasoning_effort)
     selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
     reasoning_payload = None if selected_reasoning in (None, "none") else selected_reasoning
@@ -344,7 +354,7 @@ def continue_analysis_from_session(
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY not configured on the server.")
 
-    resolved_model = model_name or DEFAULT_MODEL
+    resolved_model = normalize_model_name(model_name) or DEFAULT_MODEL
     selected_reasoning = _normalize_reasoning(resolved_model, reasoning_effort)
     selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
     reasoning_payload = None if selected_reasoning in (None, "none") else selected_reasoning
@@ -512,7 +522,8 @@ def _extract_usage(response: Any) -> Optional[Dict[str, int]]:
 
 
 def _normalize_reasoning(model_name: str, requested: Optional[str]) -> Optional[str]:
-    meta = MODEL_CAPABILITIES.get(model_name, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    normalized_model = normalize_model_name(model_name) or DEFAULT_MODEL
+    meta = MODEL_CAPABILITIES.get(normalized_model, MODEL_CAPABILITIES[DEFAULT_MODEL])
     allowed = meta.get("reasoning", [])
     if not allowed:
         return None
@@ -527,7 +538,8 @@ def _normalize_reasoning(model_name: str, requested: Optional[str]) -> Optional[
 
 
 def _normalize_verbosity(model_name: str, requested: Optional[str]) -> Optional[str]:
-    meta = MODEL_CAPABILITIES.get(model_name, MODEL_CAPABILITIES[DEFAULT_MODEL])
+    normalized_model = normalize_model_name(model_name) or DEFAULT_MODEL
+    meta = MODEL_CAPABILITIES.get(normalized_model, MODEL_CAPABILITIES[DEFAULT_MODEL])
     if not meta.get("verbosity"):
         return None
     if requested in {"low", "medium", "high"}:

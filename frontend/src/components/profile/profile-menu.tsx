@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Loader2, UserRound } from "lucide-react"
 import { useState } from "react"
+import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useAuthContext } from "@/components/providers/auth-provider"
@@ -11,14 +12,15 @@ import { toast } from "sonner"
 
 export function ProfileMenu() {
   const auth = useAuthContext()
+  const { messages, toLocalePath } = useI18n()
   const [open, setOpen] = useState(false)
-  const initials = (auth.displayName?.[0] || auth.user?.email?.[0] || "访").toUpperCase()
-  const label = auth.displayName ?? auth.user?.email ?? "游客"
+  const initials = (auth.displayName?.[0] || auth.user?.email?.[0] || "G").toUpperCase()
+  const label = auth.displayName ?? auth.user?.email ?? "Guest"
 
   async function handleSignOut() {
     try {
       await auth.signOut()
-      toast.success("已退出登录。")
+      toast.success(messages.profileMenu.signedOutToast)
       setOpen(false)
     } catch (error) {
       toast.error((error as Error).message)
@@ -34,7 +36,7 @@ export function ProfileMenu() {
             "flex size-10 items-center justify-center rounded-full border border-border/40 bg-background/70 text-sm font-semibold text-foreground shadow-glass transition hover:border-foreground/70 dark:border-white/30 dark:bg-white/10 dark:text-white",
             auth.user ? "uppercase" : "",
           )}
-          aria-label="打开个人中心"
+          aria-label={messages.profileMenu.ariaOpen}
         >
           {auth.loading ? (
             <Loader2 className="size-4 animate-spin" />
@@ -54,42 +56,42 @@ export function ProfileMenu() {
         {auth.loading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
-            正在检测登录状态…
+            {messages.profileMenu.checkingAuth}
           </div>
         ) : auth.user ? (
           <>
             <div>
-              <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">已登录</p>
+              <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">{messages.profileMenu.signedIn}</p>
               <p className="text-base font-semibold text-foreground">{label}</p>
               <p className="text-xs text-muted-foreground">{auth.user?.email}</p>
             </div>
             <div className="flex flex-col gap-2">
               <Button asChild variant="outline">
-                <Link href="/profile" onClick={() => setOpen(false)}>
-                  进入个人中心
+                <Link href={toLocalePath("/profile")} onClick={() => setOpen(false)}>
+                  {messages.profileMenu.openProfile}
                 </Link>
               </Button>
               <Button variant="ghost" onClick={handleSignOut}>
-                退出登录
+                {messages.common.signOut}
               </Button>
             </div>
           </>
         ) : (
           <>
             <div>
-              <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">游客模式</p>
+              <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">{messages.profileMenu.guestMode}</p>
               <p className="text-sm text-muted-foreground">
-                登录后即可启用 AI、查看完整占卜历史，并安全备份到 Supabase。
+                {messages.profileMenu.guestHint}
               </p>
             </div>
             <div className="flex flex-col gap-2">
               <Button asChild>
-                <Link href="/profile" onClick={() => setOpen(false)}>
-                  登录 / 注册
+                <Link href={toLocalePath("/profile")} onClick={() => setOpen(false)}>
+                  {messages.profileMenu.signInRegister}
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/app">返回工作台</Link>
+                <Link href={toLocalePath("/app")}>{messages.profileMenu.goWorkspace}</Link>
               </Button>
             </div>
           </>

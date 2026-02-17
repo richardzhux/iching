@@ -1,9 +1,5 @@
-import { CastWorkspace } from "@/components/workspace/cast-workspace"
+import { redirect } from "next/navigation"
 
-export default function WorkspacePage() {
-  return (
-    <section className="space-y-10">
-      <CastWorkspace />
-    </section>
-  )
+export default function LegacyWorkspaceRedirectPage() {
+  redirect("/en/app")
 }

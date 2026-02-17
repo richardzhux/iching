@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useMemo, useRef } from "react"
 import { CircleHelp } from "lucide-react"
+import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -29,37 +30,9 @@ type Props = {
 const QUESTION_LIMIT = 2000
 
 const pad = (value: number) => value.toString().padStart(2, "0")
-const toneOptions = [
-  { value: "normal", label: "标准", description: "沉稳专业、贴近现代书面语。" },
-  { value: "wenyan", label: "文言（庄子风）", description: "仿先秦典籍的文言文语气。" },
-  { value: "modern", label: "暧昧现代", description: "俏皮亲昵，可少量 emoji。" },
-  { value: "academic", label: "学术期刊", description: "如 Nature / Harvard Law Review 式严谨论述。" },
-]
+
 const infoButtonClass =
-  "flex size-8 items-center justify-center rounded-full border border-border/80 bg-background/60 text-foreground shadow-glass transition hover:bg-foreground/10 dark:border-white/30 dark:bg-white/10 dark:text-white"
-
-const modelSpeedLines = [
-  "GPT-5.1 · 默认中等推理与篇幅，约 45-60s，最可靠的深度分析。",
-  "GPT-5 mini · 中等推理与篇幅，约 20s，速度与成本兼顾。",
-  "GPT-4.1 · 无推理/verbosity 控制，≈5s，适合快速复核或无需长文时使用。",
-]
-const modelQualityLine = "GPT-5.1 最严谨，GPT-5 mini 日常足够，GPT-4.1 为极速 fallback。"
-
-function getReasoningLines(modelName?: string) {
-  const name = modelName?.toLowerCase() ?? ""
-  if (name.includes("gpt-5.1")) {
-    return ["None ≈30s", "Minimal ≈40s", "Low ≈50s", "Medium ≈65s", "High ≥90s"]
-  }
-  if (name.includes("gpt-5-mini")) {
-    return ["Minimal ≈15s", "Low ≈20s", "Medium ≈30s", "High ≥60s"]
-  }
-  return ["This model does not expose reasoning-depth controls."]
-}
-
-const verbosityLines = [
-  "Higher output adds only ~5–10s to latency.",
-  "Use when you need richer narrative, more citations, or export-ready text.",
-]
+  "inline-flex size-8 items-center justify-center rounded-full border border-border/70 bg-surface/70 text-foreground transition hover:bg-surface-elevated"
 
 function formatOffsetISOString(date: Date) {
   const year = date.getFullYear()
@@ -75,14 +48,32 @@ function formatOffsetISOString(date: Date) {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMins}`
 }
 
+function getReasoningLines(modelName: string | undefined, locale: "en" | "zh") {
+  const name = modelName?.toLowerCase() ?? ""
+  if (name.includes("gpt-5.2")) {
+    return locale === "zh"
+      ? ["关闭 ≈30s", "极简 ≈40s", "低 ≈50s", "中 ≈65s", "高 ≥90s"]
+      : ["None ≈30s", "Minimal ≈40s", "Low ≈50s", "Medium ≈65s", "High ≥90s"]
+  }
+  if (name.includes("gpt-5-mini")) {
+    return locale === "zh"
+      ? ["极简 ≈15s", "低 ≈20s", "中 ≈30s", "高 ≥60s"]
+      : ["Minimal ≈15s", "Low ≈20s", "Medium ≈30s", "High ≥60s"]
+  }
+  return locale === "zh"
+    ? ["该模型不支持推理力度控制。"]
+    : ["This model does not expose reasoning-depth controls."]
+}
+
 export function CastForm({ config }: Props) {
   const auth = useAuthContext()
+  const { messages, locale, toLocalePath } = useI18n()
   const defaultsHydrated = useRef(false)
   const form = useWorkspaceStore((state) => state.form)
   const updateForm = useWorkspaceStore((state) => state.updateForm)
   const setForm = useWorkspaceStore((state) => state.setForm)
   const setResult = useWorkspaceStore((state) => state.setResult)
-  const activeToneOption = toneOptions.find((option) => option.value === form.aiTone)
+  const activeToneOption = messages.workspace.tones.find((option) => option.value === form.aiTone)
   const questionLength = form.userQuestion?.length ?? 0
   const canUseAi = Boolean(auth.user)
 
@@ -112,7 +103,7 @@ export function CastForm({ config }: Props) {
     setForm({
       topic: current.topic || preferredTopic,
       methodKey: current.methodKey || preferredMethod,
-      aiModel: current.aiModel || config.ai_models[0]?.name || "gpt-5-nano",
+      aiModel: current.aiModel || config.ai_models[0]?.name || "gpt-5.2",
     })
     defaultsHydrated.current = true
   }, [config, setForm])
@@ -139,14 +130,14 @@ export function CastForm({ config }: Props) {
     accessToken: auth.accessToken ?? undefined,
     onSuccess: (payload) => {
       setResult(payload)
-      toast.success("起卦完成，结果已生成。")
+      toast.success(messages.workspace.cast.aiEnabledToast)
     },
     onError: (error) => {
       const detail = error.message?.trim()
       const friendly =
         detail === "未知的占卜方法: "
-          ? "请选择占卜方法后再起卦。"
-          : detail || "请求失败，请稍后再试。"
+          ? messages.workspace.cast.topicMissingMethod
+          : detail || messages.workspace.cast.requestFailed
       toast.error(friendly)
     },
   })
@@ -159,7 +150,14 @@ export function CastForm({ config }: Props) {
       manualLines = parseManualLines(form.manualLines)
     } catch (error) {
       if (form.methodKey === "x") {
-        toast.error((error as Error).message)
+        const reason = (error as Error).message
+        if (reason === "manual_lines_count_error") {
+          toast.error(messages.workspace.cast.manualLinesCountError)
+        } else if (reason === "manual_lines_value_error") {
+          toast.error(messages.workspace.cast.manualLinesValueError)
+        } else {
+          toast.error(messages.workspace.cast.requestFailed)
+        }
         return
       }
     }
@@ -170,19 +168,19 @@ export function CastForm({ config }: Props) {
       timestamp = formatOffsetISOString(new Date())
     } else {
       if (!form.customTimestamp) {
-        toast.error("请输入自定义时间。")
+        toast.error(messages.workspace.cast.timestampRequired)
         return
       }
       const customDate = new Date(form.customTimestamp)
       if (Number.isNaN(customDate.getTime())) {
-        toast.error("时间格式无效，请重新输入。")
+        toast.error(messages.workspace.cast.invalidTimestamp)
         return
       }
       timestamp = formatOffsetISOString(customDate)
     }
 
     if (!timestamp) {
-      toast.error("无法解析时间，请稍后再试。")
+      toast.error(messages.workspace.cast.parseTimestampFailed)
       return
     }
 
@@ -204,17 +202,18 @@ export function CastForm({ config }: Props) {
     mutation.mutate(payload)
   }
 
+  const reasoningLines = getReasoningLines(activeModel?.name, locale)
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">占卜主题</p>
-          <div className="glass-panel space-y-6 rounded-3xl p-6">
-            <div className="space-y-2">
-            <p className="panel-heading">占卜主题</p>
-            <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="选择主题" />
+    <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-2">
+      <section className="surface-card space-y-5 rounded-3xl p-6 sm:p-7">
+        <p className="kicker">{messages.workspace.cast.topicSection}</p>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.topicLabel}</p>
+          <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
+            <SelectTrigger>
+              <SelectValue placeholder={messages.workspace.cast.topicLabel} />
             </SelectTrigger>
             <SelectContent>
               {config.topics.map((topic) => (
@@ -228,25 +227,25 @@ export function CastForm({ config }: Props) {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="panel-heading">具体问题</p>
+            <p className="text-sm font-medium text-foreground">{messages.workspace.cast.questionLabel}</p>
             <span className="text-xs text-muted-foreground">
               {questionLength}/{QUESTION_LIMIT}
             </span>
           </div>
           <Textarea
-            placeholder="例如：今年是否适合换工作？"
+            placeholder={messages.workspace.cast.questionPlaceholder}
             value={form.userQuestion}
             onChange={(event) => updateForm("userQuestion", event.target.value)}
-            rows={3}
+            rows={4}
             maxLength={QUESTION_LIMIT}
           />
         </div>
 
         <div className="space-y-2">
-          <p className="panel-heading">占卜方法</p>
+          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.methodLabel}</p>
           <Select value={form.methodKey} onValueChange={(value) => updateForm("methodKey", value)}>
             <SelectTrigger>
-              <SelectValue placeholder="选择方法" />
+              <SelectValue placeholder={messages.workspace.cast.methodLabel} />
             </SelectTrigger>
             <SelectContent>
               {config.methods.map((method) => (
@@ -261,108 +260,103 @@ export function CastForm({ config }: Props) {
         {form.methodKey === "x" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
-              <p className="panel-heading">手动输入六爻（自下而上）</p>
+              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.manualLinesLabel}</p>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className={`${infoButtonClass} size-9`}
-                  >
-                    <CircleHelp className="size-5" aria-hidden="true" />
-                    <span className="sr-only">六爻输入说明</span>
+                  <button type="button" className={infoButtonClass}>
+                    <CircleHelp className="size-4" aria-hidden="true" />
+                    <span className="sr-only">{messages.workspace.cast.lineInputHintAria}</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
-                  <p>6 · 老阴，例如三枚铜钱全为正面</p>
-                  <p>7 · 少阳，例如两枚为正、一枚为反</p>
-                  <p>8 · 少阴，例如两枚为反、一枚为正</p>
-                  <p>9 · 老阳，例如三枚铜钱全为反面</p>
+                  {messages.workspace.cast.lineHints.map((hint) => (
+                    <p key={hint}>{hint}</p>
+                  ))}
                 </TooltipContent>
               </Tooltip>
             </div>
             <Input
               value={form.manualLines}
               onChange={(event) => updateForm("manualLines", event.target.value)}
-              placeholder="898789 或 8,9,8,7,8,9"
+              placeholder={messages.workspace.cast.manualLinesPlaceholder}
             />
           </div>
         )}
 
-          <div className="space-y-4 rounded-2xl border border-border/50 bg-foreground/[0.04] p-4 dark:border-white/15 dark:bg-white/5">
-            <div className="panel-heading">时间设置</div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">使用当前时间</span>
-              <Switch
-                checked={form.useCurrentTime}
-                onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
-              />
-            </div>
-            <Input
-              type="datetime-local"
-              value={form.customTimestamp}
-              disabled={form.useCurrentTime}
-              onChange={(event) => updateForm("customTimestamp", event.target.value)}
+        <div className="surface-soft space-y-3 rounded-2xl p-4">
+          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.timeLabel}</p>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">{messages.workspace.cast.useCurrentTime}</span>
+            <Switch
+              checked={form.useCurrentTime}
+              onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
             />
           </div>
-          </div>
-          </section>
+          <Input
+            type="datetime-local"
+            value={form.customTimestamp}
+            disabled={form.useCurrentTime}
+            onChange={(event) => updateForm("customTimestamp", event.target.value)}
+          />
+        </div>
+      </section>
 
-        <section className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">AI 控制</p>
-          <div className="glass-panel space-y-4 rounded-3xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="panel-heading">AI 分析</p>
-                {!auth.loading && !canUseAi && (
-                  <p className="text-xs text-muted-foreground">
-                    登录后才能启用 AI。前往&nbsp;
-                    <Link href="/profile" className="underline underline-offset-4">
-                      个人中心
-                    </Link>
-                    &nbsp;完成登录。
-                  </p>
-                )}
-              </div>
-              <Switch
-                checked={form.enableAi}
-                disabled={auth.loading || !canUseAi}
-                onCheckedChange={(checked) => updateForm("enableAi", checked)}
-              />
-            </div>
+      <section className="surface-card space-y-5 rounded-3xl p-6 sm:p-7">
+        <p className="kicker">{messages.workspace.cast.aiSection}</p>
+
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">{messages.workspace.cast.aiEnableLabel}</p>
+            {!auth.loading && !canUseAi && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {messages.workspace.cast.aiLoginHint}{" "}
+                <Link href={toLocalePath("/profile")} className="underline underline-offset-2">
+                  {messages.nav.profile}
+                </Link>
+                .
+              </p>
+            )}
+          </div>
+          <Switch
+            checked={form.enableAi}
+            disabled={auth.loading || !canUseAi}
+            onCheckedChange={(checked) => updateForm("enableAi", checked)}
+          />
+        </div>
 
         {form.enableAi && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="panel-heading">访问密码</p>
+              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.accessPasswordLabel}</p>
               <Input
                 type="password"
                 value={form.accessPassword}
                 onChange={(event) => updateForm("accessPassword", event.target.value)}
-                placeholder="输入访问密码"
+                placeholder={messages.workspace.cast.accessPasswordPlaceholder}
               />
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <p className="panel-heading">模型</p>
+                <p className="text-sm font-medium text-foreground">{messages.workspace.cast.modelLabel}</p>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button type="button" className={`${infoButtonClass} size-9`}>
-                      <CircleHelp className="size-5" aria-hidden="true" />
-                      <span className="sr-only">Model speed info</span>
+                    <button type="button" className={infoButtonClass}>
+                      <CircleHelp className="size-4" aria-hidden="true" />
+                      <span className="sr-only">{messages.workspace.cast.modelInfoAria}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
-                    {modelSpeedLines.map((line) => (
+                    {messages.workspace.cast.modelSpeedLines.map((line) => (
                       <p key={line}>{line}</p>
                     ))}
-                    <p className="pt-1 opacity-80">{modelQualityLine}</p>
+                    <p className="pt-1 opacity-80">{messages.workspace.cast.modelQualityLine}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
               <Select value={form.aiModel} onValueChange={(value) => updateForm("aiModel", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择模型" />
+                  <SelectValue placeholder={messages.workspace.cast.modelLabel} />
                 </SelectTrigger>
                 <SelectContent>
                   {config.ai_models.map((model) => (
@@ -377,16 +371,16 @@ export function CastForm({ config }: Props) {
             {!!activeModel?.reasoning.length && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <p className="panel-heading">推理力度</p>
+                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.reasoningLabel}</p>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                    <button type="button" className={`${infoButtonClass} size-9`}>
-                      <CircleHelp className="size-5" aria-hidden="true" />
-                        <span className="sr-only">Reasoning latency info</span>
+                      <button type="button" className={infoButtonClass}>
+                        <CircleHelp className="size-4" aria-hidden="true" />
+                        <span className="sr-only">{messages.workspace.cast.reasoningInfoAria}</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
-                      {getReasoningLines(activeModel?.name).map((line) => (
+                      {reasoningLines.map((line) => (
                         <p key={line}>{line}</p>
                       ))}
                     </TooltipContent>
@@ -397,7 +391,7 @@ export function CastForm({ config }: Props) {
                   onValueChange={(value) => updateForm("aiReasoning", value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="选择推理力度" />
+                    <SelectValue placeholder={messages.workspace.cast.reasoningLabel} />
                   </SelectTrigger>
                   <SelectContent>
                     {activeModel.reasoning.map((level) => (
@@ -413,16 +407,16 @@ export function CastForm({ config }: Props) {
             {activeModel?.verbosity && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <p className="panel-heading">输出篇幅</p>
+                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.verbosityLabel}</p>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" className={`${infoButtonClass} size-9`}>
-                        <CircleHelp className="size-5" aria-hidden="true" />
-                        <span className="sr-only">Verbosity info</span>
+                      <button type="button" className={infoButtonClass}>
+                        <CircleHelp className="size-4" aria-hidden="true" />
+                        <span className="sr-only">{messages.workspace.cast.verbosityInfoAria}</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
-                      {verbosityLines.map((line) => (
+                      {messages.workspace.cast.verbosityLines.map((line) => (
                         <p key={line}>{line}</p>
                       ))}
                     </TooltipContent>
@@ -433,7 +427,7 @@ export function CastForm({ config }: Props) {
                   onValueChange={(value) => updateForm("aiVerbosity", value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="选择篇幅" />
+                    <SelectValue placeholder={messages.workspace.cast.verbosityLabel} />
                   </SelectTrigger>
                   <SelectContent>
                     {["low", "medium", "high"].map((level) => (
@@ -447,13 +441,13 @@ export function CastForm({ config }: Props) {
             )}
 
             <div className="space-y-2">
-              <p className="panel-heading">语气风格</p>
+              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.toneLabel}</p>
               <Select value={form.aiTone} onValueChange={(value) => updateForm("aiTone", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择语气" />
+                  <SelectValue placeholder={messages.workspace.cast.toneLabel} />
                 </SelectTrigger>
                 <SelectContent>
-                  {toneOptions.map((option) => (
+                  {messages.workspace.tones.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -461,23 +455,21 @@ export function CastForm({ config }: Props) {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {activeToneOption?.description ?? "请选择偏好的语气与写作声线。"}
+                {activeToneOption?.description ?? messages.workspace.cast.toneDescriptionDefault}
               </p>
             </div>
           </div>
         )}
-          </div>
-        </section>
-      </div>
 
-      <Button
-        type="submit"
-        size="lg"
-        disabled={mutation.isPending}
-        className="h-12 w-full rounded-full text-base font-semibold"
-      >
-        {mutation.isPending ? "起卦中..." : "开始起卦"}
-      </Button>
+        <Button
+          type="submit"
+          size="lg"
+          disabled={mutation.isPending}
+          className="mt-2 h-11 w-full rounded-2xl text-sm font-semibold"
+        >
+          {mutation.isPending ? messages.workspace.cast.submitLoading : messages.workspace.cast.submitIdle}
+        </Button>
+      </section>
     </form>
   )
 }

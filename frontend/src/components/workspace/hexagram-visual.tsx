@@ -2,6 +2,7 @@
 
 import { ArrowRight } from "lucide-react"
 
+import { useI18n } from "@/components/providers/i18n-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import type { BaziPillar, HexOverview } from "@/types/api"
@@ -63,28 +64,29 @@ export function HexagramHeader({
   elementsText,
   baziDetail = [],
 }: HexagramHeaderProps) {
+  const { messages } = useI18n()
   if (!overview) {
     return null
   }
 
   return (
-    <Card className="border-border/50 bg-white/70 shadow-glass dark:border-white/10 dark:bg-white/5">
+    <Card className="surface-card border-border/40">
       <CardContent className="p-5">
-        <p className="text-xs uppercase tracking-[0.35rem] text-muted-foreground">卦象总览</p>
+        <p className="kicker">{messages.workspace.results.overviewLabel}</p>
         {(baziText || elementsText || baziDetail.length) && (
-          <div className="mt-3 grid gap-4 rounded-2xl border border-border/30 bg-foreground/[0.02] p-4 dark:border-white/10 dark:bg-white/5">
+          <div className="surface-soft mt-3 grid gap-4 rounded-2xl p-4">
             {baziText && (
-              <InfoRow label="起卦时间">
+              <InfoRow label={messages.workspace.results.baziTimeLabel}>
                 <span>{baziText}</span>
               </InfoRow>
             )}
             {baziDetail.length ? (
-              <InfoRow label="阴阳五行">
+              <InfoRow label={messages.workspace.results.elementLabel}>
                 <PillarInlineList detail={baziDetail} />
               </InfoRow>
             ) : (
               elementsText && (
-                <InfoRow label="阴阳五行">
+                <InfoRow label={messages.workspace.results.elementLabel}>
                   <span>{elementsText}</span>
                 </InfoRow>
               )
@@ -93,7 +95,7 @@ export function HexagramHeader({
         )}
         <div className="mt-4 flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
           <HexagramCard
-            label="本卦"
+            label={messages.workspace.results.mainHexLabel}
             name={overview.main_hexagram?.name}
             explanation={overview.main_hexagram?.explanation}
             tag={najiaMeta?.main?.type}
@@ -104,7 +106,7 @@ export function HexagramHeader({
                 <ArrowRight className="h-7 w-7 text-amber-500" />
               </div>
               <HexagramCard
-                label="变卦"
+                label={messages.workspace.results.changedHexLabel}
                 name={overview.changed_hexagram.name}
                 explanation={overview.changed_hexagram.explanation}
                 tag={najiaMeta?.changed?.type}

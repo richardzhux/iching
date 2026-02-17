@@ -98,11 +98,11 @@ npm run build          # Next.js production build
 
 | Surface | Model | Reasoning choices | Default | Verbosity? | Default |
 |---------|-------|-------------------|---------|------------|---------|
-| Session (initial AI) | `gpt-5.1` | `none / minimal / low / medium / high` | `medium` | Yes | `medium` |
+| Session (initial AI) | `gpt-5.2` | `none / minimal / low / medium / high` | `medium` | Yes | `medium` |
 | Session | `gpt-5-mini` | `minimal / low / medium / high` | `medium` | Yes | `medium` |
 | Session | `gpt-4.1` | _none_ | – | No | – |
 | Follow-up chat (default) | `gpt-5-mini` | `minimal / low / medium / high` | `medium` | Yes | `medium` |
-| Follow-up chat (deep) | `gpt-5.1` | `none / minimal / low / medium / high` | `medium` | Yes | `medium` |
+| Follow-up chat (deep) | `gpt-5.2` | `none / minimal / low / medium / high` | `medium` | Yes | `medium` |
 
 - `MODEL_CAPABILITIES` guards unsupported reasoning/verbosity combinations.
 - Supabase sessions persist the last-used follow-up model so `/app` can rehydrate state across reloads.

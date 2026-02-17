@@ -10,6 +10,7 @@ from iching.integrations.ai import (
     MODEL_CAPABILITIES,
     continue_analysis,
     continue_analysis_from_session,
+    normalize_model_name,
 )
 from iching.integrations.supabase_client import (
     SupabaseAuthError,
@@ -69,7 +70,7 @@ class UserTokenLimiter:
             counter.tokens += tokens
 
     def _get_counter(self, user_id: str) -> UserTokenCounter:
-        today = datetime.utcnow().date().isoformat()
+        today = datetime.now(timezone.utc).date().isoformat()
         counter = self._counters.get(user_id)
         if counter is None or counter.date != today:
             counter = UserTokenCounter(date=today)
@@ -286,11 +287,14 @@ class ChatService:
         if len(stripped) > CHAT_MESSAGE_CHAR_LIMIT:
             raise ValueError(f"单次追问最多 {CHAT_MESSAGE_CHAR_LIMIT} 字符。")
         record = self.ensure_session_row(session_id, user)
-        configured_model = record.get("followup_model") or CHAT_FOLLOWUP_MODEL
-        chosen_model = model_override or configured_model
+        configured_raw = record.get("followup_model")
+        configured_model = (
+            normalize_model_name(str(configured_raw)) if configured_raw else CHAT_FOLLOWUP_MODEL
+        )
+        chosen_model = normalize_model_name(model_override) or configured_model
         if chosen_model not in MODEL_CAPABILITIES:
             chosen_model = CHAT_FOLLOWUP_MODEL
-        if chosen_model != configured_model:
+        if chosen_model != configured_raw:
             self.client.update_session(
                 session_id=session_id,
                 user_id=user.id,

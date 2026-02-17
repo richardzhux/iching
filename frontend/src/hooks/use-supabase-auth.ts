@@ -20,7 +20,7 @@ type AuthHook = {
 
 export function useSupabaseAuth(): AuthHook {
   const supabase = useMemo(() => getSupabaseClient(), [])
-  const missingEnvMessage = "Supabase 未配置，当前环境仅支持匿名访问。"
+  const missingEnvMessage = "Supabase is not configured. Anonymous mode only."
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(() => Boolean(supabase))

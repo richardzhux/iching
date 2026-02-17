@@ -28,7 +28,7 @@ export function useSessionHistoryQuery(accessToken: string | null) {
     queryKey: ["session-history", accessToken],
     queryFn: () => {
       if (!accessToken) {
-        throw new Error("需要登录后才能读取历史记录。")
+        throw new Error("Authentication required to read session history.")
       }
       return fetchSessionHistory(accessToken)
     },

@@ -22,7 +22,7 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        glass: "0 25px 60px -35px rgba(80, 25, 100, 0.45)",
+        glass: "var(--surface-shadow)",
       },
       colors: {
         border: "hsl(var(--border))",
@@ -30,6 +30,8 @@ const config: Config = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        surface: "hsl(var(--surface))",
+        "surface-elevated": "hsl(var(--surface-elevated))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -60,8 +62,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "Inter", "ui-sans-serif", "system-ui"],
-        mono: ["var(--font-geist-mono)", "JetBrains Mono", "ui-monospace"],
+        sans: ["var(--font-geist-sans)", "IBM Plex Sans", "ui-sans-serif", "system-ui"],
+        mono: ["var(--font-geist-mono)", "IBM Plex Mono", "ui-monospace"],
       },
       keyframes: {
         "pulse-ring": {

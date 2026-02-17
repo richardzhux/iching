@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { useI18n } from "@/components/providers/i18n-provider"
 import { CastForm } from "@/components/workspace/cast-form"
 import { HistoryDrawer } from "@/components/workspace/history-drawer"
 import { ResultsPanel } from "@/components/workspace/results-panel"
@@ -11,6 +12,7 @@ import { Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 export function CastWorkspace() {
+  const { messages } = useI18n()
   const view = useWorkspaceStore((state) => state.view)
   const reopenResults = useWorkspaceStore((state) => state.reopenResults)
   const hasResult = useWorkspaceStore((state) => Boolean(state.result))
@@ -18,10 +20,10 @@ export function CastWorkspace() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="glass-panel inline-flex items-center gap-3 rounded-2xl px-6 py-4 text-muted-foreground">
+      <div className="surface-card flex min-h-[50vh] items-center justify-center rounded-3xl p-8">
+        <div className="inline-flex items-center gap-3 text-muted-foreground">
           <Loader2 className="size-5 animate-spin" />
-          正在加载配置…
+          {messages.workspace.loadingConfig}
         </div>
       </div>
     )
@@ -29,10 +31,11 @@ export function CastWorkspace() {
 
   if (error) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="glass-panel rounded-2xl px-6 py-4 text-center text-destructive">
-          无法获取后端配置，请检查 FastAPI 服务是否运行。<br />
-          {(error as Error).message}
+      <div className="surface-card flex min-h-[50vh] items-center justify-center rounded-3xl p-8">
+        <div className="max-w-xl text-center text-destructive">
+          <p className="font-medium">{messages.workspace.configErrorTitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{messages.workspace.configErrorHint}</p>
+          <p className="mt-2 text-xs">{(error as Error).message}</p>
         </div>
       </div>
     )
@@ -43,7 +46,16 @@ export function CastWorkspace() {
   }
 
   return (
-    <div className={cn("space-y-8", "xl:space-y-10")}>
+    <div className={cn("space-y-6", "xl:space-y-8")}>
+      <header className="surface-card rounded-3xl p-6 sm:p-7">
+        <p className="kicker">{messages.workspace.headerKicker}</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          {messages.workspace.headerTitle}
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          {messages.workspace.headerDescription}
+        </p>
+      </header>
       <AnimatePresence mode="wait">
         {view === "form" ? (
           <motion.div
@@ -59,9 +71,9 @@ export function CastWorkspace() {
                 <Button
                   variant="outline"
                   onClick={() => reopenResults()}
-                  className="w-full"
+                  className="w-full rounded-2xl"
                 >
-                  查看上一条占卜结果
+                  {messages.workspace.viewLastResult}
                 </Button>
               )}
             </div>

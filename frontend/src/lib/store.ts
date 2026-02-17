@@ -9,6 +9,7 @@ const formatDateInput = (date: Date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(
     date.getMinutes()
   )}`
+const normalizeModelId = (model?: string | null) => (model === "gpt-5.1" ? "gpt-5.2" : model ?? "gpt-5.2")
 
 export type WorkspaceForm = {
   topic: string
@@ -51,7 +52,7 @@ const defaultForm: WorkspaceForm = {
   customTimestamp: formatDateInput(new Date()),
   enableAi: false,
   accessPassword: "",
-  aiModel: "gpt-5.1",
+  aiModel: "gpt-5.2",
   aiReasoning: null,
   aiVerbosity: null,
   aiTone: "normal",
@@ -128,8 +129,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           state.form = {
             ...defaultForm,
             ...state.form,
+            aiModel: normalizeModelId(state.form?.aiModel),
             customTimestamp: formatDateInput(new Date()),
           }
+        } else if (state?.form) {
+          state.form.aiModel = normalizeModelId(state.form.aiModel)
         }
       },
     },

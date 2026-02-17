@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AppProviders } from "@/components/providers/app-providers"
-import { ProfileMenu } from "@/components/profile/profile-menu"
-import { ThemeToggle } from "@/components/theme/theme-toggle"
 import Script from "next/script"
 import "./globals.css"
 
@@ -21,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "I Ching Studio",
-  description: "Modern divination studio powered by FastAPI + Next.js",
+  description: "A modern I Ching workspace powered by FastAPI and Next.js.",
   icons: {
     icon: CRYSTAL_BALL_FAVICON,
   },
@@ -33,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-Hans" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-FGD47JMEXQ" strategy="afterInteractive" />
         <Script id="ga-gtag" strategy="afterInteractive">
@@ -47,14 +45,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground`}>
         <AppProviders>
-          <div className="relative min-h-screen bg-app-radial bg-cover bg-fixed bg-center">
-            <div className="app-overlay absolute inset-0 pointer-events-none" />
-            <div className="absolute right-6 top-6 z-20 flex items-center gap-2">
-              <ThemeToggle />
-              <ProfileMenu />
-            </div>
-            <div className="relative z-10 min-h-screen">{children}</div>
-          </div>
+          {children}
         </AppProviders>
       </body>
     </html>

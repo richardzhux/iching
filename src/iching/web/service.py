@@ -4,7 +4,7 @@ import json
 import os
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
 from typing import Dict, Optional, Tuple
@@ -72,7 +72,7 @@ class RateLimiter:
             counter.ai_successes += 1
 
     def _get_counter(self, ip: str) -> RateCounter:
-        today = datetime.utcnow().date().isoformat()
+        today = datetime.now(timezone.utc).date().isoformat()
         counter = self._counters.get(ip)
         if counter is None or counter.date != today:
             counter = RateCounter(date=today)
