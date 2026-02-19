@@ -365,7 +365,8 @@ class SessionService:
 
         hexagram = Hexagram(lines, self.definitions)
         hex_text, hex_sections, hex_overview = hexagram.to_text_package(
-            guaci_path=self.config.paths.guaci_dir
+            guaci_path=self.config.paths.guaci_dir,
+            takashima_path=self.config.paths.takashima_dir,
         )
 
         main_najia_entry = self.najia_repo.get_by_bottom(hexagram.binary[::-1])

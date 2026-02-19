@@ -47,3 +47,21 @@ def test_hexagram_text_package_exposes_additional_sections():
     assert any(section["importance"] == "secondary" for section in sections)
     assert all("visible_by_default" in section for section in sections)
     assert overview["lines"], "expected line overview metadata"
+
+
+def test_hexagram_text_package_includes_takashima_sections():
+    definitions = load_hexagram_definitions(PATHS.gua_index_file)
+    lines = [7, 7, 7, 7, 7, 7]  # 乾卦，含用九
+    hexagram = Hexagram(lines, definitions)
+
+    _, sections, _ = hexagram.to_text_package(
+        guaci_path=PATHS.guaci_dir,
+        takashima_path=PATHS.takashima_dir,
+    )
+
+    takashima_sections = [
+        section for section in sections if section.get("source") == "takashima"
+    ]
+    assert takashima_sections, "expected takashima sections to be included"
+    assert any(section.get("line_key") == "1" for section in takashima_sections)
+    assert any(section.get("line_key") == "all" for section in takashima_sections)

@@ -104,13 +104,23 @@ class Hexagram:
             rendered.append(f"第 {7 - index} 爻: {symbol}{moving}")
         return rendered
 
-    def to_text(self, *, guaci_path: Optional[Path] = None) -> str:
+    def to_text(
+        self,
+        *,
+        guaci_path: Optional[Path] = None,
+        takashima_path: Optional[Path] = None,
+    ) -> str:
         """Build the legacy textual representation used by downstream consumers."""
-        summary, _, _ = self.to_text_package(guaci_path=guaci_path)
+        summary, _, _ = self.to_text_package(
+            guaci_path=guaci_path, takashima_path=takashima_path
+        )
         return summary
 
     def to_text_package(
-        self, *, guaci_path: Optional[Path] = None
+        self,
+        *,
+        guaci_path: Optional[Path] = None,
+        takashima_path: Optional[Path] = None,
     ) -> Tuple[str, List[Dict[str, object]], Dict[str, object]]:
         """Return the focused summary text, structured sections, and overview metadata."""
         selection = self._select_line_strategy()
@@ -120,7 +130,7 @@ class Hexagram:
         summary = self._compose_summary(
             selection, main_text, main_line_text, changed_header, changed_text
         )
-        sections = self._collect_sections(selection, guaci_path)
+        sections = self._collect_sections(selection, guaci_path, takashima_path)
         overview = self._build_overview()
         return summary, sections, overview
 
@@ -248,24 +258,47 @@ class Hexagram:
         return main_top_text, main_line_text, changed_header, changed_text
 
     def _collect_sections(
-        self, selection: Optional[object], guaci_path: Optional[Path]
+        self,
+        selection: Optional[object],
+        guaci_path: Optional[Path],
+        takashima_path: Optional[Path],
     ) -> List[Dict[str, object]]:
-        if not guaci_path:
+        if not guaci_path and not takashima_path:
             return []
 
         sections: List[Dict[str, object]] = []
 
-        try:
-            main_guaci = load_guaci_by_name(self.name, guaci_path)
-        except FileNotFoundError:
+        if guaci_path:
+            try:
+                main_guaci = load_guaci_by_name(self.name, guaci_path)
+            except FileNotFoundError:
+                main_guaci = None
+        else:
             main_guaci = None
 
         changed_data = None
-        if self.changed_hexagram:
+        if self.changed_hexagram and guaci_path:
             try:
                 changed_data = load_guaci_by_name(self.changed_hexagram.name, guaci_path)
             except FileNotFoundError:
                 changed_data = None
+
+        if takashima_path:
+            try:
+                main_takashima = load_guaci_by_name(self.name, takashima_path)
+            except FileNotFoundError:
+                main_takashima = None
+        else:
+            main_takashima = None
+
+        changed_takashima = None
+        if self.changed_hexagram and takashima_path:
+            try:
+                changed_takashima = load_guaci_by_name(
+                    self.changed_hexagram.name, takashima_path
+                )
+            except FileNotFoundError:
+                changed_takashima = None
 
         def add_section(
             hex_type: str,
@@ -274,21 +307,31 @@ class Hexagram:
             line_key: Optional[str],
             content: Optional[str],
             visible: bool,
+            source: str = "guaci",
         ) -> None:
             if not content:
                 return
             prefix = "本卦" if hex_type == "main" else "变卦"
-            if section_kind == "top":
-                title = f"{prefix} · 卦辞总览"
-            elif line_key == "all":
-                title = f"{prefix} · 全爻总览"
+            if source == "takashima":
+                if section_kind == "top":
+                    title = f"{prefix} · 高岛易断总览"
+                elif line_key == "all":
+                    title = f"{prefix} · 高岛易断 · 全动爻"
+                else:
+                    title = f"{prefix} · 高岛易断 · 第{line_key}爻"
             else:
-                title = f"{prefix} · 第{line_key}爻"
+                if section_kind == "top":
+                    title = f"{prefix} · 卦辞总览"
+                elif line_key == "all":
+                    title = f"{prefix} · 全爻总览"
+                else:
+                    title = f"{prefix} · 第{line_key}爻"
             sections.append(
                 {
-                    "id": f"{hex_type}-{section_kind}-{line_key or 'top'}",
+                    "id": f"{hex_type}-{source}-{section_kind}-{line_key or 'top'}",
                     "hexagram_type": hex_type,
                     "hexagram_name": name,
+                    "source": source,
                     "section_kind": section_kind,
                     "line_key": line_key,
                     "title": title,
@@ -308,6 +351,23 @@ class Hexagram:
                     return (100, value)
 
             return sorted(entries.keys(), key=sort_key)
+
+        def takashima_top(data: Optional[object]) -> Optional[str]:
+            if data is None:
+                return None
+            top_sections = getattr(data, "top_sections", {})
+            value = top_sections.get("takashima")
+            return value if value else None
+
+        def takashima_line(data: Optional[object], key: str) -> Optional[str]:
+            if data is None:
+                return None
+            line_sections = getattr(data, "line_sections", {})
+            line = line_sections.get(key)
+            if not line:
+                return None
+            value = line.sections.get("takashima")
+            return value if value else None
 
         # Main hexagram sections
         if main_guaci:
@@ -330,6 +390,27 @@ class Hexagram:
                     key,
                     content,
                     visible=(key == selected_main_line),
+                )
+
+        if main_takashima:
+            add_section(
+                "main",
+                self.name,
+                "top",
+                None,
+                takashima_top(main_takashima),
+                False,
+                source="takashima",
+            )
+            for key in sorted_keys(main_takashima.line_sections):
+                add_section(
+                    "main",
+                    self.name,
+                    "line",
+                    key,
+                    takashima_line(main_takashima, key),
+                    False,
+                    source="takashima",
                 )
 
         # Changed hexagram sections
@@ -360,6 +441,27 @@ class Hexagram:
                     key,
                     content,
                     visible=(key == selected_changed_line and selection != "all-move-other"),
+                )
+
+        if self.changed_hexagram and changed_takashima:
+            add_section(
+                "changed",
+                self.changed_hexagram.name,
+                "top",
+                None,
+                takashima_top(changed_takashima),
+                False,
+                source="takashima",
+            )
+            for key in sorted_keys(changed_takashima.line_sections):
+                add_section(
+                    "changed",
+                    self.changed_hexagram.name,
+                    "line",
+                    key,
+                    takashima_line(changed_takashima, key),
+                    False,
+                    source="takashima",
                 )
 
         return sections

@@ -69,7 +69,9 @@ def build_path_config() -> PathConfig:
     )
 
     guaci_dir = _expand(os.getenv("ICHING_GUACI_DIR", data_dir / "guaci"))
-    takashima_dir = _expand(os.getenv("ICHING_TAKASHIMA_DIR", data_dir / "takashima"))
+    takashima_dir = _expand(
+        os.getenv("ICHING_TAKASHIMA_DIR", data_dir / "takashima_structured")
+    )
     symbolic_dir = _expand(os.getenv("ICHING_SYMBOLIC_DIR", data_dir / "symbolic"))
     english_dir = _expand(os.getenv("ICHING_ENGLISH_DIR", data_dir / "eng"))
     gua_index_file = _expand(
