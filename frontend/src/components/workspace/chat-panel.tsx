@@ -25,7 +25,7 @@ type Props = {
 }
 
 const FALLBACK_CHAT_MODEL = "gpt-5-mini"
-const CHAT_MESSAGE_LIMIT = 3000
+const CHAT_MESSAGE_LIMIT = 10000
 
 const makeLocalId = () =>
   typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"

@@ -227,7 +227,7 @@ Open: `http://localhost:3000`
 - `ICHING_CHAT_MODEL` (default `gpt-5-mini`)
 - `ICHING_CHAT_TURN_LIMIT` (default `10`)
 - `ICHING_CHAT_TOKEN_LIMIT` (default `150000`)
-- `ICHING_CHAT_MESSAGE_LIMIT` (default `3000`)
+- `ICHING_CHAT_MESSAGE_LIMIT` (default `10000`)
 - `ICHING_USER_DAILY_TOKEN_LIMIT` (default `300000`)
 - `ICHING_USER_SESSION_LIMIT` (default `50`)
 - `ICHING_SESSION_CACHE_LIMIT` (default `100`)

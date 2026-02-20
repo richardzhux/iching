@@ -71,15 +71,48 @@ export function ResultsPanel() {
 }
 
 function HexResultBlock({ result }: { result: SessionPayload }) {
-  const { messages } = useI18n()
+  const { messages, locale } = useI18n()
   const [showFull, setShowFull] = useState(false)
 
   const { primarySections, secondarySections } = useMemo(() => {
     const sections = result.hex_sections || []
-    const primary = sections.filter((section) => section.visible_by_default)
-    const secondary = sections.filter((section) => !section.visible_by_default)
-    return { primarySections: primary, secondarySections: secondary }
-  }, [result.hex_sections])
+    const defaultPrimary = sections.filter((section) => section.visible_by_default)
+    const defaultSecondary = sections.filter((section) => !section.visible_by_default)
+
+    if (locale !== "en") {
+      return { primarySections: defaultPrimary, secondarySections: defaultSecondary }
+    }
+
+    const englishSections = sections.filter((section) => section.source === "english_commentary")
+    if (!englishSections.length) {
+      return { primarySections: defaultPrimary, secondarySections: defaultSecondary }
+    }
+
+    const highlightedSlotKeys = new Set(
+      defaultPrimary
+        .filter((section) => section.source !== "english_commentary")
+        .map((section) => section.slot_key)
+        .filter((slotKey): slotKey is string => Boolean(slotKey)),
+    )
+
+    let englishPrimary = englishSections.filter((section) => {
+      if (!section.slot_key) {
+        return false
+      }
+      return highlightedSlotKeys.has(section.slot_key)
+    })
+
+    if (!englishPrimary.length) {
+      englishPrimary = englishSections.filter((section) => section.section_kind === "top")
+    }
+    if (!englishPrimary.length) {
+      englishPrimary = [englishSections[0]]
+    }
+
+    const primaryIds = new Set(englishPrimary.map((section) => section.id))
+    const secondary = sections.filter((section) => !primaryIds.has(section.id))
+    return { primarySections: englishPrimary, secondarySections: secondary }
+  }, [locale, result.hex_sections])
 
   const hasHiddenSections = secondarySections.length > 0
   const hasPrimary = primarySections.length > 0
@@ -199,7 +232,13 @@ function HexSectionGroup({
                 {section.hexagram_type === "main"
                   ? messages.workspace.results.lineMetaMain
                   : messages.workspace.results.lineMetaChanged}{" "}
-                · {section.source_label ?? (section.source === "takashima" ? "高岛易断" : "卦辞库")}
+                ·{" "}
+                {section.source_label ??
+                  (section.source === "takashima"
+                    ? "高岛易断"
+                    : section.source === "english_commentary"
+                      ? "English Commentary"
+                      : "卦辞库")}
               </span>
             </div>
             <div className="mt-1 text-[0.65rem] uppercase tracking-widest text-muted-foreground/80">
