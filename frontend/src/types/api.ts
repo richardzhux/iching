@@ -27,6 +27,8 @@ export type HexSection = {
   hexagram_type: "main" | "changed"
   hexagram_name: string
   source?: "guaci" | "takashima" | string
+  source_label?: string
+  slot_key?: string
   section_kind: "top" | "line"
   line_key?: string | null
   title: string

@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Tuple
 
 from iching.core.guaci_repository import load_guaci_by_name
+
+if TYPE_CHECKING:
+    from iching.integrations.interpretation_repository import (
+        InterpretationEntry,
+        InterpretationRepository,
+    )
 
 
 HexagramDefinition = Tuple[str, str]
@@ -109,10 +115,13 @@ class Hexagram:
         *,
         guaci_path: Optional[Path] = None,
         takashima_path: Optional[Path] = None,
+        interpretation_repo: Optional["InterpretationRepository"] = None,
     ) -> str:
         """Build the legacy textual representation used by downstream consumers."""
         summary, _, _ = self.to_text_package(
-            guaci_path=guaci_path, takashima_path=takashima_path
+            guaci_path=guaci_path,
+            takashima_path=takashima_path,
+            interpretation_repo=interpretation_repo,
         )
         return summary
 
@@ -121,16 +130,24 @@ class Hexagram:
         *,
         guaci_path: Optional[Path] = None,
         takashima_path: Optional[Path] = None,
+        interpretation_repo: Optional["InterpretationRepository"] = None,
     ) -> Tuple[str, List[Dict[str, object]], Dict[str, object]]:
         """Return the focused summary text, structured sections, and overview metadata."""
         selection = self._select_line_strategy()
         main_text, main_line_text, changed_header, changed_text = self._build_interpretation(
-            guaci_path=guaci_path, selection=selection
+            guaci_path=guaci_path,
+            selection=selection,
+            interpretation_repo=interpretation_repo,
         )
         summary = self._compose_summary(
             selection, main_text, main_line_text, changed_header, changed_text
         )
-        sections = self._collect_sections(selection, guaci_path, takashima_path)
+        sections = self._collect_sections(
+            selection,
+            guaci_path,
+            takashima_path,
+            interpretation_repo=interpretation_repo,
+        )
         overview = self._build_overview()
         return summary, sections, overview
 
@@ -196,8 +213,18 @@ class Hexagram:
     # ------------------------------------------------------------------ #
 
     def _build_interpretation(
-        self, *, guaci_path: Optional[Path], selection: Optional[object]
+        self,
+        *,
+        guaci_path: Optional[Path],
+        selection: Optional[object],
+        interpretation_repo: Optional["InterpretationRepository"] = None,
     ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+        if interpretation_repo is not None:
+            return self._build_interpretation_from_repository(
+                interpretation_repo=interpretation_repo,
+                selection=selection,
+            )
+
         if not guaci_path:
             return None, None, None, None
 
@@ -257,12 +284,85 @@ class Hexagram:
                         changed_text = changed_line
         return main_top_text, main_line_text, changed_header, changed_text
 
+    def _build_interpretation_from_repository(
+        self,
+        *,
+        interpretation_repo: "InterpretationRepository",
+        selection: Optional[object],
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+        main_top_text = interpretation_repo.get_slot_content(
+            hexagram_name=self.name,
+            source_key="guaci",
+            slot_kind="gua",
+        )
+        main_line_text: Optional[str] = None
+        changed_header: Optional[str] = None
+        changed_text: Optional[str] = None
+
+        if selection is None:
+            if self.changed_hexagram is None:
+                changed_header = "变卦：没有动爻，故无变卦。"
+            return main_top_text, None, changed_header, None
+
+        if selection == "all-move-other":
+            if self.changed_hexagram:
+                changed_top = interpretation_repo.get_slot_content(
+                    hexagram_name=self.changed_hexagram.name,
+                    source_key="guaci",
+                    slot_kind="gua",
+                )
+                if changed_top:
+                    changed_header = (
+                        f"\n变卦: {self.changed_hexagram.name} - 解释: {self.changed_hexagram.explanation}"
+                    )
+                    changed_text = changed_top
+            return None, None, changed_header, changed_text
+
+        if selection == "all":
+            main_line_text = interpretation_repo.get_slot_content(
+                hexagram_name=self.name,
+                source_key="guaci",
+                slot_kind="use",
+            )
+            return main_top_text, main_line_text, changed_header, changed_text
+
+        if isinstance(selection, int):
+            line_no = selection + 1
+            main_line_text = interpretation_repo.get_slot_content(
+                hexagram_name=self.name,
+                source_key="guaci",
+                slot_kind="line",
+                line_no=line_no,
+            )
+            if self.changed_hexagram:
+                changed_line = interpretation_repo.get_slot_content(
+                    hexagram_name=self.changed_hexagram.name,
+                    source_key="guaci",
+                    slot_kind="line",
+                    line_no=line_no,
+                )
+                if changed_line:
+                    changed_header = (
+                        f"\n变卦: {self.changed_hexagram.name} - 解释: {self.changed_hexagram.explanation}"
+                    )
+                    changed_text = changed_line
+
+        return main_top_text, main_line_text, changed_header, changed_text
+
     def _collect_sections(
         self,
         selection: Optional[object],
         guaci_path: Optional[Path],
         takashima_path: Optional[Path],
+        interpretation_repo: Optional["InterpretationRepository"] = None,
     ) -> List[Dict[str, object]]:
+        if interpretation_repo is not None:
+            repo_sections = self._collect_sections_from_repository(
+                selection=selection, interpretation_repo=interpretation_repo
+            )
+            if repo_sections:
+                return repo_sections
+
         if not guaci_path and not takashima_path:
             return []
 
@@ -332,6 +432,8 @@ class Hexagram:
                     "hexagram_type": hex_type,
                     "hexagram_name": name,
                     "source": source,
+                    "source_label": "高岛易断" if source == "takashima" else "卦辞库",
+                    "slot_key": f"{name}.{line_key or 'gua'}",
                     "section_kind": section_kind,
                     "line_key": line_key,
                     "title": title,
@@ -369,17 +471,23 @@ class Hexagram:
             value = line.sections.get("takashima")
             return value if value else None
 
+        selected_main_line: Optional[str] = None
+        if selection == "all":
+            selected_main_line = "all"
+        elif isinstance(selection, int):
+            selected_main_line = str(selection + 1)
+
+        selected_changed_line: Optional[str] = None
+        if selection == "all":
+            selected_changed_line = "all"
+        elif isinstance(selection, int):
+            selected_changed_line = str(selection + 1)
+
         # Main hexagram sections
         if main_guaci:
             main_top = main_guaci.combine_top()
             show_main_top = selection != "all-move-other"
             add_section("main", self.name, "top", None, main_top, show_main_top)
-
-            selected_main_line: Optional[str] = None
-            if selection == "all":
-                selected_main_line = "all"
-            elif isinstance(selection, int):
-                selected_main_line = str(selection + 1)
 
             for key in sorted_keys(main_guaci.line_sections):
                 content = main_guaci.combine_line(key)
@@ -399,7 +507,7 @@ class Hexagram:
                 "top",
                 None,
                 takashima_top(main_takashima),
-                False,
+                selection != "all-move-other",
                 source="takashima",
             )
             for key in sorted_keys(main_takashima.line_sections):
@@ -409,7 +517,7 @@ class Hexagram:
                     "line",
                     key,
                     takashima_line(main_takashima, key),
-                    False,
+                    visible=(key == selected_main_line),
                     source="takashima",
                 )
 
@@ -425,12 +533,6 @@ class Hexagram:
                 changed_top,
                 show_changed_top,
             )
-
-            selected_changed_line: Optional[str] = None
-            if selection == "all":
-                selected_changed_line = "all"
-            elif isinstance(selection, int):
-                selected_changed_line = str(selection + 1)
 
             for key in sorted_keys(changed_data.line_sections):
                 content = changed_data.combine_line(key)
@@ -450,7 +552,7 @@ class Hexagram:
                 "top",
                 None,
                 takashima_top(changed_takashima),
-                False,
+                selection == "all-move-other",
                 source="takashima",
             )
             for key in sorted_keys(changed_takashima.line_sections):
@@ -460,9 +562,107 @@ class Hexagram:
                     "line",
                     key,
                     takashima_line(changed_takashima, key),
-                    False,
+                    visible=(key == selected_changed_line and selection != "all-move-other"),
                     source="takashima",
                 )
+
+        return sections
+
+    def _collect_sections_from_repository(
+        self,
+        *,
+        selection: Optional[object],
+        interpretation_repo: "InterpretationRepository",
+    ) -> List[Dict[str, object]]:
+        main_entries = interpretation_repo.list_entries(
+            hexagram_name=self.name,
+            source_keys=("guaci", "takashima"),
+        )
+        changed_entries: List["InterpretationEntry"] = []
+        if self.changed_hexagram:
+            changed_entries = interpretation_repo.list_entries(
+                hexagram_name=self.changed_hexagram.name,
+                source_keys=("guaci", "takashima"),
+            )
+
+        selected_main_line: Optional[str] = None
+        if selection == "all":
+            selected_main_line = "all"
+        elif isinstance(selection, int):
+            selected_main_line = str(selection + 1)
+
+        selected_changed_line: Optional[str] = None
+        if selection == "all":
+            selected_changed_line = "all"
+        elif isinstance(selection, int):
+            selected_changed_line = str(selection + 1)
+
+        def is_visible_main(entry: "InterpretationEntry") -> bool:
+            if selection == "all-move-other":
+                return False
+            if entry.slot_kind == "gua":
+                return True
+            return entry.line_key == selected_main_line
+
+        def is_visible_changed(entry: "InterpretationEntry") -> bool:
+            if selection == "all-move-other":
+                return entry.slot_kind == "gua"
+            return bool(
+                entry.line_key == selected_changed_line
+                and selection != "all-move-other"
+            )
+
+        def title_for(entry: "InterpretationEntry", hex_type: str) -> str:
+            prefix = "本卦" if hex_type == "main" else "变卦"
+            if entry.slot_kind == "gua":
+                return f"{prefix} · 卦辞总览"
+            if entry.slot_kind == "use":
+                return f"{prefix} · 全爻总览"
+            return f"{prefix} · 第{entry.line_key}爻"
+
+        sections: List[Dict[str, object]] = []
+
+        def add_entries(
+            *,
+            entries: Iterable["InterpretationEntry"],
+            hex_type: str,
+            hex_name: str,
+            visible_check,
+        ) -> None:
+            for entry in entries:
+                visible = bool(visible_check(entry))
+                section_kind = "top" if entry.slot_kind == "gua" else "line"
+                sections.append(
+                    {
+                        "id": f"{hex_type}-{entry.source_key}-{entry.slot_key}",
+                        "hexagram_type": hex_type,
+                        "hexagram_name": hex_name,
+                        "source": entry.source_key,
+                        "source_label": entry.source_label,
+                        "slot_key": entry.slot_key,
+                        "section_kind": section_kind,
+                        "line_key": entry.line_key,
+                        "title": title_for(entry, hex_type),
+                        "content": entry.content,
+                        "importance": "primary" if visible else "secondary",
+                        "visible_by_default": visible,
+                    }
+                )
+
+        add_entries(
+            entries=main_entries,
+            hex_type="main",
+            hex_name=self.name,
+            visible_check=is_visible_main,
+        )
+
+        if self.changed_hexagram:
+            add_entries(
+                entries=changed_entries,
+                hex_type="changed",
+                hex_name=self.changed_hexagram.name,
+                visible_check=is_visible_changed,
+            )
 
         return sections
 

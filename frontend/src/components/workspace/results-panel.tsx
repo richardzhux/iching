@@ -199,7 +199,7 @@ function HexSectionGroup({
                 {section.hexagram_type === "main"
                   ? messages.workspace.results.lineMetaMain
                   : messages.workspace.results.lineMetaChanged}{" "}
-                · {section.source === "takashima" ? "高岛易断" : "卦辞库"}
+                · {section.source_label ?? (section.source === "takashima" ? "高岛易断" : "卦辞库")}
               </span>
             </div>
             <div className="mt-1 text-[0.65rem] uppercase tracking-widest text-muted-foreground/80">

@@ -90,6 +90,20 @@ class SupabaseRestClient:
         records = response.json()
         return records[0] if records else None
 
+    def fetch_session_any(self, *, session_id: str) -> Optional[Dict[str, Any]]:
+        if not self.enabled:
+            return None
+        headers = self._service_headers()
+        params = {
+            "session_id": f"eq.{session_id}",
+            "limit": "1",
+            "select": "*",
+        }
+        response = self._client.get(f"{self.rest_base}/sessions", params=params, headers=headers)
+        response.raise_for_status()
+        records = response.json()
+        return records[0] if records else None
+
     def upsert_session(self, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if not self.enabled:
             return None
@@ -108,6 +122,19 @@ class SupabaseRestClient:
         params = {
             "session_id": f"eq.{session_id}",
             "user_id": f"eq.{user_id}",
+        }
+        response = self._client.patch(
+            f"{self.rest_base}/sessions", params=params, headers=headers, json=payload
+        )
+        response.raise_for_status()
+
+    def update_session_any(self, session_id: str, payload: Dict[str, Any]) -> None:
+        if not self.enabled:
+            return
+        headers = self._service_headers()
+        headers["Prefer"] = "resolution=merge-duplicates"
+        params = {
+            "session_id": f"eq.{session_id}",
         }
         response = self._client.patch(
             f"{self.rest_base}/sessions", params=params, headers=headers, json=payload
@@ -164,6 +191,27 @@ class SupabaseRestClient:
             "user_id": f"eq.{user_id}",
             "order": "updated_at.desc",
             "select": "session_id",
+            "limit": str(max(0, limit)),
+            "offset": str(max(0, offset)),
+        }
+        response = self._client.get(f"{self.rest_base}/sessions", params=params, headers=headers)
+        response.raise_for_status()
+        records = response.json()
+        return records if isinstance(records, list) else []
+
+    def list_sessions_page(
+        self,
+        *,
+        limit: int,
+        offset: int,
+        select: str = "session_id,payload_snapshot,updated_at,user_id",
+    ) -> List[Dict[str, Any]]:
+        if not self.enabled:
+            return []
+        headers = self._service_headers()
+        params = {
+            "order": "updated_at.desc",
+            "select": select,
             "limit": str(max(0, limit)),
             "offset": str(max(0, offset)),
         }

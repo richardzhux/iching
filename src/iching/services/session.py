@@ -18,6 +18,7 @@ from iching.integrations.ai import (
     normalize_model_name,
     start_analysis,
 )
+from iching.integrations.interpretation_repository import InterpretationRepository
 from iching.integrations.najia_repository import NajiaEntry, NajiaRepository
 
 
@@ -176,6 +177,12 @@ class SessionService:
         self.config = config or build_app_config()
         self.definitions = load_hexagram_definitions(self.config.paths.gua_index_file)
         self.najia_repo = NajiaRepository(self.config.paths.najia_db)
+        self.interpretation_repo = InterpretationRepository(
+            db_path=self.config.paths.interpretation_db,
+            index_file=self.config.paths.gua_index_file,
+            guaci_dir=self.config.paths.guaci_dir,
+            takashima_dir=self.config.paths.takashima_dir,
+        )
         self._history: List[SessionResult] = []
 
     @property
@@ -367,6 +374,7 @@ class SessionService:
         hex_text, hex_sections, hex_overview = hexagram.to_text_package(
             guaci_path=self.config.paths.guaci_dir,
             takashima_path=self.config.paths.takashima_dir,
+            interpretation_repo=self.interpretation_repo,
         )
 
         main_najia_entry = self.najia_repo.get_by_bottom(hexagram.binary[::-1])

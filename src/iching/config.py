@@ -22,6 +22,7 @@ class PathConfig:
     data_dir: Path
     gua_index_file: Path
     najia_db: Path
+    interpretation_db: Path
     guaci_dir: Path
     takashima_dir: Path
     symbolic_dir: Path
@@ -32,6 +33,7 @@ class PathConfig:
     def ensure_directories(self) -> None:
         """Create required directories if they are missing."""
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.interpretation_db.parent.mkdir(parents=True, exist_ok=True)
         self.guaci_dir.mkdir(parents=True, exist_ok=True)
         self.takashima_dir.mkdir(parents=True, exist_ok=True)
         self.symbolic_dir.mkdir(parents=True, exist_ok=True)
@@ -78,12 +80,16 @@ def build_path_config() -> PathConfig:
         os.getenv("ICHING_GUA_INDEX_FILE", data_dir / "guaxiang.txt")
     )
     najia_db = _expand(os.getenv("ICHING_NAJIA_DB", data_dir / "najia.db"))
+    interpretation_db = _expand(
+        os.getenv("ICHING_INTERPRETATION_DB", data_dir / "interpretations.db")
+    )
 
     paths = PathConfig(
         project_root=PROJECT_ROOT,
         data_dir=data_dir,
         gua_index_file=gua_index_file,
         najia_db=najia_db,
+        interpretation_db=interpretation_db,
         guaci_dir=guaci_dir,
         takashima_dir=takashima_dir,
         symbolic_dir=symbolic_dir,
