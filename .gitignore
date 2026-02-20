@@ -39,6 +39,7 @@ ped_guaci/
 fileops/
 GRAPHS/
 # Raw source corpora (regenerable)
+/node_modules/
 data/eng/
 data/takashima/
 references/
