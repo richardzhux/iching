@@ -1,7 +1,10 @@
 from pathlib import Path
 
 from iching.config import PATHS
-from iching.integrations.interpretation_repository import InterpretationRepository
+from iching.integrations.interpretation_repository import (
+    InterpretationRepository,
+    _clean_english_structured_text,
+)
 
 
 def _build_repo(tmp_path: Path) -> InterpretationRepository:
@@ -85,3 +88,47 @@ def test_interpretation_repository_english_has_line_entries(tmp_path: Path) -> N
     assert entries
     assert entries[0].slot_key == "1.gua"
     assert any(entry.slot_kind == "line" and entry.line_no == 1 for entry in entries)
+
+
+def test_clean_english_structured_text_reflows_hard_wrapped_lines() -> None:
+    raw = (
+        "Judgment\n"
+        "Legge: Under the conditions of Clouded Perception be aware of the difficulty\n"
+        "of your position and maintain firm correctness.\n"
+        "Wilhelm/Baynes: Darkening of the Light. In adversity it furthers one to be\n"
+        "persevering.\n"
+    )
+    cleaned = _clean_english_structured_text(raw)
+    assert cleaned is not None
+    assert "difficulty of your position" in cleaned
+    assert "to be persevering." in cleaned
+    assert "\nJudgment\nLegge:" not in cleaned
+    assert "\nWilhelm/Baynes:" in cleaned
+
+
+def test_clean_english_structured_text_preserves_structural_breaks() -> None:
+    raw = (
+        "COMMENTARY\n"
+        "Legge: The lesson of the figure is to show\n"
+        "how such an officer will conduct himself.\n"
+        "King Wen was not of the line of Shang. Though opposed and persecuted\n"
+        "by its sovereign, he could pursue his own course.\n"
+        "M.L. Von Franz -- The Feminine in Fairytales\n"
+        "A. You had clarity,\n"
+        "then you lost it.\n"
+    )
+    cleaned = _clean_english_structured_text(raw)
+    assert cleaned is not None
+    assert "is to show how such an officer" in cleaned
+    assert "persecuted by its sovereign" in cleaned
+    assert "\nM.L. Von Franz -- The Feminine in Fairytales\n" in cleaned
+    assert "\nA. You had clarity, then you lost it." in cleaned
+
+
+def test_clean_english_structured_text_does_not_split_lowercase_colon() -> None:
+    raw = (
+        "Ritsema/Karcher: This hexagram says\n"
+        "to: hide your brightness!\n"
+    )
+    cleaned = _clean_english_structured_text(raw)
+    assert cleaned == "Ritsema/Karcher: This hexagram says to: hide your brightness!"

@@ -41,7 +41,7 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <I18nProvider locale={locale} messages={messages}>
-      <div className="app-shell relative min-h-screen">
+      <div className={cn("app-shell relative min-h-screen", locale === "en" ? "locale-en" : "locale-zh")}>
         <div className="pointer-events-none absolute inset-0 app-overlay" />
         <header className="shell-header sticky top-0 z-30 border-b border-border/50">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">

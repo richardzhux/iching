@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -163,17 +164,93 @@ def _clean_english_structured_text(raw: object) -> Optional[str]:
     if not lines:
         return None
 
+    # Reflow hard-wrapped PDF lines into paragraphs while preserving
+    # section headers, source labels, and intentional blank-line breaks.
     squashed: List[str] = []
     previous_blank = False
     for line in lines:
-        blank = not line.strip()
+        stripped = _normalize_english_line(line)
+        blank = not stripped
         if blank and previous_blank:
             continue
-        squashed.append(line)
+        if blank:
+            squashed.append("")
+            previous_blank = True
+            continue
+
+        if (
+            not squashed
+            or previous_blank
+            or _starts_new_english_paragraph(stripped)
+            or _is_english_heading(squashed[-1])
+        ):
+            squashed.append(stripped)
+        else:
+            squashed[-1] = _merge_english_line(squashed[-1], stripped)
         previous_blank = blank
 
     text = "\n".join(squashed).strip()
     return text or None
+
+
+_ENGLISH_LABEL_RE = re.compile(r"^[A-Z][A-Za-z0-9/().,' -]{0,32}:\s")
+_ENGLISH_BULLET_RE = re.compile(r"^(?:[A-Z]\.|[0-9]{1,2}\.)\s")
+_ENGLISH_LINE_RE = re.compile(r"^Line-[1-6]$")
+_ENGLISH_HEADING_SET = {"Judgment", "The Image", "COMMENTARY", "NOTES AND PARAPHRASES"}
+
+
+def _normalize_english_line(line: str) -> str:
+    stripped = line.strip()
+    if not stripped:
+        return ""
+    return re.sub(r"[ \t]+", " ", stripped)
+
+
+def _is_english_heading(line: str) -> bool:
+    if not line:
+        return False
+    if line in _ENGLISH_HEADING_SET:
+        return True
+    if _ENGLISH_LINE_RE.match(line):
+        return True
+    if line.isupper() and len(line) <= 48 and any(ch.isalpha() for ch in line):
+        return True
+    return False
+
+
+def _looks_like_english_label(line: str) -> bool:
+    if not line or not _ENGLISH_LABEL_RE.match(line):
+        return False
+    prefix = line.split(":", 1)[0]
+    return len(prefix.split()) <= 6
+
+
+def _looks_like_english_attribution(line: str) -> bool:
+    if " -- " in line:
+        return True
+    if ":" in line:
+        return False
+    if line.endswith((".", "!", "?", ";", ":")):
+        return False
+    words = line.split()
+    if not words or len(words) > 7:
+        return False
+    return line[0].isupper()
+
+
+def _starts_new_english_paragraph(line: str) -> bool:
+    return bool(
+        _is_english_heading(line)
+        or _looks_like_english_label(line)
+        or _ENGLISH_BULLET_RE.match(line)
+        or _looks_like_english_attribution(line)
+    )
+
+
+def _merge_english_line(previous: str, current: str) -> str:
+    if previous.endswith("-"):
+        return f"{previous}{current}"
+    return f"{previous} {current}"
 
 
 class InterpretationRepository:

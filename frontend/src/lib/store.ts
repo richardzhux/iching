@@ -10,6 +10,7 @@ const formatDateInput = (date: Date) =>
     date.getMinutes()
   )}`
 const normalizeModelId = (model?: string | null) => (model === "gpt-5.1" ? "gpt-5.2" : model ?? "gpt-5.2")
+const isResultsTab = (value: unknown): value is ResultsTab => value === "summary" || value === "hex" || value === "ai"
 
 export type WorkspaceForm = {
   topic: string
@@ -27,12 +28,14 @@ export type WorkspaceForm = {
 }
 
 export type WorkspaceView = "form" | "results"
+export type ResultsTab = "summary" | "hex" | "ai"
 
 type WorkspaceState = {
   form: WorkspaceForm
   result?: SessionPayload
   history: SessionPayload[]
   view: WorkspaceView
+  resultsTab: ResultsTab
   lastSessionId?: string
   updateForm: <K extends keyof WorkspaceForm>(key: K, value: WorkspaceForm[K]) => void
   setForm: (values: Partial<WorkspaceForm>) => void
@@ -40,6 +43,7 @@ type WorkspaceState = {
   setResult: (payload: SessionPayload) => void
   resetSession: () => void
   setView: (view: WorkspaceView) => void
+  setResultsTab: (tab: ResultsTab) => void
   reopenResults: () => void
 }
 
@@ -65,6 +69,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       result: undefined,
       history: [],
       view: "form",
+      resultsTab: "summary",
       lastSessionId: undefined,
       updateForm: (key, value) =>
         set((state) => ({
@@ -97,6 +102,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             result: payload,
             history: nextHistory,
             view: "results",
+            resultsTab: "summary",
             lastSessionId: payload.session_id,
           }
         }),
@@ -108,9 +114,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           },
           result: undefined,
           view: "form",
+          resultsTab: "summary",
           lastSessionId: undefined,
         }),
       setView: (view) => set({ view }),
+      setResultsTab: (tab) => set({ resultsTab: tab }),
       reopenResults: () =>
         set((state) => (state.result ? { view: "results" } : state)),
     }),
@@ -122,6 +130,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         result: state.result,
         history: state.history,
         view: state.view,
+        resultsTab: state.resultsTab,
         lastSessionId: state.lastSessionId,
       }),
       onRehydrateStorage: () => (state) => {
@@ -134,6 +143,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           }
         } else if (state?.form) {
           state.form.aiModel = normalizeModelId(state.form.aiModel)
+        }
+        if (state && !isResultsTab(state.resultsTab)) {
+          state.resultsTab = "summary"
         }
       },
     },

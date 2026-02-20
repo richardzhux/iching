@@ -19,6 +19,8 @@ export function ResultsPanel() {
   const result = useWorkspaceStore((state) => state.result)
   const resetSession = useWorkspaceStore((state) => state.resetSession)
   const setView = useWorkspaceStore((state) => state.setView)
+  const resultsTab = useWorkspaceStore((state) => state.resultsTab)
+  const setResultsTab = useWorkspaceStore((state) => state.setResultsTab)
 
   if (!result) {
     return (
@@ -48,7 +50,14 @@ export function ResultsPanel() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="summary">
+          <Tabs
+            value={resultsTab}
+            onValueChange={(value) => {
+              if (value === "summary" || value === "hex" || value === "ai") {
+                setResultsTab(value)
+              }
+            }}
+          >
             <TabsList className="grid w-full grid-cols-3 rounded-full bg-surface-elevated text-foreground">
               <TabsTrigger value="summary">{messages.workspace.results.tabSummary}</TabsTrigger>
               <TabsTrigger value="hex">{messages.workspace.results.tabHex}</TabsTrigger>
@@ -78,11 +87,6 @@ function HexResultBlock({ result }: { result: SessionPayload }) {
     const sections = result.hex_sections || []
     const defaultPrimary = sections.filter((section) => section.visible_by_default)
     const defaultSecondary = sections.filter((section) => !section.visible_by_default)
-
-    if (locale !== "en") {
-      return { primarySections: defaultPrimary, secondarySections: defaultSecondary }
-    }
-
     const englishSections = sections.filter((section) => section.source === "english_commentary")
     if (!englishSections.length) {
       return { primarySections: defaultPrimary, secondarySections: defaultSecondary }
@@ -109,9 +113,16 @@ function HexResultBlock({ result }: { result: SessionPayload }) {
       englishPrimary = [englishSections[0]]
     }
 
-    const primaryIds = new Set(englishPrimary.map((section) => section.id))
+    if (locale === "en") {
+      const primaryIds = new Set(englishPrimary.map((section) => section.id))
+      const secondary = sections.filter((section) => !primaryIds.has(section.id))
+      return { primarySections: englishPrimary, secondarySections: secondary }
+    }
+
+    const primaryIds = new Set([...defaultPrimary, ...englishPrimary].map((section) => section.id))
+    const primary = sections.filter((section) => primaryIds.has(section.id))
     const secondary = sections.filter((section) => !primaryIds.has(section.id))
-    return { primarySections: englishPrimary, secondarySections: secondary }
+    return { primarySections: primary, secondarySections: secondary }
   }, [locale, result.hex_sections])
 
   const hasHiddenSections = secondarySections.length > 0

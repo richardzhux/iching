@@ -90,6 +90,14 @@
   isolation: isolate;
 }
 
+.locale-en {
+  font-family: Georgia, "Times New Roman", Times, serif;
+}
+
+.locale-zh {
+  font-family: var(--font-geist-sans), "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
 .shell-header {
   background: hsl(var(--background) / 0.78);
   backdrop-filter: saturate(1.25) blur(14px);
