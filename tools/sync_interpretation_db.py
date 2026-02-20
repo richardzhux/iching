@@ -11,11 +11,15 @@ def main() -> None:
         index_file=PATHS.gua_index_file,
         guaci_dir=PATHS.guaci_dir,
         takashima_dir=PATHS.takashima_dir,
+        symbolic_dir=PATHS.symbolic_dir,
+        english_structured_dir=PATHS.english_structured_dir,
     )
     print(f"Synced interpretation DB: {PATHS.interpretation_db}")
     print(f"Slots: {repo.count_slots()}")
     print(f"Entries (guaci): {repo.count_entries('guaci')}")
     print(f"Entries (takashima): {repo.count_entries('takashima')}")
+    print(f"Entries (symbolic): {repo.count_entries('symbolic')}")
+    print(f"Entries (english_commentary): {repo.count_entries('english_commentary')}")
 
 
 if __name__ == "__main__":

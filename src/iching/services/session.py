@@ -182,6 +182,8 @@ class SessionService:
             index_file=self.config.paths.gua_index_file,
             guaci_dir=self.config.paths.guaci_dir,
             takashima_dir=self.config.paths.takashima_dir,
+            symbolic_dir=self.config.paths.symbolic_dir,
+            english_structured_dir=self.config.paths.english_structured_dir,
         )
         self._history: List[SessionResult] = []
 

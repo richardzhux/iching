@@ -36,9 +36,10 @@ frontend/.env.local
 csdnbazi.py
 yijing_full_content.txt
 ped_guaci/
-symbolic/
 fileops/
 GRAPHS/
-eng/
+# Raw source corpora (regenerable)
+data/eng/
+data/takashima/
 references/
 data/interpretations.db

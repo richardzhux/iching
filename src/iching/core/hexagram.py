@@ -576,13 +576,26 @@ class Hexagram:
     ) -> List[Dict[str, object]]:
         main_entries = interpretation_repo.list_entries(
             hexagram_name=self.name,
-            source_keys=("guaci", "takashima"),
+            locale="zh-CN",
+            source_keys=("guaci", "takashima", "symbolic"),
+        )
+        main_english_entries = interpretation_repo.list_entries(
+            hexagram_name=self.name,
+            locale="en-US",
+            source_keys=("english_commentary",),
         )
         changed_entries: List["InterpretationEntry"] = []
+        changed_english_entries: List["InterpretationEntry"] = []
         if self.changed_hexagram:
             changed_entries = interpretation_repo.list_entries(
                 hexagram_name=self.changed_hexagram.name,
-                source_keys=("guaci", "takashima"),
+                locale="zh-CN",
+                source_keys=("guaci", "takashima", "symbolic"),
+            )
+            changed_english_entries = interpretation_repo.list_entries(
+                hexagram_name=self.changed_hexagram.name,
+                locale="en-US",
+                source_keys=("english_commentary",),
             )
 
         selected_main_line: Optional[str] = None
@@ -598,6 +611,8 @@ class Hexagram:
             selected_changed_line = str(selection + 1)
 
         def is_visible_main(entry: "InterpretationEntry") -> bool:
+            if entry.source_key == "english_commentary":
+                return False
             if selection == "all-move-other":
                 return False
             if entry.slot_kind == "gua":
@@ -605,6 +620,8 @@ class Hexagram:
             return entry.line_key == selected_main_line
 
         def is_visible_changed(entry: "InterpretationEntry") -> bool:
+            if entry.source_key == "english_commentary":
+                return False
             if selection == "all-move-other":
                 return entry.slot_kind == "gua"
             return bool(
@@ -614,6 +631,24 @@ class Hexagram:
 
         def title_for(entry: "InterpretationEntry", hex_type: str) -> str:
             prefix = "本卦" if hex_type == "main" else "变卦"
+            if entry.source_key == "takashima":
+                if entry.slot_kind == "gua":
+                    return f"{prefix} · 高岛易断总览"
+                if entry.slot_kind == "use":
+                    return f"{prefix} · 高岛易断 · 全动爻"
+                return f"{prefix} · 高岛易断 · 第{entry.line_key}爻"
+            if entry.source_key == "symbolic":
+                if entry.slot_kind == "gua":
+                    return f"{prefix} · 八卦象意总览"
+                if entry.slot_kind == "use":
+                    return f"{prefix} · 八卦象意 · 全动爻"
+                return f"{prefix} · 八卦象意 · 第{entry.line_key}爻"
+            if entry.source_key == "english_commentary":
+                if entry.slot_kind == "gua":
+                    return f"{prefix} · English Commentary"
+                if entry.slot_kind == "use":
+                    return f"{prefix} · English Commentary · All Moving Lines"
+                return f"{prefix} · English Commentary · Line {entry.line_key}"
             if entry.slot_kind == "gua":
                 return f"{prefix} · 卦辞总览"
             if entry.slot_kind == "use":
@@ -655,10 +690,22 @@ class Hexagram:
             hex_name=self.name,
             visible_check=is_visible_main,
         )
+        add_entries(
+            entries=main_english_entries,
+            hex_type="main",
+            hex_name=self.name,
+            visible_check=is_visible_main,
+        )
 
         if self.changed_hexagram:
             add_entries(
                 entries=changed_entries,
+                hex_type="changed",
+                hex_name=self.changed_hexagram.name,
+                visible_check=is_visible_changed,
+            )
+            add_entries(
+                entries=changed_english_entries,
                 hex_type="changed",
                 hex_name=self.changed_hexagram.name,
                 visible_check=is_visible_changed,

@@ -27,6 +27,7 @@ class PathConfig:
     takashima_dir: Path
     symbolic_dir: Path
     english_dir: Path
+    english_structured_dir: Path
     archive_complete_dir: Path
     archive_acquittal_dir: Path
 
@@ -38,6 +39,7 @@ class PathConfig:
         self.takashima_dir.mkdir(parents=True, exist_ok=True)
         self.symbolic_dir.mkdir(parents=True, exist_ok=True)
         self.english_dir.mkdir(parents=True, exist_ok=True)
+        self.english_structured_dir.mkdir(parents=True, exist_ok=True)
         self.archive_complete_dir.mkdir(parents=True, exist_ok=True)
         self.archive_acquittal_dir.mkdir(parents=True, exist_ok=True)
 
@@ -76,6 +78,9 @@ def build_path_config() -> PathConfig:
     )
     symbolic_dir = _expand(os.getenv("ICHING_SYMBOLIC_DIR", data_dir / "symbolic"))
     english_dir = _expand(os.getenv("ICHING_ENGLISH_DIR", data_dir / "eng"))
+    english_structured_dir = _expand(
+        os.getenv("ICHING_ENGLISH_STRUCTURED_DIR", data_dir / "eng_structured")
+    )
     gua_index_file = _expand(
         os.getenv("ICHING_GUA_INDEX_FILE", data_dir / "guaxiang.txt")
     )
@@ -94,6 +99,7 @@ def build_path_config() -> PathConfig:
         takashima_dir=takashima_dir,
         symbolic_dir=symbolic_dir,
         english_dir=english_dir,
+        english_structured_dir=english_structured_dir,
         archive_complete_dir=archive_complete_dir,
         archive_acquittal_dir=archive_acquittal_dir,
     )

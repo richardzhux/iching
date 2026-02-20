@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,7 +24,22 @@ TRIGRAM_ID_BY_CODE: Dict[str, int] = {code: trigram_id for trigram_id, code, _, 
 SOURCE_SEED: List[Tuple[str, str]] = [
     ("guaci", "卦辞库"),
     ("takashima", "高岛易断"),
+    ("symbolic", "八卦象意"),
+    ("english_commentary", "English Commentary"),
 ]
+
+SYMBOLIC_HEXAGRAM_ID_BY_STEM: Dict[str, int] = {
+    "qian": 1,
+    "kun": 2,
+    "kan": 29,
+    "li": 30,
+    "zhen": 51,
+    "gen": 52,
+    "xun": 57,
+    "dui": 58,
+}
+
+SYMBOLIC_NOISE_MARKERS = ("周易六十四卦象意，建议收藏",)
 
 
 @dataclass(frozen=True)
@@ -99,6 +115,67 @@ def _take_takashima_line(data: object, line_key: str) -> Optional[str]:
     return value.strip() if isinstance(value, str) and value.strip() else None
 
 
+def _resolve_symbolic_hexagram_id(path: Path) -> Optional[int]:
+    stem = "".join(char for char in path.stem.lower() if char.isalpha())
+    if not stem:
+        return None
+    return SYMBOLIC_HEXAGRAM_ID_BY_STEM.get(stem)
+
+
+def _clean_symbolic_text(raw: str) -> Optional[str]:
+    normalized = (
+        raw.replace("\r\n", "\n")
+        .replace("\ufeff", "")
+        .replace("\ufffc", "")
+    )
+
+    lines: List[str] = []
+    pending_blank = False
+    for raw_line in normalized.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            pending_blank = True
+            continue
+        if any(marker in line for marker in SYMBOLIC_NOISE_MARKERS):
+            continue
+        if pending_blank and lines:
+            lines.append("")
+        lines.append(line)
+        pending_blank = False
+
+    text = "\n".join(lines).strip()
+    return text or None
+
+
+def _clean_english_structured_text(raw: object) -> Optional[str]:
+    if not isinstance(raw, str):
+        return None
+    normalized = (
+        raw.replace("\r\n", "\n")
+        .replace("\ufeff", "")
+        .replace("\ufffc", "")
+    )
+    lines = [line.rstrip() for line in normalized.split("\n")]
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if not lines:
+        return None
+
+    squashed: List[str] = []
+    previous_blank = False
+    for line in lines:
+        blank = not line.strip()
+        if blank and previous_blank:
+            continue
+        squashed.append(line)
+        previous_blank = blank
+
+    text = "\n".join(squashed).strip()
+    return text or None
+
+
 class InterpretationRepository:
     """SQL-backed storage for slot-based hexagram interpretations."""
 
@@ -109,11 +186,15 @@ class InterpretationRepository:
         index_file: Path,
         guaci_dir: Path,
         takashima_dir: Path,
+        symbolic_dir: Path,
+        english_structured_dir: Path,
     ) -> None:
         self.db_path = db_path
         self.index_file = index_file
         self.guaci_dir = guaci_dir
         self.takashima_dir = takashima_dir
+        self.symbolic_dir = symbolic_dir
+        self.english_structured_dir = english_structured_dir
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._ensure_schema()
         self._seed_reference_data()
@@ -191,6 +272,8 @@ class InterpretationRepository:
               CASE src.source_key
                 WHEN 'guaci' THEN 0
                 WHEN 'takashima' THEN 1
+                WHEN 'symbolic' THEN 2
+                WHEN 'english_commentary' THEN 3
                 ELSE 9
               END,
               src.source_key ASC
@@ -264,6 +347,10 @@ class InterpretationRepository:
     def sync_from_files(self) -> None:
         self._sync_source_from_directory(source_key="guaci", directory=self.guaci_dir)
         self._sync_source_from_directory(source_key="takashima", directory=self.takashima_dir)
+        self._sync_symbolic_source(source_key="symbolic", directory=self.symbolic_dir)
+        self._sync_english_source(
+            source_key="english_commentary", directory=self.english_structured_dir
+        )
 
     # ------------------------------------------------------------------ #
     # Internal: schema + seed
@@ -536,13 +623,15 @@ class InterpretationRepository:
                         for index in range(1, 7)
                     }
                     use_content = data.combine_line("all")
-                else:
+                elif source_key == "takashima":
                     top_content = _take_takashima_top(data)
                     line_values = {
                         str(index): _take_takashima_line(data, str(index))
                         for index in range(1, 7)
                     }
                     use_content = _take_takashima_line(data, "all")
+                else:
+                    raise ValueError(f"unsupported source for structured sync: {source_key}")
 
                 def append_entry(slot_key: str, text: Optional[str]) -> None:
                     if not text:
@@ -584,6 +673,148 @@ class InterpretationRepository:
                     append_entry(
                         _canonical_slot_key(2, "use", use_kind="yong_liu"),
                         use_content,
+                    )
+
+            if payload:
+                conn.executemany(
+                    """
+                    INSERT INTO interpretation_entry(
+                      slot_id, source_id, locale, content, version, status, is_current
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    payload,
+                )
+
+    def _sync_symbolic_source(self, *, source_key: str, directory: Path) -> None:
+        if not directory.exists():
+            return
+
+        with self._connect() as conn:
+            source_row = conn.execute(
+                "SELECT id FROM interpretation_source WHERE source_key = ?",
+                (source_key,),
+            ).fetchone()
+            if not source_row:
+                raise ValueError(f"source not found: {source_key}")
+            source_id = int(source_row["id"])
+
+            slot_rows = conn.execute(
+                "SELECT id, canonical_key FROM interpretation_slot"
+            ).fetchall()
+            slot_id_by_key = {str(row["canonical_key"]): int(row["id"]) for row in slot_rows}
+
+            conn.execute(
+                "DELETE FROM interpretation_entry WHERE source_id = ? AND locale = ?",
+                (source_id, "zh-CN"),
+            )
+
+            content_by_hexagram: Dict[int, str] = {}
+            for file in sorted(directory.glob("*.txt")):
+                hexagram_id = _resolve_symbolic_hexagram_id(file)
+                if hexagram_id is None:
+                    continue
+                text = _clean_symbolic_text(file.read_text(encoding="utf-8"))
+                if not text:
+                    continue
+                content_by_hexagram[hexagram_id] = text
+
+            payload: List[Tuple[int, int, str, str, int, str, int]] = []
+            for hexagram_id, content in sorted(content_by_hexagram.items()):
+                slot_key = _canonical_slot_key(hexagram_id, "gua")
+                slot_id = slot_id_by_key.get(slot_key)
+                if slot_id is None:
+                    continue
+                payload.append(
+                    (
+                        slot_id,
+                        source_id,
+                        "zh-CN",
+                        content,
+                        1,
+                        "published",
+                        1,
+                    )
+                )
+
+            if payload:
+                conn.executemany(
+                    """
+                    INSERT INTO interpretation_entry(
+                      slot_id, source_id, locale, content, version, status, is_current
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    payload,
+                )
+
+    def _sync_english_source(self, *, source_key: str, directory: Path) -> None:
+        if not directory.exists():
+            return
+
+        with self._connect() as conn:
+            source_row = conn.execute(
+                "SELECT id FROM interpretation_source WHERE source_key = ?",
+                (source_key,),
+            ).fetchone()
+            if not source_row:
+                raise ValueError(f"source not found: {source_key}")
+            source_id = int(source_row["id"])
+
+            slot_rows = conn.execute(
+                "SELECT id, canonical_key FROM interpretation_slot"
+            ).fetchall()
+            slot_id_by_key = {str(row["canonical_key"]): int(row["id"]) for row in slot_rows}
+
+            conn.execute(
+                "DELETE FROM interpretation_entry WHERE source_id = ? AND locale = ?",
+                (source_id, "en-US"),
+            )
+
+            payload: List[Tuple[int, int, str, str, int, str, int]] = []
+            for hexagram_id in range(1, 65):
+                canonical = f"Hexagram {hexagram_id:02d}.json"
+                fallback = f"{hexagram_id:02d}.json"
+                path = directory / canonical
+                if not path.exists():
+                    path = directory / fallback
+                if not path.exists():
+                    continue
+
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                if not isinstance(raw, dict):
+                    continue
+
+                gua_text = _clean_english_structured_text(raw.get("gua"))
+                lines_payload = raw.get("lines")
+                lines = lines_payload if isinstance(lines_payload, dict) else {}
+
+                def append_entry(slot_key: str, text: Optional[str]) -> None:
+                    if not text:
+                        return
+                    slot_id = slot_id_by_key.get(slot_key)
+                    if slot_id is None:
+                        return
+                    payload.append(
+                        (
+                            slot_id,
+                            source_id,
+                            "en-US",
+                            text,
+                            1,
+                            "published",
+                            1,
+                        )
+                    )
+
+                append_entry(_canonical_slot_key(hexagram_id, "gua"), gua_text)
+                for line_no in range(1, 7):
+                    line_text = _clean_english_structured_text(
+                        lines.get(str(line_no)) or lines.get(f"line_{line_no}")
+                    )
+                    append_entry(
+                        _canonical_slot_key(hexagram_id, "line", line_no=line_no),
+                        line_text,
                     )
 
             if payload:

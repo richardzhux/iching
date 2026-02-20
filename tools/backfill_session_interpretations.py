@@ -187,6 +187,8 @@ def main() -> None:
         index_file=config.paths.gua_index_file,
         guaci_dir=config.paths.guaci_dir,
         takashima_dir=config.paths.takashima_dir,
+        symbolic_dir=config.paths.symbolic_dir,
+        english_structured_dir=config.paths.english_structured_dir,
     )
     client = SupabaseRestClient(
         project_url=args.supabase_url or None,

@@ -47,6 +47,14 @@ def test_session_service_marks_relevant_slots_primary_across_sources():
         section.get("source") == "takashima" and section.get("section_kind") == "top"
         for section in primary
     )
+    assert any(
+        section.get("source") == "symbolic" and section.get("section_kind") == "top"
+        for section in primary
+    )
+    assert any(
+        section.get("source") == "english_commentary" and not section.get("visible_by_default")
+        for section in result.hex_sections
+    )
 
 
 def test_session_service_keeps_yongjiu_when_qian_all_lines_moving():
