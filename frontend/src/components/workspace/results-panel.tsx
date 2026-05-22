@@ -103,7 +103,7 @@ export function ResultsPanel() {
               />
             </TabsContent>
             <TabsContent value="hex">
-              <HexResultBlock result={result} onSourceSelect={openSourceReader} />
+              <HexResultBlock result={result} brief={brief} onSourceSelect={openSourceReader} />
             </TabsContent>
             <TabsContent value="ai">
               <ChatPanel session={result} />
@@ -474,6 +474,8 @@ function ReadingBriefPanel({
           cadence: "Cadence",
           signal: "Signal",
         }
+  const keyPassageHighlightSection =
+    "rounded-lg border border-amber-400/50 bg-amber-100/25 p-5 shadow-sm dark:border-amber-200/35 dark:bg-amber-200/10"
 
   return (
     <div className="mt-4 space-y-5">
@@ -491,13 +493,16 @@ function ReadingBriefPanel({
       </section>
 
       {brief.key_passages?.length ? (
-        <section className="rounded-lg border border-border/50 bg-surface p-5">
+        <section className={keyPassageHighlightSection}>
           <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">{labels.keyPassages}</h3>
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-amber-700 dark:text-amber-200">
+                {locale === "zh" ? "卦辞解析" : "Decisive passage analysis"}
+              </p>
+              <h3 className="mt-1 text-base font-semibold text-foreground">{labels.keyPassages}</h3>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.keyPassageBody}</p>
             </div>
-            <span className="w-fit rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+            <span className="w-fit rounded-md border border-amber-400/60 bg-amber-200/35 px-2 py-1 text-xs font-semibold text-amber-800 dark:border-amber-200/50 dark:bg-amber-200/15 dark:text-amber-100">
               {brief.key_passages.length}
             </span>
           </div>
@@ -505,7 +510,7 @@ function ReadingBriefPanel({
             {brief.key_passages.map((passage, index) => (
               <article
                 key={`${passage.slot_key}-${passage.source}-${index}`}
-                className="rounded-md border border-border/50 bg-surface-elevated/80 p-4"
+                className="rounded-md border border-amber-300/45 bg-surface/95 p-4 shadow-sm dark:border-amber-200/20"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -1054,7 +1059,172 @@ function SourceChunkList({
   )
 }
 
-function HexResultBlock({ result, onSourceSelect }: { result: SessionPayload; onSourceSelect: (sourceId: string) => void }) {
+function MechanicsInsightPanel({
+  result,
+  brief,
+  primarySections,
+  secondarySections,
+  onSourceSelect,
+}: {
+  result: SessionPayload
+  brief: ReadingBrief
+  primarySections: HexSection[]
+  secondarySections: HexSection[]
+  onSourceSelect: (sourceId: string) => void
+}) {
+  const { locale } = useI18n()
+  const lines = result.hex_overview?.lines || []
+  const movingLines = lines.filter((line) => line.is_moving).sort((a, b) => a.position - b.position)
+  const mainName = result.hex_overview?.main_hexagram?.name || (locale === "zh" ? "本卦" : "Primary")
+  const changedName = result.hex_overview?.changed_hexagram?.name
+  const allMoving = movingLines.length === 6
+  const keyPassages = brief.key_passages || []
+  const sourceCounts = Object.entries(brief.archive_sources?.sources || {})
+  const supplementSection = secondarySections[0] || primarySections[0]
+  const labels =
+    locale === "zh"
+      ? {
+          title: "断法结构",
+          body: "把起卦结果拆成卦象、动爻、变卦与来源层级，先说明为什么这样断，再进入原文。",
+          pattern: "卦象格局",
+          movement: "爻变诊断",
+          sourceDepth: "来源覆盖",
+          keyPassages: "重点段落解析",
+          keyBody: "这里不是再铺档案，而是标出本次机理真正生效的文本节点。",
+          noMoving: "无动爻，以本卦卦辞为主断。",
+          moving: "动爻优先，变卦只作后续背景。",
+          allMovingQian: "乾卦六爻全动，以用九统摄。",
+          allMovingKun: "坤卦六爻全动，以用六统摄。",
+          changed: "变卦",
+          stable: "无变卦",
+          lines: "动爻",
+          noLines: "无",
+          sources: "来源",
+          showSupplement: "显示补充",
+          openSource: "打开原文",
+        }
+      : {
+          title: "Cast logic",
+          body: "Separate the cast into pattern, moving lines, changed hexagram, and source layers before reading the original text.",
+          pattern: "Pattern",
+          movement: "Line movement",
+          sourceDepth: "Source coverage",
+          keyPassages: "Key passage analysis",
+          keyBody: "This is not another archive dump; it marks the text nodes that actually drive the mechanics of this reading.",
+          noMoving: "No moving lines: the primary hexagram judgment carries the reading.",
+          moving: "Moving lines lead; the changed hexagram is secondary context.",
+          allMovingQian: "All six Qian lines move: Yong Jiu governs the reading.",
+          allMovingKun: "All six Kun lines move: Yong Liu governs the reading.",
+          changed: "Changed",
+          stable: "No changed hexagram",
+          lines: "Moving",
+          noLines: "None",
+          sources: "Sources",
+          showSupplement: "Show supplement",
+          openSource: "Open source",
+        }
+  const decisionRule =
+    allMoving && mainName.includes("乾")
+      ? labels.allMovingQian
+      : allMoving && mainName.includes("坤")
+        ? labels.allMovingKun
+        : movingLines.length
+          ? labels.moving
+          : labels.noMoving
+  const movingLabel = movingLines.length
+    ? movingLines.map((line) => `${line.position}${line.moving_symbol ? ` ${line.moving_symbol}` : ""}`).join(" · ")
+    : labels.noLines
+
+  return (
+    <section className="rounded-lg border border-border/50 bg-surface p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">{labels.title}</h3>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{labels.body}</p>
+        </div>
+        {supplementSection ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit rounded-md"
+            onClick={() => onSourceSelect(sectionSourceIdForDrawer(supplementSection))}
+          >
+            {labels.showSupplement}
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        <div className="rounded-md border border-border/50 bg-surface-elevated/80 p-4">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{labels.pattern}</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
+            {mainName}
+            {changedName ? ` → ${changedName}` : ""}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            {changedName ? `${labels.changed}: ${changedName}` : labels.stable}
+          </p>
+        </div>
+        <div className="rounded-md border border-border/50 bg-surface-elevated/80 p-4">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{labels.movement}</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
+            {labels.lines}: {movingLabel}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">{decisionRule}</p>
+        </div>
+        <div className="rounded-md border border-border/50 bg-surface-elevated/80 p-4">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{labels.sourceDepth}</p>
+          <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
+            {brief.archive_sources?.total_passages ?? brief.source_passages?.length ?? 0} {labels.sources}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            {sourceCounts.length
+              ? sourceCounts.map(([source, count]) => `${source}: ${count}`).join(" · ")
+              : keyPassages.map((passage) => passage.source_label).filter(Boolean).join(" · ")}
+          </p>
+        </div>
+      </div>
+
+      {keyPassages.length ? (
+        <div className="mt-4 rounded-md border border-amber-300/45 bg-amber-100/20 p-4 dark:border-amber-200/25 dark:bg-amber-200/10">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-amber-700 dark:text-amber-200">
+                {locale === "zh" ? "卦辞解析" : "Textual mechanics"}
+              </p>
+              <h4 className="mt-1 text-sm font-semibold text-foreground">{labels.keyPassages}</h4>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.keyBody}</p>
+            </div>
+          </div>
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            {keyPassages.map((passage) => (
+              <article key={sourceIdForPassage(passage)} className="rounded-md border border-border/50 bg-surface/90 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">{passage.title}</p>
+                  <span className="text-xs text-muted-foreground">{passage.source_label || passage.source}</span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-foreground">{passage.plain_language || compactText(passage.excerpt, 180)}</p>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">{passage.why_it_matters}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 h-auto rounded-md px-0 text-xs font-semibold text-primary hover:bg-transparent hover:text-primary"
+                  onClick={() => onSourceSelect(sourceIdForPassage(passage))}
+                >
+                  {labels.openSource}
+                </Button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayload; brief: ReadingBrief; onSourceSelect: (sourceId: string) => void }) {
   const { messages, locale } = useI18n()
 
   const { primarySections, secondarySections } = useMemo(() => {
@@ -1122,6 +1292,13 @@ function HexResultBlock({ result, onSourceSelect }: { result: SessionPayload; on
         baziText={baziText}
         elementsText={elementsText}
         baziDetail={baziDetail}
+      />
+      <MechanicsInsightPanel
+        result={result}
+        brief={brief}
+        primarySections={primarySections}
+        secondarySections={secondarySections}
+        onSourceSelect={onSourceSelect}
       />
       {result.najia_table?.rows?.length ? (
         <div className="space-y-2">

@@ -113,8 +113,34 @@ def test_results_source_review_uses_drawer_not_archive_tab_or_inline_expansion()
 def test_mechanics_source_review_no_long_inline_archive_expansion():
     results = read("frontend/src/components/workspace/results-panel.tsx")
 
-    assert "function HexResultBlock({ result, onSourceSelect }" in results
+    assert "function HexResultBlock({ result, brief, onSourceSelect }" in results
+    assert "brief: ReadingBrief" in results
     assert "setShowFull" not in results
     assert "aria-expanded={showFull}" not in results
     assert "secondarySections.length" in results
     assert "onSourceSelect(sectionSourceIdForDrawer" in results
+
+
+def test_guidance_key_passages_are_highlighted_as_decisive_interpretation():
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+
+    assert "keyPassageHighlightSection" in results
+    assert "border-amber" in results
+    assert "卦辞解析" in results
+    assert "Decisive passage analysis" in results
+    assert "bg-amber" in results
+
+
+def test_mechanics_page_has_professional_cast_logic_not_archive_replica():
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+
+    assert "function MechanicsInsightPanel" in results
+    assert "<MechanicsInsightPanel" in results
+    assert "断法结构" in results
+    assert "Cast logic" in results
+    assert "爻变诊断" in results
+    assert "Line movement" in results
+    assert "重点段落解析" in results
+    assert "显示补充" in results
+    assert "sectionSourceIdForDrawer" in results
+    assert results.index("<MechanicsInsightPanel") < results.index("<HexSectionGroup")
