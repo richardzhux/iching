@@ -225,6 +225,8 @@ def test_profile_page_matches_premium_study_surface():
     assert "Download" in profile
     assert "365-day" in profile
     assert "365 天" in profile
+    assert "up to 500" in profile
+    assert "最多 500" in profile
 
 
 def test_supabase_retention_contract_keeps_sessions_for_one_year():
@@ -232,3 +234,13 @@ def test_supabase_retention_contract_keeps_sessions_for_one_year():
 
     assert "365 days" in schema
     assert "90 days" not in schema
+
+
+def test_cloud_session_limit_defaults_to_500_saved_readings():
+    chat_service = read("src/iching/web/chat_service.py")
+    readme = read("README.md")
+    deployment = read("docs/deployment.md")
+
+    assert 'ICHING_USER_SESSION_LIMIT", "500"' in chat_service
+    assert "`ICHING_USER_SESSION_LIMIT` (default `500`)" in readme
+    assert "`ICHING_USER_SESSION_LIMIT` (saved sessions per user, default 500)" in deployment

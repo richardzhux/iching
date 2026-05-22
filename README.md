@@ -232,7 +232,7 @@ Open: `http://localhost:3000`
 - `ICHING_CHAT_TOKEN_LIMIT` (default `150000`)
 - `ICHING_CHAT_MESSAGE_LIMIT` (default `10000`)
 - `ICHING_USER_DAILY_TOKEN_LIMIT` (default `300000`)
-- `ICHING_USER_SESSION_LIMIT` (default `50`)
+- `ICHING_USER_SESSION_LIMIT` (default `500`)
 - `ICHING_SESSION_CACHE_LIMIT` (default `100`)
 - `ICHING_SESSION_CACHE_TTL_SECONDS` (default `21600`)
 - `ICHING_INTERPRETATION_DB` (default `data/interpretations.db`)
