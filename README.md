@@ -15,12 +15,13 @@ It is built for serious, repeatable analysis: users can cast readings, inspect l
 These are the exact priorities that were deliberately planned and are now implemented:
 
 1. **Model upgrade across product surfaces**
-- Replaced `gpt-5.1` with `gpt-5.2` in the primary model flow.
-- Maintained backward compatibility via alias mapping (`gpt-5.1 -> gpt-5.2`).
+- Replaced `gpt-5.2` with `gpt-5.5` in the primary model flow.
+- Replaced `gpt-5-mini` with `gpt-5.4-mini` in the default follow-up flow.
+- Maintained backward compatibility via alias mapping (`gpt-5.1`/`gpt-5.2 -> gpt-5.5`, `gpt-5-mini -> gpt-5.4-mini`).
 - Preserved the same reasoning/verbosity behavior profile expected from the prior 5.1 setup.
 
 2. **Chat model expansion**
-- Added `gpt-4.1` in follow-up chat alongside `gpt-5-mini` and `gpt-5.2`.
+- Added `gpt-5.3-codex` in follow-up chat alongside `gpt-5.4-mini`, `gpt-5.5`, and `gpt-4.1`.
 - Preserved capability-aware controls so unsupported knobs are automatically gated.
 
 3. **Bilingual, one-tap language UX**
@@ -69,12 +70,13 @@ Defined in `src/iching/integrations/ai.py` (`MODEL_CAPABILITIES`):
 
 | Model | Reasoning options | Verbosity control | Default reasoning | Default verbosity |
 | --- | --- | --- | --- | --- |
-| `gpt-5.2` | `none`, `minimal`, `low`, `medium`, `high` | yes | `medium` | `medium` |
-| `gpt-5-mini` | `minimal`, `low`, `medium`, `high` | yes | `medium` | `medium` |
+| `gpt-5.5` | `none`, `minimal`, `low`, `medium`, `high` | yes | `medium` | `medium` |
+| `gpt-5.4-mini` | `minimal`, `low`, `medium`, `high` | yes | `medium` | `medium` |
+| `gpt-5.3-codex` | `minimal`, `low`, `medium`, `high` | yes | `medium` | `medium` |
 | `gpt-4.1` | none | no | n/a | n/a |
 
 Compatibility:
-- `MODEL_ALIASES` maps `gpt-5.1` to `gpt-5.2`.
+- `MODEL_ALIASES` maps `gpt-5.1` and `gpt-5.2` to `gpt-5.5`, and `gpt-5-mini` to `gpt-5.4-mini`.
 
 ## Interpretation Knowledge Architecture (SQL)
 
@@ -224,7 +226,7 @@ Open: `http://localhost:3000`
 - `SUPABASE_SERVICE_KEY`
 
 ### Backend (Key operational controls)
-- `ICHING_CHAT_MODEL` (default `gpt-5-mini`)
+- `ICHING_CHAT_MODEL` (default `gpt-5.4-mini`)
 - `ICHING_CHAT_TURN_LIMIT` (default `10`)
 - `ICHING_CHAT_TOKEN_LIMIT` (default `150000`)
 - `ICHING_CHAT_MESSAGE_LIMIT` (default `10000`)

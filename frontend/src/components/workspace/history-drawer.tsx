@@ -13,13 +13,25 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { useWorkspaceStore } from "@/lib/store"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { useWorkspaceStore, type JournalStatus } from "@/lib/store"
 
 export function HistoryDrawer() {
   const { messages } = useI18n()
   const history = useWorkspaceStore((state) => state.history)
+  const journal = useWorkspaceStore((state) => state.journal)
+  const updateJournal = useWorkspaceStore((state) => state.updateJournal)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const formattedHistory = useMemo(() => history ?? [], [history])
+  const formattedHistory = useMemo(
+    () =>
+      [...(history ?? [])].sort((a, b) => {
+        const aPinned = journal[a.session_id]?.pinned ? 1 : 0
+        const bPinned = journal[b.session_id]?.pinned ? 1 : 0
+        return bPinned - aPinned
+      }),
+    [history, journal],
+  )
 
   function toggleEntry(id: string) {
     setExpanded((current) => (current === id ? null : id))
@@ -28,7 +40,7 @@ export function HistoryDrawer() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" className="w-full rounded-full">
+        <Button variant="outline" className="w-full rounded-md">
           {messages.workspace.history.trigger} ({history.length})
         </Button>
       </SheetTrigger>
@@ -46,7 +58,7 @@ export function HistoryDrawer() {
             const method = (item.session_dict?.["method"] as string) || messages.workspace.history.noMethod
             const timestamp = (item.session_dict?.["current_time_str"] as string) || messages.workspace.history.noTime
             return (
-              <div key={key} className="surface-soft rounded-2xl p-4 text-sm">
+              <div key={key} className="surface-soft rounded-lg p-4 text-sm">
                 <button
                   type="button"
                   className="flex w-full items-center justify-between gap-3 text-left"
@@ -54,23 +66,78 @@ export function HistoryDrawer() {
                 >
                   <div>
                     <p className="kicker">{method}</p>
-                    <p className="mt-1 font-semibold text-foreground">{topic}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-foreground">{topic}</p>
+                      {journal[item.session_id]?.pinned && (
+                        <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-primary">
+                          pinned
+                        </span>
+                      )}
+                      <span className="rounded-md border border-border/60 bg-surface px-2 py-0.5 text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+                        {journal[item.session_id]?.status ?? "open"}
+                      </span>
+                    </div>
                     <p className="text-xs text-muted-foreground">{timestamp}</p>
                   </div>
                   {isOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                 </button>
                 {isOpen && (
                   <div className="mt-4 space-y-4 text-foreground">
+                    <section className="rounded-md border border-border/40 bg-surface/90 p-3">
+                      <p className="kicker">Decision journal</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {(["open", "watching", "resolved"] as JournalStatus[]).map((status) => (
+                          <Button
+                            key={status}
+                            type="button"
+                            size="sm"
+                            variant={(journal[item.session_id]?.status ?? "open") === status ? "default" : "outline"}
+                            className="rounded-md"
+                            onClick={() => updateJournal(item.session_id, { status })}
+                          >
+                            {status}
+                          </Button>
+                        ))}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={journal[item.session_id]?.pinned ? "default" : "outline"}
+                          className="rounded-md"
+                          onClick={() => updateJournal(item.session_id, { pinned: !journal[item.session_id]?.pinned })}
+                        >
+                          {journal[item.session_id]?.pinned ? "Pinned" : "Pin"}
+                        </Button>
+                      </div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-[12rem_1fr]">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Revisit date</p>
+                          <Input
+                            type="date"
+                            value={journal[item.session_id]?.revisitAt ?? ""}
+                            onChange={(event) => updateJournal(item.session_id, { revisitAt: event.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">Outcome note</p>
+                          <Textarea
+                            value={journal[item.session_id]?.outcomeNote ?? ""}
+                            onChange={(event) => updateJournal(item.session_id, { outcomeNote: event.target.value })}
+                            rows={2}
+                            placeholder="What changed, what happened, or what signal are you waiting for?"
+                          />
+                        </div>
+                      </div>
+                    </section>
                     <section>
                       <p className="kicker">{messages.workspace.history.summaryLabel}</p>
-                      <div className="mt-2 rounded-xl border border-border/40 bg-surface/75 p-3">
+                      <div className="mt-2 rounded-md border border-border/40 bg-surface/90 p-3">
                         <MarkdownContent content={item.summary_text || messages.profile.noSummary} />
                       </div>
                     </section>
                     {item.hex_text && (
                       <section>
                         <p className="kicker">{messages.workspace.history.hexLabel}</p>
-                        <div className="mt-2 rounded-xl border border-border/40 bg-surface/75 p-3">
+                        <div className="mt-2 rounded-md border border-border/40 bg-surface/90 p-3">
                           <MarkdownContent content={item.hex_text} />
                         </div>
                       </section>
@@ -78,7 +145,7 @@ export function HistoryDrawer() {
                     {item.ai_text && (
                       <section>
                         <p className="kicker">{messages.workspace.history.aiLabel}</p>
-                        <div className="mt-2 rounded-xl border border-border/40 bg-surface/75 p-3">
+                        <div className="mt-2 rounded-md border border-border/40 bg-surface/90 p-3">
                           <MarkdownContent content={item.ai_text} />
                         </div>
                       </section>

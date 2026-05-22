@@ -8,13 +8,19 @@ from typing import Any, Callable, Dict, Optional
 from openai import BadRequestError, OpenAI
 
 MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
-    "gpt-5.2": {
+    "gpt-5.5": {
         "reasoning": ["none", "minimal", "low", "medium", "high"],
         "default_reasoning": "medium",
         "verbosity": True,
         "default_verbosity": "medium",
     },
-    "gpt-5-mini": {
+    "gpt-5.4-mini": {
+        "reasoning": ["minimal", "low", "medium", "high"],
+        "default_reasoning": "medium",
+        "verbosity": True,
+        "default_verbosity": "medium",
+    },
+    "gpt-5.3-codex": {
         "reasoning": ["minimal", "low", "medium", "high"],
         "default_reasoning": "medium",
         "verbosity": True,
@@ -29,10 +35,12 @@ MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
 }
 
 MODEL_ALIASES: Dict[str, str] = {
-    "gpt-5.1": "gpt-5.2",
+    "gpt-5.1": "gpt-5.5",
+    "gpt-5.2": "gpt-5.5",
+    "gpt-5-mini": "gpt-5.4-mini",
 }
 
-DEFAULT_MODEL = "gpt-5.2"
+DEFAULT_MODEL = "gpt-5.5"
 
 TONE_PROFILES: Dict[str, str] = {
     "normal": "现代中文，温和且专业，适度引用经典，保持礼貌敬语。",
@@ -101,6 +109,8 @@ def _build_prompt(data: Dict[str, Any]) -> str:
         blocks.append(f"本次占卜主题: {topic}")
     if question := data.get("user_question"):
         blocks.append(f"具体问题: {question}")
+    if context := data.get("user_context"):
+        blocks.append(f"用户补充背景: {context}")
     if current_time := data.get("current_time_str"):
         blocks.append(f"起卦时间: {current_time}")
     if lines := data.get("lines"):
@@ -187,11 +197,12 @@ def _prompt_for_password() -> None:
 def _interactive_model_selector() -> str:
     options = [
         ("A", "gpt-4.1", "快速模式"),
-        ("B", "gpt-5.2", "深度推理"),
-        ("C", "gpt-5-mini", "兼容/聊天"),
-        ("D", "gpt-4.1-nano", "极速 (最低成本/延迟)"),
-        ("E", "gpt-5", "高阶文本与推理"),
-        ("F", "o3", "最强推理 (更慢/更贵)"),
+        ("B", "gpt-5.5", "深度推理"),
+        ("C", "gpt-5.4-mini", "兼容/聊天"),
+        ("D", "gpt-5.3-codex", "代码与结构化推理"),
+        ("E", "gpt-4.1-nano", "极速 (最低成本/延迟)"),
+        ("F", "gpt-5", "高阶文本与推理"),
+        ("G", "o3", "最强推理 (更慢/更贵)"),
     ]
     print(f"\n请选择OpenAI模型（默认：{DEFAULT_MODEL}）：")
     for letter, model, desc in options:
@@ -200,11 +211,12 @@ def _interactive_model_selector() -> str:
     mapping = {
         "": DEFAULT_MODEL,
         "A": "gpt-4.1",
-        "B": "gpt-5.2",
-        "C": "gpt-5-mini",
-        "D": "gpt-4.1-nano",
-        "E": "gpt-5",
-        "F": "o3",
+        "B": "gpt-5.5",
+        "C": "gpt-5.4-mini",
+        "D": "gpt-5.3-codex",
+        "E": "gpt-4.1-nano",
+        "F": "gpt-5",
+        "G": "o3",
     }
     selected = mapping.get(choice)
     if selected:

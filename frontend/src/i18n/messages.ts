@@ -166,6 +166,8 @@ export type Messages = {
       modelDefaultDesc: string
       modelDeepLabel: string
       modelDeepDesc: string
+      modelCodexLabel: string
+      modelCodexDesc: string
       modelFastLabel: string
       modelFastDesc: string
       reasoningNone: string

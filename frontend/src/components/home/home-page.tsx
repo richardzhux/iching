@@ -58,7 +58,7 @@ export function HomePage() {
             ),
             workbenchTitle: "AI WORKBENCH",
             workbenchBody:
-              "Tired of ChatGPT-style vagueness, over-accommodation, or hallucinations? Our dialogue connects directly to the backend Python inference engine and divination archive, delivering verifiable, line-by-line judgments from your question and hexagram. You can also switch among five models and tune response length and thinking depth.",
+              "Tired of ChatGPT-style vagueness, over-accommodation, or hallucinations? Our dialogue connects directly to the backend Python inference engine and divination archive, delivering verifiable, line-by-line judgments from your question and hexagram. You can also switch among four current models and tune response length and thinking depth.",
             researchTitle: "DEEP ARCHIVAL RESEARCH",
             researchBody:
               "A full source-level corpus of I Ching classics is built in. Cite by dynasty and school, read original texts instead of fuzzy AI summaries, and shape a one-of-a-kind scholarly workflow.",

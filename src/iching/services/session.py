@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -133,6 +134,7 @@ class SessionResult:
     timestamp: str
     topic: str
     user_question: Optional[str]
+    user_context: Optional[str]
     method: str
     lines: List[int]
     current_time_str: str
@@ -145,6 +147,7 @@ class SessionResult:
     najia_data: Dict[str, object]
     najia_table: Dict[str, object]
     bazi_detail: List[Dict[str, object]]
+    reading_brief: Dict[str, object]
     ai_model: Optional[str]
     ai_reasoning: Optional[str]
     ai_verbosity: Optional[str]
@@ -158,6 +161,301 @@ class SessionResult:
         payload = asdict(self)
         payload.pop("full_text", None)
         return payload
+
+
+def _compact_text(value: object, *, limit: int = 180) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
+
+
+def _extract_ai_headline(ai_text: Optional[str]) -> Optional[str]:
+    if not ai_text:
+        return None
+    lines = [line.strip() for line in ai_text.splitlines() if line.strip()]
+    for index, line in enumerate(lines):
+        normalized = line.lstrip("#").strip()
+        if normalized in {"一句话结论", "最终判断"}:
+            for candidate in lines[index + 1 :]:
+                cleaned = candidate.lstrip("-•0123456789. ").strip()
+                if cleaned and not cleaned.startswith("#"):
+                    return _compact_text(cleaned, limit=96)
+    for line in lines:
+        if line.startswith("#"):
+            continue
+        cleaned = line.lstrip("-•0123456789. ").strip()
+        if cleaned:
+            return _compact_text(cleaned, limit=96)
+    return None
+
+
+def _extract_ai_plain_language(ai_text: Optional[str]) -> Optional[str]:
+    if not ai_text:
+        return None
+    lines = [line.strip() for line in ai_text.splitlines()]
+    capture = False
+    collected: List[str] = []
+    for line in lines:
+        heading = line.lstrip("#").strip()
+        if heading == "给普通人的解释":
+            capture = True
+            continue
+        if capture and line.startswith("#"):
+            break
+        if capture and line:
+            collected.append(line.lstrip("-• ").strip())
+    if collected:
+        return _compact_text(" ".join(collected), limit=260)
+    return None
+
+
+def _moving_positions(lines: List[int]) -> List[int]:
+    return [index + 1 for index, value in enumerate(lines) if value in {6, 9}]
+
+
+def _basis_for_lines(lines: List[int], main_name: str, changed_name: Optional[str]) -> str:
+    moving = _moving_positions(lines)
+    if not moving:
+        return "无动爻，取本卦卦辞为主"
+    if len(moving) == 6:
+        if all(value == 9 for value in lines) and "乾" in main_name:
+            return "六爻全动，乾卦取用九"
+        if all(value == 6 for value in lines) and "坤" in main_name:
+            return "六爻全动，坤卦取用六"
+        return f"六爻全动，取变卦卦辞为主（{changed_name or '变卦'}）"
+    if len(moving) == 1:
+        return f"第{moving[0]}爻动，取动爻为主"
+    joined = "、".join(str(position) for position in moving)
+    return f"第{joined}爻动，按动爻组合取主断"
+
+
+def _build_evidence_items(
+    *,
+    lines: List[int],
+    hex_sections: List[Dict[str, object]],
+    main_name: str,
+    changed_name: Optional[str],
+    najia_table: Dict[str, object],
+    bazi_output: str,
+) -> List[Dict[str, object]]:
+    items: List[Dict[str, object]] = [
+        {
+            "conclusion": "主断依据",
+            "basis": _basis_for_lines(lines, main_name, changed_name),
+            "plain": "先确定本次阅读该看卦辞、动爻、用九/用六，还是变卦，再把文本和纳甲作为校验。",
+        }
+    ]
+
+    primary_sections = [
+        section
+        for section in hex_sections
+        if section.get("visible_by_default") and section.get("content")
+    ]
+    for section in primary_sections[:3]:
+        title = str(section.get("title") or section.get("hexagram_name") or "经典文本")
+        source_label = str(section.get("source_label") or section.get("source") or "经典文本")
+        if section.get("line_key") == "all":
+            if "乾" in str(section.get("hexagram_name") or main_name):
+                title = f"{title} · 用九"
+            elif "坤" in str(section.get("hexagram_name") or main_name):
+                title = f"{title} · 用六"
+        items.append(
+            {
+                "conclusion": title,
+                "basis": f"{source_label}｜{title}",
+                "plain": _compact_text(section.get("content"), limit=180),
+            }
+        )
+
+    rows = najia_table.get("rows") if isinstance(najia_table, dict) else None
+    if isinstance(rows, list) and rows:
+        moving_rows = [row for row in rows if isinstance(row, dict) and row.get("is_moving")]
+        sample = moving_rows[0] if moving_rows else rows[0]
+        relation = sample.get("main_relation") or sample.get("god") or "六亲六神"
+        items.append(
+            {
+                "conclusion": "纳甲参照",
+                "basis": f"纳甲六亲/六神｜{relation}",
+                "plain": "用纳甲表观察主客、阻力与触发点，作为经典文本之外的结构化参照。",
+            }
+        )
+
+    if bazi_output:
+        items.append(
+            {
+                "conclusion": "时间气象",
+                "basis": "起卦时间八字",
+                "plain": _compact_text(bazi_output, limit=120),
+            }
+        )
+
+    return items[:6]
+
+
+def _build_source_passages(hex_sections: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    passages: List[Dict[str, object]] = []
+    sorted_sections = sorted(
+        [section for section in hex_sections if section.get("content")],
+        key=lambda section: (
+            not bool(section.get("visible_by_default")),
+            str(section.get("slot_key") or ""),
+            str(section.get("source") or ""),
+            str(section.get("id") or ""),
+        ),
+    )
+    for section in sorted_sections:
+        source = str(section.get("source") or "unknown")
+        source_label = str(section.get("source_label") or source)
+        title = str(section.get("title") or section.get("hexagram_name") or "经典段落")
+        hexagram_name = str(section.get("hexagram_name") or "")
+        slot_key = str(section.get("slot_key") or f"{hexagram_name}:{section.get('section_kind') or 'slot'}")
+        passages.append(
+            {
+                "slot_key": slot_key,
+                "source": source,
+                "source_label": source_label,
+                "hexagram_name": hexagram_name,
+                "section_kind": section.get("section_kind"),
+                "line_key": section.get("line_key"),
+                "title": title,
+                "content": _compact_text(section.get("content"), limit=520),
+                "citation": "｜".join(part for part in [source_label, hexagram_name, title] if part),
+                "visible_by_default": bool(section.get("visible_by_default")),
+                "importance": section.get("importance") or "secondary",
+            }
+        )
+    return passages
+
+
+def _build_archive_sources(source_passages: List[Dict[str, object]]) -> Dict[str, object]:
+    source_counts: Dict[str, int] = {}
+    slot_keys: List[str] = []
+    primary_slot_keys: List[str] = []
+    for passage in source_passages:
+        source = str(passage.get("source") or "unknown")
+        source_counts[source] = source_counts.get(source, 0) + 1
+        slot_key = str(passage.get("slot_key") or "")
+        if slot_key and slot_key not in slot_keys:
+            slot_keys.append(slot_key)
+        if passage.get("visible_by_default") and slot_key and slot_key not in primary_slot_keys:
+            primary_slot_keys.append(slot_key)
+    return {
+        "total_passages": len(source_passages),
+        "sources": source_counts,
+        "slot_keys": slot_keys,
+        "primary_slot_keys": primary_slot_keys,
+    }
+
+
+def _build_reading_brief(
+    *,
+    topic: str,
+    user_question: Optional[str],
+    user_context: Optional[str],
+    method_name: str,
+    lines: List[int],
+    current_time_str: str,
+    bazi_output: str,
+    hex_sections: List[Dict[str, object]],
+    hex_overview: Dict[str, object],
+    najia_table: Dict[str, object],
+    ai_analysis_text: Optional[str],
+) -> Dict[str, object]:
+    main = hex_overview.get("main_hexagram") if isinstance(hex_overview, dict) else {}
+    changed = hex_overview.get("changed_hexagram") if isinstance(hex_overview, dict) else {}
+    main_name = str((main or {}).get("name") or "本卦")
+    changed_name = str((changed or {}).get("name") or "") if changed else None
+    moving = _moving_positions(lines)
+    ai_headline = _extract_ai_headline(ai_analysis_text)
+    headline = ai_headline or f"{topic}｜{main_name}" + (f"之{changed_name}" if changed_name else "")
+    plain = _extract_ai_plain_language(ai_analysis_text)
+    if not plain:
+        question_part = f"围绕“{user_question}”，" if user_question else ""
+        context_part = f"已知背景是：{_compact_text(user_context, limit=120)}。" if user_context else ""
+        moving_part = (
+            "本卦无动爻，重点看当前局势本身。"
+            if not moving
+            else f"本次有{len(moving)}个动爻，重点看变化中的触发点。"
+        )
+        plain = (
+            f"{question_part}本次用{method_name}起得{main_name}"
+            f"{('，变为' + changed_name) if changed_name else ''}。{context_part}{moving_part}"
+        )
+
+    if not moving:
+        stance = "stable"
+    elif len(moving) == 6:
+        stance = "transforming"
+    else:
+        stance = "changing"
+
+    evidence = _build_evidence_items(
+        lines=lines,
+        hex_sections=hex_sections,
+        main_name=main_name,
+        changed_name=changed_name,
+        najia_table=najia_table,
+        bazi_output=bazi_output,
+    )
+    source_passages = _build_source_passages(hex_sections)
+    archive_sources = _build_archive_sources(source_passages)
+
+    timing_basis = "先观察当前阶段是否出现动爻对应的人事变化。" if moving else "先观察当前格局是否保持稳定。"
+    return {
+        "headline": headline,
+        "stance": stance,
+        "plain_language": plain,
+        "evidence": evidence,
+        "source_passages": source_passages[:12],
+        "archive_sources": archive_sources,
+        "personal_context": {
+            "status": "reserved",
+            "current_scope": "casting_time_bazi_only",
+            "note": "本阶段只使用起卦时间八字；用户出生信息、大运/流年/流月将作为后续独立个人画像层接入。",
+            "future_profile_fields": ["birth_datetime", "birth_place", "timezone", "gender_optional"],
+        },
+        "timing": [
+            {
+                "window": "近期",
+                "condition": timing_basis,
+                "confidence": 62 if moving else 58,
+            },
+            {
+                "window": "下一阶段",
+                "condition": "当外部条件、关系位置或资源约束明显改变时重新复盘。",
+                "confidence": 48,
+            },
+        ],
+        "actions": [
+            {
+                "action": "先做一个低成本验证，不要一次性押上全部资源。",
+                "cadence": "未来一到两周",
+                "signal": "对方反馈、资源到位程度、阻力是否下降。",
+            },
+            {
+                "action": "把关键风险写成可观察条件，再决定是否推进。",
+                "cadence": "每次重大动作前",
+                "signal": "条件满足则进，不满足则缓。",
+            },
+            {
+                "action": "保留复盘记录，后续追问不要重新起卦。",
+                "cadence": "出现新事实时",
+                "signal": "同一问题的判断链保持连续。",
+            },
+        ],
+        "risks": [
+            "只看结论而忽略动爻和文本依据，容易把复杂局势看得过于简单。",
+            "如果问题本身过宽，判断会更偏趋势而不是具体执行方案。",
+            "外部条件发生实质变化时，需要基于同一会话继续追问，而不是混用多个卦。",
+        ],
+        "followup_prompts": [
+            "这卦最关键的风险信号是什么？",
+            "如果我要推进，第一步应该做什么？",
+            "请把经典原文和现代建议逐条对照。",
+        ],
+        "generated_at": current_time_str,
+    }
 
 
 class SessionService:
@@ -336,6 +634,7 @@ class SessionService:
         topic: str,
         user_question: Optional[str],
         method_key: str,
+        user_context: Optional[str] = None,
         use_current_time: bool = True,
         timestamp: Optional[datetime] = None,
         manual_lines: Optional[List[int]] = None,
@@ -430,6 +729,7 @@ class SessionService:
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "topic": topic,
             "user_question": user_question,
+            "user_context": user_context,
             "method": method.name,
             "lines": lines,
             "current_time_str": current_time_str,
@@ -469,8 +769,24 @@ class SessionService:
                 session_payload["ai_response_id"] = ai_response_id
                 session_payload["ai_usage"] = ai_usage
 
+        reading_brief = _build_reading_brief(
+            topic=topic,
+            user_question=user_question,
+            user_context=user_context,
+            method_name=method.name,
+            lines=lines,
+            current_time_str=current_time_str,
+            bazi_output=bazi_output,
+            hex_sections=hex_sections,
+            hex_overview=hex_overview,
+            najia_table=najia_table,
+            ai_analysis_text=ai_analysis_text,
+        )
+        session_payload["reading_brief"] = reading_brief
+
         chunks = [
             "起卦时间: " + current_time_str,
+            ("背景补充: " + user_context) if user_context else "",
             bazi_output,
             elements_output,
             hex_text,
@@ -486,6 +802,7 @@ class SessionService:
             timestamp=session_payload["timestamp"],
             topic=topic,
             user_question=user_question,
+            user_context=user_context,
             method=method.name,
             lines=lines,
             current_time_str=current_time_str,
@@ -498,6 +815,7 @@ class SessionService:
             najia_data=session_payload["najia_data"],
             najia_table=najia_table,
             bazi_detail=bazi_detail,
+            reading_brief=reading_brief,
             ai_model=session_payload.get("ai_model"),
             ai_reasoning=session_payload.get("ai_reasoning"),
             ai_verbosity=session_payload.get("ai_verbosity"),

@@ -31,6 +31,7 @@ class ModelInfo(BaseModel):
 class SessionCreateRequest(BaseModel):
     topic: str
     user_question: Optional[str] = None
+    user_context: Optional[str] = None
     method_key: str
     manual_lines: Optional[List[int]] = None
     use_current_time: bool = True
@@ -68,6 +69,7 @@ class SessionPayload(BaseModel):
     hex_sections: List[Dict[str, object]]
     hex_overview: Dict[str, object]
     bazi_detail: List[Dict[str, object]]
+    reading_brief: Dict[str, object]
     najia_text: str
     najia_table: Dict[str, object]
     ai_text: str
