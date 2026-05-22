@@ -201,3 +201,25 @@ def test_hexagram_detail_page_renders_a_library_study_page_by_slot():
     assert "用九 / 用六" in detail_page
     assert "whitespace-pre-wrap" in detail_page
     assert "sourceCounts" in detail_page
+
+
+def test_profile_page_matches_premium_study_surface():
+    profile = read("frontend/src/components/profile/profile-page.tsx")
+
+    assert "AccountSummaryPanel" in profile
+    assert "CloudHistoryPanel" in profile
+    assert "AuthPanel" in profile
+    assert "SessionRecordCard" in profile
+    assert "rounded-3xl" not in profile
+    assert 'from "@/components/ui/card"' not in profile
+    assert "<Card" not in profile
+    assert "Textarea" not in profile
+    assert "max-w-7xl" in profile
+    assert "grid gap-6 lg:grid-cols-[18rem_1fr]" in profile
+    assert "Reading archive" in profile
+    assert "阅读档案" in profile
+    assert "border border-border/60 bg-surface" in profile
+    assert "bg-surface-elevated" in profile
+    assert "LogOut" in profile
+    assert "Trash2" in profile
+    assert "Download" in profile
