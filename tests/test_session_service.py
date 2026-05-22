@@ -8,6 +8,7 @@ def _assert_brief_contract(brief):
     assert brief["stance"]
     assert brief["plain_language"]
     assert brief["evidence"]
+    assert brief["key_passages"]
     assert brief["source_passages"]
     assert brief["archive_sources"]
     assert brief["timing"]
@@ -15,6 +16,8 @@ def _assert_brief_contract(brief):
     assert brief["risks"]
     assert brief["followup_prompts"]
     assert brief["personal_context"]["status"] == "reserved"
+    assert {"source_id", "excerpt", "plain_language", "source", "why_it_matters"} <= set(brief["key_passages"][0])
+    assert brief["key_passages"][0]["source_id"]
 
 
 def test_session_service_manual_lines_without_ai():
@@ -91,8 +94,12 @@ def test_session_service_brief_exposes_source_passages_and_archive_coverage():
 
     passages = result.reading_brief["source_passages"]
     assert passages
-    assert {"slot_key", "source", "source_label", "title", "content", "citation"} <= set(passages[0])
+    assert {"source_id", "slot_key", "source", "source_label", "title", "content", "citation"} <= set(passages[0])
+    assert passages[0]["source_id"] == f"{passages[0]['slot_key']}::{passages[0]['source']}"
     assert any(item["source"] == "takashima" for item in passages)
+    key_source_ids = {item["source_id"] for item in result.reading_brief["key_passages"]}
+    passage_source_ids = {item["source_id"] for item in passages}
+    assert key_source_ids <= passage_source_ids
     coverage = result.reading_brief["archive_sources"]
     assert coverage["total_passages"] >= len(passages)
     assert "guaci" in coverage["sources"]
@@ -114,6 +121,11 @@ def test_session_service_reading_brief_tracks_moving_line_evidence():
     _assert_brief_contract(result.reading_brief)
     evidence_text = "\n".join(item["basis"] for item in result.reading_brief["evidence"])
     assert "动爻" in evidence_text
+    key_text = "\n".join(item["why_it_matters"] for item in result.reading_brief["key_passages"])
+    assert "动爻" in key_text
+    assert all(item["section_kind"] == "line" for item in result.reading_brief["key_passages"])
+    assert all(item["role"] == "primary" for item in result.reading_brief["key_passages"])
+    assert any(item.get("source_ids") for item in result.reading_brief["evidence"])
 
 
 def test_session_service_reading_brief_handles_no_moving_lines():
@@ -132,6 +144,9 @@ def test_session_service_reading_brief_handles_no_moving_lines():
     _assert_brief_contract(result.reading_brief)
     evidence_text = "\n".join(item["basis"] for item in result.reading_brief["evidence"])
     assert "卦辞" in evidence_text
+    key_text = "\n".join(item["why_it_matters"] for item in result.reading_brief["key_passages"])
+    assert "卦辞" in key_text
+    assert all(item["section_kind"] == "top" for item in result.reading_brief["key_passages"])
 
 
 def test_session_service_reading_brief_handles_all_moving_qian_kun():
@@ -159,6 +174,10 @@ def test_session_service_reading_brief_handles_all_moving_qian_kun():
     _assert_brief_contract(kun.reading_brief)
     assert any("用九" in item["basis"] for item in qian.reading_brief["evidence"])
     assert any("用六" in item["basis"] for item in kun.reading_brief["evidence"])
+    assert any("用九" in item["why_it_matters"] for item in qian.reading_brief["key_passages"])
+    assert any("用六" in item["why_it_matters"] for item in kun.reading_brief["key_passages"])
+    assert all(item["line_key"] == "all" for item in qian.reading_brief["key_passages"])
+    assert all(item["line_key"] == "all" for item in kun.reading_brief["key_passages"])
 
 
 def test_session_service_reading_brief_uses_ai_summary_when_available(monkeypatch):

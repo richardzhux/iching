@@ -10,6 +10,7 @@ export type Messages = {
   nav: {
     brand: string
     workspace: string
+    library: string
     profile: string
     github: string
     mobileMenuAria: string
@@ -61,8 +62,13 @@ export type Messages = {
     headerTitle: string
     headerDescription: string
     loadingConfig: string
+    loadingConfigTitle: string
+    loadingConfigBody: string
     configErrorTitle: string
     configErrorHint: string
+    sampleReadingCta: string
+    libraryCta: string
+    configRetryCta: string
     viewLastResult: string
     cast: {
       topicSection: string

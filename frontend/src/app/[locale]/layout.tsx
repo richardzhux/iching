@@ -60,6 +60,15 @@ export default async function LocaleLayout({ children, params }: Props) {
                   {messages.nav.workspace}
                 </Link>
                 <Link
+                  href={withLocale(locale, "/library")}
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "sm" }),
+                    "rounded-full text-xs font-medium",
+                  )}
+                >
+                  {messages.nav.library}
+                </Link>
+                <Link
                   href={withLocale(locale, "/profile")}
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "sm" }),

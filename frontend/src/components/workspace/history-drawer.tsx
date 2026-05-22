@@ -84,7 +84,7 @@ export function HistoryDrawer() {
                 {isOpen && (
                   <div className="mt-4 space-y-4 text-foreground">
                     <section className="rounded-md border border-border/40 bg-surface/90 p-3">
-                      <p className="kicker">Decision journal</p>
+                      <p className="kicker">Reading journal</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {(["open", "watching", "resolved"] as JournalStatus[]).map((status) => (
                           <Button
@@ -118,7 +118,7 @@ export function HistoryDrawer() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground">Outcome note</p>
+                          <p className="text-xs font-medium text-muted-foreground">What actually happened?</p>
                           <Textarea
                             value={journal[item.session_id]?.outcomeNote ?? ""}
                             onChange={(event) => updateJournal(item.session_id, { outcomeNote: event.target.value })}

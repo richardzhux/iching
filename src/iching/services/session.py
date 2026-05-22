@@ -214,6 +214,13 @@ def _moving_positions(lines: List[int]) -> List[int]:
     return [index + 1 for index, value in enumerate(lines) if value in {6, 9}]
 
 
+def _source_id_for_section(section: Dict[str, object]) -> str:
+    hexagram_name = str(section.get("hexagram_name") or "")
+    slot_key = str(section.get("slot_key") or f"{hexagram_name}:{section.get('section_kind') or 'slot'}")
+    source = str(section.get("source") or "unknown")
+    return f"{slot_key}::{source}"
+
+
 def _basis_for_lines(lines: List[int], main_name: str, changed_name: Optional[str]) -> str:
     moving = _moving_positions(lines)
     if not moving:
@@ -239,22 +246,25 @@ def _build_evidence_items(
     najia_table: Dict[str, object],
     bazi_output: str,
 ) -> List[Dict[str, object]]:
-    items: List[Dict[str, object]] = [
-        {
-            "conclusion": "主断依据",
-            "basis": _basis_for_lines(lines, main_name, changed_name),
-            "plain": "先确定本次阅读该看卦辞、动爻、用九/用六，还是变卦，再把文本和纳甲作为校验。",
-        }
-    ]
-
     primary_sections = [
         section
         for section in hex_sections
         if section.get("visible_by_default") and section.get("content")
     ]
+    primary_source_ids = [_source_id_for_section(section) for section in primary_sections[:3]]
+    items: List[Dict[str, object]] = [
+        {
+            "conclusion": "主断依据",
+            "basis": _basis_for_lines(lines, main_name, changed_name),
+            "plain": "先确定本次阅读该看卦辞、动爻、用九/用六，还是变卦，再把文本和纳甲作为校验。",
+            "source_ids": primary_source_ids,
+        }
+    ]
+
     for section in primary_sections[:3]:
         title = str(section.get("title") or section.get("hexagram_name") or "经典文本")
         source_label = str(section.get("source_label") or section.get("source") or "经典文本")
+        source_id = _source_id_for_section(section)
         if section.get("line_key") == "all":
             if "乾" in str(section.get("hexagram_name") or main_name):
                 title = f"{title} · 用九"
@@ -265,6 +275,8 @@ def _build_evidence_items(
                 "conclusion": title,
                 "basis": f"{source_label}｜{title}",
                 "plain": _compact_text(section.get("content"), limit=180),
+                "source_id": source_id,
+                "source_ids": [source_id],
             }
         )
 
@@ -278,6 +290,7 @@ def _build_evidence_items(
                 "conclusion": "纳甲参照",
                 "basis": f"纳甲六亲/六神｜{relation}",
                 "plain": "用纳甲表观察主客、阻力与触发点，作为经典文本之外的结构化参照。",
+                "source_ids": [],
             }
         )
 
@@ -287,6 +300,7 @@ def _build_evidence_items(
                 "conclusion": "时间气象",
                 "basis": "起卦时间八字",
                 "plain": _compact_text(bazi_output, limit=120),
+                "source_ids": [],
             }
         )
 
@@ -310,8 +324,10 @@ def _build_source_passages(hex_sections: List[Dict[str, object]]) -> List[Dict[s
         title = str(section.get("title") or section.get("hexagram_name") or "经典段落")
         hexagram_name = str(section.get("hexagram_name") or "")
         slot_key = str(section.get("slot_key") or f"{hexagram_name}:{section.get('section_kind') or 'slot'}")
+        source_id = _source_id_for_section(section)
         passages.append(
             {
+                "source_id": source_id,
                 "slot_key": slot_key,
                 "source": source,
                 "source_label": source_label,
@@ -323,6 +339,162 @@ def _build_source_passages(hex_sections: List[Dict[str, object]]) -> List[Dict[s
                 "citation": "｜".join(part for part in [source_label, hexagram_name, title] if part),
                 "visible_by_default": bool(section.get("visible_by_default")),
                 "importance": section.get("importance") or "secondary",
+            }
+        )
+    return passages
+
+
+def _key_source_order(section: Dict[str, object]) -> Tuple[int, str]:
+    source_order = {
+        "guaci": 0,
+        "takashima": 1,
+        "symbolic": 2,
+        "english_commentary": 3,
+    }
+    source = str(section.get("source") or "")
+    return (source_order.get(source, 9), source)
+
+
+def _sort_key_sections(sections: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    return sorted(
+        sections,
+        key=lambda section: (
+            str(section.get("slot_key") or ""),
+            *_key_source_order(section),
+            str(section.get("id") or ""),
+        ),
+    )
+
+
+def _key_passage_plain(section: Dict[str, object]) -> str:
+    hex_type = str(section.get("hexagram_type") or "")
+    section_kind = str(section.get("section_kind") or "")
+    line_key = section.get("line_key")
+    if hex_type == "changed":
+        return "这段只作为变化后的场景参照，帮助确认趋势落点，不替代本卦主断。"
+    if line_key == "all":
+        return "全爻动时不把六爻平均展开，而是用这一段统摄整卦的变化方式。"
+    if section_kind == "line":
+        return "这段对应本次被选中的爻位，描述事情正在变化的位置、触发点与应对姿态。"
+    return "这段描述本卦的总体格局，用来判断当前局面的底色、边界和主方向。"
+
+
+def _key_passage_reason(
+    *,
+    section: Dict[str, object],
+    lines: List[int],
+    main_name: str,
+    changed_name: Optional[str],
+) -> str:
+    moving = _moving_positions(lines)
+    hex_type = str(section.get("hexagram_type") or "")
+    section_kind = str(section.get("section_kind") or "")
+    line_key = section.get("line_key")
+
+    if hex_type == "changed":
+        return f"变卦{changed_name or ''}只放在第二层，说明变化后的背景，不抢主证据位置。"
+    if not moving and section_kind == "top":
+        return "本卦无动爻，卦辞就是本次判断的核心依据。"
+    if line_key == "all":
+        if all(value == 9 for value in lines) and "乾" in main_name:
+            return "乾卦六爻全动，传统以用九为总断，不逐爻平均分散判断。"
+        if all(value == 6 for value in lines) and "坤" in main_name:
+            return "坤卦六爻全动，传统以用六为总断，不逐爻平均分散判断。"
+        return "六爻全动时需要用统摄性的全动规则，而不是把所有爻辞同时堆给用户。"
+    if section_kind == "line":
+        return "这是本次取用的动爻，代表问题真正发生变化的关键位置。"
+    return "这段保留为本卦背景，用来校准动爻判断的语境。"
+
+
+def _build_key_passages(
+    *,
+    hex_sections: List[Dict[str, object]],
+    lines: List[int],
+    main_name: str,
+    changed_name: Optional[str],
+) -> List[Dict[str, object]]:
+    sections = [section for section in hex_sections if section.get("content")]
+    moving = _moving_positions(lines)
+
+    if not moving:
+        candidates = [
+            section
+            for section in sections
+            if section.get("hexagram_type") == "main"
+            and section.get("section_kind") == "top"
+            and section.get("visible_by_default")
+        ]
+    elif len(moving) == 6 and (
+        (all(value == 9 for value in lines) and "乾" in main_name)
+        or (all(value == 6 for value in lines) and "坤" in main_name)
+    ):
+        candidates = [
+            section
+            for section in sections
+            if section.get("hexagram_type") == "main"
+            and section.get("section_kind") == "line"
+            and section.get("line_key") == "all"
+            and section.get("visible_by_default")
+        ]
+    elif len(moving) == 6:
+        candidates = [
+            section
+            for section in sections
+            if section.get("hexagram_type") == "changed"
+            and section.get("section_kind") == "top"
+            and section.get("visible_by_default")
+        ]
+    else:
+        candidates = [
+            section
+            for section in sections
+            if section.get("hexagram_type") == "main"
+            and section.get("section_kind") == "line"
+            and section.get("visible_by_default")
+        ]
+
+    if not candidates:
+        candidates = [
+            section for section in sections if section.get("visible_by_default")
+        ]
+    if not candidates:
+        candidates = sections[:1]
+
+    passages: List[Dict[str, object]] = []
+    for section in _sort_key_sections(candidates)[:4]:
+        source = str(section.get("source") or "unknown")
+        source_label = str(section.get("source_label") or source)
+        title = str(section.get("title") or section.get("hexagram_name") or "关键段落")
+        hexagram_name = str(section.get("hexagram_name") or "")
+        slot_key = str(section.get("slot_key") or f"{hexagram_name}:{section.get('section_kind') or 'slot'}")
+        excerpt = _compact_text(section.get("content"), limit=360)
+        source_id = _source_id_for_section(section)
+        passages.append(
+            {
+                "source_id": source_id,
+                "slot_key": slot_key,
+                "role": "secondary_context"
+                if section.get("hexagram_type") == "changed"
+                else "primary",
+                "source": source,
+                "source_label": source_label,
+                "hexagram_name": hexagram_name,
+                "section_kind": section.get("section_kind"),
+                "line_key": section.get("line_key"),
+                "title": title,
+                "content": excerpt,
+                "quote": excerpt,
+                "excerpt": excerpt,
+                "plain_language": _key_passage_plain(section),
+                "why_it_matters": _key_passage_reason(
+                    section=section,
+                    lines=lines,
+                    main_name=main_name,
+                    changed_name=changed_name,
+                ),
+                "citation": "｜".join(part for part in [source_label, hexagram_name, title] if part),
+                "visible_by_default": bool(section.get("visible_by_default")),
+                "importance": section.get("importance") or "primary",
             }
         )
     return passages
@@ -399,6 +571,12 @@ def _build_reading_brief(
         bazi_output=bazi_output,
     )
     source_passages = _build_source_passages(hex_sections)
+    key_passages = _build_key_passages(
+        hex_sections=hex_sections,
+        lines=lines,
+        main_name=main_name,
+        changed_name=changed_name,
+    )
     archive_sources = _build_archive_sources(source_passages)
 
     timing_basis = "先观察当前阶段是否出现动爻对应的人事变化。" if moving else "先观察当前格局是否保持稳定。"
@@ -407,6 +585,7 @@ def _build_reading_brief(
         "stance": stance,
         "plain_language": plain,
         "evidence": evidence,
+        "key_passages": key_passages,
         "source_passages": source_passages[:12],
         "archive_sources": archive_sources,
         "personal_context": {

@@ -55,6 +55,11 @@ def test_create_session_manual_lines() -> None:
     assert "reading_brief" in data
     assert data["reading_brief"]["headline"]
     assert data["reading_brief"]["evidence"]
+    assert data["reading_brief"]["key_passages"]
+    assert data["reading_brief"]["key_passages"][0]["source_id"]
+    assert data["reading_brief"]["key_passages"][0]["why_it_matters"]
+    assert data["reading_brief"]["source_passages"][0]["source_id"]
+    assert any(item.get("source_ids") for item in data["reading_brief"]["evidence"])
     assert data["session_dict"]["topic"] == "事业"
     assert data["session_dict"]["user_context"] == "我需要在月底前决定。"
     assert data["reading_brief"]["source_passages"]

@@ -3,15 +3,16 @@ import type { Messages } from "@/i18n/messages"
 export const enMessages: Messages = {
   meta: {
     appTitle: "I Ching Studio",
-    appDescription: "A modern I Ching workspace powered by FastAPI and Next.js.",
+    appDescription: "A bilingual reading desk for casting, study, source evidence, and return.",
     workspaceTitle: "I Ching Studio · Workspace",
-    workspaceDescription: "Cast, interpret, and continue readings with AI follow-up chat.",
+    workspaceDescription: "Cast, read source evidence, keep a journal, and continue a reading thread.",
     profileTitle: "I Ching Studio · Profile",
     profileDescription: "Manage account and cloud reading history.",
   },
   nav: {
     brand: "I Ching Studio",
     workspace: "Workspace",
+    library: "Library",
     profile: "Profile",
     github: "GitHub",
     mobileMenuAria: "Open navigation menu",
@@ -47,17 +48,17 @@ export const enMessages: Messages = {
   },
   home: {
     badge: "I Ching Studio · FastAPI + Next.js",
-    title: "A practical I Ching workspace for real decisions.",
+    title: "A serious I Ching reading desk for real decisions.",
     subtitle:
       "From casting to follow-up reasoning, keep one coherent thread with structured outputs and persistent history.",
     primaryCta: "Open Workspace",
-    secondaryCta: "View Repository",
+    secondaryCta: "Browse Library",
     features: [
       "Manual or random casting with time control",
       "Reasoning depth and verbosity controls",
       "Session archive and follow-up chat",
     ],
-    studioLabel: "AI WORKSPACE",
+    studioLabel: "READING DESK",
     studioTitle: "Structured divination flow built for daily use",
     studioBody:
       "Run a full reading, inspect evidence, and continue with follow-up chat in one place. Designed for clarity, speed, and repeatability.",
@@ -67,12 +68,17 @@ export const enMessages: Messages = {
   },
   workspace: {
     headerKicker: "Workspace",
-    headerTitle: "Cast a reading and iterate with AI",
+    headerTitle: "Ask, cast, read, and return",
     headerDescription:
-      "Set topic and method, generate a structured reading, then continue with model-controlled follow-up chat.",
-    loadingConfig: "Loading workspace configuration...",
-    configErrorTitle: "Unable to load backend configuration.",
-    configErrorHint: "Check whether the FastAPI server is running.",
+      "Set the question, cast the hexagram, inspect source evidence, then keep the result as a reading journal.",
+    loadingConfig: "Preparing the reading desk...",
+    loadingConfigTitle: "Preparing the reading desk",
+    loadingConfigBody: "Loading casting methods, source settings, and saved reading state.",
+    configErrorTitle: "The reading desk could not load.",
+    configErrorHint: "You can still browse the source library or return to the sample reading while the backend comes back.",
+    sampleReadingCta: "View sample reading",
+    libraryCta: "Browse source library",
+    configRetryCta: "Retry loading",
     viewLastResult: "View last result",
     cast: {
       topicSection: "Reading Setup",
@@ -147,7 +153,7 @@ export const enMessages: Messages = {
       hexLabel: "Hexagram Interpretation",
       showMore: "Show more",
       hideMore: "Hide",
-      primarySectionTitle: "Core Sections",
+      primarySectionTitle: "Key Passage Analysis",
       secondarySectionTitle: "Supplementary Sections",
       sixGodLabel: "Najia / Six Spirits",
       lineMetaMain: "Main",
@@ -161,11 +167,11 @@ export const enMessages: Messages = {
       changedHexLabel: "Changed Hexagram",
     },
     history: {
-      trigger: "Recent sessions",
-      title: "Recent 10 local sessions",
+      trigger: "Reading journal",
+      title: "Recent reading journal",
       description:
-        "Stored in browser local state. Reload may clear cache. Signed-in users can access full cloud history in Profile.",
-      empty: "No local history yet.",
+        "Stored in browser local state. Signed-in users can access full cloud history in Profile.",
+      empty: "No local journal entries yet.",
       summaryLabel: "Summary",
       hexLabel: "Hexagram",
       aiLabel: "AI Analysis",

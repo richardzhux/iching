@@ -6,6 +6,8 @@ export function useConfigQuery() {
   return useQuery({
     queryKey: ["config"],
     queryFn: fetchConfig,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

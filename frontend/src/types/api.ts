@@ -26,6 +26,7 @@ export type HexSection = {
   id: string
   hexagram_type: "main" | "changed"
   hexagram_name: string
+  source_id?: string
   source?: "guaci" | "takashima" | string
   source_label?: string
   slot_key?: string
@@ -94,6 +95,8 @@ export type ReadingBriefEvidence = {
   conclusion: string
   basis: string
   plain: string
+  source_id?: string
+  source_ids?: string[]
 }
 
 export type ReadingBriefTiming = {
@@ -109,6 +112,7 @@ export type ReadingBriefAction = {
 }
 
 export type ReadingBriefSourcePassage = {
+  source_id?: string
   slot_key: string
   source: string
   source_label: string
@@ -122,11 +126,20 @@ export type ReadingBriefSourcePassage = {
   importance?: string
 }
 
+export type ReadingBriefKeyPassage = ReadingBriefSourcePassage & {
+  role?: "primary" | "secondary_context" | string
+  quote?: string
+  excerpt: string
+  plain_language: string
+  why_it_matters: string
+}
+
 export type ReadingBrief = {
   headline: string
   stance: "stable" | "changing" | "transforming" | string
   plain_language: string
   evidence: ReadingBriefEvidence[]
+  key_passages?: ReadingBriefKeyPassage[]
   source_passages?: ReadingBriefSourcePassage[]
   archive_sources?: {
     total_passages: number
