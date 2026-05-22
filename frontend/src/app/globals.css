@@ -3,65 +3,60 @@
 @tailwind utilities;
 
 :root {
-  --radius: 0.9rem;
-  --background: 228 33% 98%;
-  --foreground: 238 26% 12%;
+  --radius: 0.5rem;
+  --background: 220 24% 98%;
+  --foreground: 220 26% 12%;
   --surface: 0 0% 100%;
-  --surface-elevated: 228 45% 96%;
+  --surface-elevated: 210 28% 95%;
   --card: 0 0% 100%;
-  --card-foreground: 238 26% 12%;
+  --card-foreground: 220 26% 12%;
   --popover: 0 0% 100%;
-  --popover-foreground: 238 26% 12%;
-  --primary: 258 85% 58%;
+  --popover-foreground: 220 26% 12%;
+  --primary: 18 76% 44%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 238 35% 94%;
-  --secondary-foreground: 238 26% 16%;
-  --muted: 230 22% 92%;
-  --muted-foreground: 232 12% 40%;
-  --accent: 248 45% 93%;
-  --accent-foreground: 242 40% 22%;
+  --secondary: 214 24% 92%;
+  --secondary-foreground: 220 26% 16%;
+  --muted: 214 18% 90%;
+  --muted-foreground: 218 12% 39%;
+  --accent: 162 18% 90%;
+  --accent-foreground: 173 34% 18%;
   --destructive: 7 73% 52%;
   --destructive-foreground: 0 0% 98%;
-  --border: 232 21% 82%;
-  --input: 232 21% 82%;
-  --ring: 258 82% 58%;
-  --app-gradient: radial-gradient(95% 100% at 5% 0%, rgba(130, 96, 255, 0.16), transparent 55%),
-    radial-gradient(110% 110% at 100% 0%, rgba(101, 78, 255, 0.12), transparent 58%),
-    linear-gradient(180deg, #f7f7fc 0%, #f2f4ff 100%);
-  --app-overlay: radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.36), transparent 60%);
-  --surface-shadow: 0 20px 45px -28px rgba(15, 23, 42, 0.22);
-  --surface-shadow-soft: 0 12px 30px -20px rgba(15, 23, 42, 0.18);
+  --border: 214 20% 82%;
+  --input: 214 20% 82%;
+  --ring: 18 76% 44%;
+  --app-gradient: linear-gradient(180deg, #f8fafc 0%, #eef2f6 52%, #f5f3ee 100%);
+  --app-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 36%);
+  --surface-shadow: 0 16px 34px -26px rgba(15, 23, 42, 0.22);
+  --surface-shadow-soft: 0 10px 24px -20px rgba(15, 23, 42, 0.18);
 }
 
 .dark {
-  --background: 248 36% 8%;
-  --foreground: 240 24% 96%;
-  --surface: 247 30% 14%;
-  --surface-elevated: 248 28% 18%;
-  --card: 247 30% 14%;
-  --card-foreground: 240 24% 96%;
-  --popover: 247 30% 14%;
-  --popover-foreground: 240 24% 96%;
-  --primary: 261 92% 73%;
-  --primary-foreground: 252 54% 15%;
-  --secondary: 249 22% 23%;
-  --secondary-foreground: 240 24% 95%;
-  --muted: 248 21% 24%;
-  --muted-foreground: 240 15% 72%;
-  --accent: 252 28% 27%;
-  --accent-foreground: 240 24% 96%;
+  --background: 220 18% 8%;
+  --foreground: 40 18% 94%;
+  --surface: 220 17% 13%;
+  --surface-elevated: 218 15% 17%;
+  --card: 220 17% 13%;
+  --card-foreground: 40 18% 94%;
+  --popover: 220 17% 13%;
+  --popover-foreground: 40 18% 94%;
+  --primary: 25 82% 62%;
+  --primary-foreground: 24 30% 10%;
+  --secondary: 218 14% 22%;
+  --secondary-foreground: 40 18% 94%;
+  --muted: 218 12% 23%;
+  --muted-foreground: 42 10% 70%;
+  --accent: 178 16% 24%;
+  --accent-foreground: 40 18% 94%;
   --destructive: 7 70% 55%;
-  --destructive-foreground: 240 24% 98%;
-  --border: 248 20% 30%;
-  --input: 248 20% 30%;
-  --ring: 261 90% 70%;
-  --app-gradient: radial-gradient(90% 120% at 5% 0%, rgba(126, 97, 255, 0.35), transparent 58%),
-    radial-gradient(120% 120% at 100% 0%, rgba(74, 64, 220, 0.32), transparent 62%),
-    radial-gradient(120% 120% at 100% 100%, rgba(92, 112, 255, 0.24), transparent 60%),
-    linear-gradient(180deg, #0f0a1f 0%, #120d28 100%);
-  --app-overlay: radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.07), transparent 62%);
-  --surface-shadow: 0 22px 45px -30px rgba(2, 6, 23, 0.75);
-  --surface-shadow-soft: 0 14px 30px -24px rgba(2, 6, 23, 0.6);
+  --destructive-foreground: 40 18% 98%;
+  --border: 218 13% 30%;
+  --input: 218 13% 30%;
+  --ring: 25 82% 62%;
+  --app-gradient: linear-gradient(180deg, #101419 0%, #15191b 52%, #101417 100%);
+  --app-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 38%);
+  --surface-shadow: 0 18px 38px -30px rgba(0, 0, 0, 0.72);
+  --surface-shadow-soft: 0 12px 28px -24px rgba(0, 0, 0, 0.6);
 }
 
 @layer base {
@@ -99,9 +94,7 @@
 }
 
 .shell-header {
-  background: hsl(var(--background) / 0.78);
-  backdrop-filter: saturate(1.25) blur(14px);
-  -webkit-backdrop-filter: saturate(1.25) blur(14px);
+  background: hsl(var(--background) / 0.96);
 }
 
 .app-overlay {
@@ -109,14 +102,14 @@
 }
 
 .surface-card {
-  background: hsl(var(--surface) / 0.88);
-  border: 1px solid hsl(var(--border) / 0.75);
+  background: hsl(var(--surface) / 0.97);
+  border: 1px solid hsl(var(--border) / 0.8);
   box-shadow: var(--surface-shadow);
 }
 
 .surface-soft {
-  background: hsl(var(--surface-elevated) / 0.74);
-  border: 1px solid hsl(var(--border) / 0.55);
+  background: hsl(var(--surface-elevated) / 0.95);
+  border: 1px solid hsl(var(--border) / 0.65);
   box-shadow: var(--surface-shadow-soft);
 }
 
@@ -132,8 +125,8 @@
 }
 
 .glass-panel {
-  background: hsl(var(--surface) / 0.86);
-  border: 1px solid hsl(var(--border) / 0.7);
+  background: hsl(var(--surface) / 0.97);
+  border: 1px solid hsl(var(--border) / 0.8);
   box-shadow: var(--surface-shadow);
 }
 

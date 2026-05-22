@@ -17,6 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { fetchChatTranscript, sendChatMessage } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { useWorkspaceStore } from "@/lib/store"
 import type { ChatMessage, SessionPayload } from "@/types/api"
 import { toast } from "sonner"
 
@@ -24,7 +25,7 @@ type Props = {
   session: SessionPayload
 }
 
-const FALLBACK_CHAT_MODEL = "gpt-5-mini"
+const FALLBACK_CHAT_MODEL = "gpt-5.4-mini"
 const CHAT_MESSAGE_LIMIT = 10000
 
 const makeLocalId = () =>
@@ -32,7 +33,16 @@ const makeLocalId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-const normalizeChatModel = (model?: string | null) => (model === "gpt-5.1" ? "gpt-5.2" : model || FALLBACK_CHAT_MODEL)
+const CHAT_MODEL_ALIASES: Record<string, string> = {
+  "gpt-5.1": "gpt-5.5",
+  "gpt-5.2": "gpt-5.5",
+  "gpt-5-mini": "gpt-5.4-mini",
+}
+
+const normalizeChatModel = (model?: string | null) => {
+  if (!model) return FALLBACK_CHAT_MODEL
+  return CHAT_MODEL_ALIASES[model] ?? model
+}
 
 export function ChatPanel({ session }: Props) {
   const auth = useAuthContext()
@@ -51,20 +61,27 @@ export function ChatPanel({ session }: Props) {
   const [tone, setTone] = useState<string>(session.ai_tone ?? "normal")
   const [showInitial, setShowInitial] = useState(false)
   const [modelHydrated, setModelHydrated] = useState(false)
+  const pendingChatPrompt = useWorkspaceStore((state) => state.pendingChatPrompt)
+  const setPendingChatPrompt = useWorkspaceStore((state) => state.setPendingChatPrompt)
   const listRef = useRef<HTMLDivElement | null>(null)
   const storageKey = useMemo(() => `iching-chat-${session.session_id}`, [session.session_id])
   const profileName = auth.displayName ?? auth.user?.email ?? messages.profileMenu.guestMode
   const modelOptions = useMemo(
     () => [
       {
-        id: "gpt-5-mini",
+        id: "gpt-5.4-mini",
         label: messages.workspace.chat.modelDefaultLabel,
         description: messages.workspace.chat.modelDefaultDesc,
       },
       {
-        id: "gpt-5.2",
+        id: "gpt-5.5",
         label: messages.workspace.chat.modelDeepLabel,
         description: messages.workspace.chat.modelDeepDesc,
+      },
+      {
+        id: "gpt-5.3-codex",
+        label: messages.workspace.chat.modelCodexLabel,
+        description: messages.workspace.chat.modelCodexDesc,
       },
       {
         id: "gpt-4.1",
@@ -75,7 +92,7 @@ export function ChatPanel({ session }: Props) {
     [messages.workspace.chat],
   )
   const modelOptionIds = useMemo(() => new Set(modelOptions.map((option) => option.id)), [modelOptions])
-  const modelsWithControls = useMemo(() => new Set(["gpt-5-mini", "gpt-5.2"]), [])
+  const modelsWithControls = useMemo(() => new Set(["gpt-5.4-mini", "gpt-5.5", "gpt-5.3-codex"]), [])
 
   const reasoningOptions = useMemo(() => {
     const options = [
@@ -85,7 +102,7 @@ export function ChatPanel({ session }: Props) {
       { value: "medium", label: messages.workspace.chat.reasoningMedium },
       { value: "high", label: messages.workspace.chat.reasoningHigh },
     ]
-    return chatModel === "gpt-5.2" ? options : options.filter((option) => option.value !== "none")
+    return chatModel === "gpt-5.5" ? options : options.filter((option) => option.value !== "none")
   }, [chatModel, messages.workspace.chat])
 
   const verbosityOptions = useMemo(
@@ -180,7 +197,7 @@ export function ChatPanel({ session }: Props) {
   }, [session.session_id, session.ai_tone])
 
   useEffect(() => {
-    if (chatModel !== "gpt-5.2" && reasoning === "none") {
+    if (chatModel !== "gpt-5.5" && reasoning === "none") {
       setReasoning("medium")
     }
   }, [chatModel, reasoning])
@@ -189,6 +206,12 @@ export function ChatPanel({ session }: Props) {
     if (!listRef.current) return
     listRef.current.scrollTop = listRef.current.scrollHeight
   }, [messagesState])
+
+  useEffect(() => {
+    if (!pendingChatPrompt) return
+    setInput(pendingChatPrompt)
+    setPendingChatPrompt(undefined)
+  }, [pendingChatPrompt, setPendingChatPrompt])
 
   async function handleAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -251,7 +274,7 @@ export function ChatPanel({ session }: Props) {
   }
 
   const loginPanel = (
-    <div className="surface-soft space-y-4 rounded-2xl p-4 text-sm">
+    <div className="surface-soft space-y-4 rounded-lg p-4 text-sm">
       <p className="kicker">{messages.workspace.chat.loginToContinue}</p>
       <p className="text-xs text-muted-foreground">{messages.workspace.chat.loginDescription}</p>
       <form onSubmit={handleAuth} className="space-y-3">
@@ -305,7 +328,7 @@ export function ChatPanel({ session }: Props) {
   )
 
   const initialBlock = session.ai_text ? (
-    <div className="surface-soft rounded-2xl p-4 text-sm leading-relaxed text-foreground">
+    <div className="surface-soft rounded-lg p-4 text-sm leading-relaxed text-foreground">
       <div className="mb-2 flex items-center justify-between">
         <p className="kicker">{messages.workspace.chat.initialReading}</p>
         <Button
@@ -321,13 +344,13 @@ export function ChatPanel({ session }: Props) {
       {showInitial && <MarkdownContent content={session.ai_text} />}
     </div>
   ) : (
-    <div className="surface-soft rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
+    <div className="surface-soft rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
       {messages.workspace.chat.noInitialAi}
     </div>
   )
 
   const chatPanel = (
-    <div className="surface-card rounded-2xl p-4 sm:p-5">
+    <div className="surface-card rounded-lg p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {auth.avatarUrl ? (
@@ -363,13 +386,13 @@ export function ChatPanel({ session }: Props) {
 
       <div className="space-y-2">
         <p className="kicker">{messages.workspace.chat.modelLabel}</p>
-        <div className="grid gap-2 md:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
           {modelOptions.map((option) => (
             <button
               key={option.id}
               type="button"
               className={cn(
-                "rounded-2xl border px-3 py-3 text-left text-sm transition",
+                "rounded-lg border px-3 py-3 text-left text-sm transition",
                 chatModel === option.id
                   ? "border-primary/60 bg-primary/12 text-foreground"
                   : "border-border/60 bg-surface/75 hover:border-primary/40",
@@ -424,7 +447,7 @@ export function ChatPanel({ session }: Props) {
 
       <div
         ref={listRef}
-        className="custom-scrollbar mt-4 flex h-[30rem] flex-col space-y-3 overflow-y-auto rounded-2xl border border-border/40 bg-surface/65 p-3"
+        className="custom-scrollbar mt-4 flex h-[30rem] flex-col space-y-3 overflow-y-auto rounded-lg border border-border/40 bg-surface/80 p-3"
       >
         {transcriptLoading ? (
           <div className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
@@ -457,7 +480,7 @@ export function ChatPanel({ session }: Props) {
             {input.length}/{CHAT_MESSAGE_LIMIT}
           </p>
         </div>
-        <Button type="submit" className="w-full rounded-2xl" disabled={isSending}>
+        <Button type="submit" className="w-full rounded-md" disabled={isSending}>
           {isSending ? messages.workspace.chat.sending : messages.workspace.chat.send}
         </Button>
       </form>
@@ -466,7 +489,7 @@ export function ChatPanel({ session }: Props) {
 
   if (auth.loading) {
     return (
-      <div className="surface-soft mt-4 rounded-2xl p-4 text-sm text-muted-foreground">
+      <div className="surface-soft mt-4 rounded-lg p-4 text-sm text-muted-foreground">
         {messages.workspace.chat.authChecking}
       </div>
     )
@@ -486,7 +509,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
     <div className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
       <div
         className={cn(
-          "max-w-[86%] rounded-2xl border px-3 py-2 text-sm leading-relaxed shadow-sm",
+          "max-w-[86%] rounded-lg border px-3 py-2 text-sm leading-relaxed shadow-sm",
           isAssistant
             ? "border-border/50 bg-surface text-foreground"
             : "border-primary/40 bg-primary text-primary-foreground",

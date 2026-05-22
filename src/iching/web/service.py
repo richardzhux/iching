@@ -165,6 +165,7 @@ class SessionRunner:
         result = self.service.create_session(
             topic=request.topic,
             user_question=request.user_question,
+            user_context=request.user_context,
             method_key=request.method_key,
             use_current_time=request.use_current_time,
             timestamp=timestamp,
@@ -186,6 +187,7 @@ class SessionRunner:
         summary = [
             f"主题: {result.topic or '（未填）'}",
             f"问题: {result.user_question or '（无）'}",
+            f"背景: {result.user_context or '（无）'}",
             f"方法: {result.method}",
             f"时间: {result.current_time_str}",
             f"八字: {result.bazi_output}",
@@ -202,6 +204,7 @@ class SessionRunner:
             hex_sections=result.hex_sections,
             hex_overview=result.hex_overview,
             bazi_detail=result.bazi_detail,
+            reading_brief=result.reading_brief,
             najia_text=result.najia_text,
             najia_table=result.najia_table,
             ai_text=result.ai_analysis or "",

@@ -27,7 +27,7 @@ RUNNER = get_session_runner()
 
 TOPICS = [value for key, value in SERVICE.TOPIC_MAP.items() if key != "q"]
 METHODS = [(method.name, method.key) for method in SERVICE.methods.values()]
-AI_MODELS = ["gpt-5-nano", "gpt-4.1-nano", "gpt-5", "o3"]
+AI_MODELS = ["gpt-5.5", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-4.1"]
 AI_REASONING_LEVELS = [
     ("极简", "minimal"),
     ("低", "low"),

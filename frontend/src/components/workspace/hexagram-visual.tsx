@@ -74,7 +74,7 @@ export function HexagramHeader({
       <CardContent className="p-5">
         <p className="kicker">{messages.workspace.results.overviewLabel}</p>
         {(baziText || elementsText || baziDetail.length) && (
-          <div className="surface-soft mt-3 grid gap-4 rounded-2xl p-4">
+          <div className="surface-soft mt-3 grid gap-4 rounded-lg p-4">
             {baziText && (
               <InfoRow label={messages.workspace.results.baziTimeLabel}>
                 <span>{baziText}</span>
@@ -132,7 +132,7 @@ function HexagramCard({ label, name, explanation, tag, accent = false }: Hexagra
   return (
     <div
       className={cn(
-        "flex-1 rounded-2xl border p-4",
+        "flex-1 rounded-lg border p-4",
         accent
           ? "border-amber-400/60 bg-amber-200/20 dark:border-amber-200/40 dark:bg-amber-200/10"
           : "border-border/30 bg-foreground/[0.03] dark:border-white/10 dark:bg-white/5"
@@ -141,7 +141,7 @@ function HexagramCard({ label, name, explanation, tag, accent = false }: Hexagra
       <p className="text-[0.65rem] uppercase tracking-[0.4rem] text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-semibold text-foreground dark:text-white">{name || "—"}</p>
       {tag && (
-        <span className="mt-1 inline-flex rounded-full border border-amber-400/60 px-3 py-0.5 text-xs font-semibold text-amber-600 dark:border-amber-200/50 dark:text-amber-200">
+        <span className="mt-1 inline-flex rounded-md border border-amber-400/60 px-3 py-0.5 text-xs font-semibold text-amber-600 dark:border-amber-200/50 dark:text-amber-200">
           {tag}
         </span>
       )}

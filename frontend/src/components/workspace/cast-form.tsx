@@ -13,6 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -20,6 +28,7 @@ import { useAuthContext } from "@/components/providers/auth-provider"
 import { useSessionMutation } from "@/lib/queries"
 import { parseManualLines } from "@/lib/api"
 import { useWorkspaceStore } from "@/lib/store"
+import { cn } from "@/lib/utils"
 import type { ConfigResponse, ModelInfo, SessionRequest } from "@/types/api"
 import { toast } from "sonner"
 
@@ -50,15 +59,20 @@ function formatOffsetISOString(date: Date) {
 
 function getReasoningLines(modelName: string | undefined, locale: "en" | "zh") {
   const name = modelName?.toLowerCase() ?? ""
-  if (name.includes("gpt-5.2")) {
+  if (name.includes("gpt-5.5")) {
     return locale === "zh"
       ? ["关闭 ≈30s", "极简 ≈40s", "低 ≈50s", "中 ≈65s", "高 ≥90s"]
       : ["None ≈30s", "Minimal ≈40s", "Low ≈50s", "Medium ≈65s", "High ≥90s"]
   }
-  if (name.includes("gpt-5-mini")) {
+  if (name.includes("gpt-5.4-mini")) {
     return locale === "zh"
       ? ["极简 ≈15s", "低 ≈20s", "中 ≈30s", "高 ≥60s"]
       : ["Minimal ≈15s", "Low ≈20s", "Medium ≈30s", "High ≥60s"]
+  }
+  if (name.includes("gpt-5.3-codex")) {
+    return locale === "zh"
+      ? ["极简 ≈25s", "低 ≈35s", "中 ≈50s", "高 ≥75s"]
+      : ["Minimal ≈25s", "Low ≈35s", "Medium ≈50s", "High ≥75s"]
   }
   return locale === "zh"
     ? ["该模型不支持推理力度控制。"]
@@ -103,7 +117,7 @@ export function CastForm({ config }: Props) {
     setForm({
       topic: current.topic || preferredTopic,
       methodKey: current.methodKey || preferredMethod,
-      aiModel: current.aiModel || config.ai_models[0]?.name || "gpt-5.2",
+      aiModel: current.aiModel || config.ai_models[0]?.name || "gpt-5.5",
     })
     defaultsHydrated.current = true
   }, [config, setForm])
@@ -187,6 +201,7 @@ export function CastForm({ config }: Props) {
     const payload: SessionRequest = {
       topic: form.topic,
       user_question: form.userQuestion || undefined,
+      user_context: form.userContext || undefined,
       method_key: form.methodKey,
       manual_lines: manualLines,
       use_current_time: false,
@@ -203,272 +218,421 @@ export function CastForm({ config }: Props) {
   }
 
   const reasoningLines = getReasoningLines(activeModel?.name, locale)
+  const copy =
+    locale === "zh"
+      ? {
+          promptTitle: "你现在真正要判断什么？",
+          promptBody: "先写清问题，再补充真正影响判断的背景；卦象、经典文本与追问会围绕同一条判断链展开。",
+          contextLabel: "相关背景",
+          contextPlaceholder: "例如：对方已经催了两次，但预算、负责人、时间表还没完全确定。",
+          modeLabel: "阅读预设",
+          quickTitle: "快速阅读",
+          quickBody: "最短路径得到结论、证据和下一步。",
+          deepTitle: "深度阅读",
+          deepBody: "登录后启用完整 AI 解读与后续追问。",
+          researchTitle: "经典研究",
+          researchBody: "优先保留卦辞、动爻、纳甲与来源对照。",
+          followupTitle: "仅建线程",
+          followupBody: "先生成可追踪阅读，后续在同一线程补问。",
+          advanced: "高级设置",
+          advancedDescription: "起卦方法、时间、手动六爻与 AI 模型控制。",
+        }
+      : {
+          promptTitle: "What are you actually deciding?",
+          promptBody: "Ask clearly, then add the context that actually changes the decision. The reading, evidence, and follow-up stay in one thread.",
+          contextLabel: "Relevant context",
+          contextPlaceholder: "Example: They are pushing for a fast answer, but budget, owner, and timeline are still unclear.",
+          modeLabel: "Reading preset",
+          quickTitle: "Quick reading",
+          quickBody: "Shortest path to judgment, evidence, and next step.",
+          deepTitle: "Deep reading",
+          deepBody: "Enable full AI interpretation and follow-up after sign-in.",
+          researchTitle: "Classical research",
+          researchBody: "Keep more hexagram text, moving-line, Najia, and source comparison.",
+          followupTitle: "Follow-up only",
+          followupBody: "Create a trackable reading now, then continue in the same thread.",
+          advanced: "Advanced settings",
+          advancedDescription: "Casting method, time, manual lines, and AI model controls.",
+        }
+
+  const readingModes = [
+    {
+      id: "quick",
+      title: copy.quickTitle,
+      body: copy.quickBody,
+      active: !form.enableAi && (!form.aiVerbosity || form.aiVerbosity === "medium"),
+      apply: () =>
+        setForm({
+          enableAi: false,
+          aiReasoning: "medium",
+          aiVerbosity: "medium",
+        }),
+    },
+    {
+      id: "deep",
+      title: copy.deepTitle,
+      body: copy.deepBody,
+      active: form.enableAi,
+      apply: () =>
+        setForm({
+          enableAi: canUseAi,
+          aiModel: activeModel?.name || form.aiModel || "gpt-5.5",
+          aiReasoning: activeModel?.default_reasoning || form.aiReasoning || "medium",
+          aiVerbosity: activeModel?.default_verbosity || form.aiVerbosity || "medium",
+        }),
+    },
+    {
+      id: "research",
+      title: copy.researchTitle,
+      body: copy.researchBody,
+      active: !form.enableAi && form.aiVerbosity === "high",
+      apply: () =>
+        setForm({
+          enableAi: false,
+          aiReasoning: "medium",
+          aiVerbosity: "high",
+        }),
+    },
+    {
+      id: "followup",
+      title: copy.followupTitle,
+      body: copy.followupBody,
+      active: !form.enableAi && form.aiVerbosity === "low",
+      apply: () =>
+        setForm({
+          enableAi: false,
+          aiReasoning: "minimal",
+          aiVerbosity: "low",
+        }),
+    },
+  ]
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-2">
-      <section className="surface-card space-y-5 rounded-3xl p-6 sm:p-7">
-        <p className="kicker">{messages.workspace.cast.topicSection}</p>
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.topicLabel}</p>
-          <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
-            <SelectTrigger>
-              <SelectValue placeholder={messages.workspace.cast.topicLabel} />
-            </SelectTrigger>
-            <SelectContent>
-              {config.topics.map((topic) => (
-                <SelectItem value={topic.label} key={topic.key}>
-                  {topic.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-foreground">{messages.workspace.cast.questionLabel}</p>
-            <span className="text-xs text-muted-foreground">
-              {questionLength}/{QUESTION_LIMIT}
-            </span>
-          </div>
-          <Textarea
-            placeholder={messages.workspace.cast.questionPlaceholder}
-            value={form.userQuestion}
-            onChange={(event) => updateForm("userQuestion", event.target.value)}
-            rows={4}
-            maxLength={QUESTION_LIMIT}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.methodLabel}</p>
-          <Select value={form.methodKey} onValueChange={(value) => updateForm("methodKey", value)}>
-            <SelectTrigger>
-              <SelectValue placeholder={messages.workspace.cast.methodLabel} />
-            </SelectTrigger>
-            <SelectContent>
-              {config.methods.map((method) => (
-                <SelectItem key={method.key} value={method.key}>
-                  {method.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {form.methodKey === "x" && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.manualLinesLabel}</p>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button type="button" className={infoButtonClass}>
-                    <CircleHelp className="size-4" aria-hidden="true" />
-                    <span className="sr-only">{messages.workspace.cast.lineInputHintAria}</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
-                  {messages.workspace.cast.lineHints.map((hint) => (
-                    <p key={hint}>{hint}</p>
-                  ))}
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <Input
-              value={form.manualLines}
-              onChange={(event) => updateForm("manualLines", event.target.value)}
-              placeholder={messages.workspace.cast.manualLinesPlaceholder}
-            />
-          </div>
-        )}
-
-        <div className="surface-soft space-y-3 rounded-2xl p-4">
-          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.timeLabel}</p>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">{messages.workspace.cast.useCurrentTime}</span>
-            <Switch
-              checked={form.useCurrentTime}
-              onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
-            />
-          </div>
-          <Input
-            type="datetime-local"
-            value={form.customTimestamp}
-            disabled={form.useCurrentTime}
-            onChange={(event) => updateForm("customTimestamp", event.target.value)}
-          />
-        </div>
-      </section>
-
-      <section className="surface-card space-y-5 rounded-3xl p-6 sm:p-7">
-        <p className="kicker">{messages.workspace.cast.aiSection}</p>
-
-        <div className="flex items-start justify-between gap-4">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-5xl">
+      <section className="surface-card grid gap-6 rounded-lg p-5 sm:p-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="space-y-5">
           <div>
-            <p className="text-sm font-medium text-foreground">{messages.workspace.cast.aiEnableLabel}</p>
-            {!auth.loading && !canUseAi && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {messages.workspace.cast.aiLoginHint}{" "}
-                <Link href={toLocalePath("/profile")} className="underline underline-offset-2">
-                  {messages.nav.profile}
-                </Link>
-                .
-              </p>
-            )}
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">{copy.promptTitle}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{copy.promptBody}</p>
           </div>
-          <Switch
-            checked={form.enableAi}
-            disabled={auth.loading || !canUseAi}
-            onCheckedChange={(checked) => updateForm("enableAi", checked)}
-          />
+
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_13rem]">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.questionLabel}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {questionLength}/{QUESTION_LIMIT}
+                  </span>
+                </div>
+                <Textarea
+                  placeholder={messages.workspace.cast.questionPlaceholder}
+                  value={form.userQuestion}
+                  onChange={(event) => updateForm("userQuestion", event.target.value)}
+                  rows={7}
+                  maxLength={QUESTION_LIMIT}
+                  className="min-h-[12rem] text-base leading-relaxed"
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">{copy.contextLabel}</p>
+                <Textarea
+                  placeholder={copy.contextPlaceholder}
+                  value={form.userContext}
+                  onChange={(event) => updateForm("userContext", event.target.value)}
+                  rows={3}
+                  maxLength={1200}
+                  className="min-h-[6rem] text-sm leading-relaxed"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.topicLabel}</p>
+              <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={messages.workspace.cast.topicLabel} />
+                </SelectTrigger>
+                <SelectContent>
+                  {config.topics.map((topic) => (
+                    <SelectItem value={topic.label} key={topic.key}>
+                      {topic.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
-        {form.enableAi && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.accessPasswordLabel}</p>
-              <Input
-                type="password"
-                value={form.accessPassword}
-                onChange={(event) => updateForm("accessPassword", event.target.value)}
-                placeholder={messages.workspace.cast.accessPasswordPlaceholder}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-foreground">{messages.workspace.cast.modelLabel}</p>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button type="button" className={infoButtonClass}>
-                      <CircleHelp className="size-4" aria-hidden="true" />
-                      <span className="sr-only">{messages.workspace.cast.modelInfoAria}</span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
-                    {messages.workspace.cast.modelSpeedLines.map((line) => (
-                      <p key={line}>{line}</p>
-                    ))}
-                    <p className="pt-1 opacity-80">{messages.workspace.cast.modelQualityLine}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Select value={form.aiModel} onValueChange={(value) => updateForm("aiModel", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={messages.workspace.cast.modelLabel} />
-                </SelectTrigger>
-                <SelectContent>
-                  {config.ai_models.map((model) => (
-                    <SelectItem key={model.name} value={model.name}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {!!activeModel?.reasoning.length && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.reasoningLabel}</p>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button type="button" className={infoButtonClass}>
-                        <CircleHelp className="size-4" aria-hidden="true" />
-                        <span className="sr-only">{messages.workspace.cast.reasoningInfoAria}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
-                      {reasoningLines.map((line) => (
-                        <p key={line}>{line}</p>
-                      ))}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Select
-                  value={form.aiReasoning ?? ""}
-                  onValueChange={(value) => updateForm("aiReasoning", value)}
+        <aside className="surface-soft flex flex-col justify-between gap-5 rounded-lg p-4">
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-foreground">{copy.modeLabel}</p>
+            <div className="grid gap-2">
+              {readingModes.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={mode.apply}
+                  className={cn(
+                    "rounded-lg border p-3 text-left transition",
+                    mode.active
+                      ? "border-primary/60 bg-primary/10 text-foreground"
+                      : "border-border/60 bg-surface/70 hover:border-primary/40",
+                  )}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder={messages.workspace.cast.reasoningLabel} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeModel.reasoning.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {activeModel?.verbosity && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.verbosityLabel}</p>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button type="button" className={infoButtonClass}>
-                        <CircleHelp className="size-4" aria-hidden="true" />
-                        <span className="sr-only">{messages.workspace.cast.verbosityInfoAria}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
-                      {messages.workspace.cast.verbosityLines.map((line) => (
-                        <p key={line}>{line}</p>
-                      ))}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Select
-                  value={form.aiVerbosity ?? ""}
-                  onValueChange={(value) => updateForm("aiVerbosity", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={messages.workspace.cast.verbosityLabel} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["low", "medium", "high"].map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.toneLabel}</p>
-              <Select value={form.aiTone} onValueChange={(value) => updateForm("aiTone", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={messages.workspace.cast.toneLabel} />
-                </SelectTrigger>
-                <SelectContent>
-                  {messages.workspace.tones.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                {activeToneOption?.description ?? messages.workspace.cast.toneDescriptionDefault}
-              </p>
+                  <span className="text-sm font-semibold">{mode.title}</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{mode.body}</span>
+                </button>
+              ))}
             </div>
           </div>
-        )}
 
-        <Button
-          type="submit"
-          size="lg"
-          disabled={mutation.isPending}
-          className="mt-2 h-11 w-full rounded-2xl text-sm font-semibold"
-        >
-          {mutation.isPending ? messages.workspace.cast.submitLoading : messages.workspace.cast.submitIdle}
-        </Button>
+          <div className="space-y-3">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button type="button" variant="outline" className="w-full rounded-md">
+                  {copy.advanced}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+                <SheetHeader>
+                  <SheetTitle>{copy.advanced}</SheetTitle>
+                  <SheetDescription>{copy.advancedDescription}</SheetDescription>
+                </SheetHeader>
+
+                <div className="mt-6 space-y-6">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">{messages.workspace.cast.methodLabel}</p>
+                    <Select value={form.methodKey} onValueChange={(value) => updateForm("methodKey", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={messages.workspace.cast.methodLabel} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {config.methods.map((method) => (
+                          <SelectItem key={method.key} value={method.key}>
+                            {method.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {form.methodKey === "x" && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-foreground">{messages.workspace.cast.manualLinesLabel}</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className={infoButtonClass}>
+                              <CircleHelp className="size-4" aria-hidden="true" />
+                              <span className="sr-only">{messages.workspace.cast.lineInputHintAria}</span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
+                            {messages.workspace.cast.lineHints.map((hint) => (
+                              <p key={hint}>{hint}</p>
+                            ))}
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        value={form.manualLines}
+                        onChange={(event) => updateForm("manualLines", event.target.value)}
+                        placeholder={messages.workspace.cast.manualLinesPlaceholder}
+                      />
+                    </div>
+                  )}
+
+                  <div className="surface-soft space-y-3 rounded-lg p-4">
+                    <p className="text-sm font-medium text-foreground">{messages.workspace.cast.timeLabel}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">{messages.workspace.cast.useCurrentTime}</span>
+                      <Switch
+                        checked={form.useCurrentTime}
+                        onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
+                      />
+                    </div>
+                    <Input
+                      type="datetime-local"
+                      value={form.customTimestamp}
+                      disabled={form.useCurrentTime}
+                      onChange={(event) => updateForm("customTimestamp", event.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-4 border-t border-border/60 pt-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{messages.workspace.cast.aiEnableLabel}</p>
+                        {!auth.loading && !canUseAi && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {messages.workspace.cast.aiLoginHint}{" "}
+                            <Link href={toLocalePath("/profile")} className="underline underline-offset-2">
+                              {messages.nav.profile}
+                            </Link>
+                            .
+                          </p>
+                        )}
+                      </div>
+                      <Switch
+                        checked={form.enableAi}
+                        disabled={auth.loading || !canUseAi}
+                        onCheckedChange={(checked) => updateForm("enableAi", checked)}
+                      />
+                    </div>
+
+                    {form.enableAi && (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.accessPasswordLabel}</p>
+                          <Input
+                            type="password"
+                            value={form.accessPassword}
+                            onChange={(event) => updateForm("accessPassword", event.target.value)}
+                            placeholder={messages.workspace.cast.accessPasswordPlaceholder}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground">{messages.workspace.cast.modelLabel}</p>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" className={infoButtonClass}>
+                                  <CircleHelp className="size-4" aria-hidden="true" />
+                                  <span className="sr-only">{messages.workspace.cast.modelInfoAria}</span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
+                                {messages.workspace.cast.modelSpeedLines.map((line) => (
+                                  <p key={line}>{line}</p>
+                                ))}
+                                <p className="pt-1 opacity-80">{messages.workspace.cast.modelQualityLine}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <Select value={form.aiModel} onValueChange={(value) => updateForm("aiModel", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={messages.workspace.cast.modelLabel} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {config.ai_models.map((model) => (
+                                <SelectItem key={model.name} value={model.name}>
+                                  {model.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {!!activeModel?.reasoning.length && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.reasoningLabel}</p>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" className={infoButtonClass}>
+                                    <CircleHelp className="size-4" aria-hidden="true" />
+                                    <span className="sr-only">{messages.workspace.cast.reasoningInfoAria}</span>
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
+                                  {reasoningLines.map((line) => (
+                                    <p key={line}>{line}</p>
+                                  ))}
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Select
+                              value={form.aiReasoning ?? ""}
+                              onValueChange={(value) => updateForm("aiReasoning", value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={messages.workspace.cast.reasoningLabel} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {activeModel.reasoning.map((level) => (
+                                  <SelectItem key={level} value={level}>
+                                    {level}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {activeModel?.verbosity && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.verbosityLabel}</p>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" className={infoButtonClass}>
+                                    <CircleHelp className="size-4" aria-hidden="true" />
+                                    <span className="sr-only">{messages.workspace.cast.verbosityInfoAria}</span>
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
+                                  {messages.workspace.cast.verbosityLines.map((line) => (
+                                    <p key={line}>{line}</p>
+                                  ))}
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                            <Select
+                              value={form.aiVerbosity ?? ""}
+                              onValueChange={(value) => updateForm("aiVerbosity", value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={messages.workspace.cast.verbosityLabel} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {["low", "medium", "high"].map((level) => (
+                                  <SelectItem key={level} value={level}>
+                                    {level}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.toneLabel}</p>
+                          <Select value={form.aiTone} onValueChange={(value) => updateForm("aiTone", value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={messages.workspace.cast.toneLabel} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {messages.workspace.tones.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            {activeToneOption?.description ?? messages.workspace.cast.toneDescriptionDefault}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <Button
+              type="submit"
+              size="lg"
+              disabled={mutation.isPending}
+              className="h-11 w-full rounded-md text-sm font-semibold"
+            >
+              {mutation.isPending ? messages.workspace.cast.submitLoading : messages.workspace.cast.submitIdle}
+            </Button>
+          </div>
+        </aside>
       </section>
     </form>
   )

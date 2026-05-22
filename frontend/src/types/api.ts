@@ -90,6 +90,63 @@ export type NajiaTable = {
   rows: NajiaRow[]
 }
 
+export type ReadingBriefEvidence = {
+  conclusion: string
+  basis: string
+  plain: string
+}
+
+export type ReadingBriefTiming = {
+  window: string
+  condition: string
+  confidence: number
+}
+
+export type ReadingBriefAction = {
+  action: string
+  cadence: string
+  signal: string
+}
+
+export type ReadingBriefSourcePassage = {
+  slot_key: string
+  source: string
+  source_label: string
+  hexagram_name?: string
+  section_kind?: string | null
+  line_key?: string | null
+  title: string
+  content: string
+  citation: string
+  visible_by_default?: boolean
+  importance?: string
+}
+
+export type ReadingBrief = {
+  headline: string
+  stance: "stable" | "changing" | "transforming" | string
+  plain_language: string
+  evidence: ReadingBriefEvidence[]
+  source_passages?: ReadingBriefSourcePassage[]
+  archive_sources?: {
+    total_passages: number
+    sources: Record<string, number>
+    slot_keys: string[]
+    primary_slot_keys: string[]
+  }
+  personal_context?: {
+    status: "reserved" | string
+    current_scope?: string
+    note?: string
+    future_profile_fields?: string[]
+  }
+  timing: ReadingBriefTiming[]
+  actions: ReadingBriefAction[]
+  risks: string[]
+  followup_prompts: string[]
+  generated_at?: string | null
+}
+
 export type BaziElement = {
   value: string
   element: string
@@ -108,6 +165,7 @@ export type SessionPayload = {
   hex_sections: HexSection[]
   hex_overview: HexOverview
   bazi_detail?: BaziPillar[]
+  reading_brief?: ReadingBrief
   najia_text: string
   najia_table: NajiaTable
   ai_text: string
@@ -128,6 +186,7 @@ export type SessionPayload = {
 export type SessionRequest = {
   topic: string
   user_question?: string
+  user_context?: string
   method_key: string
   manual_lines?: number[]
   use_current_time: boolean
