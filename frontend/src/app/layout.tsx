@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AppProviders } from "@/components/providers/app-providers"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
 import "./globals.css"
 
@@ -49,6 +50,7 @@ export default function RootLayout({
           {children}
         </AppProviders>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   )
