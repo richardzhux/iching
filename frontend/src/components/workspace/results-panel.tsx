@@ -555,27 +555,6 @@ function ArchiveComparisonPanel({ result }: { result: SessionPayload }) {
   )
 }
 
-function ResultBlock({ text, label }: { text: string; label: string }) {
-  const [expanded, setExpanded] = useState(true)
-  return (
-    <div className="surface-soft mt-4 rounded-lg p-4 text-sm leading-relaxed text-foreground">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="kicker">{label}</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs font-semibold tracking-wide text-foreground hover:text-foreground"
-          onClick={() => setExpanded((value) => !value)}
-          aria-expanded={expanded}
-        >
-          {expanded ? "−" : "+"}
-        </Button>
-      </div>
-      {expanded && <MarkdownContent content={text} />}
-    </div>
-  )
-}
-
 function HexSectionGroup({
   title,
   sections,

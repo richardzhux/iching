@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 import { MoonStar, SunMedium } from "lucide-react"
 import { useTheme } from "next-themes"
 
@@ -11,11 +11,11 @@ import { cn } from "@/lib/utils"
 export function ThemeToggle({ className }: { className?: string }) {
   const { messages } = useI18n()
   const { setTheme, theme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
 
   const nextTheme = () => {
     if (!mounted) return
