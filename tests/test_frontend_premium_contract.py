@@ -144,3 +144,60 @@ def test_mechanics_page_has_professional_cast_logic_not_archive_replica():
     assert "显示补充" in results
     assert "sectionSourceIdForDrawer" in results
     assert results.index("<MechanicsInsightPanel") < results.index("<HexSectionGroup")
+
+
+def test_hexagram_archive_data_organizes_all_sources_by_hexagram():
+    archive_path = ROOT / "frontend/src/lib/hexagram-archive.ts"
+    archive_data_dir = ROOT / "frontend/src/lib/hexagram-archive-data"
+    assert archive_path.exists()
+    assert archive_data_dir.exists()
+
+    archive = archive_path.read_text(encoding="utf-8")
+    qian_archive = (archive_data_dir / "qian.ts").read_text(encoding="utf-8")
+
+    assert "HEXAGRAM_ARCHIVE_INDEX" in archive
+    assert "HEXAGRAM_ARCHIVE_LOADERS" in archive
+    assert archive.count("    slug:") == 64
+    assert len(list(archive_data_dir.glob("*.ts"))) == 64
+    assert "totalEntries: 1356" in archive
+    assert "canonicalSlotCount: 450" in archive
+    assert "sourceCounts" in archive
+    assert "guaci: 450" in archive
+    assert "takashima: 450" in archive
+    assert "english_commentary: 448" in archive
+    assert "symbolic: 8" in archive
+    assert "slotKey" in qian_archive
+    assert "slotKind" in qian_archive
+    assert "lineNo" in qian_archive
+    assert "useKind" in qian_archive
+    assert "content" in qian_archive
+
+
+def test_library_page_is_a_precise_study_index_not_only_cards():
+    library_page = read("frontend/src/app/[locale]/library/page.tsx")
+
+    assert "HEXAGRAM_ARCHIVE_SUMMARY" in library_page
+    assert "getHexagramArchiveSummary" in library_page
+    assert "450 canonical slots" in library_page
+    assert "1,356 source entries" in library_page
+    assert "学习库" in library_page
+    assert "资料完整度" in library_page
+    assert "sourceCounts" in library_page
+    assert "canonicalSlotCount" in library_page
+
+
+def test_hexagram_detail_page_renders_a_library_study_page_by_slot():
+    detail_page = read("frontend/src/app/[locale]/hexagram/[slug]/page.tsx")
+
+    assert "getHexagramArchive" in detail_page
+    assert "await getHexagramArchive" in detail_page
+    assert "ArchiveSlotSection" in detail_page
+    assert "SourceEntryCard" in detail_page
+    assert "Study table" in detail_page
+    assert "学习目录" in detail_page
+    assert "groupArchiveEntriesBySlot" in detail_page
+    assert "本卦卦辞" in detail_page
+    assert "爻位资料" in detail_page
+    assert "用九 / 用六" in detail_page
+    assert "whitespace-pre-wrap" in detail_page
+    assert "sourceCounts" in detail_page
