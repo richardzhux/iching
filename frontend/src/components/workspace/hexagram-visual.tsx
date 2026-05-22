@@ -72,6 +72,8 @@ export function HexagramHeader({
     return null
   }
 
+  const lineSignature = overview.lines.map((line) => `${line.position}:${line.value}:${line.is_moving}`).join("|")
+
   return (
     <Card className="surface-card border-border/40">
       <CardContent className="p-5">
@@ -98,6 +100,7 @@ export function HexagramHeader({
         )}
         <div className="mt-4 flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
           <HexagramCard
+            key={`main-${overview.main_hexagram?.name || "unknown"}-${lineSignature}`}
             label={messages.workspace.results.mainHexLabel}
             name={overview.main_hexagram?.name}
             explanation={overview.main_hexagram?.explanation}
@@ -112,6 +115,7 @@ export function HexagramHeader({
                 <ArrowRight className="h-7 w-7 text-amber-500" />
               </div>
               <HexagramCard
+                key={`changed-${overview.changed_hexagram.name || "unknown"}-${lineSignature}`}
                 label={messages.workspace.results.changedHexLabel}
                 name={overview.changed_hexagram.name}
                 explanation={overview.changed_hexagram.explanation}
@@ -150,6 +154,15 @@ function HexagramCard({
   hexagramType,
   accent = false,
 }: HexagramCardProps) {
+  const orderedLines = useMemo(
+    () => [...lines].sort((a, b) => b.position - a.position),
+    [lines],
+  )
+  const defaultActive = orderedLines.find((line) => line.is_moving)?.position ?? orderedLines[0]?.position ?? null
+  const [activePosition, setActivePosition] = useState<number | null>(defaultActive)
+  const activeLine = orderedLines.find((line) => line.position === activePosition) || orderedLines[0]
+  const activeSection = activeLine ? findLineSection(sections, hexagramType, activeLine, name) : undefined
+
   return (
     <div
       className={cn(
@@ -162,10 +175,10 @@ function HexagramCard({
       <p className="text-[0.65rem] uppercase tracking-[0.4rem] text-muted-foreground">{label}</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-[minmax(7rem,9rem)_1fr] sm:items-start">
         <InteractiveHexagramLines
-          lines={lines}
-          sections={sections}
+          orderedLines={orderedLines}
+          activePosition={activeLine?.position ?? null}
+          onActivePositionChange={setActivePosition}
           hexagramType={hexagramType}
-          hexagramName={name}
           accent={accent}
         />
         <div>
@@ -178,32 +191,26 @@ function HexagramCard({
           {explanation && <p className="mt-2 text-sm leading-6 text-muted-foreground">{explanation}</p>}
         </div>
       </div>
+      <HexagramSourcePreview section={activeSection} />
     </div>
   )
 }
 
 function InteractiveHexagramLines({
-  lines,
-  sections,
+  orderedLines,
+  activePosition,
+  onActivePositionChange,
   hexagramType,
-  hexagramName,
   accent,
 }: {
-  lines: HexLineInfo[]
-  sections: HexSection[]
+  orderedLines: HexLineInfo[]
+  activePosition: number | null
+  onActivePositionChange: (position: number) => void
   hexagramType: "main" | "changed"
-  hexagramName?: string
   accent: boolean
 }) {
   const { locale } = useI18n()
-  const orderedLines = useMemo(
-    () => [...lines].sort((a, b) => b.position - a.position),
-    [lines],
-  )
-  const defaultActive = orderedLines.find((line) => line.is_moving)?.position ?? orderedLines[0]?.position ?? null
-  const [activePosition, setActivePosition] = useState<number | null>(defaultActive)
   const activeLine = orderedLines.find((line) => line.position === activePosition) || orderedLines[0]
-  const activeSection = activeLine ? findLineSection(sections, hexagramType, activeLine, hexagramName) : undefined
 
   if (!orderedLines.length) {
     return <div className="h-32 rounded-md border border-border/40 bg-surface/60" />
@@ -225,8 +232,8 @@ function InteractiveHexagramLines({
                   ? "border-primary/50 bg-primary/10"
                   : "border-transparent bg-transparent hover:border-border/60 hover:bg-surface/70",
               )}
-              onMouseEnter={() => setActivePosition(line.position)}
-              onFocus={() => setActivePosition(line.position)}
+              onMouseEnter={() => onActivePositionChange(line.position)}
+              onFocus={() => onActivePositionChange(line.position)}
               aria-label={
                 locale === "zh"
                   ? `第${line.position}爻，${lineType === "yang" ? "阳爻" : "阴爻"}`
@@ -245,15 +252,25 @@ function InteractiveHexagramLines({
           )
         })}
       </div>
-      {activeSection ? (
-        <div className="mt-3 rounded-md border border-border/40 bg-surface/80 p-3">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16rem] text-muted-foreground">
-            {activeSection.source_label || activeSection.source || (locale === "zh" ? "来源" : "Source")}
-          </p>
-          <p className="mt-1 text-xs font-semibold leading-5 text-foreground">{activeSection.title}</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">{compactSnippet(activeSection.content, 130)}</p>
-        </div>
-      ) : null}
+    </div>
+  )
+}
+
+function HexagramSourcePreview({ section }: { section?: HexSection }) {
+  const { locale } = useI18n()
+  const sourcePreviewSection = "mt-4 rounded-md border border-border/40 bg-surface/80 p-4"
+
+  if (!section) {
+    return null
+  }
+
+  return (
+    <div className={sourcePreviewSection}>
+      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16rem] text-muted-foreground">
+        {section.source_label || section.source || (locale === "zh" ? "来源" : "Source")}
+      </p>
+      <p className="mt-1 text-sm font-semibold leading-6 text-foreground">{section.title}</p>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{compactSnippet(section.content, 220)}</p>
     </div>
   )
 }

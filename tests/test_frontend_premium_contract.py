@@ -77,3 +77,17 @@ def test_reading_packet_has_first_class_journal_and_source_evidence():
     assert "source_ids" in api_types
     assert "Decision journal" not in history
     assert "Reading journal" in history
+
+
+def test_hexagram_source_preview_spans_full_card_width():
+    visual = read("frontend/src/components/workspace/hexagram-visual.tsx")
+
+    assert "function HexagramSourcePreview" in visual
+    assert "<HexagramSourcePreview" in visual
+    assert "onActivePositionChange" in visual
+    assert "sourcePreviewSection" in visual
+    assert "max-w-3xl text-sm leading-6 text-muted-foreground" not in visual
+
+    preview_call = visual.index("<HexagramSourcePreview")
+    interactive_function = visual.index("function InteractiveHexagramLines")
+    assert preview_call < interactive_function
