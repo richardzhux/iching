@@ -37,6 +37,7 @@ const PROFILE_COPY = {
     accountLabel: "Account",
     readingArchive: "Reading archive",
     readingArchiveBody: "Saved casts, exports, and follow-up sessions are kept as a private working record.",
+    retentionNote: "A 365-day cloud retention limit applies to reading records; deleting a reading also removes its follow-up transcript.",
     secureRecord: "Secure record",
     secureRecordBody: "Cloud history stays tied to your authenticated account and can be reopened from the reading desk.",
     savedReadings: "Saved readings",
@@ -59,6 +60,7 @@ const PROFILE_COPY = {
     accountLabel: "账户",
     readingArchive: "阅读档案",
     readingArchiveBody: "这里保存已同步的起卦、导出记录与可继续追问的会话，作为长期读易笔记。",
+    retentionNote: "云端阅读记录最长保留 365 天；删除一次起卦也会同步删除其追问文本。",
     secureRecord: "安全记录",
     secureRecordBody: "云端历史绑定当前登录账户，可从阅读桌重新打开并继续追问。",
     savedReadings: "已存阅读",
@@ -286,6 +288,7 @@ function CloudHistoryPanel({
           ))}
         </div>
       )}
+      <p className="mt-5 border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">{copy.retentionNote}</p>
     </section>
   )
 }

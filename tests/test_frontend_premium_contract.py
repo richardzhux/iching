@@ -223,3 +223,12 @@ def test_profile_page_matches_premium_study_surface():
     assert "LogOut" in profile
     assert "Trash2" in profile
     assert "Download" in profile
+    assert "365-day" in profile
+    assert "365 天" in profile
+
+
+def test_supabase_retention_contract_keeps_sessions_for_one_year():
+    schema = read("docs/supabase-schema.sql")
+
+    assert "365 days" in schema
+    assert "90 days" not in schema

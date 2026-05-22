@@ -59,13 +59,13 @@ alter table public.chat_messages add column if not exists reasoning text null;
 alter table public.chat_messages add column if not exists verbosity text null;
 alter table public.chat_messages add column if not exists tone text null;
 
--- Periodic cleanup: delete sessions older than 90 days (chat_messages are cascaded).
+-- Periodic cleanup: delete sessions older than 365 days (chat_messages are cascaded).
 create or replace function public.purge_old_sessions() returns void
 language plpgsql
 as $$
 begin
   delete from public.sessions
-  where updated_at < timezone('utc', now()) - interval '90 days';
+  where updated_at < timezone('utc', now()) - interval '365 days';
 end;
 $$;
 

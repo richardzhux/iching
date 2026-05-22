@@ -159,6 +159,7 @@ python tools/backfill_session_interpretations.py --apply
 
 Operational note:
 - Unfiltered `--apply` with service-role credentials can update all users’ session snapshots in the project.
+- Supabase session retention is `365 days`; deleting or purging a session cascades to its `chat_messages`.
 
 ## System Architecture
 
