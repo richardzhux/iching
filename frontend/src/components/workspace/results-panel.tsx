@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MarkdownContent } from "@/components/ui/markdown-content"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useWorkspaceStore, type JournalStatus, type ReadingJournalEntry } from "@/lib/store"
@@ -33,18 +34,16 @@ export function ResultsPanel() {
   const setPendingChatPrompt = useWorkspaceStore((state) => state.setPendingChatPrompt)
   const journal = useWorkspaceStore((state) => state.journal)
   const updateJournal = useWorkspaceStore((state) => state.updateJournal)
+  const [activeSourceId, setActiveSourceId] = useState<string | null>(null)
+  const brief = result ? resolveReadingBrief(result, locale) : null
 
-  const openArchiveSource = (sourceId: string) => {
-    setResultsTab("archive")
-    window.setTimeout(() => {
-      document.getElementById(sourceDomId(sourceId))?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      })
-    }, 80)
+  const openSourceReader = (sourceId: string) => {
+    if (sourceId) {
+      setActiveSourceId(sourceId)
+    }
   }
 
-  if (!result) {
+  if (!result || !brief) {
     return (
       <Card className="surface-card border-border/40 text-foreground">
         <CardHeader>
@@ -80,24 +79,23 @@ export function ResultsPanel() {
           <Tabs
             value={resultsTab}
             onValueChange={(value) => {
-              if (value === "summary" || value === "hex" || value === "archive" || value === "ai") {
+              if (value === "summary" || value === "hex" || value === "ai") {
                 setResultsTab(value)
               }
             }}
           >
-            <TabsList className="grid w-full grid-cols-4 rounded-md bg-surface-elevated text-foreground">
+            <TabsList className="grid w-full grid-cols-3 rounded-md bg-surface-elevated text-foreground">
               <TabsTrigger value="summary">{locale === "zh" ? "导引" : "Guidance"}</TabsTrigger>
               <TabsTrigger value="hex">{locale === "zh" ? "机理" : "Mechanics"}</TabsTrigger>
-              <TabsTrigger value="archive">{locale === "zh" ? "档案" : "Archive"}</TabsTrigger>
               <TabsTrigger value="ai">{locale === "zh" ? "追问" : "Follow-up"}</TabsTrigger>
             </TabsList>
             <TabsContent value="summary">
               <ReadingBriefPanel
-                brief={resolveReadingBrief(result, locale)}
+                brief={brief}
                 sessionId={result.session_id}
                 journalEntry={journal[result.session_id]}
                 onJournalChange={(patch) => updateJournal(result.session_id, patch)}
-                onSourceSelect={openArchiveSource}
+                onSourceSelect={openSourceReader}
                 onPrompt={(prompt) => {
                   setPendingChatPrompt(prompt)
                   setResultsTab("ai")
@@ -105,17 +103,23 @@ export function ResultsPanel() {
               />
             </TabsContent>
             <TabsContent value="hex">
-              <HexResultBlock result={result} />
-            </TabsContent>
-            <TabsContent value="archive">
-              <div className="mt-4">
-                <ArchiveComparisonPanel result={result} defaultScope="full" showPersonalContext />
-              </div>
+              <HexResultBlock result={result} onSourceSelect={openSourceReader} />
             </TabsContent>
             <TabsContent value="ai">
               <ChatPanel session={result} />
             </TabsContent>
           </Tabs>
+          <SourceReaderSheet
+            brief={brief}
+            activeSourceId={activeSourceId}
+            open={Boolean(activeSourceId)}
+            onOpenChange={(open) => {
+              if (!open) {
+                setActiveSourceId(null)
+              }
+            }}
+            onSourceSelect={setActiveSourceId}
+          />
         </CardContent>
       </Card>
     </motion.div>
@@ -207,15 +211,18 @@ function sourceIdForPassage(passage: Pick<ReadingBriefSourcePassage, "source_id"
   return `${passage.slot_key || passage.title}::${passage.source || "unknown"}`
 }
 
-function sourceDomId(sourceId: string) {
-  return `source-${sourceId.replace(/[^a-zA-Z0-9_-]/g, "-")}`
-}
-
 function withResolvedSourceIds<T extends ReadingBriefSourcePassage>(passages: T[]): T[] {
   return passages.map((passage) => ({
     ...passage,
     source_id: sourceIdForPassage(passage),
   }))
+}
+
+function sectionSourceIdForDrawer(section: HexSection) {
+  if (section.source_id) {
+    return section.source_id
+  }
+  return `${section.slot_key || section.title}::${section.source || "unknown"}`
 }
 
 function sourcePassagesFromSections(sections: HexSection[]): ReadingBriefSourcePassage[] {
@@ -902,9 +909,153 @@ function SourceLensCard({
   )
 }
 
-function HexResultBlock({ result }: { result: SessionPayload }) {
+function SourceReaderSheet({
+  brief,
+  activeSourceId,
+  open,
+  onOpenChange,
+  onSourceSelect,
+}: {
+  brief: ReadingBrief
+  activeSourceId: string | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSourceSelect: (sourceId: string) => void
+}) {
+  const { locale } = useI18n()
+  const sourcePassages = withResolvedSourceIds(
+    brief.source_passages?.length
+      ? brief.source_passages
+      : ((brief.key_passages || []) as ReadingBriefSourcePassage[]),
+  )
+  const selected = sourcePassages.find((passage) => sourceIdForPassage(passage) === activeSourceId) || sourcePassages[0]
+  const selectedSlot = selected?.slot_key
+  const relatedPassages = selectedSlot
+    ? sourcePassages.filter((passage) => passage.slot_key === selectedSlot)
+    : sourcePassages.slice(0, 6)
+  const otherPassages = sourcePassages
+    .filter((passage) => (selectedSlot ? passage.slot_key !== selectedSlot : true))
+    .slice(0, 8)
+  const labels =
+    locale === "zh"
+      ? {
+          title: "原文笔记",
+          body: "在右侧查看本次取用的具体来源块，不把导引页撑成长篇档案。",
+          sameSlot: "同一槽位",
+          otherSlots: "其他相关",
+          citation: "引用",
+          empty: "当前没有可打开的来源段落。",
+        }
+      : {
+          title: "Source notebook",
+          body: "Review the exact source chunks for this reading without expanding the whole result page.",
+          sameSlot: "Same slot",
+          otherSlots: "Other relevant",
+          citation: "Citation",
+          empty: "No source passage is available for this reading.",
+        }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="!w-full border-border bg-background p-0 sm:!max-w-2xl lg:!max-w-3xl"
+      >
+        <SheetHeader className="border-b border-border/50 p-5 pr-12">
+          <SheetTitle>{labels.title}</SheetTitle>
+          <SheetDescription>{selected?.citation || labels.body}</SheetDescription>
+        </SheetHeader>
+
+        {selected ? (
+          <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[16rem_1fr]">
+            <aside className="min-h-0 overflow-y-auto border-b border-border/50 p-3 lg:border-b-0 lg:border-r">
+              <SourceChunkList
+                title={labels.sameSlot}
+                passages={relatedPassages}
+                activeSourceId={sourceIdForPassage(selected)}
+                onSourceSelect={onSourceSelect}
+              />
+              {otherPassages.length ? (
+                <div className="mt-4">
+                  <SourceChunkList
+                    title={labels.otherSlots}
+                    passages={otherPassages}
+                    activeSourceId={sourceIdForPassage(selected)}
+                    onSourceSelect={onSourceSelect}
+                  />
+                </div>
+              ) : null}
+            </aside>
+
+            <main className="min-h-0 overflow-y-auto p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18rem] text-muted-foreground">
+                    {selected.source_label || selected.source}
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold leading-8 text-foreground">{selected.title}</h3>
+                </div>
+                <span className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground">
+                  {selected.slot_key}
+                </span>
+              </div>
+              <div className="mt-4 rounded-md border border-border/50 bg-surface p-4">
+                <MarkdownContent content={passageDisplayText(selected)} />
+              </div>
+              <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                {labels.citation}: {selected.citation}
+              </p>
+            </main>
+          </div>
+        ) : (
+          <div className="p-5 text-sm text-muted-foreground">{labels.empty}</div>
+        )}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+function SourceChunkList({
+  title,
+  passages,
+  activeSourceId,
+  onSourceSelect,
+}: {
+  title: string
+  passages: ReadingBriefSourcePassage[]
+  activeSourceId: string
+  onSourceSelect: (sourceId: string) => void
+}) {
+  return (
+    <div>
+      <p className="px-2 text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{title}</p>
+      <div className="mt-2 space-y-2">
+        {passages.map((passage) => {
+          const sourceId = sourceIdForPassage(passage)
+          const active = sourceId === activeSourceId
+          return (
+            <button
+              key={sourceId}
+              type="button"
+              className={`w-full rounded-md border p-3 text-left transition-colors ${
+                active
+                  ? "border-primary/50 bg-primary/10 text-foreground"
+                  : "border-border/50 bg-surface text-muted-foreground hover:border-border hover:bg-surface-elevated"
+              }`}
+              onClick={() => onSourceSelect(sourceId)}
+            >
+              <span className="block text-xs font-semibold leading-5">{passage.source_label || passage.source}</span>
+              <span className="mt-1 block text-xs leading-5">{compactText(passage.title, 72)}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function HexResultBlock({ result, onSourceSelect }: { result: SessionPayload; onSourceSelect: (sourceId: string) => void }) {
   const { messages, locale } = useI18n()
-  const [showFull, setShowFull] = useState(false)
 
   const { primarySections, secondarySections } = useMemo(() => {
     const sections = result.hex_sections || []
@@ -959,6 +1110,8 @@ function HexResultBlock({ result }: { result: SessionPayload }) {
   const detailFromPayload = result.bazi_detail as BaziPillar[] | undefined
   const detailFromSession = sessionDetails?.["bazi_detail"] as BaziPillar[] | undefined
   const baziDetail = detailFromPayload ?? detailFromSession ?? []
+  const drawerSourceSection = secondarySections[0] || primarySections[0]
+  const sourceButtonLabel = locale === "zh" ? "查看原文笔记" : "Review source notebook"
 
   return (
     <div className="mt-4 space-y-5">
@@ -979,15 +1132,18 @@ function HexResultBlock({ result }: { result: SessionPayload }) {
       <div className="surface-soft rounded-lg p-4 text-sm leading-relaxed text-foreground">
         <div className="mb-2 flex items-center justify-between">
           <p className="kicker">{messages.workspace.results.hexLabel}</p>
-          {hasHiddenSections && (
+          {(hasHiddenSections || drawerSourceSection) && (
             <Button
               variant="ghost"
               size="sm"
               className="text-xs font-semibold tracking-wide text-foreground hover:text-foreground"
-              onClick={() => setShowFull((value) => !value)}
-              aria-expanded={showFull}
+              onClick={() => {
+                if (drawerSourceSection) {
+                  onSourceSelect(sectionSourceIdForDrawer(drawerSourceSection))
+                }
+              }}
             >
-              {showFull ? messages.workspace.results.hideMore : messages.workspace.results.showMore}
+              {sourceButtonLabel}
             </Button>
           )}
         </div>
@@ -1000,188 +1156,8 @@ function HexResultBlock({ result }: { result: SessionPayload }) {
         ) : (
           <MarkdownContent content={result.hex_text} />
         )}
-        {showFull && hasHiddenSections && (
-          <div className="mt-6">
-            <HexSectionGroup
-              title={messages.workspace.results.secondarySectionTitle}
-              sections={secondarySections}
-              variant="secondary"
-            />
-          </div>
-        )}
       </div>
     </div>
-  )
-}
-
-function ArchiveComparisonPanel({
-  result,
-  defaultScope = "core",
-  showPersonalContext = true,
-}: {
-  result: SessionPayload
-  defaultScope?: "core" | "full"
-  showPersonalContext?: boolean
-}) {
-  const { locale } = useI18n()
-  const [sourceFilter, setSourceFilter] = useState("all")
-  const [scopeFilter, setScopeFilter] = useState<"core" | "full">(defaultScope)
-  const brief = resolveReadingBrief(result, locale)
-  const passages = brief.source_passages?.length
-    ? brief.source_passages
-    : sourcePassagesFromSections(result.hex_sections || [])
-  const keyPassages = brief.key_passages?.length ? brief.key_passages : keyPassagesFromResult(result, locale)
-  const scopedPassages: Array<ReadingBriefSourcePassage | ReadingBriefKeyPassage> =
-    scopeFilter === "core" && keyPassages.length ? keyPassages : passages
-  const sources = Array.from(
-    scopedPassages.reduce<Map<string, string>>((map, passage) => {
-      map.set(passage.source, passage.source_label || passage.source)
-      return map
-    }, new Map<string, string>()),
-  )
-  const visiblePassages =
-    sourceFilter === "all" ? scopedPassages : scopedPassages.filter((passage) => passage.source === sourceFilter)
-  const grouped = visiblePassages.reduce<Record<string, Array<ReadingBriefSourcePassage | ReadingBriefKeyPassage>>>((acc, passage) => {
-    const key = passage.slot_key || passage.title
-    acc[key] = [...(acc[key] ?? []), passage]
-    return acc
-  }, {})
-  const groupedEntries = Object.entries(grouped)
-  const labels =
-    locale === "zh"
-      ? {
-          title: "经典档案对照",
-          body: "默认只对照本次真正取用的重点槽位；需要时再展开完整档案。",
-          core: "只看重点",
-          full: "完整档案",
-          all: "全部来源",
-          passages: "段落",
-          slots: "槽位",
-          primary: "主证据",
-          citation: "引用",
-          empty: "当前筛选下暂无段落。",
-          future: "个人运势画像预留",
-        }
-      : {
-          title: "Classical Archive",
-          body: "The default view compares only the decisive slot; expand the archive when you need source-level depth.",
-          core: "Key only",
-          full: "Full archive",
-          all: "All sources",
-          passages: "passages",
-          slots: "slots",
-          primary: "Core evidence",
-          citation: "Citation",
-          empty: "No passages match this filter.",
-          future: "Personal fortune lens reserved",
-        }
-
-  return (
-    <section className="rounded-lg border border-border/50 bg-surface p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">{labels.title}</h3>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.body}</p>
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {visiblePassages.length} {labels.passages} · {groupedEntries.length} {labels.slots}
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant={scopeFilter === "core" ? "default" : "outline"}
-          size="sm"
-          className="rounded-md"
-          onClick={() => {
-            setScopeFilter("core")
-            setSourceFilter("all")
-          }}
-        >
-          {labels.core}
-        </Button>
-        <Button
-          type="button"
-          variant={scopeFilter === "full" ? "default" : "outline"}
-          size="sm"
-          className="rounded-md"
-          onClick={() => {
-            setScopeFilter("full")
-            setSourceFilter("all")
-          }}
-        >
-          {labels.full}
-        </Button>
-        <Button
-          type="button"
-          variant={sourceFilter === "all" ? "default" : "outline"}
-          size="sm"
-          className="rounded-md"
-          onClick={() => setSourceFilter("all")}
-        >
-          {labels.all}
-        </Button>
-        {sources.map(([source, label]) => (
-          <Button
-            key={source}
-            type="button"
-            variant={sourceFilter === source ? "default" : "outline"}
-            size="sm"
-            className="rounded-md"
-            onClick={() => setSourceFilter(source)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-
-      <div className="mt-4 space-y-4">
-        {groupedEntries.length ? (
-          groupedEntries.map(([slotKey, slotPassages]) => (
-            <div key={slotKey} className="rounded-md border border-border/50 bg-surface-elevated/70 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{slotKey}</p>
-                {slotPassages.some((passage) => passage.visible_by_default) && (
-                  <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-primary">
-                    {labels.primary}
-                  </span>
-                )}
-              </div>
-              <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                {slotPassages.map((passage, index) => (
-                  <article
-                    key={`${sourceIdForPassage(passage)}-${index}`}
-                    id={sourceDomId(sourceIdForPassage(passage))}
-                    className="scroll-mt-24 rounded-md border border-border/50 bg-surface p-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-foreground">{passage.title}</p>
-                      <span className="text-xs text-muted-foreground">{passage.source_label}</span>
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-foreground">{passageDisplayText(passage)}</p>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      {labels.citation}: {passage.citation}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="rounded-md border border-border/50 bg-surface-elevated/70 p-4 text-sm text-muted-foreground">
-            {labels.empty}
-          </div>
-        )}
-      </div>
-
-      {showPersonalContext && brief.personal_context?.status === "reserved" && (
-        <div className="mt-4 rounded-md border border-dashed border-border/70 bg-surface-elevated/60 p-3 text-xs leading-5 text-muted-foreground">
-          <span className="font-semibold text-foreground">{labels.future}: </span>
-          {brief.personal_context.note}
-        </div>
-      )}
-    </section>
   )
 }
 

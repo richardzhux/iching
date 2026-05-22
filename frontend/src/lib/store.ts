@@ -16,7 +16,7 @@ const MODEL_ALIASES: Record<string, string> = {
 }
 const normalizeModelId = (model?: string | null) => (model ? MODEL_ALIASES[model] ?? model : "gpt-5.5")
 const isResultsTab = (value: unknown): value is ResultsTab =>
-  value === "summary" || value === "hex" || value === "archive" || value === "ai"
+  value === "summary" || value === "hex" || value === "ai"
 
 export type WorkspaceForm = {
   topic: string
@@ -35,7 +35,7 @@ export type WorkspaceForm = {
 }
 
 export type WorkspaceView = "form" | "results"
-export type ResultsTab = "summary" | "hex" | "archive" | "ai"
+export type ResultsTab = "summary" | "hex" | "ai"
 export type JournalStatus = "open" | "watching" | "resolved"
 
 export type ReadingJournalEntry = {

@@ -91,3 +91,30 @@ def test_hexagram_source_preview_spans_full_card_width():
     preview_call = visual.index("<HexagramSourcePreview")
     interactive_function = visual.index("function InteractiveHexagramLines")
     assert preview_call < interactive_function
+
+
+def test_results_source_review_uses_drawer_not_archive_tab_or_inline_expansion():
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+    store = read("frontend/src/lib/store.ts")
+
+    assert '<TabsTrigger value="archive">' not in results
+    assert '<TabsContent value="archive">' not in results
+    assert 'setResultsTab("archive")' not in results
+    assert "scrollIntoView" not in results
+    assert "SourceReaderSheet" in results
+    assert "<SourceReaderSheet" in results
+    assert "activeSourceId" in results
+    assert "onSourceSelect={openSourceReader}" in results
+    assert "function ArchiveComparisonPanel" not in results
+    assert 'value === "archive"' not in store
+    assert 'export type ResultsTab = "summary" | "hex" | "ai"' in store
+
+
+def test_mechanics_source_review_no_long_inline_archive_expansion():
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+
+    assert "function HexResultBlock({ result, onSourceSelect }" in results
+    assert "setShowFull" not in results
+    assert "aria-expanded={showFull}" not in results
+    assert "secondarySections.length" in results
+    assert "onSourceSelect(sectionSourceIdForDrawer" in results
