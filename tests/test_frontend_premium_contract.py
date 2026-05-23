@@ -80,6 +80,7 @@ def test_method_page_and_nav_explain_trust_boundary():
     zh = read("frontend/src/i18n/catalog/zh.ts")
 
     assert "/method" in layout
+    assert "md:hidden" in layout
     assert 'method: "Method"' in en
     assert 'method: "机理"' in zh
     assert "AI synthesis is allowed" in method_page
@@ -96,7 +97,10 @@ def test_library_has_pinyin_search_and_public_metadata():
     assert "HEXAGRAM_PINYIN_BY_SLUG" in library_data
     assert 'qian: "Qián"' in library_data
     assert "LibrarySearch" in library_page
+    assert library_page.index("<LibrarySearch") < library_page.index("HEXAGRAM_LIBRARY.map")
     assert "sourceSnippet" in library_page
+    assert "Received text" in library_page
+    assert "Judgment · Takashima" not in library_page
     assert "Search the Yi" in search
     assert "getHexagramPinyin" in detail_page
     assert "alternates" in detail_page

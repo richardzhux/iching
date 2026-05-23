@@ -13,10 +13,10 @@ export function HomePage() {
       ? {
           badge: "双语易经阅读桌",
           title: "为起卦、研读与复盘而建的易经阅读桌。",
-          subtitle: "I Ching Studio is a bilingual reading desk for casting, studying, and keeping a serious record of change.",
+          subtitle: "谨慎起卦，回到来源，保存记录，并在局势变化后回来复盘。",
           primaryCta: "开始阅读",
           secondaryCta: "浏览经典档案",
-          institution: "The most traceable, source-grounded reading environment for the Yi.",
+          institution: "一个可追溯、来源扎实的易经阅读环境。",
           packetTitle: "一份完整阅读包",
           packetBody: "先看问题、起卦、卦象与动爻，再看经典文本、来源证据、解释与复盘。",
           evidenceTitle: "来源先于解释",

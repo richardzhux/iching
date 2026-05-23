@@ -17,6 +17,7 @@ const MODEL_ALIASES: Record<string, string> = {
 const normalizeModelId = (model?: string | null) => (model ? MODEL_ALIASES[model] ?? model : "gpt-5.5")
 const isResultsTab = (value: unknown): value is ResultsTab =>
   value === "summary" || value === "hex" || value === "ai"
+const LOCAL_HISTORY_LIMIT = 10
 
 export type WorkspaceForm = {
   topic: string
@@ -120,7 +121,9 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           const existing = (state.history ?? []).filter(
             (entry) => entry.session_id !== payload.session_id,
           )
-          const nextHistory = [payload, ...existing].slice(0, 10)
+          const pinned = existing.filter((entry) => state.journal[entry.session_id]?.pinned)
+          const unpinned = existing.filter((entry) => !state.journal[entry.session_id]?.pinned)
+          const nextHistory = [payload, ...pinned, ...unpinned].slice(0, LOCAL_HISTORY_LIMIT)
           return {
             result: payload,
             history: nextHistory,

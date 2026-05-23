@@ -166,7 +166,7 @@ export const zhMessages: Messages = {
     history: {
       trigger: "阅读复盘",
       title: "最近阅读复盘",
-      description: "仅保存在本地浏览器。登录后可在个人中心查看完整云端历史。",
+      description: "本浏览器最多保留最近 10 条本地阅读；置顶条目会靠前显示。登录后可在个人中心查看完整云端历史。",
       empty: "暂无本地复盘记录。",
       summaryLabel: "概要",
       hexLabel: "卦辞",

@@ -7,9 +7,12 @@ const oldHomepagePhrases = [
   "Coming Soon",
 ]
 
-test("public home, method, library, and hexagram pages render current product surface", async ({ page }) => {
+test("public home, method, library, and hexagram pages render current product surface", async ({ page, isMobile }) => {
   await page.goto("/en")
   await expect(page.getByRole("heading", { name: /serious reading desk/i })).toBeVisible()
+  if (isMobile) {
+    await expect(page.getByRole("link", { name: "Method" })).toBeVisible()
+  }
   for (const phrase of oldHomepagePhrases) {
     await expect(page.locator("body")).not.toContainText(phrase)
   }
@@ -20,6 +23,7 @@ test("public home, method, library, and hexagram pages render current product su
 
   await page.goto("/en/library")
   await expect(page.getByRole("heading", { name: /classical archive study library/i })).toBeVisible()
+  await expect(page.getByLabel(/search the yi/i)).toBeVisible()
   await page.getByLabel(/search the yi/i).fill("qian")
   await expect(page.getByText(/Qián/).first()).toBeVisible()
 

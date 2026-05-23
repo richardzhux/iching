@@ -52,6 +52,8 @@ const PROFILE_COPY = {
     useEmail: "Use email credentials",
     noRecordsTitle: "No readings synced yet",
     noRecordsBody: "Create a reading from the workspace and it will appear here as a structured record.",
+    historyErrorTitle: "Cloud history could not load",
+    historyErrorBody: "Your archive may still be intact. Retry the sync before treating this as an empty history.",
   },
   zh: {
     identity: "私人读易书桌",
@@ -75,6 +77,8 @@ const PROFILE_COPY = {
     useEmail: "使用邮箱密码",
     noRecordsTitle: "暂无同步记录",
     noRecordsBody: "在工作台完成一次起卦后，会以结构化记录出现在这里。",
+    historyErrorTitle: "云端历史暂时无法读取",
+    historyErrorBody: "这不代表档案为空。请先重试同步，再判断是否没有历史记录。",
   },
 } as const satisfies Record<Locale, Record<string, string>>
 
@@ -99,6 +103,7 @@ type CloudHistoryPanelProps = {
   exportingId: string | null
   isFetching: boolean
   isLoading: boolean
+  historyError: Error | null
   messages: Messages
   onContinue: (session: SessionSummary) => void
   onDelete: (session: SessionSummary) => void
@@ -226,6 +231,7 @@ function CloudHistoryPanel({
   exportingId,
   isFetching,
   isLoading,
+  historyError,
   messages,
   onContinue,
   onDelete,
@@ -261,6 +267,20 @@ function CloudHistoryPanel({
         <div className="mt-5 flex min-h-40 items-center justify-center gap-3 rounded-lg border border-border/60 bg-surface-elevated p-6 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
           {messages.profile.loadingSessions}
+        </div>
+      ) : historyError ? (
+        <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-6">
+          <p className="text-base font-semibold text-foreground">{copy.historyErrorTitle}</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy.historyErrorBody}</p>
+          {process.env.NODE_ENV !== "production" && (
+            <p className="mt-3 rounded-md border border-border/60 bg-surface px-3 py-2 text-xs text-muted-foreground">
+              {historyError.message}
+            </p>
+          )}
+          <Button type="button" variant="outline" className="mt-4" disabled={isFetching} onClick={onRefresh}>
+            <RefreshCw className="size-4" />
+            {messages.profile.refresh}
+          </Button>
         </div>
       ) : !hasSessions ? (
         <div className="mt-5 rounded-lg border border-dashed border-border/70 bg-surface-elevated p-6">
@@ -331,11 +351,6 @@ function SessionRecordCard({
           <p className="mt-1 text-sm text-muted-foreground">
             {session.method_label ?? messages.workspace.history.noMethod}
           </p>
-          {(session.user_display_name || session.user_email) && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              {messages.profile.userLabel}: {session.user_display_name ?? "-"} · {session.user_email ?? "-"}
-            </p>
-          )}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -403,8 +418,21 @@ function AuthPanel({
       <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_16rem]">
         <form onSubmit={onEmailSubmit} className="space-y-3">
           <p className="text-sm font-semibold text-foreground">{copy.emailAccount}</p>
-          <Input type="email" placeholder={messages.common.email} value={email} onChange={(event) => setEmail(event.target.value)} />
+          <label htmlFor="profile-email" className="sr-only">
+            {messages.common.email}
+          </label>
           <Input
+            id="profile-email"
+            type="email"
+            placeholder={messages.common.email}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <label htmlFor="profile-password" className="sr-only">
+            {messages.common.password}
+          </label>
+          <Input
+            id="profile-password"
             type="password"
             placeholder={messages.common.password}
             value={password}
@@ -652,6 +680,7 @@ export default function ProfilePage() {
               exportingId={exportingId}
               isFetching={historyQuery.isFetching}
               isLoading={historyQuery.isLoading}
+              historyError={historyQuery.error instanceof Error ? historyQuery.error : null}
               messages={messages}
               onContinue={handleContinue}
               onDelete={handleDelete}

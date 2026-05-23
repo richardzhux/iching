@@ -1005,7 +1005,7 @@ function SourceReaderSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="!w-full border-border bg-background p-0 sm:!max-w-2xl lg:!max-w-3xl"
+        className="h-[100dvh] !w-full gap-0 border-border bg-background p-0 sm:!max-w-2xl lg:!max-w-3xl"
       >
         <SheetHeader className="border-b border-border/50 p-5 pr-12">
           <SheetTitle>{labels.title}</SheetTitle>
@@ -1013,8 +1013,8 @@ function SourceReaderSheet({
         </SheetHeader>
 
         {selected ? (
-          <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[16rem_1fr]">
-            <aside className="min-h-0 overflow-y-auto border-b border-border/50 p-3 lg:border-b-0 lg:border-r">
+          <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[16rem_1fr] lg:overflow-hidden">
+            <aside className="max-h-56 overflow-y-auto border-b border-border/50 p-3 lg:max-h-none lg:border-b-0 lg:border-r">
               <SourceChunkList
                 title={labels.sameSlot}
                 passages={relatedPassages}
@@ -1033,7 +1033,7 @@ function SourceReaderSheet({
               ) : null}
             </aside>
 
-            <main className="min-h-0 overflow-y-auto p-5">
+            <main className="min-h-0 p-5 lg:overflow-y-auto">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18rem] text-muted-foreground">

@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useWorkspaceStore, type JournalStatus } from "@/lib/store"
 
 export function HistoryDrawer() {
-  const { messages } = useI18n()
+  const { locale, messages } = useI18n()
   const history = useWorkspaceStore((state) => state.history)
   const journal = useWorkspaceStore((state) => state.journal)
   const updateJournal = useWorkspaceStore((state) => state.updateJournal)
@@ -36,6 +36,35 @@ export function HistoryDrawer() {
   function toggleEntry(id: string) {
     setExpanded((current) => (current === id ? null : id))
   }
+
+  const journalLabels =
+    locale === "zh"
+      ? {
+          pinned: "已置顶",
+          pin: "置顶",
+          statuses: {
+            open: "进行中",
+            watching: "观察中",
+            resolved: "已结束",
+          },
+          title: "阅读复盘",
+          revisitAt: "重访日期",
+          outcome: "实际发生了什么？",
+          outcomePlaceholder: "记录局势如何变化、发生了什么，或你正在等待什么信号。",
+        }
+      : {
+          pinned: "Pinned",
+          pin: "Pin",
+          statuses: {
+            open: "Open",
+            watching: "Watching",
+            resolved: "Resolved",
+          },
+          title: "Reading journal",
+          revisitAt: "Revisit date",
+          outcome: "What actually happened?",
+          outcomePlaceholder: "What changed, what happened, or what signal are you waiting for?",
+        }
 
   return (
     <Sheet>
@@ -63,6 +92,8 @@ export function HistoryDrawer() {
                   type="button"
                   className="flex w-full items-center justify-between gap-3 text-left"
                   onClick={() => toggleEntry(key)}
+                  aria-expanded={isOpen}
+                  aria-controls={`history-entry-${key}`}
                 >
                   <div>
                     <p className="kicker">{method}</p>
@@ -70,11 +101,11 @@ export function HistoryDrawer() {
                       <p className="font-semibold text-foreground">{topic}</p>
                       {journal[item.session_id]?.pinned && (
                         <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-primary">
-                          pinned
+                          {journalLabels.pinned}
                         </span>
                       )}
                       <span className="rounded-md border border-border/60 bg-surface px-2 py-0.5 text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-                        {journal[item.session_id]?.status ?? "open"}
+                        {journalLabels.statuses[journal[item.session_id]?.status ?? "open"]}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">{timestamp}</p>
@@ -82,9 +113,9 @@ export function HistoryDrawer() {
                   {isOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                 </button>
                 {isOpen && (
-                  <div className="mt-4 space-y-4 text-foreground">
+                  <div id={`history-entry-${key}`} className="mt-4 space-y-4 text-foreground">
                     <section className="rounded-md border border-border/40 bg-surface/90 p-3">
-                      <p className="kicker">Reading journal</p>
+                      <p className="kicker">{journalLabels.title}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {(["open", "watching", "resolved"] as JournalStatus[]).map((status) => (
                           <Button
@@ -93,11 +124,11 @@ export function HistoryDrawer() {
                             size="sm"
                             variant={(journal[item.session_id]?.status ?? "open") === status ? "default" : "outline"}
                             className="rounded-md"
-                            onClick={() => updateJournal(item.session_id, { status })}
-                          >
-                            {status}
-                          </Button>
-                        ))}
+                          onClick={() => updateJournal(item.session_id, { status })}
+                        >
+                          {journalLabels.statuses[status]}
+                        </Button>
+                      ))}
                         <Button
                           type="button"
                           size="sm"
@@ -105,12 +136,12 @@ export function HistoryDrawer() {
                           className="rounded-md"
                           onClick={() => updateJournal(item.session_id, { pinned: !journal[item.session_id]?.pinned })}
                         >
-                          {journal[item.session_id]?.pinned ? "Pinned" : "Pin"}
+                          {journal[item.session_id]?.pinned ? journalLabels.pinned : journalLabels.pin}
                         </Button>
                       </div>
                       <div className="mt-3 grid gap-3 sm:grid-cols-[12rem_1fr]">
                         <div className="space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground">Revisit date</p>
+                          <p className="text-xs font-medium text-muted-foreground">{journalLabels.revisitAt}</p>
                           <Input
                             type="date"
                             value={journal[item.session_id]?.revisitAt ?? ""}
@@ -118,12 +149,12 @@ export function HistoryDrawer() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground">What actually happened?</p>
+                          <p className="text-xs font-medium text-muted-foreground">{journalLabels.outcome}</p>
                           <Textarea
                             value={journal[item.session_id]?.outcomeNote ?? ""}
                             onChange={(event) => updateJournal(item.session_id, { outcomeNote: event.target.value })}
                             rows={2}
-                            placeholder="What changed, what happened, or what signal are you waiting for?"
+                            placeholder={journalLabels.outcomePlaceholder}
                           />
                         </div>
                       </div>

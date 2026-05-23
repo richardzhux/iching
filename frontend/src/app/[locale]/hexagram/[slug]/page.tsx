@@ -26,7 +26,7 @@ type ArchiveSlot = {
 const SOURCE_KEYS = ["guaci", "takashima", "english_commentary", "symbolic"] as const satisfies readonly HexagramArchiveSourceKey[]
 
 const SOURCE_NAMES: Record<HexagramArchiveSourceKey, { zh: string; en: string }> = {
-  guaci: { zh: "卦辞库", en: "Judgment" },
+  guaci: { zh: "卦爻原文", en: "Received text" },
   takashima: { zh: "高岛易断", en: "Takashima" },
   english_commentary: { zh: "英文注释", en: "English commentary" },
   symbolic: { zh: "八卦象意", en: "Symbolic layer" },

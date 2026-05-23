@@ -19,6 +19,7 @@ export function CastWorkspace() {
   const reopenResults = useWorkspaceStore((state) => state.reopenResults)
   const hasResult = useWorkspaceStore((state) => Boolean(state.result))
   const { data, isLoading, isFetching, error, refetch } = useConfigQuery()
+  const errorDetail = error instanceof Error ? error.message : messages.common.unknownError
 
   if (isLoading) {
     return (
@@ -52,9 +53,11 @@ export function CastWorkspace() {
           <p className="kicker">{messages.workspace.headerKicker}</p>
           <h1 className="mt-3 text-2xl font-semibold text-foreground">{messages.workspace.configErrorTitle}</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{messages.workspace.configErrorHint}</p>
-          <p className="mt-3 rounded-md border border-border/60 bg-surface-elevated px-3 py-2 text-xs text-muted-foreground">
-            {(error as Error).message}
-          </p>
+          {process.env.NODE_ENV !== "production" && (
+            <p className="mt-3 rounded-md border border-border/60 bg-surface-elevated px-3 py-2 text-xs text-muted-foreground">
+              {errorDetail}
+            </p>
+          )}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button type="button" variant="default" className="rounded-md" disabled={isFetching} onClick={() => refetch()}>
               {isFetching ? <Loader2 className="mr-2 size-4 animate-spin" /> : <RotateCw className="mr-2 size-4" />}

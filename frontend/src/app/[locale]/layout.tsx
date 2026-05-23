@@ -118,6 +118,25 @@ export default async function LocaleLayout({ children, params }: Props) {
               <ProfileMenu />
             </div>
           </div>
+          <nav className="mx-auto flex w-full max-w-7xl gap-2 overflow-x-auto border-t border-border/40 px-4 py-2 sm:px-6 md:hidden">
+            {[
+              ["/app", messages.nav.workspace],
+              ["/library", messages.nav.library],
+              ["/method", messages.nav.method],
+              ["/profile", messages.nav.profile],
+            ].map(([href, label]) => (
+              <Link
+                key={href}
+                href={withLocale(locale, href)}
+                className={cn(
+                  buttonVariants({ variant: "ghost", size: "sm" }),
+                  "shrink-0 rounded-full text-xs font-medium",
+                )}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
         </header>
         <main className="relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
           {children}

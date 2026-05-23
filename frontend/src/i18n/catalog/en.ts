@@ -168,7 +168,7 @@ export const enMessages: Messages = {
       trigger: "Reading journal",
       title: "Recent reading journal",
       description:
-        "Stored in browser local state. Signed-in users can access full cloud history in Profile.",
+        "Stores the latest 10 local readings in this browser. Pinned entries stay near the top; signed-in users can access full cloud history in Profile.",
       empty: "No local journal entries yet.",
       summaryLabel: "Summary",
       hexLabel: "Hexagram",

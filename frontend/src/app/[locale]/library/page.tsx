@@ -19,9 +19,9 @@ type Props = {
 const SOURCE_KEYS = ["guaci", "takashima", "english_commentary", "symbolic"] as const satisfies readonly HexagramArchiveSourceKey[]
 
 const SOURCE_NAMES: Record<HexagramArchiveSourceKey, { zh: string; en: string }> = {
-  guaci: { zh: "卦辞库", en: "Judgment" },
-  takashima: { zh: "高岛", en: "Takashima" },
-  english_commentary: { zh: "英文", en: "English" },
+  guaci: { zh: "卦爻原文", en: "Received text" },
+  takashima: { zh: "高岛易断", en: "Takashima" },
+  english_commentary: { zh: "英文注释", en: "English commentary" },
   symbolic: { zh: "象意", en: "Symbolic" },
 }
 
@@ -93,7 +93,7 @@ export default async function LibraryPage({ params }: Props) {
           slotCount: "450 canonical slots",
           entryCount: "1,356 source entries",
           sourceLayers: "来源层",
-          sources: "卦辞库 · 高岛易断 · English Commentary · 八卦象意",
+          sources: "卦爻原文 · 高岛易断 · English Commentary · 八卦象意",
           open: "打开卦页",
           completeness: "资料完整度",
           entries: "条资料",
@@ -111,7 +111,7 @@ export default async function LibraryPage({ params }: Props) {
           slotCount: "450 canonical slots",
           entryCount: "1,356 source entries",
           sourceLayers: "Source layers",
-          sources: "Judgment · Takashima · English commentary · Symbolic structure",
+          sources: "Received text · Takashima · English commentary · Symbolic structure",
           open: "Open hexagram",
           completeness: "Archive coverage",
           entries: "entries",
@@ -157,6 +157,8 @@ export default async function LibraryPage({ params }: Props) {
           </Link>
         </div>
       </section>
+
+      <LibrarySearch locale={locale} documents={searchDocuments} />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {HEXAGRAM_LIBRARY.map((entry) => {
@@ -216,8 +218,6 @@ export default async function LibraryPage({ params }: Props) {
           )
         })}
       </section>
-
-      <LibrarySearch locale={locale} documents={searchDocuments} />
 
       <section className="rounded-lg border border-border/60 bg-surface p-5">
         <p className="kicker">{copy.sourceStats}</p>

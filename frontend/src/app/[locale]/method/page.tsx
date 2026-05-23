@@ -39,7 +39,7 @@ const sections = {
     },
     {
       title: "Casting and moving lines",
-      body: "The app supports random, manual, coin-style, and yarrow-style workflows. Manual and guided inputs build six values from bottom to top: 6 old yin, 7 young yang, 8 young yin, and 9 old yang.",
+      body: "The app supports yarrow-style, coin-style, Meihua time/number, and manual workflows. Manual and guided inputs build six values from bottom to top: 6 old yin, 7 young yang, 8 young yin, and 9 old yang.",
     },
     {
       title: "Source layers",
@@ -65,7 +65,7 @@ const sections = {
     },
     {
       title: "起卦与动爻",
-      body: "系统支持随机、手动、铜钱式与蓍草式流程。手动和导引输入都按自下而上的六个数值建立卦：6 老阴、7 少阳、8 少阴、9 老阳。",
+      body: "系统支持蓍草式、铜钱式、梅花时间/数字与手动流程。手动和导引输入都按自下而上的六个数值建立卦：6 老阴、7 少阳、8 少阴、9 老阳。",
     },
     {
       title: "来源层",

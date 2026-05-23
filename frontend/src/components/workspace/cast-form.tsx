@@ -410,13 +410,18 @@ export function CastForm({ config }: Props) {
       title: copy.deepTitle,
       body: copy.deepBody,
       active: form.enableAi,
-      apply: () =>
+      apply: () => {
+        if (!canUseAi) {
+          toast.error(messages.workspace.cast.aiLoginHint)
+          return
+        }
         setForm({
-          enableAi: canUseAi,
+          enableAi: true,
           aiModel: activeModel?.name || form.aiModel || "gpt-5.5",
           aiReasoning: activeModel?.default_reasoning || form.aiReasoning || "medium",
           aiVerbosity: activeModel?.default_verbosity || form.aiVerbosity || "medium",
-        }),
+        })
+      },
     },
     {
       id: "research",
