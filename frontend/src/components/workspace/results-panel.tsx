@@ -508,7 +508,7 @@ function ReadingBriefPanel({
           signal: "Signal",
         }
   const keyPassageHighlightSection =
-    "rounded-lg border border-amber-400/50 bg-amber-100/25 p-5 shadow-sm dark:border-amber-200/35 dark:bg-amber-200/10"
+    "imperial-highlight-panel rounded-lg p-5"
 
   return (
     <div className="mt-4 space-y-5">
@@ -529,13 +529,13 @@ function ReadingBriefPanel({
         <section className={keyPassageHighlightSection}>
           <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-amber-700 dark:text-amber-200">
+              <p className="imperial-text text-[0.65rem] font-semibold uppercase tracking-[0.18rem]">
                 {locale === "zh" ? "卦辞解析" : "Decisive passage analysis"}
               </p>
               <h3 className="mt-1 text-base font-semibold text-foreground">{labels.keyPassages}</h3>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.keyPassageBody}</p>
             </div>
-            <span className="w-fit rounded-md border border-amber-400/60 bg-amber-200/35 px-2 py-1 text-xs font-semibold text-amber-800 dark:border-amber-200/50 dark:bg-amber-200/15 dark:text-amber-100">
+            <span className="imperial-chip w-fit rounded-md px-2 py-1 text-xs font-semibold">
               {brief.key_passages.length}
             </span>
           </div>
@@ -543,7 +543,7 @@ function ReadingBriefPanel({
             {brief.key_passages.map((passage, index) => (
               <article
                 key={`${passage.slot_key}-${passage.source}-${index}`}
-                className="rounded-md border border-amber-300/45 bg-surface/95 p-4 shadow-sm dark:border-amber-200/20"
+                className="imperial-highlight-card rounded-md p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -1059,8 +1059,8 @@ function SourceReaderSheet({
 	                  <dd className="mt-1 font-semibold text-foreground">{selected.citation || selected.source_label}</dd>
 	                </div>
 	              </dl>
-	              <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-4">
-	                <p className="text-xs font-semibold uppercase tracking-[0.18rem] text-amber-700 dark:text-amber-200">
+	              <div className="imperial-highlight-card mt-4 rounded-md p-4">
+	                <p className="imperial-text text-xs font-semibold uppercase tracking-[0.18rem]">
 	                  {labels.why}
 	                </p>
 	                <p className="mt-2 text-sm leading-6 text-foreground">{whySelectedForSource(selected, locale)}</p>
@@ -1248,10 +1248,10 @@ function MechanicsInsightPanel({
       </div>
 
       {keyPassages.length ? (
-        <div className="mt-4 rounded-md border border-amber-300/45 bg-amber-100/20 p-4 dark:border-amber-200/25 dark:bg-amber-200/10">
+        <div className="imperial-highlight-panel mt-4 rounded-md p-4">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-amber-700 dark:text-amber-200">
+              <p className="imperial-text text-[0.65rem] font-semibold uppercase tracking-[0.18rem]">
                 {locale === "zh" ? "卦辞解析" : "Textual mechanics"}
               </p>
               <h4 className="mt-1 text-sm font-semibold text-foreground">{labels.keyPassages}</h4>

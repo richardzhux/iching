@@ -269,7 +269,7 @@ function CloudHistoryPanel({
           {messages.profile.loadingSessions}
         </div>
       ) : historyError ? (
-        <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-6">
+        <div className="imperial-highlight-panel mt-5 rounded-lg p-6">
           <p className="text-base font-semibold text-foreground">{copy.historyErrorTitle}</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy.historyErrorBody}</p>
           {process.env.NODE_ENV !== "production" && (

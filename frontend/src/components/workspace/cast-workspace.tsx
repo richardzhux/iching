@@ -46,7 +46,7 @@ export function CastWorkspace() {
     )
   }
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="surface-card min-h-[50vh] rounded-lg p-6">
         <div className="mx-auto flex max-w-2xl flex-col items-center justify-center py-12 text-center">

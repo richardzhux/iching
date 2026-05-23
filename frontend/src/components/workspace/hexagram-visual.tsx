@@ -31,7 +31,7 @@ function getPolarityColor(polarity?: string) {
 
 function PillarInlineList({ detail }: { detail: BaziPillar[] }) {
   return (
-    <span className="text-lg font-semibold text-foreground dark:text-white">
+    <span className="text-lg font-semibold text-foreground">
       {detail.map((pillar, index) => {
         const stemElement = pillar.stem.element || pillar.stem.value
         const branchElement = pillar.branch.element || pillar.branch.value
@@ -54,7 +54,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   return (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
       <span className="text-sm font-medium text-muted-foreground sm:w-24">{label}</span>
-      <div className="text-lg font-semibold text-foreground dark:text-white">{children}</div>
+      <div className="text-lg font-semibold text-foreground">{children}</div>
     </div>
   )
 }
@@ -112,7 +112,7 @@ export function HexagramHeader({
           {overview.changed_hexagram && (
             <>
               <div className="hidden lg:flex items-center justify-center">
-                <ArrowRight className="h-7 w-7 text-amber-500" />
+                <ArrowRight className="h-7 w-7 text-primary" />
               </div>
               <HexagramCard
                 key={`changed-${overview.changed_hexagram.name || "unknown"}-${lineSignature}`}
@@ -168,8 +168,8 @@ function HexagramCard({
       className={cn(
         "flex-1 rounded-lg border p-4",
         accent
-          ? "border-amber-400/60 bg-amber-200/20 dark:border-amber-200/40 dark:bg-amber-200/10"
-          : "border-border/30 bg-foreground/[0.03] dark:border-white/10 dark:bg-white/5"
+          ? "imperial-highlight-panel"
+          : "border-border/30 bg-foreground/[0.03] dark:border-primary/15 dark:bg-primary/5"
       )}
     >
       <p className="text-[0.65rem] uppercase tracking-[0.4rem] text-muted-foreground">{label}</p>
@@ -182,9 +182,9 @@ function HexagramCard({
           accent={accent}
         />
         <div>
-          <p className="text-lg font-semibold text-foreground dark:text-white">{name || "—"}</p>
+          <p className="text-lg font-semibold text-foreground">{name || "—"}</p>
           {tag && (
-            <span className="mt-1 inline-flex rounded-md border border-amber-400/60 px-3 py-0.5 text-xs font-semibold text-amber-600 dark:border-amber-200/50 dark:text-amber-200">
+            <span className="imperial-chip mt-1 inline-flex rounded-md px-3 py-0.5 text-xs font-semibold">
               {tag}
             </span>
           )}
@@ -242,7 +242,7 @@ function InteractiveHexagramLines({
             >
               <LineSvg type={lineType} moving={line.is_moving} active={active} accent={accent} />
               {line.is_moving ? (
-                <span className="w-4 text-center text-xs font-semibold text-amber-600 dark:text-amber-200">
+                <span className="imperial-text w-4 text-center text-xs font-semibold">
                   {line.moving_symbol || (hexagramType === "changed" ? "↻" : "•")}
                 </span>
               ) : (
@@ -287,7 +287,7 @@ function LineSvg({
   accent: boolean
 }) {
   const fillClass = moving
-    ? "fill-amber-500 dark:fill-amber-200"
+    ? "imperial-fill"
     : active || accent
       ? "fill-foreground"
       : "fill-muted-foreground"
@@ -310,7 +310,7 @@ function LineSvg({
           width="116"
           height="14"
           rx="4"
-          className="fill-transparent stroke-amber-500/70 dark:stroke-amber-200/70"
+          className="imperial-stroke fill-transparent"
           strokeWidth="1"
         />
       ) : null}

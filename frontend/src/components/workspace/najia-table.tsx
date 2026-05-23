@@ -26,7 +26,7 @@ export function NajiaTableView({ table }: NajiaTableProps) {
             return (
               <div
                 key={row.position}
-                className="grid gap-4 rounded-lg border border-border/40 bg-foreground/[0.03] p-4 text-sm dark:border-white/10 dark:bg-white/5 md:grid-cols-[110px,1fr,1fr]"
+                className="grid gap-4 rounded-lg border border-border/40 bg-foreground/[0.03] p-4 text-sm dark:border-primary/15 dark:bg-primary/5 md:grid-cols-[110px,1fr,1fr]"
               >
                 <div className="flex flex-col gap-1">
                   <p className="text-[0.65rem] uppercase tracking-[0.4rem] text-muted-foreground">{messages.workspace.results.sixGodLabel}</p>
@@ -80,7 +80,7 @@ function NajiaLineColumn({
 }: NajiaLineColumnProps) {
   const relationClasses = cn(
     "text-sm font-semibold",
-    highlight ? "text-amber-600 dark:text-amber-300" : "text-foreground dark:text-white"
+    highlight ? "imperial-text" : "text-foreground"
   )
 
   return (
@@ -88,13 +88,13 @@ function NajiaLineColumn({
       className={cn(
         "flex flex-col gap-2 rounded-md border px-3 py-2",
         muted
-          ? "border-border/30 bg-transparent dark:border-white/5"
-          : "border-white/50 bg-white/80 shadow-inner dark:border-white/10 dark:bg-white/5"
+          ? "border-border/30 bg-transparent dark:border-primary/10"
+          : "border-border/50 bg-surface/80 shadow-inner dark:border-primary/15 dark:bg-primary/5"
       )}
     >
       <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
         <span>{label}</span>
-        {marker && <span className="text-sky-500">{marker}</span>}
+        {marker && <span className="text-primary">{marker}</span>}
       </div>
       <p className={relationClasses}>{relation || "—"}</p>
       <div className="flex items-center gap-2">

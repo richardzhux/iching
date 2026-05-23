@@ -33,7 +33,7 @@ export function ProfileMenu() {
         <button
           type="button"
           className={cn(
-            "flex size-10 items-center justify-center rounded-full border border-border/40 bg-background/70 text-sm font-semibold text-foreground shadow-glass transition hover:border-foreground/70 dark:border-white/30 dark:bg-white/10 dark:text-white",
+            "flex size-10 items-center justify-center rounded-full border border-border/40 bg-background/70 text-sm font-semibold text-foreground shadow-glass transition hover:border-primary/60 dark:border-primary/30 dark:bg-primary/10",
             auth.user ? "uppercase" : "",
           )}
           aria-label={messages.profileMenu.ariaOpen}

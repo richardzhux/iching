@@ -38,17 +38,23 @@ test("reading desk does not regress to the stale loading-only state", async ({ p
   await expect(
     page.getByText(/What are you actually deciding|The reading desk could not load|Preparing the reading desk/i).first(),
   ).toBeVisible()
+  if (await page.locator(".oracle-mark").isVisible()) {
+    await expect(page.locator(".oracle-mark")).toContainText("🔮")
+  }
 })
 
 test("mobile reading desk exposes question coaching and casting controls", async ({ page, isMobile }) => {
   test.skip(!isMobile, "mobile-only smoke")
   await page.goto("/en/app")
-  const question = page.getByLabel("Question")
+  await expect(
+    page.getByText(/What are you actually deciding|你现在真正要判断什么|The reading desk could not load|阅读桌暂时无法加载/i).first(),
+  ).toBeVisible()
+  const question = page.getByRole("textbox", { name: /question|specific question|具体问题/i }).first()
   if (await question.isVisible()) {
     await question.fill("Will I get the job?")
-    await expect(page.getByText(/Better as an inquiry question/i)).toBeVisible()
-    await expect(page.getByRole("button", { name: /Toss one coin line/i })).toBeVisible()
+    await expect(page.getByText(/Better as an inquiry question|更适合作为探索式问题/)).toBeVisible()
+    await expect(page.getByRole("button", { name: /Toss one coin line|掷一爻铜钱/i })).toBeVisible()
   } else {
-    await expect(page.getByText(/The reading desk could not load/i)).toBeVisible()
+    await expect(page.getByText(/The reading desk could not load|阅读桌暂时无法加载/i)).toBeVisible()
   }
 })

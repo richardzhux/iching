@@ -14,22 +14,22 @@ export function LineGlyph({ variant, highlight = false, className }: LineGlyphPr
       {variant === "yang" ? (
         <span
           className={cn(
-            "h-[3px] w-full rounded-full bg-foreground/90 dark:bg-white",
-            highlight && "bg-amber-500 dark:bg-amber-400"
+            "h-[3px] w-full rounded-full bg-foreground/90",
+            highlight && "imperial-line"
           )}
         />
       ) : (
         <span className="flex w-full items-center justify-between">
           <span
             className={cn(
-              "h-[3px] w-[38%] rounded-full bg-foreground/90 dark:bg-white",
-              highlight && "bg-amber-500 dark:bg-amber-400"
+              "h-[3px] w-[38%] rounded-full bg-foreground/90",
+              highlight && "imperial-line"
             )}
           />
           <span
             className={cn(
-              "h-[3px] w-[38%] rounded-full bg-foreground/90 dark:bg-white",
-              highlight && "bg-amber-500 dark:bg-amber-400"
+              "h-[3px] w-[38%] rounded-full bg-foreground/90",
+              highlight && "imperial-line"
             )}
           />
         </span>

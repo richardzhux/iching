@@ -453,9 +453,14 @@ export function CastForm({ config }: Props) {
     <form onSubmit={handleSubmit} className="mx-auto max-w-5xl">
       <section className="surface-card grid gap-6 rounded-lg p-5 sm:p-6 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-5">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">{copy.promptTitle}</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{copy.promptBody}</p>
+          <div className="flex gap-4">
+            <span className="oracle-mark mt-1" aria-hidden="true">
+              🔮
+            </span>
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground">{copy.promptTitle}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{copy.promptBody}</p>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_13rem]">
@@ -480,8 +485,8 @@ export function CastForm({ config }: Props) {
 	                  <div
 	                    className={cn(
 	                      "rounded-md border p-3 text-sm",
-	                      questionCoaching.tone === "good" && "border-emerald-500/30 bg-emerald-500/10",
-	                      questionCoaching.tone === "caution" && "border-amber-500/40 bg-amber-500/10",
+	                      questionCoaching.tone === "good" && "border-primary/30 bg-primary/10",
+	                      questionCoaching.tone === "caution" && "imperial-highlight-panel",
 	                      questionCoaching.tone === "risk" && "border-destructive/40 bg-destructive/10",
 	                    )}
 	                  >

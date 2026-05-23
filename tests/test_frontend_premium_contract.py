@@ -73,6 +73,57 @@ def test_production_hardening_uses_real_domain_and_no_stale_domain():
     assert "MetadataRoute.Robots" in robots
 
 
+def test_imperial_amethyst_theme_is_sitewide_and_guarded():
+    globals_css = read("frontend/src/app/globals.css")
+    workspace = read("frontend/src/components/workspace/cast-workspace.tsx")
+    cast_form = read("frontend/src/components/workspace/cast-form.tsx")
+    themed_surfaces = "\n".join(
+        [
+            globals_css,
+            workspace,
+            cast_form,
+            read("frontend/src/components/workspace/hexagram-visual.tsx"),
+            read("frontend/src/components/workspace/line-glyph.tsx"),
+            read("frontend/src/components/workspace/najia-table.tsx"),
+            read("frontend/src/components/workspace/results-panel.tsx"),
+            read("frontend/src/components/profile/profile-page.tsx"),
+            read("frontend/src/components/profile/profile-menu.tsx"),
+        ]
+    )
+
+    assert "--primary: 258 68% 48%" in globals_css
+    assert "--primary: 255 90% 76%" in globals_css
+    assert "#0b0714" in globals_css
+    assert "#151021" in globals_css
+    assert "oracle-mark" in globals_css
+    assert "🔮" in cast_form
+    assert "error && !data" in workspace
+    assert "imperial-highlight-panel" in themed_surfaces
+    assert "imperial-highlight-card" in themed_surfaces
+    assert "imperial-chip" in themed_surfaces
+
+    stale_theme_tokens = [
+        "amber-",
+        "orange-",
+        "yellow-",
+        "emerald-",
+        "text-sky",
+        "dark:text-white",
+        "dark:bg-white",
+        "dark:border-white",
+        "#101419",
+        "#15191b",
+        "#101417",
+        "#f8fafc",
+        "#eef2f6",
+        "#f5f3ee",
+        "18 76% 44%",
+        "25 82% 62%",
+    ]
+    for token in stale_theme_tokens:
+        assert token not in themed_surfaces
+
+
 def test_method_page_and_nav_explain_trust_boundary():
     method_page = read("frontend/src/app/[locale]/method/page.tsx")
     layout = read("frontend/src/app/[locale]/layout.tsx")
@@ -191,10 +242,10 @@ def test_guidance_key_passages_are_highlighted_as_decisive_interpretation():
     results = read("frontend/src/components/workspace/results-panel.tsx")
 
     assert "keyPassageHighlightSection" in results
-    assert "border-amber" in results
+    assert "imperial-highlight-panel" in results
     assert "卦辞解析" in results
     assert "Decisive passage analysis" in results
-    assert "bg-amber" in results
+    assert "imperial-highlight-card" in results
 
 
 def test_mechanics_page_has_professional_cast_logic_not_archive_replica():
