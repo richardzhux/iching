@@ -3,6 +3,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { AppProviders } from "@/components/providers/app-providers"
+import { PUBLIC_SITE_URL } from "@/lib/env"
 import Script from "next/script"
 import "./globals.css"
 
@@ -20,8 +21,23 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(PUBLIC_SITE_URL),
   title: "I Ching Studio",
-  description: "A modern I Ching workspace powered by FastAPI and Next.js.",
+  description: "A bilingual reading desk for casting, study, source evidence, and return.",
+  alternates: {
+    canonical: "/",
+    languages: {
+      en: "/en",
+      zh: "/zh",
+    },
+  },
+  openGraph: {
+    title: "I Ching Studio",
+    description: "A bilingual reading desk for casting, study, source evidence, and return.",
+    url: PUBLIC_SITE_URL,
+    siteName: "I Ching Studio",
+    type: "website",
+  },
   icons: {
     icon: CRYSTAL_BALL_FAVICON,
   },

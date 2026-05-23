@@ -7,8 +7,8 @@ import type {
   SessionPayload,
   SessionRequest,
 } from "@/types/api"
+import { getApiBaseUrl } from "@/lib/env"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000"
 const DEFAULT_TIMEOUT_MS = 30000
 
 type RequestOptions = RequestInit & { timeoutMs?: number }
@@ -65,7 +65,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function fetchConfig(): Promise<ConfigResponse> {
-  const response = await fetchWithTimeout(`${API_BASE}/api/config`, {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/config`, {
     cache: "no-store",
   })
   return handleResponse<ConfigResponse>(response)
@@ -78,7 +78,7 @@ export async function createSession(request: SessionRequest, token?: string): Pr
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
-  const response = await fetchWithTimeout(`${API_BASE}/api/sessions`, {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/sessions`, {
     method: "POST",
     headers,
     body: JSON.stringify(request),
@@ -87,7 +87,7 @@ export async function createSession(request: SessionRequest, token?: string): Pr
 }
 
 export async function fetchChatTranscript(sessionId: string, token: string): Promise<ChatTranscriptResponse> {
-  const response = await fetchWithTimeout(`${API_BASE}/api/sessions/${sessionId}/chat`, {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/sessions/${sessionId}/chat`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -101,7 +101,7 @@ export async function sendChatMessage(
   token: string,
   payload: ChatTurnPayload,
 ): Promise<ChatTurnResponse> {
-  const response = await fetchWithTimeout(`${API_BASE}/api/sessions/${sessionId}/chat`, {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/sessions/${sessionId}/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -119,7 +119,7 @@ export async function sendChatMessage(
 }
 
 export async function fetchSessionHistory(token: string): Promise<SessionHistoryResponse> {
-  const response = await fetchWithTimeout(`${API_BASE}/api/sessions`, {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/sessions`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -129,7 +129,7 @@ export async function fetchSessionHistory(token: string): Promise<SessionHistory
 }
 
 export async function deleteSession(sessionId: string, token: string): Promise<void> {
-  const response = await fetchWithTimeout(`${API_BASE}/api/sessions/${sessionId}`, {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/sessions/${sessionId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,

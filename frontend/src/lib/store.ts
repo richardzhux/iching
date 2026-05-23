@@ -169,9 +169,12 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     {
       name: "iching-workspace",
       version: 1,
-      partialize: (state) => ({
-        form: state.form,
-        result: state.result,
+	      partialize: (state) => ({
+	        form: {
+	          ...state.form,
+	          accessPassword: "",
+	        },
+	        result: state.result,
         history: state.history,
         journal: state.journal,
         view: state.view,

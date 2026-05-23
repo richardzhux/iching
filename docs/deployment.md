@@ -28,18 +28,19 @@
 
 ## Next.js frontend (Vercel)
 
-1. **Create project** – point Vercel to the `frontend/` folder (after you scaffold it).
+1. **Create project** – point Vercel to this GitHub repo, branch `main`, with root directory `frontend`.
 2. **Environment variables**
    - `NEXT_PUBLIC_API_BASE_URL` – URL of the FastAPI deployment.
    - `NEXT_PUBLIC_APP_NAME` – optional string used in the UI.
    - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` – Supabase Auth client keys for the chat tab.
-3. **Build command** – defaults from `create-next-app` (`pnpm build`, `npm run build`, or `yarn build`).
+3. **Build command** – use `npm run build` and keep `frontend/vercel.json` on `npm install` so the lockfile is authoritative.
 4. **Preview branches** – make sure preview URLs are whitelisted in `ICHING_ALLOWED_ORIGINS`.
-5. **Custom domain** – add `CNAME` or `A` record pointing to Vercel once ready.
+5. **Custom domain** – `iching.richardzhux.com` is the public domain for this repo. Confirm the domain is attached to the same Vercel project that deploys `richardzhux/iching` from `frontend/`.
+6. **Deployment parity gate** – the production deployment source commit must match or be newer than local `main`, and the live homepage must not show legacy copy such as “From yarrow stalks to AI” or “Loading workspace configuration...”.
 
 ## Local development workflow
 
 1. Start FastAPI locally: `uvicorn iching.web.api.main:app --reload`.
 2. Export `ICHING_ALLOWED_ORIGINS=http://localhost:3000`.
-3. In the frontend project, set `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000`.
+3. In the frontend project, set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
 4. Run `npm run dev` (Next.js) and iterate on UI components against the live API.

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { CircleHelp } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuthContext } from "@/components/providers/auth-provider"
 import { useSessionMutation } from "@/lib/queries"
 import { parseManualLines } from "@/lib/api"
+import { trackProductEvent } from "@/lib/analytics"
 import { useWorkspaceStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import type { ConfigResponse, ModelInfo, SessionRequest } from "@/types/api"
@@ -37,6 +38,14 @@ type Props = {
 }
 
 const QUESTION_LIMIT = 2000
+const MANUAL_METHOD_KEY = "x"
+
+const LINE_VALUE_OPTIONS = [
+  { value: 6, en: "6 · old yin", zh: "6 · 老阴" },
+  { value: 7, en: "7 · young yang", zh: "7 · 少阳" },
+  { value: 8, en: "8 · young yin", zh: "8 · 少阴" },
+  { value: 9, en: "9 · old yang", zh: "9 · 老阳" },
+] as const
 
 const pad = (value: number) => value.toString().padStart(2, "0")
 
@@ -79,10 +88,90 @@ function getReasoningLines(modelName: string | undefined, locale: "en" | "zh") {
     : ["This model does not expose reasoning-depth controls."]
 }
 
+function manualLineValues(input: string) {
+  return input
+    .replace(/[,\s]+/g, "")
+    .split("")
+    .map((value) => Number(value))
+    .filter((value) => [6, 7, 8, 9].includes(value))
+    .slice(0, 6)
+}
+
+function coinLineValue() {
+  const coins = Array.from({ length: 3 }, () => (Math.random() < 0.5 ? 2 : 3))
+  return {
+    coins,
+    value: coins.reduce((sum, coin) => sum + coin, 0),
+  }
+}
+
+function analyzeQuestion(question: string, locale: "en" | "zh") {
+  const trimmed = question.trim()
+  const highRisk =
+    /(suicide|self[-\s]?harm|kill myself|emergency|diagnos|medical|lawsuit|court outcome|stock pick|gambl|彩票|自杀|自残|急诊|诊断|官司结果|股票|彩票|赌博)/i.test(trimmed)
+  const prediction =
+    /^(will|should|can|is|are|do|does|did|am i)\b/i.test(trimmed) ||
+    /(will i|should i|is it|can i|会不会|要不要|能不能|是不是|是否|该不该)/i.test(trimmed)
+  const repeat = /(again|same question|repeat|再占|反复|同一个问题)/i.test(trimmed)
+  if (!trimmed) return null
+  if (highRisk) {
+    return {
+      tone: "risk",
+      title: locale === "zh" ? "高风险问题" : "High-risk question",
+      body:
+        locale === "zh"
+          ? "这类问题只能用来整理观察与求助方向，不能用卦来替代专业判断。"
+          : "Use this only to clarify what to observe and what support to seek; do not use a reading as the decision-maker.",
+      suggestion:
+        locale === "zh"
+          ? "我现在应该看清哪些风险、支持与下一步求助？"
+          : "What risks, support, and next steps should I clarify now?",
+    }
+  }
+  if (repeat) {
+    return {
+      tone: "caution",
+      title: locale === "zh" ? "避免反复起卦" : "Avoid repeat casting",
+      body:
+        locale === "zh"
+          ? "如果事实没有变化，更适合回到上一次阅读复盘，而不是立刻重问。"
+          : "If the facts have not changed, revisit the earlier reading before asking again.",
+      suggestion:
+        locale === "zh"
+          ? "上一次阅读中，我现在最应该复盘什么？"
+          : "What should I revisit from the earlier reading now?",
+    }
+  }
+  if (prediction) {
+    return {
+      tone: "caution",
+      title: locale === "zh" ? "建议改成理解型问题" : "Better as an inquiry question",
+      body:
+        locale === "zh"
+          ? "易经更适合问局势、变化与应对，而不是只问会不会。"
+          : "The Yi works better when the question asks what to understand, what is changing, and how to respond.",
+      suggestion:
+        locale === "zh"
+          ? `我应该怎样理解“${trimmed.replace(/[？?]$/, "")}”这件事的局势与下一步？`
+          : `What should I understand about ${trimmed.replace(/[?.!]$/, "")}, and what should I do next?`,
+    }
+  }
+  return {
+    tone: "good",
+    title: locale === "zh" ? "问题质量良好" : "Question quality is good",
+    body:
+      locale === "zh"
+        ? "这个问题已经偏向理解局势与行动边界，适合进入起卦。"
+        : "This asks for understanding and action boundaries, which fits a serious reading.",
+    suggestion: null,
+  }
+}
+
 export function CastForm({ config }: Props) {
   const auth = useAuthContext()
   const { messages, locale, toLocalePath } = useI18n()
   const defaultsHydrated = useRef(false)
+  const [lastCoinToss, setLastCoinToss] = useState<number[] | null>(null)
   const form = useWorkspaceStore((state) => state.form)
   const updateForm = useWorkspaceStore((state) => state.updateForm)
   const setForm = useWorkspaceStore((state) => state.setForm)
@@ -90,6 +179,8 @@ export function CastForm({ config }: Props) {
   const activeToneOption = messages.workspace.tones.find((option) => option.value === form.aiTone)
   const questionLength = form.userQuestion?.length ?? 0
   const canUseAi = Boolean(auth.user)
+  const questionCoaching = useMemo(() => analyzeQuestion(form.userQuestion, locale), [form.userQuestion, locale])
+  const currentManualValues = manualLineValues(form.manualLines)
 
   useEffect(() => {
     if (auth.loading) return
@@ -142,10 +233,15 @@ export function CastForm({ config }: Props) {
 
   const mutation = useSessionMutation({
     accessToken: auth.accessToken ?? undefined,
-    onSuccess: (payload) => {
-      setResult(payload)
-      toast.success(messages.workspace.cast.aiEnabledToast)
-    },
+	    onSuccess: (payload) => {
+	      setResult(payload)
+	      trackProductEvent("reading_created", {
+	        method: typeof payload.session_dict?.method === "string" ? payload.session_dict.method : form.methodKey,
+	        ai_enabled: Boolean(form.enableAi),
+	        moving_line_count: payload.hex_overview?.lines?.filter((line) => line.is_moving).length ?? 0,
+	      })
+	      toast.success(messages.workspace.cast.aiEnabledToast)
+	    },
     onError: (error) => {
       const detail = error.message?.trim()
       const friendly =
@@ -163,7 +259,7 @@ export function CastForm({ config }: Props) {
     try {
       manualLines = parseManualLines(form.manualLines)
     } catch (error) {
-      if (form.methodKey === "x") {
+      if (form.methodKey === MANUAL_METHOD_KEY) {
         const reason = (error as Error).message
         if (reason === "manual_lines_count_error") {
           toast.error(messages.workspace.cast.manualLinesCountError)
@@ -198,7 +294,7 @@ export function CastForm({ config }: Props) {
       return
     }
 
-    const payload: SessionRequest = {
+	    const payload: SessionRequest = {
       topic: form.topic,
       user_question: form.userQuestion || undefined,
       user_context: form.userContext || undefined,
@@ -212,12 +308,37 @@ export function CastForm({ config }: Props) {
       ai_reasoning: form.aiReasoning || null,
       ai_verbosity: form.aiVerbosity || null,
       ai_tone: form.aiTone,
-    }
-
-    mutation.mutate(payload)
-  }
+	    }
+	
+	    trackProductEvent("start_cast_clicked", {
+	      topic: form.topic,
+	      method: form.methodKey,
+	      ai_enabled: Boolean(form.enableAi),
+	      manual_line_count: manualLines?.length ?? 0,
+	    })
+	    mutation.mutate(payload)
+	  }
 
   const reasoningLines = getReasoningLines(activeModel?.name, locale)
+  const appendManualLine = (value: number) => {
+    const nextValues = currentManualValues.length >= 6 ? [value] : [...currentManualValues, value]
+    setForm({
+      methodKey: MANUAL_METHOD_KEY,
+      manualLines: nextValues.join(""),
+    })
+  }
+  const clearManualLines = () => {
+    setLastCoinToss(null)
+    setForm({
+      methodKey: MANUAL_METHOD_KEY,
+      manualLines: "",
+    })
+  }
+  const tossCoinLine = () => {
+    const result = coinLineValue()
+    setLastCoinToss(result.coins)
+    appendManualLine(result.value)
+  }
   const copy =
     locale === "zh"
       ? {
@@ -234,10 +355,18 @@ export function CastForm({ config }: Props) {
           researchBody: "优先保留卦辞、动爻、纳甲与来源对照。",
           followupTitle: "仅建线程",
           followupBody: "先生成可追踪阅读，后续在同一线程补问。",
-          advanced: "高级设置",
-          advancedDescription: "起卦方法、时间、手动六爻与 AI 模型控制。",
-        }
-      : {
+	          advanced: "高级设置",
+	          advancedDescription: "起卦方法、时间、手动六爻与 AI 模型控制。",
+	          questionApply: "采用建议问题",
+	          ritualTitle: "起卦导引",
+	          ritualBody: "用铜钱按钮逐爻生成，或直接用六爻构建器输入。六爻始终自下而上。",
+	          coinButton: "掷一爻铜钱",
+	          clearLines: "清空六爻",
+	          lineProgress: "已生成",
+	          lastCoins: "上次铜钱",
+	          lineBuilder: "六爻构建器",
+	        }
+	      : {
           promptTitle: "What are you actually deciding?",
           promptBody: "Ask clearly, then add the context that actually changes the decision. The reading, evidence, and follow-up stay in one thread.",
           contextLabel: "Relevant context",
@@ -251,9 +380,17 @@ export function CastForm({ config }: Props) {
           researchBody: "Keep more hexagram text, moving-line, Najia, and source comparison.",
           followupTitle: "Follow-up only",
           followupBody: "Create a trackable reading now, then continue in the same thread.",
-          advanced: "Advanced settings",
-          advancedDescription: "Casting method, time, manual lines, and AI model controls.",
-        }
+	          advanced: "Advanced settings",
+	          advancedDescription: "Casting method, time, manual lines, and AI model controls.",
+	          questionApply: "Use suggested question",
+	          ritualTitle: "Casting ritual",
+	          ritualBody: "Use the coin button line by line, or enter exact values with the line builder. Lines are always bottom to top.",
+	          coinButton: "Toss one coin line",
+	          clearLines: "Clear lines",
+	          lineProgress: "Built",
+	          lastCoins: "Last coins",
+	          lineBuilder: "Line builder",
+	        }
 
   const readingModes = [
     {
@@ -320,24 +457,48 @@ export function CastForm({ config }: Props) {
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.questionLabel}</p>
-                  <span className="text-xs text-muted-foreground">
+	                  <label htmlFor="reading-question" className="text-sm font-medium text-foreground">{messages.workspace.cast.questionLabel}</label>
+	                  <span className="text-xs text-muted-foreground">
                     {questionLength}/{QUESTION_LIMIT}
                   </span>
                 </div>
-                <Textarea
-                  placeholder={messages.workspace.cast.questionPlaceholder}
+	                <Textarea
+	                  id="reading-question"
+	                  placeholder={messages.workspace.cast.questionPlaceholder}
                   value={form.userQuestion}
                   onChange={(event) => updateForm("userQuestion", event.target.value)}
                   rows={7}
                   maxLength={QUESTION_LIMIT}
-                  className="min-h-[12rem] text-base leading-relaxed"
-                />
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">{copy.contextLabel}</p>
-                <Textarea
-                  placeholder={copy.contextPlaceholder}
+	                  className="min-h-[12rem] text-base leading-relaxed"
+	                />
+	                {questionCoaching && (
+	                  <div
+	                    className={cn(
+	                      "rounded-md border p-3 text-sm",
+	                      questionCoaching.tone === "good" && "border-emerald-500/30 bg-emerald-500/10",
+	                      questionCoaching.tone === "caution" && "border-amber-500/40 bg-amber-500/10",
+	                      questionCoaching.tone === "risk" && "border-destructive/40 bg-destructive/10",
+	                    )}
+	                  >
+	                    <p className="font-semibold text-foreground">{questionCoaching.title}</p>
+	                    <p className="mt-1 leading-6 text-muted-foreground">{questionCoaching.body}</p>
+	                    {questionCoaching.suggestion && (
+	                      <button
+	                        type="button"
+	                        onClick={() => updateForm("userQuestion", questionCoaching.suggestion || "")}
+	                        className="mt-2 text-xs font-semibold text-primary underline underline-offset-4"
+	                      >
+	                        {copy.questionApply}
+	                      </button>
+	                    )}
+	                  </div>
+	                )}
+	              </div>
+	              <div className="space-y-2">
+	                <label htmlFor="reading-context" className="text-sm font-medium text-foreground">{copy.contextLabel}</label>
+	                <Textarea
+	                  id="reading-context"
+	                  placeholder={copy.contextPlaceholder}
                   value={form.userContext}
                   onChange={(event) => updateForm("userContext", event.target.value)}
                   rows={3}
@@ -347,10 +508,10 @@ export function CastForm({ config }: Props) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.topicLabel}</p>
-              <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
-                <SelectTrigger>
+	            <div className="space-y-2">
+	              <label id="reading-topic-label" className="text-sm font-medium text-foreground">{messages.workspace.cast.topicLabel}</label>
+	              <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
+	                <SelectTrigger aria-labelledby="reading-topic-label">
                   <SelectValue placeholder={messages.workspace.cast.topicLabel} />
                 </SelectTrigger>
                 <SelectContent>
@@ -374,13 +535,14 @@ export function CastForm({ config }: Props) {
                   key={mode.id}
                   type="button"
                   onClick={mode.apply}
-                  className={cn(
+	                  className={cn(
                     "rounded-lg border p-3 text-left transition",
                     mode.active
                       ? "border-primary/60 bg-primary/10 text-foreground"
                       : "border-border/60 bg-surface/70 hover:border-primary/40",
-                  )}
-                >
+	                  )}
+	                  aria-pressed={mode.active}
+	                >
                   <span className="text-sm font-semibold">{mode.title}</span>
                   <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{mode.body}</span>
                 </button>
@@ -388,8 +550,55 @@ export function CastForm({ config }: Props) {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Sheet>
+	          <div className="space-y-3">
+	            <div className="rounded-lg border border-border/60 bg-surface p-3">
+	              <div className="flex items-start justify-between gap-3">
+	                <div>
+	                  <p className="text-sm font-semibold text-foreground">{copy.ritualTitle}</p>
+	                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{copy.ritualBody}</p>
+	                </div>
+	                <span className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground">
+	                  {copy.lineProgress} {currentManualValues.length}/6
+	                </span>
+	              </div>
+	              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+	                <Button type="button" variant="secondary" className="rounded-md" onClick={tossCoinLine}>
+	                  {copy.coinButton}
+	                </Button>
+	                <Button type="button" variant="outline" className="rounded-md" onClick={clearManualLines}>
+	                  {copy.clearLines}
+	                </Button>
+	              </div>
+	              {lastCoinToss && (
+	                <p className="mt-2 text-xs text-muted-foreground">
+	                  {copy.lastCoins}: {lastCoinToss.join(" + ")} = {lastCoinToss.reduce((sum, coin) => sum + coin, 0)}
+	                </p>
+	              )}
+	              <div className="mt-3">
+	                <p className="text-xs font-semibold uppercase tracking-[0.16rem] text-muted-foreground">{copy.lineBuilder}</p>
+	                <div className="mt-2 grid grid-cols-2 gap-2">
+	                  {LINE_VALUE_OPTIONS.map((option) => (
+	                    <button
+	                      key={option.value}
+	                      type="button"
+	                      onClick={() => appendManualLine(option.value)}
+	                      className="rounded-md border border-border/60 bg-surface-elevated px-2 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50"
+	                    >
+	                      {locale === "zh" ? option.zh : option.en}
+	                    </button>
+	                  ))}
+	                </div>
+	              </div>
+	              <ol className="mt-3 grid grid-cols-6 gap-1 text-center text-xs" aria-label={messages.workspace.cast.manualLinesLabel}>
+	                {Array.from({ length: 6 }).map((_, index) => (
+	                  <li key={index} className="rounded-md border border-border/50 bg-background px-1 py-1 text-muted-foreground">
+	                    {currentManualValues[index] ?? "·"}
+	                  </li>
+	                ))}
+	              </ol>
+	            </div>
+
+	            <Sheet>
               <SheetTrigger asChild>
                 <Button type="button" variant="outline" className="w-full rounded-md">
                   {copy.advanced}
@@ -418,10 +627,10 @@ export function CastForm({ config }: Props) {
                     </Select>
                   </div>
 
-                  {form.methodKey === "x" && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-foreground">{messages.workspace.cast.manualLinesLabel}</p>
+	                  {form.methodKey === MANUAL_METHOD_KEY && (
+	                    <div className="space-y-2">
+	                      <div className="flex items-center justify-between gap-3">
+	                        <label htmlFor="manual-lines-raw" className="text-sm font-medium text-foreground">{messages.workspace.cast.manualLinesLabel}</label>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className={infoButtonClass}>
@@ -436,8 +645,9 @@ export function CastForm({ config }: Props) {
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <Input
-                        value={form.manualLines}
+	                      <Input
+	                        id="manual-lines-raw"
+	                        value={form.manualLines}
                         onChange={(event) => updateForm("manualLines", event.target.value)}
                         placeholder={messages.workspace.cast.manualLinesPlaceholder}
                       />

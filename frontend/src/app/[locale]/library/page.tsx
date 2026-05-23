@@ -2,8 +2,15 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { defaultLocale, isLocale, type Locale } from "@/i18n/config"
 import { withLocale } from "@/i18n/path"
-import { HEXAGRAM_ARCHIVE_SUMMARY, getHexagramArchiveSummary, type HexagramArchiveSourceKey } from "@/lib/hexagram-archive"
-import { HEXAGRAM_LIBRARY, hexagramLines } from "@/lib/hexagram-library"
+import { LibrarySearch, type LibrarySearchDocument } from "@/components/library/library-search"
+import { PUBLIC_SITE_URL } from "@/lib/env"
+import {
+  HEXAGRAM_ARCHIVE_SUMMARY,
+  getHexagramArchive,
+  getHexagramArchiveSummary,
+  type HexagramArchiveSourceKey,
+} from "@/lib/hexagram-archive"
+import { HEXAGRAM_LIBRARY, getHexagramPinyin, hexagramLines } from "@/lib/hexagram-library"
 
 type Props = {
   params: Promise<{ locale: string }>
@@ -22,21 +29,59 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value)
 }
 
+async function buildSearchDocuments(): Promise<LibrarySearchDocument[]> {
+  return Promise.all(
+    HEXAGRAM_LIBRARY.map(async (entry) => {
+      const archive = await getHexagramArchive(entry.slug)
+      const sourceSnippet =
+        archive?.entries
+          .slice(0, 8)
+          .map((sourceEntry) => sourceEntry.content.replace(/\s+/g, " ").trim())
+          .filter(Boolean)
+          .join(" ")
+          .slice(0, 900) ?? ""
+      return {
+        slug: entry.slug,
+        number: entry.number,
+        nameZh: entry.nameZh,
+        shortNameZh: entry.shortNameZh,
+        pinyin: getHexagramPinyin(entry.slug),
+        titleEn: entry.titleEn,
+        meaningEn: entry.meaningEn,
+        themes: entry.themes,
+        sourceSnippet,
+      }
+    }),
+  )
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolved = await params
   const locale = isLocale(resolved.locale) ? resolved.locale : defaultLocale
+  const canonical = `/${locale}/library`
   return {
     title: locale === "zh" ? "易经经典档案 · I Ching Studio" : "Source Library · I Ching Studio",
     description:
       locale === "zh"
         ? "浏览六十四卦、卦名、卦象、主题与来源层。"
         : "Browse the 64 hexagrams as a public source library for serious readings.",
+    alternates: {
+      canonical,
+      languages: {
+        en: "/en/library",
+        zh: "/zh/library",
+      },
+    },
+    openGraph: {
+      url: `${PUBLIC_SITE_URL}${canonical}`,
+    },
   }
 }
 
 export default async function LibraryPage({ params }: Props) {
   const resolved = await params
   const locale: Locale = isLocale(resolved.locale) ? resolved.locale : defaultLocale
+  const searchDocuments = await buildSearchDocuments()
   const copy =
     locale === "zh"
       ? {
@@ -127,6 +172,7 @@ export default async function LibraryPage({ params }: Props) {
                 <div>
                   <p className="text-xs text-muted-foreground">#{entry.number.toString().padStart(2, "0")}</p>
                   <h2 className="mt-1 text-lg font-semibold text-foreground">{entry.nameZh}</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">{getHexagramPinyin(entry.slug)}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{entry.titleEn}</p>
                 </div>
                 <div className="grid w-12 gap-1">
@@ -170,6 +216,8 @@ export default async function LibraryPage({ params }: Props) {
           )
         })}
       </section>
+
+      <LibrarySearch locale={locale} documents={searchDocuments} />
 
       <section className="rounded-lg border border-border/60 bg-surface p-5">
         <p className="kicker">{copy.sourceStats}</p>

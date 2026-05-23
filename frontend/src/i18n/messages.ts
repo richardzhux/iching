@@ -11,6 +11,7 @@ export type Messages = {
     brand: string
     workspace: string
     library: string
+    method: string
     profile: string
     github: string
     mobileMenuAria: string

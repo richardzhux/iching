@@ -10,6 +10,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { defaultLocale, isLocale, locales, type Locale } from "@/i18n/config"
 import { getMessages } from "@/i18n/get-messages"
 import { withLocale } from "@/i18n/path"
+import { PUBLIC_SITE_URL } from "@/lib/env"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -28,6 +29,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: messages.meta.appTitle,
     description: messages.meta.appDescription,
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        en: "/en",
+        zh: "/zh",
+      },
+    },
+    openGraph: {
+      url: `${PUBLIC_SITE_URL}/${locale}`,
+    },
   }
 }
 
@@ -67,6 +78,15 @@ export default async function LocaleLayout({ children, params }: Props) {
                   )}
                 >
                   {messages.nav.library}
+                </Link>
+                <Link
+                  href={withLocale(locale, "/method")}
+                  className={cn(
+                    buttonVariants({ variant: "ghost", size: "sm" }),
+                    "rounded-full text-xs font-medium",
+                  )}
+                >
+                  {messages.nav.method}
                 </Link>
                 <Link
                   href={withLocale(locale, "/profile")}

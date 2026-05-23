@@ -10,10 +10,11 @@ import { useConfigQuery } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import { useWorkspaceStore } from "@/lib/store"
 import { BookOpen, Loader2, RotateCw } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 
 export function CastWorkspace() {
   const { messages, toLocalePath } = useI18n()
+  const reduceMotion = useReducedMotion()
   const view = useWorkspaceStore((state) => state.view)
   const reopenResults = useWorkspaceStore((state) => state.reopenResults)
   const hasResult = useWorkspaceStore((state) => Boolean(state.result))
@@ -91,12 +92,12 @@ export function CastWorkspace() {
       </header>
       <AnimatePresence mode="wait">
         {view === "form" ? (
-          <motion.div
-            key="form"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+	          <motion.div
+	            key="form"
+	            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+	            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+	            exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
+	            transition={{ duration: reduceMotion ? 0 : 0.2 }}
           >
             <div className="space-y-4">
               <CastForm config={data} />
@@ -112,12 +113,12 @@ export function CastWorkspace() {
             </div>
           </motion.div>
         ) : (
-          <motion.div
-            key="results"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+	          <motion.div
+	            key="results"
+	            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+	            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+	            exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
+	            transition={{ duration: reduceMotion ? 0 : 0.2 }}
           >
             <ResultsPanel />
           </motion.div>

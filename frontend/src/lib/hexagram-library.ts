@@ -65,10 +65,81 @@ export const HEXAGRAM_LIBRARY = [
   { number: 64, slug: "before-completion", nameZh: "火水未济", shortNameZh: "未济", titleEn: "Before Completion", meaningEn: "preparation and anticipation", binary: "010101", upper: "Fire", lower: "Water", themes: ["unfinished", "threshold", "careful crossing"] },
 ] as const
 
+export const HEXAGRAM_PINYIN_BY_SLUG: Record<(typeof HEXAGRAM_LIBRARY)[number]["slug"], string> = {
+  qian: "Qián",
+  kun: "Kūn",
+  "difficulty-at-the-beginning": "Zhūn",
+  "youthful-folly": "Méng",
+  waiting: "Xū",
+  conflict: "Sòng",
+  "the-army": "Shī",
+  "holding-together": "Bǐ",
+  "small-taming": "Xiǎo Chù",
+  treading: "Lǚ",
+  peace: "Tài",
+  standstill: "Pǐ",
+  fellowship: "Tóng Rén",
+  "great-possession": "Dà Yǒu",
+  modesty: "Qiān",
+  enthusiasm: "Yù",
+  following: "Suí",
+  "work-on-what-has-been-spoiled": "Gǔ",
+  approach: "Lín",
+  contemplation: "Guān",
+  "biting-through": "Shì Kè",
+  grace: "Bì",
+  "splitting-apart": "Bō",
+  return: "Fù",
+  innocence: "Wú Wàng",
+  "great-taming": "Dà Chù",
+  nourishment: "Yí",
+  "great-preponderance": "Dà Guò",
+  "the-abysmal": "Kǎn",
+  "the-clinging": "Lí",
+  influence: "Xián",
+  duration: "Héng",
+  retreat: "Dùn",
+  "great-power": "Dà Zhuàng",
+  progress: "Jìn",
+  "darkening-of-the-light": "Míng Yí",
+  "the-family": "Jiā Rén",
+  opposition: "Kuí",
+  obstruction: "Jiǎn",
+  deliverance: "Xiè",
+  decrease: "Sǔn",
+  increase: "Yì",
+  breakthrough: "Guài",
+  "coming-to-meet": "Gòu",
+  "gathering-together": "Cuì",
+  "pushing-upward": "Shēng",
+  oppression: "Kùn",
+  "the-well": "Jǐng",
+  revolution: "Gé",
+  "the-cauldron": "Dǐng",
+  "the-arousing": "Zhèn",
+  "keeping-still": "Gèn",
+  development: "Jiàn",
+  "the-marrying-maiden": "Guī Mèi",
+  abundance: "Fēng",
+  "the-wanderer": "Lǚ",
+  "the-gentle": "Xùn",
+  "the-joyous": "Duì",
+  dispersion: "Huàn",
+  limitation: "Jié",
+  "inner-truth": "Zhōng Fú",
+  "small-exceeding": "Xiǎo Guò",
+  "after-completion": "Jì Jì",
+  "before-completion": "Wèi Jì",
+}
+
 export type HexagramLibraryEntry = (typeof HEXAGRAM_LIBRARY)[number]
 
 export function getHexagramBySlug(slug: string) {
   return HEXAGRAM_LIBRARY.find((entry) => entry.slug === slug)
+}
+
+export function getHexagramPinyin(slug: HexagramLibraryEntry["slug"] | string) {
+  return HEXAGRAM_PINYIN_BY_SLUG[slug as HexagramLibraryEntry["slug"]] ?? ""
 }
 
 export function hexagramLines(binary: string) {

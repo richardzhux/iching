@@ -3,12 +3,13 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { defaultLocale, isLocale, locales, type Locale } from "@/i18n/config"
 import { withLocale } from "@/i18n/path"
+import { PUBLIC_SITE_URL } from "@/lib/env"
 import {
   getHexagramArchive,
   type HexagramArchiveEntry,
   type HexagramArchiveSourceKey,
 } from "@/lib/hexagram-archive"
-import { getHexagramBySlug, HEXAGRAM_LIBRARY, hexagramLines } from "@/lib/hexagram-library"
+import { getHexagramBySlug, getHexagramPinyin, HEXAGRAM_LIBRARY, hexagramLines } from "@/lib/hexagram-library"
 
 type Props = {
   params: Promise<{ locale: string; slug: string }>
@@ -159,15 +160,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!entry) {
     return {}
   }
+  const canonical = `/${locale}/hexagram/${entry.slug}`
+  const pinyin = getHexagramPinyin(entry.slug)
   return {
     title:
       locale === "zh"
-        ? `${entry.nameZh} · 第 ${entry.number} 卦 · I Ching Studio`
-        : `Hexagram ${entry.number}: ${entry.titleEn} · I Ching Studio`,
+        ? `${entry.nameZh} ${pinyin} · 第 ${entry.number} 卦 · I Ching Studio`
+        : `Hexagram ${entry.number}: ${entry.shortNameZh} ${pinyin} — ${entry.titleEn} · I Ching Studio`,
     description:
       locale === "zh"
-        ? `${entry.nameZh}：${entry.titleEn}，${entry.meaningEn}。`
-        : `${entry.nameZh}, ${entry.titleEn}: ${entry.meaningEn}.`,
+        ? `${entry.nameZh} ${pinyin}：${entry.titleEn}，${entry.meaningEn}。`
+        : `Study Hexagram ${entry.number} ${entry.shortNameZh} ${pinyin}: ${entry.titleEn}, ${entry.meaningEn}.`,
+    alternates: {
+      canonical,
+      languages: {
+        en: `/en/hexagram/${entry.slug}`,
+        zh: `/zh/hexagram/${entry.slug}`,
+      },
+    },
+    openGraph: {
+      url: `${PUBLIC_SITE_URL}${canonical}`,
+    },
   }
 }
 
@@ -182,6 +195,7 @@ export default async function HexagramDetailPage({ params }: Props) {
   }
 
   const archiveSlots = groupArchiveEntriesBySlot(archive.entries)
+  const pinyin = getHexagramPinyin(entry.slug)
   const copy =
     locale === "zh"
       ? {
@@ -240,7 +254,7 @@ export default async function HexagramDetailPage({ params }: Props) {
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">
             {copy.number} {entry.number} {copy.gua} · {entry.nameZh}
           </h1>
-          <p className="mt-3 text-xl text-muted-foreground">{entry.titleEn}</p>
+          <p className="mt-3 text-xl text-muted-foreground">{pinyin} · {entry.titleEn}</p>
           <p className="mt-4 max-w-2xl text-base leading-7 text-foreground">{entry.meaningEn}</p>
         </div>
         <div className="grid place-items-center rounded-lg border border-border/60 bg-surface-elevated p-5">

@@ -50,6 +50,58 @@ def test_workspace_has_graceful_backend_fallback_and_library_escape():
     assert "throw new Error" not in workspace
 
 
+def test_production_hardening_uses_real_domain_and_no_stale_domain():
+    api = read("frontend/src/lib/api.ts")
+    env = read("frontend/src/lib/env.ts")
+    sitemap = read("frontend/src/app/sitemap.ts")
+    robots = read("frontend/src/app/robots.ts")
+    repo_text = "\n".join(
+        [
+            read("frontend/src/lib/env.ts"),
+            read("frontend/src/app/sitemap.ts"),
+            read("frontend/src/app/robots.ts"),
+            read("frontend/src/app/[locale]/method/page.tsx"),
+        ]
+    )
+
+    assert "127.0.0.1" not in api
+    assert "NEXT_PUBLIC_API_BASE_URL" in env
+    assert "Missing NEXT_PUBLIC_API_BASE_URL" in env
+    assert "iching.richardzhux.com" in env
+    assert "stateofiching.com" not in repo_text
+    assert "MetadataRoute.Sitemap" in sitemap
+    assert "MetadataRoute.Robots" in robots
+
+
+def test_method_page_and_nav_explain_trust_boundary():
+    method_page = read("frontend/src/app/[locale]/method/page.tsx")
+    layout = read("frontend/src/app/[locale]/layout.tsx")
+    en = read("frontend/src/i18n/catalog/en.ts")
+    zh = read("frontend/src/i18n/catalog/zh.ts")
+
+    assert "/method" in layout
+    assert 'method: "Method"' in en
+    assert 'method: "机理"' in zh
+    assert "AI synthesis is allowed" in method_page
+    assert "365-day cloud retention limit" in method_page
+    assert "not medical, legal, financial" in method_page
+
+
+def test_library_has_pinyin_search_and_public_metadata():
+    library_data = read("frontend/src/lib/hexagram-library.ts")
+    library_page = read("frontend/src/app/[locale]/library/page.tsx")
+    search = read("frontend/src/components/library/library-search.tsx")
+    detail_page = read("frontend/src/app/[locale]/hexagram/[slug]/page.tsx")
+
+    assert "HEXAGRAM_PINYIN_BY_SLUG" in library_data
+    assert 'qian: "Qián"' in library_data
+    assert "LibrarySearch" in library_page
+    assert "sourceSnippet" in library_page
+    assert "Search the Yi" in search
+    assert "getHexagramPinyin" in detail_page
+    assert "alternates" in detail_page
+
+
 def test_public_hexagram_library_routes_and_data_exist():
     library_data = read("frontend/src/lib/hexagram-library.ts")
     library_page = ROOT / "frontend/src/app/[locale]/library/page.tsx"
@@ -108,6 +160,16 @@ def test_results_source_review_uses_drawer_not_archive_tab_or_inline_expansion()
     assert "function ArchiveComparisonPanel" not in results
     assert 'value === "archive"' not in store
     assert 'export type ResultsTab = "summary" | "hex" | "ai"' in store
+
+
+def test_source_drawer_has_classification_and_why_selected():
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+
+    assert "sourceLayerLabel" in results
+    assert "whySelectedForSource" in results
+    assert "Why selected" in results
+    assert "Source class" in results
+    assert "为什么选它" in results
 
 
 def test_mechanics_source_review_no_long_inline_archive_expansion():
@@ -227,6 +289,23 @@ def test_profile_page_matches_premium_study_surface():
     assert "365 天" in profile
     assert "up to 500" in profile
     assert "最多 500" in profile
+
+
+def test_reading_desk_has_question_coaching_and_guided_line_builder():
+    cast_form = read("frontend/src/components/workspace/cast-form.tsx")
+    analytics = read("frontend/src/lib/analytics.ts")
+    store = read("frontend/src/lib/store.ts")
+
+    assert "analyzeQuestion" in cast_form
+    assert "High-risk question" in cast_form
+    assert "Better as an inquiry question" in cast_form
+    assert "coinLineValue" in cast_form
+    assert "Toss one coin line" in cast_form
+    assert "Line builder" in cast_form
+    assert "aria-pressed={mode.active}" in cast_form
+    assert "SAFE_EVENT_NAMES" in analytics
+    assert "user_question" not in analytics
+    assert 'accessPassword: ""' in store
 
 
 def test_supabase_retention_contract_keeps_sessions_for_one_year():

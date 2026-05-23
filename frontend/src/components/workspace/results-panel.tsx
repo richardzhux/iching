@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useWorkspaceStore, type JournalStatus, type ReadingJournalEntry } from "@/lib/store"
+import { trackProductEvent } from "@/lib/analytics"
 import type {
   BaziPillar,
   HexSection,
@@ -26,6 +27,7 @@ import { NajiaTableView } from "./najia-table"
 
 export function ResultsPanel() {
   const { messages, locale } = useI18n()
+  const reduceMotion = useReducedMotion()
   const result = useWorkspaceStore((state) => state.result)
   const resetSession = useWorkspaceStore((state) => state.resetSession)
   const setView = useWorkspaceStore((state) => state.setView)
@@ -39,6 +41,7 @@ export function ResultsPanel() {
 
   const openSourceReader = (sourceId: string) => {
     if (sourceId) {
+      trackProductEvent("source_drawer_opened", { source_id_present: true })
       setActiveSourceId(sourceId)
     }
   }
@@ -57,7 +60,7 @@ export function ResultsPanel() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}>
       <Card className="surface-card rounded-lg border-border/40 text-foreground">
         <CardHeader className="flex flex-col gap-3 border-b border-border/50 pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -390,6 +393,36 @@ function fallbackKeyReason(passage: ReadingBriefSourcePassage, result: SessionPa
 
 function passageDisplayText(passage: ReadingBriefSourcePassage | ReadingBriefKeyPassage) {
   return "excerpt" in passage && passage.excerpt ? passage.excerpt : passage.content
+}
+
+function sourceLayerLabel(passage: ReadingBriefSourcePassage, locale: "en" | "zh") {
+  const source = passage.source?.toLowerCase() ?? ""
+  if (source.includes("takashima")) return locale === "zh" ? "注释层" : "Commentarial layer"
+  if (source.includes("english")) return locale === "zh" ? "英文评注层" : "English commentary layer"
+  if (source.includes("symbolic")) return locale === "zh" ? "卦象结构层" : "Structural inference layer"
+  if (source.includes("guaci")) return locale === "zh" ? "经典原文层" : "Classical text layer"
+  return locale === "zh" ? "来源层" : "Source layer"
+}
+
+function whySelectedForSource(passage: ReadingBriefSourcePassage, locale: "en" | "zh") {
+  if (passage.importance === "primary" || passage.visible_by_default) {
+    return locale === "zh"
+      ? "这段属于本次阅读默认取用的关键证据，因此优先展示。"
+      : "This passage is selected as default evidence for this reading, so it is shown first."
+  }
+  if (passage.section_kind === "line") {
+    return locale === "zh"
+      ? "这段对应爻位资料，用来检查动爻或相关爻位的解释边界。"
+      : "This passage belongs to line material and helps inspect the active or related line."
+  }
+  if (passage.section_kind === "top") {
+    return locale === "zh"
+      ? "这段对应整卦资料，用来说明本卦或变卦的总体语境。"
+      : "This passage belongs to whole-hexagram material and frames the primary or changed context."
+  }
+  return locale === "zh"
+    ? "这段与当前槽位或来源组相关，用作补充校验。"
+    : "This passage is related to the selected slot or source group and is used as supporting evidence."
 }
 
 function archiveCoverageFromPassages(passages: ReadingBriefSourcePassage[]) {
@@ -946,19 +979,27 @@ function SourceReaderSheet({
       ? {
           title: "原文笔记",
           body: "在右侧查看本次取用的具体来源块，不把导引页撑成长篇档案。",
-          sameSlot: "同一槽位",
-          otherSlots: "其他相关",
-          citation: "引用",
-          empty: "当前没有可打开的来源段落。",
-        }
-      : {
+	          sameSlot: "同一槽位",
+	          otherSlots: "其他相关",
+	          citation: "引用",
+	          slot: "槽位",
+	          layer: "来源分类",
+	          why: "为什么选它",
+	          content: "来源内容",
+	          empty: "当前没有可打开的来源段落。",
+	        }
+	      : {
           title: "Source notebook",
           body: "Review the exact source chunks for this reading without expanding the whole result page.",
-          sameSlot: "Same slot",
-          otherSlots: "Other relevant",
-          citation: "Citation",
-          empty: "No source passage is available for this reading.",
-        }
+	          sameSlot: "Same slot",
+	          otherSlots: "Other relevant",
+	          citation: "Citation",
+	          slot: "Slot",
+	          layer: "Source class",
+	          why: "Why selected",
+	          content: "Source content",
+	          empty: "No source passage is available for this reading.",
+	        }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -1004,13 +1045,33 @@ function SourceReaderSheet({
                   {selected.slot_key}
                 </span>
               </div>
-              <div className="mt-4 rounded-md border border-border/50 bg-surface p-4">
-                <MarkdownContent content={passageDisplayText(selected)} />
-              </div>
-              <p className="mt-4 text-xs leading-5 text-muted-foreground">
-                {labels.citation}: {selected.citation}
-              </p>
-            </main>
+	              <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
+	                <div className="rounded-md border border-border/50 bg-surface px-3 py-2">
+	                  <dt className="text-muted-foreground">{labels.slot}</dt>
+	                  <dd className="mt-1 font-semibold text-foreground">{selected.slot_key}</dd>
+	                </div>
+	                <div className="rounded-md border border-border/50 bg-surface px-3 py-2">
+	                  <dt className="text-muted-foreground">{labels.layer}</dt>
+	                  <dd className="mt-1 font-semibold text-foreground">{sourceLayerLabel(selected, locale)}</dd>
+	                </div>
+	                <div className="rounded-md border border-border/50 bg-surface px-3 py-2">
+	                  <dt className="text-muted-foreground">{labels.citation}</dt>
+	                  <dd className="mt-1 font-semibold text-foreground">{selected.citation || selected.source_label}</dd>
+	                </div>
+	              </dl>
+	              <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-4">
+	                <p className="text-xs font-semibold uppercase tracking-[0.18rem] text-amber-700 dark:text-amber-200">
+	                  {labels.why}
+	                </p>
+	                <p className="mt-2 text-sm leading-6 text-foreground">{whySelectedForSource(selected, locale)}</p>
+	              </div>
+	              <div className="mt-4 rounded-md border border-border/50 bg-surface p-4">
+	                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18rem] text-muted-foreground">
+	                  {labels.content}
+	                </p>
+	                <MarkdownContent content={passageDisplayText(selected)} />
+	              </div>
+	            </main>
           </div>
         ) : (
           <div className="p-5 text-sm text-muted-foreground">{labels.empty}</div>

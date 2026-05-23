@@ -1,12 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
 
 export function HomePage() {
   const { locale, toLocalePath } = useI18n()
+  const reduceMotion = useReducedMotion()
   const copy =
     locale === "zh"
       ? {
@@ -80,10 +81,10 @@ export function HomePage() {
   return (
     <main className="space-y-10">
       <section className="grid min-h-[calc(100vh-11rem)] gap-8 lg:grid-cols-[1fr_0.92fr] lg:items-center">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
+	        <motion.div
+	          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+	          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+	          transition={{ duration: reduceMotion ? 0 : 0.35 }}
           className="space-y-7"
         >
           <div className="inline-flex items-center gap-2 rounded-md border border-border/70 bg-surface px-3 py-1 text-xs font-semibold text-muted-foreground">
@@ -108,10 +109,10 @@ export function HomePage() {
           <p className="max-w-2xl text-xs leading-5 text-muted-foreground">{copy.safety}</p>
         </motion.div>
 
-        <motion.article
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08, duration: 0.4 }}
+	        <motion.article
+	          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+	          animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+	          transition={{ delay: reduceMotion ? 0 : 0.08, duration: reduceMotion ? 0 : 0.4 }}
           className="rounded-lg border border-border/70 bg-surface p-5 shadow-sm"
         >
           <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-4">
