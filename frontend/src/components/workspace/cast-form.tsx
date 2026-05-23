@@ -39,6 +39,7 @@ type Props = {
 
 const QUESTION_LIMIT = 2000
 const MANUAL_METHOD_KEY = "x"
+type ReadingPreset = "quick" | "deep" | "thread"
 
 const LINE_VALUE_OPTIONS = [
   { value: 6, en: "6 · old yin", zh: "6 · 老阴" },
@@ -172,6 +173,7 @@ export function CastForm({ config }: Props) {
   const { messages, locale, toLocalePath } = useI18n()
   const defaultsHydrated = useRef(false)
   const [lastCoinToss, setLastCoinToss] = useState<number[] | null>(null)
+  const [selectedPreset, setSelectedPreset] = useState<ReadingPreset>("quick")
   const form = useWorkspaceStore((state) => state.form)
   const updateForm = useWorkspaceStore((state) => state.updateForm)
   const setForm = useWorkspaceStore((state) => state.setForm)
@@ -342,75 +344,86 @@ export function CastForm({ config }: Props) {
   const copy =
     locale === "zh"
       ? {
+          pageKicker: "起卦页",
           promptTitle: "你现在真正要判断什么？",
           promptBody: "先写清问题，再补充真正影响判断的背景；卦象、经典文本与追问会围绕同一条判断链展开。",
           contextLabel: "相关背景",
           contextPlaceholder: "例如：对方已经催了两次，但预算、负责人、时间表还没完全确定。",
-          modeLabel: "阅读预设",
-          quickTitle: "快速阅读",
-          quickBody: "最短路径得到结论、证据和下一步。",
-          deepTitle: "深度阅读",
-          deepBody: "登录后启用完整 AI 解读与后续追问。",
-          researchTitle: "经典研究",
-          researchBody: "优先保留卦辞、动爻、纳甲与来源对照。",
-          followupTitle: "仅建线程",
-          followupBody: "先生成可追踪阅读，后续在同一线程补问。",
-	          advanced: "高级设置",
-	          advancedDescription: "起卦方法、时间、手动六爻与 AI 模型控制。",
-	          questionApply: "采用建议问题",
-	          ritualTitle: "起卦导引",
-	          ritualBody: "用铜钱按钮逐爻生成，或直接用六爻构建器输入。六爻始终自下而上。",
-	          coinButton: "掷一爻铜钱",
-	          clearLines: "清空六爻",
-	          lineProgress: "已生成",
-	          lastCoins: "上次铜钱",
-	          lineBuilder: "六爻构建器",
-	        }
-	      : {
+          modeLabel: "起卦模式",
+          quickTitle: "快速断读",
+          quickBody: "不启用 AI，直接生成判断简报、重点段落和证据链。",
+          deepTitle: "AI 深度解读",
+          deepBody: "启用 AI 后，模型、推理力度和详略直接在本页调整。",
+          followupTitle: "只建档案",
+          followupBody: "先生成卦象与来源包，稍后从同一记录继续追问。",
+          advanced: "时间与原始输入",
+          advancedDescription: "只放少用设置：起卦方法、时间与原始六爻输入。AI 控制留在主界面。",
+          questionApply: "采用建议问题",
+          ritualTitle: "六爻起卦",
+          ritualBody: "用铜钱逐爻生成，或直接选择 6/7/8/9；右侧实时显示本次卦象。六爻始终自下而上。",
+          coinButton: "掷一爻铜钱",
+          clearLines: "清空六爻",
+          lineProgress: "已生成",
+          lastCoins: "上次铜钱",
+          lineBuilder: "六爻构建器",
+          previewTitle: "实时卦象",
+          previewBody: "第 1 爻在最下方，老阴/老阳会以金色标记为动爻。",
+          aiSettingsTitle: "AI 解读设置",
+          aiSettingsBody: "选择深度解读后在这里直接调试，不再藏进高级设置。",
+          aiOffBody: "快速断读与只建档案不会调用 AI。",
+        }
+      : {
+          pageKicker: "Casting desk",
           promptTitle: "What are you actually deciding?",
           promptBody: "Ask clearly, then add the context that actually changes the decision. The reading, evidence, and follow-up stay in one thread.",
           contextLabel: "Relevant context",
           contextPlaceholder: "Example: They are pushing for a fast answer, but budget, owner, and timeline are still unclear.",
-          modeLabel: "Reading preset",
-          quickTitle: "Quick reading",
-          quickBody: "Shortest path to judgment, evidence, and next step.",
+          modeLabel: "Casting mode",
+          quickTitle: "Quick judgment",
+          quickBody: "No AI call; generate the brief, decisive passages, and evidence chain.",
           deepTitle: "Deep reading",
-          deepBody: "Enable full AI interpretation and follow-up after sign-in.",
-          researchTitle: "Classical research",
-          researchBody: "Keep more hexagram text, moving-line, Najia, and source comparison.",
-          followupTitle: "Follow-up only",
-          followupBody: "Create a trackable reading now, then continue in the same thread.",
-	          advanced: "Advanced settings",
-	          advancedDescription: "Casting method, time, manual lines, and AI model controls.",
-	          questionApply: "Use suggested question",
-	          ritualTitle: "Casting ritual",
-	          ritualBody: "Use the coin button line by line, or enter exact values with the line builder. Lines are always bottom to top.",
-	          coinButton: "Toss one coin line",
-	          clearLines: "Clear lines",
-	          lineProgress: "Built",
-	          lastCoins: "Last coins",
-	          lineBuilder: "Line builder",
-	        }
+          deepBody: "Enable AI and tune model, reasoning, and length directly on this page.",
+          followupTitle: "Record only",
+          followupBody: "Create the cast and source packet now; continue later in the same record.",
+          advanced: "Time and raw input",
+          advancedDescription: "Less common controls only: method, timestamp, and raw six-line input. AI controls stay on the main page.",
+          questionApply: "Use suggested question",
+          ritualTitle: "Six-line cast",
+          ritualBody: "Use the coin button line by line, or choose exact 6/7/8/9 values. The live hexagram updates beside the builder. Lines are bottom to top.",
+          coinButton: "Toss one coin line",
+          clearLines: "Clear lines",
+          lineProgress: "Built",
+          lastCoins: "Last coins",
+          lineBuilder: "Line builder",
+          previewTitle: "Live hexagram",
+          previewBody: "Line 1 is at the bottom; old yin and old yang are marked as moving in gold.",
+          aiSettingsTitle: "AI reading settings",
+          aiSettingsBody: "Deep reading exposes the model controls here instead of hiding them behind Advanced.",
+          aiOffBody: "Quick judgment and Record only do not call AI.",
+        }
 
   const readingModes = [
     {
       id: "quick",
       title: copy.quickTitle,
       body: copy.quickBody,
-      active: !form.enableAi && (!form.aiVerbosity || form.aiVerbosity === "medium"),
-      apply: () =>
+      active: selectedPreset === "quick" && !form.enableAi,
+      apply: () => {
+        setSelectedPreset("quick")
         setForm({
           enableAi: false,
           aiReasoning: "medium",
           aiVerbosity: "medium",
-        }),
+        })
+      },
     },
     {
       id: "deep",
       title: copy.deepTitle,
       body: copy.deepBody,
-      active: form.enableAi,
+      active: selectedPreset === "deep" || form.enableAi,
       apply: () => {
+        setSelectedPreset("deep")
         if (!canUseAi) {
           toast.error(messages.workspace.cast.aiLoginHint)
           return
@@ -424,436 +437,528 @@ export function CastForm({ config }: Props) {
       },
     },
     {
-      id: "research",
-      title: copy.researchTitle,
-      body: copy.researchBody,
-      active: !form.enableAi && form.aiVerbosity === "high",
-      apply: () =>
-        setForm({
-          enableAi: false,
-          aiReasoning: "medium",
-          aiVerbosity: "high",
-        }),
-    },
-    {
-      id: "followup",
+      id: "thread",
       title: copy.followupTitle,
       body: copy.followupBody,
-      active: !form.enableAi && form.aiVerbosity === "low",
-      apply: () =>
+      active: selectedPreset === "thread" && !form.enableAi,
+      apply: () => {
+        setSelectedPreset("thread")
         setForm({
           enableAi: false,
           aiReasoning: "minimal",
           aiVerbosity: "low",
-        }),
+        })
+      },
     },
   ]
 
+  const showAiControls = selectedPreset === "deep" || form.enableAi
+
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-5xl">
-      <section className="surface-card grid gap-6 rounded-lg p-5 sm:p-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-5">
-          <div className="flex gap-4">
-            <span className="oracle-mark mt-1" aria-hidden="true">
-              🔮
-            </span>
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground">{copy.promptTitle}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{copy.promptBody}</p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_13rem]">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-	                  <label htmlFor="reading-question" className="text-sm font-medium text-foreground">{messages.workspace.cast.questionLabel}</label>
-	                  <span className="text-xs text-muted-foreground">
-                    {questionLength}/{QUESTION_LIMIT}
-                  </span>
-                </div>
-	                <Textarea
-	                  id="reading-question"
-	                  placeholder={messages.workspace.cast.questionPlaceholder}
-                  value={form.userQuestion}
-                  onChange={(event) => updateForm("userQuestion", event.target.value)}
-                  rows={7}
-                  maxLength={QUESTION_LIMIT}
-	                  className="min-h-[12rem] text-base leading-relaxed"
-	                />
-	                {questionCoaching && (
-	                  <div
-	                    className={cn(
-	                      "rounded-md border p-3 text-sm",
-	                      questionCoaching.tone === "good" && "border-primary/30 bg-primary/10",
-	                      questionCoaching.tone === "caution" && "imperial-highlight-panel",
-	                      questionCoaching.tone === "risk" && "border-destructive/40 bg-destructive/10",
-	                    )}
-	                  >
-	                    <p className="font-semibold text-foreground">{questionCoaching.title}</p>
-	                    <p className="mt-1 leading-6 text-muted-foreground">{questionCoaching.body}</p>
-	                    {questionCoaching.suggestion && (
-	                      <button
-	                        type="button"
-	                        onClick={() => updateForm("userQuestion", questionCoaching.suggestion || "")}
-	                        className="mt-2 text-xs font-semibold text-primary underline underline-offset-4"
-	                      >
-	                        {copy.questionApply}
-	                      </button>
-	                    )}
-	                  </div>
-	                )}
-	              </div>
-	              <div className="space-y-2">
-	                <label htmlFor="reading-context" className="text-sm font-medium text-foreground">{copy.contextLabel}</label>
-	                <Textarea
-	                  id="reading-context"
-	                  placeholder={copy.contextPlaceholder}
-                  value={form.userContext}
-                  onChange={(event) => updateForm("userContext", event.target.value)}
-                  rows={3}
-                  maxLength={1200}
-                  className="min-h-[6rem] text-sm leading-relaxed"
-                />
-              </div>
-            </div>
-
-	            <div className="space-y-2">
-	              <label id="reading-topic-label" className="text-sm font-medium text-foreground">{messages.workspace.cast.topicLabel}</label>
-	              <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
-	                <SelectTrigger aria-labelledby="reading-topic-label">
-                  <SelectValue placeholder={messages.workspace.cast.topicLabel} />
-                </SelectTrigger>
-                <SelectContent>
-                  {config.topics.map((topic) => (
-                    <SelectItem value={topic.label} key={topic.key}>
-                      {topic.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[88rem] px-3 sm:px-5">
+      <section className="surface-card rounded-lg p-5 sm:p-6">
+        <div className="flex gap-4">
+          <span className="oracle-mark mt-1 text-2xl" aria-hidden="true">
+            🔮
+          </span>
+          <div className="min-w-0">
+            <p className="kicker">{copy.pageKicker}</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{copy.promptTitle}</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{copy.promptBody}</p>
           </div>
         </div>
 
-        <aside className="surface-soft flex flex-col justify-between gap-5 rounded-lg p-4">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">{copy.modeLabel}</p>
-            <div className="grid gap-2">
-              {readingModes.map((mode) => (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={mode.apply}
-	                  className={cn(
-                    "rounded-lg border p-3 text-left transition",
-                    mode.active
-                      ? "border-primary/60 bg-primary/10 text-foreground"
-                      : "border-border/60 bg-surface/70 hover:border-primary/40",
-	                  )}
-	                  aria-pressed={mode.active}
-	                >
-                  <span className="text-sm font-semibold">{mode.title}</span>
-                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{mode.body}</span>
-                </button>
-              ))}
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(25rem,0.72fr)]">
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="reading-question" className="text-sm font-medium text-foreground">
+                    {messages.workspace.cast.questionLabel}
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {questionLength}/{QUESTION_LIMIT}
+                  </span>
+                </div>
+                <Textarea
+                  id="reading-question"
+                  placeholder={messages.workspace.cast.questionPlaceholder}
+                  value={form.userQuestion}
+                  onChange={(event) => updateForm("userQuestion", event.target.value)}
+                  rows={8}
+                  maxLength={QUESTION_LIMIT}
+                  className="min-h-[15rem] text-base leading-relaxed"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label id="reading-topic-label" className="text-sm font-medium text-foreground">
+                  {messages.workspace.cast.topicLabel}
+                </label>
+                <Select value={form.topic} onValueChange={(value) => updateForm("topic", value)}>
+                  <SelectTrigger aria-labelledby="reading-topic-label">
+                    <SelectValue placeholder={messages.workspace.cast.topicLabel} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {config.topics.map((topic) => (
+                      <SelectItem value={topic.label} key={topic.key}>
+                        {topic.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {questionCoaching && (
+              <div
+                className={cn(
+                  "rounded-md border p-3 text-sm",
+                  questionCoaching.tone === "good" && "border-primary/30 bg-primary/10",
+                  questionCoaching.tone === "caution" && "imperial-highlight-panel",
+                  questionCoaching.tone === "risk" && "border-destructive/40 bg-destructive/10",
+                )}
+              >
+                <p className="font-semibold text-foreground">{questionCoaching.title}</p>
+                <p className="mt-1 leading-6 text-muted-foreground">{questionCoaching.body}</p>
+                {questionCoaching.suggestion && (
+                  <button
+                    type="button"
+                    onClick={() => updateForm("userQuestion", questionCoaching.suggestion || "")}
+                    className="mt-2 text-xs font-semibold text-primary underline underline-offset-4"
+                  >
+                    {copy.questionApply}
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label htmlFor="reading-context" className="text-sm font-medium text-foreground">
+                {copy.contextLabel}
+              </label>
+              <Textarea
+                id="reading-context"
+                placeholder={copy.contextPlaceholder}
+                value={form.userContext}
+                onChange={(event) => updateForm("userContext", event.target.value)}
+                rows={4}
+                maxLength={1200}
+                className="min-h-[7.5rem] text-sm leading-relaxed"
+              />
             </div>
           </div>
 
-	          <div className="space-y-3">
-	            <div className="rounded-lg border border-border/60 bg-surface p-3">
-	              <div className="flex items-start justify-between gap-3">
-	                <div>
-	                  <p className="text-sm font-semibold text-foreground">{copy.ritualTitle}</p>
-	                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{copy.ritualBody}</p>
-	                </div>
-	                <span className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground">
-	                  {copy.lineProgress} {currentManualValues.length}/6
-	                </span>
-	              </div>
-	              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-	                <Button type="button" variant="secondary" className="rounded-md" onClick={tossCoinLine}>
-	                  {copy.coinButton}
-	                </Button>
-	                <Button type="button" variant="outline" className="rounded-md" onClick={clearManualLines}>
-	                  {copy.clearLines}
-	                </Button>
-	              </div>
-	              {lastCoinToss && (
-	                <p className="mt-2 text-xs text-muted-foreground">
-	                  {copy.lastCoins}: {lastCoinToss.join(" + ")} = {lastCoinToss.reduce((sum, coin) => sum + coin, 0)}
-	                </p>
-	              )}
-	              <div className="mt-3">
-	                <p className="text-xs font-semibold uppercase tracking-[0.16rem] text-muted-foreground">{copy.lineBuilder}</p>
-	                <div className="mt-2 grid grid-cols-2 gap-2">
-	                  {LINE_VALUE_OPTIONS.map((option) => (
-	                    <button
-	                      key={option.value}
-	                      type="button"
-	                      onClick={() => appendManualLine(option.value)}
-	                      className="rounded-md border border-border/60 bg-surface-elevated px-2 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50"
-	                    >
-	                      {locale === "zh" ? option.zh : option.en}
-	                    </button>
-	                  ))}
-	                </div>
-	              </div>
-	              <ol className="mt-3 grid grid-cols-6 gap-1 text-center text-xs" aria-label={messages.workspace.cast.manualLinesLabel}>
-	                {Array.from({ length: 6 }).map((_, index) => (
-	                  <li key={index} className="rounded-md border border-border/50 bg-background px-1 py-1 text-muted-foreground">
-	                    {currentManualValues[index] ?? "·"}
-	                  </li>
-	                ))}
-	              </ol>
-	            </div>
+          <aside className="surface-soft space-y-4 rounded-lg p-4">
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-foreground">{copy.modeLabel}</p>
+              <div className="grid gap-2">
+                {readingModes.map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={mode.apply}
+                    className={cn(
+                      "rounded-lg border p-3 text-left transition",
+                      mode.active
+                        ? "border-primary/60 bg-primary/10 text-foreground"
+                        : "border-border/60 bg-surface/70 hover:border-primary/40",
+                    )}
+                    aria-pressed={mode.active}
+                  >
+                    <span className="text-sm font-semibold">{mode.title}</span>
+                    <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{mode.body}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-	            <Sheet>
-              <SheetTrigger asChild>
-                <Button type="button" variant="outline" className="w-full rounded-md">
-                  {copy.advanced}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
-                <SheetHeader>
-                  <SheetTitle>{copy.advanced}</SheetTitle>
-                  <SheetDescription>{copy.advancedDescription}</SheetDescription>
-                </SheetHeader>
+            <div className={cn("rounded-lg border p-4", showAiControls ? "imperial-highlight-panel" : "border-border/60 bg-surface")}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{copy.aiSettingsTitle}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {showAiControls ? copy.aiSettingsBody : copy.aiOffBody}
+                  </p>
+                  {!auth.loading && !canUseAi && showAiControls && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {messages.workspace.cast.aiLoginHint}{" "}
+                      <Link href={toLocalePath("/profile")} className="underline underline-offset-2">
+                        {messages.nav.profile}
+                      </Link>
+                      .
+                    </p>
+                  )}
+                </div>
+                <Switch
+                  checked={form.enableAi}
+                  disabled={auth.loading || !canUseAi}
+                  onCheckedChange={(checked) => {
+                    setSelectedPreset(checked ? "deep" : "quick")
+                    updateForm("enableAi", checked)
+                  }}
+                />
+              </div>
 
-                <div className="mt-6 space-y-6">
+              {form.enableAi && (
+                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+                  <div className="space-y-2 md:col-span-2 xl:col-span-1">
+                    <p className="text-sm font-medium text-foreground">{messages.workspace.cast.accessPasswordLabel}</p>
+                    <Input
+                      type="password"
+                      value={form.accessPassword}
+                      onChange={(event) => updateForm("accessPassword", event.target.value)}
+                      placeholder={messages.workspace.cast.accessPasswordPlaceholder}
+                    />
+                  </div>
+
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-foreground">{messages.workspace.cast.methodLabel}</p>
-                    <Select value={form.methodKey} onValueChange={(value) => updateForm("methodKey", value)}>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{messages.workspace.cast.modelLabel}</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className={infoButtonClass}>
+                            <CircleHelp className="size-4" aria-hidden="true" />
+                            <span className="sr-only">{messages.workspace.cast.modelInfoAria}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
+                          {messages.workspace.cast.modelSpeedLines.map((line) => (
+                            <p key={line}>{line}</p>
+                          ))}
+                          <p className="pt-1 opacity-80">{messages.workspace.cast.modelQualityLine}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Select value={form.aiModel} onValueChange={(value) => updateForm("aiModel", value)}>
                       <SelectTrigger>
-                        <SelectValue placeholder={messages.workspace.cast.methodLabel} />
+                        <SelectValue placeholder={messages.workspace.cast.modelLabel} />
                       </SelectTrigger>
                       <SelectContent>
-                        {config.methods.map((method) => (
-                          <SelectItem key={method.key} value={method.key}>
-                            {method.label}
+                        {config.ai_models.map((model) => (
+                          <SelectItem key={model.name} value={model.name}>
+                            {model.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-	                  {form.methodKey === MANUAL_METHOD_KEY && (
-	                    <div className="space-y-2">
-	                      <div className="flex items-center justify-between gap-3">
-	                        <label htmlFor="manual-lines-raw" className="text-sm font-medium text-foreground">{messages.workspace.cast.manualLinesLabel}</label>
+                  {!!activeModel?.reasoning.length && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{messages.workspace.cast.reasoningLabel}</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button type="button" className={infoButtonClass}>
                               <CircleHelp className="size-4" aria-hidden="true" />
-                              <span className="sr-only">{messages.workspace.cast.lineInputHintAria}</span>
+                              <span className="sr-only">{messages.workspace.cast.reasoningInfoAria}</span>
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
-                            {messages.workspace.cast.lineHints.map((hint) => (
-                              <p key={hint}>{hint}</p>
+                          <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
+                            {reasoningLines.map((line) => (
+                              <p key={line}>{line}</p>
                             ))}
                           </TooltipContent>
                         </Tooltip>
                       </div>
-	                      <Input
-	                        id="manual-lines-raw"
-	                        value={form.manualLines}
-                        onChange={(event) => updateForm("manualLines", event.target.value)}
-                        placeholder={messages.workspace.cast.manualLinesPlaceholder}
-                      />
+                      <Select value={form.aiReasoning ?? ""} onValueChange={(value) => updateForm("aiReasoning", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={messages.workspace.cast.reasoningLabel} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activeModel.reasoning.map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {level}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
 
-                  <div className="surface-soft space-y-3 rounded-lg p-4">
-                    <p className="text-sm font-medium text-foreground">{messages.workspace.cast.timeLabel}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">{messages.workspace.cast.useCurrentTime}</span>
-                      <Switch
-                        checked={form.useCurrentTime}
-                        onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
-                      />
-                    </div>
-                    <Input
-                      type="datetime-local"
-                      value={form.customTimestamp}
-                      disabled={form.useCurrentTime}
-                      onChange={(event) => updateForm("customTimestamp", event.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-4 border-t border-border/60 pt-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{messages.workspace.cast.aiEnableLabel}</p>
-                        {!auth.loading && !canUseAi && (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {messages.workspace.cast.aiLoginHint}{" "}
-                            <Link href={toLocalePath("/profile")} className="underline underline-offset-2">
-                              {messages.nav.profile}
-                            </Link>
-                            .
-                          </p>
-                        )}
+                  {activeModel?.verbosity && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{messages.workspace.cast.verbosityLabel}</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className={infoButtonClass}>
+                              <CircleHelp className="size-4" aria-hidden="true" />
+                              <span className="sr-only">{messages.workspace.cast.verbosityInfoAria}</span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
+                            {messages.workspace.cast.verbosityLines.map((line) => (
+                              <p key={line}>{line}</p>
+                            ))}
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
-                      <Switch
-                        checked={form.enableAi}
-                        disabled={auth.loading || !canUseAi}
-                        onCheckedChange={(checked) => updateForm("enableAi", checked)}
-                      />
+                      <Select value={form.aiVerbosity ?? ""} onValueChange={(value) => updateForm("aiVerbosity", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={messages.workspace.cast.verbosityLabel} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["low", "medium", "high"].map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {level}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                  )}
 
-                    {form.enableAi && (
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.accessPasswordLabel}</p>
-                          <Input
-                            type="password"
-                            value={form.accessPassword}
-                            onChange={(event) => updateForm("accessPassword", event.target.value)}
-                            placeholder={messages.workspace.cast.accessPasswordPlaceholder}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-foreground">{messages.workspace.cast.modelLabel}</p>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button type="button" className={infoButtonClass}>
-                                  <CircleHelp className="size-4" aria-hidden="true" />
-                                  <span className="sr-only">{messages.workspace.cast.modelInfoAria}</span>
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
-                                {messages.workspace.cast.modelSpeedLines.map((line) => (
-                                  <p key={line}>{line}</p>
-                                ))}
-                                <p className="pt-1 opacity-80">{messages.workspace.cast.modelQualityLine}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <Select value={form.aiModel} onValueChange={(value) => updateForm("aiModel", value)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder={messages.workspace.cast.modelLabel} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {config.ai_models.map((model) => (
-                                <SelectItem key={model.name} value={model.name}>
-                                  {model.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {!!activeModel?.reasoning.length && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.reasoningLabel}</p>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" className={infoButtonClass}>
-                                    <CircleHelp className="size-4" aria-hidden="true" />
-                                    <span className="sr-only">{messages.workspace.cast.reasoningInfoAria}</span>
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-sm space-y-1 text-left leading-relaxed">
-                                  {reasoningLines.map((line) => (
-                                    <p key={line}>{line}</p>
-                                  ))}
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Select
-                              value={form.aiReasoning ?? ""}
-                              onValueChange={(value) => updateForm("aiReasoning", value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={messages.workspace.cast.reasoningLabel} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {activeModel.reasoning.map((level) => (
-                                  <SelectItem key={level} value={level}>
-                                    {level}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        {activeModel?.verbosity && (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.verbosityLabel}</p>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button type="button" className={infoButtonClass}>
-                                    <CircleHelp className="size-4" aria-hidden="true" />
-                                    <span className="sr-only">{messages.workspace.cast.verbosityInfoAria}</span>
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
-                                  {messages.workspace.cast.verbosityLines.map((line) => (
-                                    <p key={line}>{line}</p>
-                                  ))}
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                            <Select
-                              value={form.aiVerbosity ?? ""}
-                              onValueChange={(value) => updateForm("aiVerbosity", value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={messages.workspace.cast.verbosityLabel} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {["low", "medium", "high"].map((level) => (
-                                  <SelectItem key={level} value={level}>
-                                    {level}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-foreground">{messages.workspace.cast.toneLabel}</p>
-                          <Select value={form.aiTone} onValueChange={(value) => updateForm("aiTone", value)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder={messages.workspace.cast.toneLabel} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {messages.workspace.tones.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-muted-foreground">
-                            {activeToneOption?.description ?? messages.workspace.cast.toneDescriptionDefault}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                  <div className="space-y-2 md:col-span-2 xl:col-span-1">
+                    <p className="text-sm font-medium text-foreground">{messages.workspace.cast.toneLabel}</p>
+                    <Select value={form.aiTone} onValueChange={(value) => updateForm("aiTone", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={messages.workspace.cast.toneLabel} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {messages.workspace.tones.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {activeToneOption?.description ?? messages.workspace.cast.toneDescriptionDefault}
+                    </p>
                   </div>
                 </div>
-              </SheetContent>
-            </Sheet>
+              )}
+            </div>
+          </aside>
+        </div>
 
-            <Button
-              type="submit"
-              size="lg"
-              disabled={mutation.isPending}
-              className="h-11 w-full rounded-md text-sm font-semibold"
-            >
-              {mutation.isPending ? messages.workspace.cast.submitLoading : messages.workspace.cast.submitIdle}
-            </Button>
+        <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.55fr)]">
+          <div className="rounded-lg border border-border/60 bg-surface p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">{copy.ritualTitle}</p>
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">{copy.ritualBody}</p>
+              </div>
+              <span className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground">
+                {copy.lineProgress} {currentManualValues.length}/6
+              </span>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <Button type="button" variant="secondary" className="rounded-md" onClick={tossCoinLine}>
+                {copy.coinButton}
+              </Button>
+              <Button type="button" variant="outline" className="rounded-md" onClick={clearManualLines}>
+                {copy.clearLines}
+              </Button>
+            </div>
+            {lastCoinToss && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {copy.lastCoins}: {lastCoinToss.join(" + ")} = {lastCoinToss.reduce((sum, coin) => sum + coin, 0)}
+              </p>
+            )}
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16rem] text-muted-foreground">{copy.lineBuilder}</p>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {LINE_VALUE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => appendManualLine(option.value)}
+                    className="rounded-md border border-border/60 bg-surface-elevated px-2 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50"
+                  >
+                    {locale === "zh" ? option.zh : option.en}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ol className="mt-4 grid grid-cols-6 gap-1 text-center text-xs" aria-label={messages.workspace.cast.manualLinesLabel}>
+              {Array.from({ length: 6 }).map((_, index) => (
+                <li key={index} className="rounded-md border border-border/50 bg-background px-1 py-1 text-muted-foreground">
+                  {currentManualValues[index] ?? "·"}
+                </li>
+              ))}
+            </ol>
           </div>
-        </aside>
+
+          <CastHexagramPreview
+            values={currentManualValues}
+            title={copy.previewTitle}
+            body={copy.previewBody}
+            locale={locale}
+          />
+        </div>
+
+        <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button type="button" variant="outline" className="rounded-md">
+                {copy.advanced}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+              <SheetHeader>
+                <SheetTitle>{copy.advanced}</SheetTitle>
+                <SheetDescription>{copy.advancedDescription}</SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-6">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.methodLabel}</p>
+                  <Select value={form.methodKey} onValueChange={(value) => updateForm("methodKey", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={messages.workspace.cast.methodLabel} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {config.methods.map((method) => (
+                        <SelectItem key={method.key} value={method.key}>
+                          {method.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {form.methodKey === MANUAL_METHOD_KEY && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <label htmlFor="manual-lines-raw" className="text-sm font-medium text-foreground">
+                        {messages.workspace.cast.manualLinesLabel}
+                      </label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className={infoButtonClass}>
+                            <CircleHelp className="size-4" aria-hidden="true" />
+                            <span className="sr-only">{messages.workspace.cast.lineInputHintAria}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs space-y-1 text-left leading-relaxed">
+                          {messages.workspace.cast.lineHints.map((hint) => (
+                            <p key={hint}>{hint}</p>
+                          ))}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input
+                      id="manual-lines-raw"
+                      value={form.manualLines}
+                      onChange={(event) => updateForm("manualLines", event.target.value)}
+                      placeholder={messages.workspace.cast.manualLinesPlaceholder}
+                    />
+                  </div>
+                )}
+
+                <div className="surface-soft space-y-3 rounded-lg p-4">
+                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.timeLabel}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{messages.workspace.cast.useCurrentTime}</span>
+                    <Switch
+                      checked={form.useCurrentTime}
+                      onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
+                    />
+                  </div>
+                  <Input
+                    type="datetime-local"
+                    value={form.customTimestamp}
+                    disabled={form.useCurrentTime}
+                    onChange={(event) => updateForm("customTimestamp", event.target.value)}
+                  />
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <Button
+            type="submit"
+            size="lg"
+            disabled={mutation.isPending}
+            className="h-11 w-full rounded-md text-sm font-semibold sm:w-72"
+          >
+            {mutation.isPending ? messages.workspace.cast.submitLoading : messages.workspace.cast.submitIdle}
+          </Button>
+        </div>
       </section>
     </form>
+  )
+}
+
+function CastHexagramPreview({
+  values,
+  title,
+  body,
+  locale,
+}: {
+  values: number[]
+  title: string
+  body: string
+  locale: "en" | "zh"
+}) {
+  const lines = Array.from({ length: 6 }, (_, index) => {
+    const position = 6 - index
+    const value = values[position - 1]
+    return { position, value }
+  })
+
+  return (
+    <div className="imperial-highlight-panel rounded-lg p-4">
+      <p className="text-sm font-semibold text-foreground">{title}</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{body}</p>
+      <div className="mt-4 grid gap-2" aria-label={locale === "zh" ? "实时六爻预览" : "Live six-line preview"}>
+        {lines.map(({ position, value }) => {
+          const filled = [6, 7, 8, 9].includes(value)
+          const moving = value === 6 || value === 9
+          const type = value === 7 || value === 9 ? "yang" : "yin"
+          return (
+            <div
+              key={position}
+              className={cn(
+                "grid min-h-9 grid-cols-[1fr_auto] items-center gap-3 rounded-md border px-2 py-1",
+                filled ? "border-primary/30 bg-primary/10" : "border-border/40 bg-background/70",
+              )}
+            >
+              <PreviewLineSvg type={type} filled={filled} moving={moving} />
+              <span className={cn("w-8 text-center text-xs", moving ? "imperial-text font-semibold" : "text-muted-foreground")}>
+                {filled ? value : position}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <ol className="sr-only">
+        {values.map((value, index) => (
+          <li key={`${index}-${value}`}>
+            {locale === "zh" ? `第${index + 1}爻：${value}` : `Line ${index + 1}: ${value}`}
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+function PreviewLineSvg({
+  type,
+  filled,
+  moving,
+}: {
+  type: "yang" | "yin"
+  filled: boolean
+  moving: boolean
+}) {
+  const fillClass = !filled ? "fill-muted-foreground/30" : moving ? "imperial-fill" : "fill-foreground/85"
+  return (
+    <svg viewBox="0 0 120 18" className="h-5 w-full" role="presentation">
+      {type === "yang" ? (
+        <rect x="6" y="6" width="108" height="6" rx="2" className={fillClass} />
+      ) : (
+        <>
+          <rect x="6" y="6" width="43" height="6" rx="2" className={fillClass} />
+          <rect x="71" y="6" width="43" height="6" rx="2" className={fillClass} />
+        </>
+      )}
+      {moving ? (
+        <rect x="2" y="2" width="116" height="14" rx="4" className="imperial-stroke fill-transparent" strokeWidth="1" />
+      ) : null}
+    </svg>
   )
 }

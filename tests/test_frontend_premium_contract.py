@@ -357,6 +357,14 @@ def test_reading_desk_has_question_coaching_and_guided_line_builder():
     assert "coinLineValue" in cast_form
     assert "Toss one coin line" in cast_form
     assert "Line builder" in cast_form
+    assert "CastHexagramPreview" in cast_form
+    assert "Live hexagram" in cast_form
+    assert "AI reading settings" in cast_form
+    assert "Time and raw input" in cast_form
+    assert "AI controls stay on the main page" in cast_form
+    assert "max-w-[88rem]" in cast_form
+    assert "Classical research" not in cast_form
+    assert "经典研究" not in cast_form
     assert "aria-pressed={mode.active}" in cast_form
     assert "SAFE_EVENT_NAMES" in analytics
     assert "user_question" not in analytics
