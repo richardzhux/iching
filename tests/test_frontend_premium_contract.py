@@ -346,6 +346,17 @@ def test_profile_page_matches_premium_study_surface():
     assert "最多 500" in profile
 
 
+def test_najia_table_uses_compact_rows_without_losing_line_preview():
+    najia = read("frontend/src/components/workspace/najia-table.tsx")
+
+    assert 'CardContent className="p-3 sm:p-4"' in najia
+    assert 'className="space-y-2"' in najia
+    assert "md:grid-cols-[8.25rem_minmax(0,1fr)_minmax(0,1fr)]" in najia
+    assert "min-h-16" in najia
+    assert 'className="h-2.5 w-12"' in najia
+    assert "imperial-text" in najia
+
+
 def test_reading_desk_has_question_coaching_and_guided_line_builder():
     cast_form = read("frontend/src/components/workspace/cast-form.tsx")
     analytics = read("frontend/src/lib/analytics.ts")

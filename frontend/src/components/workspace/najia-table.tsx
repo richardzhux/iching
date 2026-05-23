@@ -19,20 +19,20 @@ export function NajiaTableView({ table }: NajiaTableProps) {
 
   return (
     <Card className="surface-card border-border/40">
-      <CardContent className="p-5">
-        <div className="space-y-3">
+      <CardContent className="p-3 sm:p-4">
+        <div className="space-y-2">
           {table.rows.map((row) => {
             const changedType: "yang" | "yin" = row.changed_line_type || row.line_type
             return (
               <div
                 key={row.position}
-                className="grid gap-4 rounded-lg border border-border/40 bg-foreground/[0.03] p-4 text-sm dark:border-primary/15 dark:bg-primary/5 md:grid-cols-[110px,1fr,1fr]"
+                className="grid gap-2 rounded-md border border-border/40 bg-foreground/[0.025] p-2.5 text-sm dark:border-primary/15 dark:bg-primary/5 md:grid-cols-[8.25rem_minmax(0,1fr)_minmax(0,1fr)] md:items-stretch"
               >
-                <div className="flex flex-col gap-1">
-                  <p className="text-[0.65rem] uppercase tracking-[0.4rem] text-muted-foreground">{messages.workspace.results.sixGodLabel}</p>
-                  <p className="text-base font-semibold">{row.god || "—"}</p>
+                <div className="flex min-h-16 flex-col justify-center gap-0.5 px-1">
+                  <p className="text-[0.62rem] uppercase tracking-[0.28rem] text-muted-foreground">{messages.workspace.results.sixGodLabel}</p>
+                  <p className="text-sm font-semibold leading-5">{row.god || "—"}</p>
                   {row.hidden && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[0.72rem] leading-4 text-muted-foreground">
                       {locale === "zh" ? "伏神" : "Hidden"}: {row.hidden}
                     </p>
                   )}
@@ -79,26 +79,26 @@ function NajiaLineColumn({
   muted = false,
 }: NajiaLineColumnProps) {
   const relationClasses = cn(
-    "text-sm font-semibold",
+    "truncate text-sm font-semibold leading-5",
     highlight ? "imperial-text" : "text-foreground"
   )
 
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-md border px-3 py-2",
+        "flex min-h-16 flex-col justify-center gap-1.5 rounded-md border px-3 py-2",
         muted
           ? "border-border/30 bg-transparent dark:border-primary/10"
           : "border-border/50 bg-surface/80 shadow-inner dark:border-primary/15 dark:bg-primary/5"
       )}
     >
-      <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 text-[0.7rem] uppercase tracking-[0.12rem] text-muted-foreground">
         <span>{label}</span>
         {marker && <span className="text-primary">{marker}</span>}
       </div>
       <p className={relationClasses}>{relation || "—"}</p>
-      <div className="flex items-center gap-2">
-        <LineGlyph variant={lineType} highlight={highlight} />
+      <div className="flex items-center">
+        <LineGlyph variant={lineType} highlight={highlight} className="h-2.5 w-12" />
       </div>
     </div>
   )
