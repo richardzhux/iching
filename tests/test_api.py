@@ -77,7 +77,16 @@ def test_create_session_ai_enabled_returns_reading_brief(monkeypatch) -> None:
 
     def fake_start_analysis(*args, **kwargs):
         return AIResponseData(
-            text="# 一句话结论\n- 利成，但需要先控制节奏。",
+            text=(
+                "# 一句话结论\n"
+                "- 利成，但需要先控制节奏。\n\n"
+                "# 应期与条件\n"
+                "- 主应期：一周内｜条件：负责人出现｜置信度：68%\n\n"
+                "# 行动建议\n"
+                "- 动作：先问清负责人｜节奏：今天｜观察指标：是否明确承诺\n\n"
+                "# 继续追问\n"
+                "- 应该先问谁？"
+            ),
             response_id="resp_test",
             usage={"input_tokens": 4, "output_tokens": 8, "total_tokens": 12},
         )
@@ -112,3 +121,6 @@ def test_create_session_ai_enabled_returns_reading_brief(monkeypatch) -> None:
     assert data["ai_enabled"] is True
     assert data["reading_brief"]["headline"]
     assert "利成" in data["reading_brief"]["headline"]
+    assert data["reading_brief"]["timing"][0]["window"] == "一周内"
+    assert data["reading_brief"]["actions"][0]["action"] == "先问清负责人"
+    assert data["reading_brief"]["followup_prompts"][0] == "应该先问谁？"

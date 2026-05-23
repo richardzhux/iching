@@ -210,6 +210,97 @@ def _extract_ai_plain_language(ai_text: Optional[str]) -> Optional[str]:
     return None
 
 
+def _extract_ai_section_lines(ai_text: Optional[str], headings: set[str]) -> List[str]:
+    if not ai_text:
+        return []
+    capture = False
+    collected: List[str] = []
+    for raw_line in ai_text.splitlines():
+        line = raw_line.strip()
+        heading = line.lstrip("#").strip()
+        if heading in headings:
+            capture = True
+            continue
+        if capture and line.startswith("#"):
+            break
+        if not capture or not line:
+            continue
+        cleaned = line.lstrip("-• ").strip()
+        if cleaned:
+            collected.append(cleaned)
+    return collected
+
+
+def _field_value(parts: List[str], labels: set[str]) -> str:
+    for part in parts:
+        for label in labels:
+            prefix = f"{label}："
+            if part.startswith(prefix):
+                return part[len(prefix) :].strip()
+            prefix = f"{label}:"
+            if part.startswith(prefix):
+                return part[len(prefix) :].strip()
+    return ""
+
+
+def _parse_confidence(value: str, default: int) -> int:
+    match = re.search(r"(\d{1,3})", value or "")
+    if not match:
+        return default
+    return max(0, min(100, int(match.group(1))))
+
+
+def _extract_ai_timing(ai_text: Optional[str]) -> List[Dict[str, object]]:
+    items: List[Dict[str, object]] = []
+    for line in _extract_ai_section_lines(ai_text, {"应期与条件", "Timing and conditions"}):
+        parts = [part.strip() for part in line.split("｜") if part.strip()]
+        window = _field_value(parts, {"主应期", "次应期", "窗口", "Window"}) or (parts[0] if parts else "")
+        condition = _field_value(parts, {"条件", "Condition"})
+        confidence = _parse_confidence(_field_value(parts, {"置信度", "Confidence"}), 55)
+        if window and condition:
+            items.append(
+                {
+                    "window": _compact_text(window, limit=40),
+                    "condition": _compact_text(condition, limit=140),
+                    "confidence": confidence,
+                }
+            )
+    return items[:3]
+
+
+def _extract_ai_actions(ai_text: Optional[str]) -> List[Dict[str, object]]:
+    items: List[Dict[str, object]] = []
+    for line in _extract_ai_section_lines(ai_text, {"行动建议", "Actions"}):
+        parts = [part.strip() for part in line.split("｜") if part.strip()]
+        action = _field_value(parts, {"动作", "Action"}) or (parts[0] if parts else "")
+        cadence = _field_value(parts, {"节奏", "Cadence"})
+        signal = _field_value(parts, {"观察指标", "指标", "Signal"})
+        if action:
+            items.append(
+                {
+                    "action": _compact_text(action, limit=120),
+                    "cadence": _compact_text(cadence or "下一步", limit=60),
+                    "signal": _compact_text(signal or "观察阻力是否下降。", limit=100),
+                }
+            )
+    return items[:4]
+
+
+def _extract_ai_risks(ai_text: Optional[str]) -> List[str]:
+    lines = _extract_ai_section_lines(ai_text, {"风险与转折信号", "Risk signals"})
+    return [_compact_text(line, limit=150) for line in lines if line][:4]
+
+
+def _extract_ai_followups(ai_text: Optional[str]) -> List[str]:
+    lines = _extract_ai_section_lines(ai_text, {"继续追问", "后续追问", "Continue with"})
+    prompts = []
+    for line in lines:
+        cleaned = line.strip().strip("。")
+        if cleaned:
+            prompts.append(_compact_text(cleaned, limit=60))
+    return prompts[:3]
+
+
 def _moving_positions(lines: List[int]) -> List[int]:
     return [index + 1 for index, value in enumerate(lines) if value in {6, 9}]
 
@@ -580,6 +671,46 @@ def _build_reading_brief(
     archive_sources = _build_archive_sources(source_passages)
 
     timing_basis = "先观察当前阶段是否出现动爻对应的人事变化。" if moving else "先观察当前格局是否保持稳定。"
+    fallback_timing = [
+        {
+            "window": "近期",
+            "condition": timing_basis,
+            "confidence": 62 if moving else 58,
+        },
+        {
+            "window": "下一阶段",
+            "condition": "当外部条件、关系位置或资源约束明显改变时重新复盘。",
+            "confidence": 48,
+        },
+    ]
+    fallback_actions = [
+        {
+            "action": "先做一个低成本验证，不要一次性押上全部资源。",
+            "cadence": "未来一到两周",
+            "signal": "对方反馈、资源到位程度、阻力是否下降。",
+        },
+        {
+            "action": "把关键风险写成可观察条件，再决定是否推进。",
+            "cadence": "每次重大动作前",
+            "signal": "条件满足则进，不满足则缓。",
+        },
+        {
+            "action": "保留复盘记录，后续追问不要重新起卦。",
+            "cadence": "出现新事实时",
+            "signal": "同一问题的判断链保持连续。",
+        },
+    ]
+    fallback_risks = [
+        "只看结论而忽略动爻和文本依据，容易把复杂局势看得过于简单。",
+        "如果问题本身过宽，判断会更偏趋势而不是具体执行方案。",
+        "外部条件发生实质变化时，需要基于同一会话继续追问，而不是混用多个卦。",
+    ]
+    fallback_followups = [
+        "这卦最关键的风险信号是什么？",
+        "如果我要推进，第一步应该做什么？",
+        "请把经典原文和现代建议逐条对照。",
+    ]
+
     return {
         "headline": headline,
         "stance": stance,
@@ -594,45 +725,10 @@ def _build_reading_brief(
             "note": "本阶段只使用起卦时间八字；用户出生信息、大运/流年/流月将作为后续独立个人画像层接入。",
             "future_profile_fields": ["birth_datetime", "birth_place", "timezone", "gender_optional"],
         },
-        "timing": [
-            {
-                "window": "近期",
-                "condition": timing_basis,
-                "confidence": 62 if moving else 58,
-            },
-            {
-                "window": "下一阶段",
-                "condition": "当外部条件、关系位置或资源约束明显改变时重新复盘。",
-                "confidence": 48,
-            },
-        ],
-        "actions": [
-            {
-                "action": "先做一个低成本验证，不要一次性押上全部资源。",
-                "cadence": "未来一到两周",
-                "signal": "对方反馈、资源到位程度、阻力是否下降。",
-            },
-            {
-                "action": "把关键风险写成可观察条件，再决定是否推进。",
-                "cadence": "每次重大动作前",
-                "signal": "条件满足则进，不满足则缓。",
-            },
-            {
-                "action": "保留复盘记录，后续追问不要重新起卦。",
-                "cadence": "出现新事实时",
-                "signal": "同一问题的判断链保持连续。",
-            },
-        ],
-        "risks": [
-            "只看结论而忽略动爻和文本依据，容易把复杂局势看得过于简单。",
-            "如果问题本身过宽，判断会更偏趋势而不是具体执行方案。",
-            "外部条件发生实质变化时，需要基于同一会话继续追问，而不是混用多个卦。",
-        ],
-        "followup_prompts": [
-            "这卦最关键的风险信号是什么？",
-            "如果我要推进，第一步应该做什么？",
-            "请把经典原文和现代建议逐条对照。",
-        ],
+        "timing": _extract_ai_timing(ai_analysis_text) or fallback_timing,
+        "actions": _extract_ai_actions(ai_analysis_text) or fallback_actions,
+        "risks": _extract_ai_risks(ai_analysis_text) or fallback_risks,
+        "followup_prompts": _extract_ai_followups(ai_analysis_text) or fallback_followups,
         "generated_at": current_time_str,
     }
 

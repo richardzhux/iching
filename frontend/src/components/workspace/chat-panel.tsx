@@ -350,14 +350,14 @@ export function ChatPanel({ session }: Props) {
   )
 
   const chatPanel = (
-    <div className="surface-card rounded-lg p-4 sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="surface-card flex min-h-[42rem] flex-col overflow-hidden rounded-lg p-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 px-4 py-3 sm:px-5">
         <div className="flex items-center gap-3">
           {auth.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={auth.avatarUrl} alt={profileName} className="size-11 rounded-full object-cover ring-2 ring-border/70" />
+            <img src={auth.avatarUrl} alt={profileName} className="size-9 rounded-full object-cover ring-2 ring-border/70" />
           ) : (
-            <div className="flex size-11 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+            <div className="flex size-9 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
               {profileName?.[0] ?? "U"}
             </div>
           )}
@@ -384,70 +384,69 @@ export function ChatPanel({ session }: Props) {
         </Button>
       </div>
 
-      <div className="space-y-2">
-        <p className="kicker">{messages.workspace.chat.modelLabel}</p>
-        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+      <div className="border-b border-border/40 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap gap-2">
           {modelOptions.map((option) => (
             <button
               key={option.id}
               type="button"
               className={cn(
-                "rounded-lg border px-3 py-3 text-left text-sm transition",
+                "rounded-md border px-3 py-2 text-left text-xs transition",
                 chatModel === option.id
                   ? "border-primary/60 bg-primary/12 text-foreground"
                   : "border-border/60 bg-surface/75 hover:border-primary/40",
               )}
               onClick={() => setChatModel(option.id)}
             >
-              <div className="font-semibold">{option.label}</div>
-              <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
+              <span className="font-semibold">{option.label}</span>
+              <span className="ml-2 text-muted-foreground">{option.description}</span>
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="mt-3 grid gap-2 md:grid-cols-3">
-        <Select value={reasoning} onValueChange={(value) => setReasoning(value)}>
-          <SelectTrigger>
-            <SelectValue placeholder={messages.workspace.chat.reasoningLabel} />
-          </SelectTrigger>
-          <SelectContent>
-            {reasoningOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={verbosity} onValueChange={(value) => setVerbosity(value)}>
-          <SelectTrigger>
-            <SelectValue placeholder={messages.workspace.chat.verbosityLabel} />
-          </SelectTrigger>
-          <SelectContent>
-            {verbosityOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={tone} onValueChange={(value) => setTone(value)}>
-          <SelectTrigger>
-            <SelectValue placeholder={messages.workspace.chat.toneLabel} />
-          </SelectTrigger>
-          <SelectContent>
-            {toneOptions.map((option) => (
-              <SelectItem value={option.value} key={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          <Select value={reasoning} onValueChange={(value) => setReasoning(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder={messages.workspace.chat.reasoningLabel} />
+            </SelectTrigger>
+            <SelectContent>
+              {reasoningOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={verbosity} onValueChange={(value) => setVerbosity(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder={messages.workspace.chat.verbosityLabel} />
+            </SelectTrigger>
+            <SelectContent>
+              {verbosityOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={tone} onValueChange={(value) => setTone(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder={messages.workspace.chat.toneLabel} />
+            </SelectTrigger>
+            <SelectContent>
+              {toneOptions.map((option) => (
+                <SelectItem value={option.value} key={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div
         ref={listRef}
-        className="custom-scrollbar mt-4 flex h-[30rem] flex-col space-y-3 overflow-y-auto rounded-lg border border-border/40 bg-surface/80 p-3"
+        className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-background/35 px-4 py-5 sm:px-6"
       >
         {transcriptLoading ? (
           <div className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
@@ -463,26 +462,29 @@ export function ChatPanel({ session }: Props) {
         )}
       </div>
 
-      <div className="mt-2 text-right text-xs text-muted-foreground">
+      <div className="border-t border-border/40 px-4 pt-2 text-right text-xs text-muted-foreground sm:px-5">
         {messages.workspace.chat.tokensUsed}: <span className="font-semibold">{totalTokens.toLocaleString()}</span>
       </div>
 
-      <form onSubmit={handleSend} className="mt-3 space-y-3">
-        <div className="space-y-1">
+      <form onSubmit={handleSend} className="px-4 pb-4 pt-2 sm:px-5">
+        <div className="surface-soft rounded-lg border border-border/50 p-2">
           <Textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder={messages.workspace.chat.inputPlaceholder}
-            rows={3}
+            rows={2}
             maxLength={CHAT_MESSAGE_LIMIT}
+            className="min-h-20 border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
-          <p className="text-right text-xs text-muted-foreground">
-            {input.length}/{CHAT_MESSAGE_LIMIT}
-          </p>
+          <div className="flex items-center justify-between gap-3 px-1 pt-2">
+            <p className="text-xs text-muted-foreground">
+              {input.length}/{CHAT_MESSAGE_LIMIT}
+            </p>
+            <Button type="submit" className="rounded-md px-5" disabled={isSending}>
+              {isSending ? messages.workspace.chat.sending : messages.workspace.chat.send}
+            </Button>
+          </div>
         </div>
-        <Button type="submit" className="w-full rounded-md" disabled={isSending}>
-          {isSending ? messages.workspace.chat.sending : messages.workspace.chat.send}
-        </Button>
       </form>
     </div>
   )
@@ -506,13 +508,13 @@ export function ChatPanel({ session }: Props) {
 function ChatBubble({ message }: { message: ChatMessage }) {
   const isAssistant = message.role === "assistant"
   return (
-    <div className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
+    <div className={cn("flex", isAssistant ? "justify-start" : "justify-end")}>
       <div
         className={cn(
-          "max-w-[86%] rounded-lg border px-3 py-2 text-sm leading-relaxed shadow-sm",
+          "text-sm leading-relaxed",
           isAssistant
-            ? "border-border/50 bg-surface text-foreground"
-            : "border-primary/40 bg-primary text-primary-foreground",
+            ? "w-full max-w-3xl border-l border-primary/35 pl-4 text-foreground"
+            : "max-w-[78%] rounded-lg border border-primary/40 bg-primary px-3 py-2 text-primary-foreground shadow-sm",
         )}
       >
         <MarkdownContent

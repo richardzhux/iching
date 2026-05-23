@@ -96,6 +96,7 @@ def test_imperial_amethyst_theme_is_sitewide_and_guarded():
     assert "#0b0714" in globals_css
     assert "#151021" in globals_css
     assert "oracle-mark" in globals_css
+    assert "🔮" in workspace
     assert "🔮" in cast_form
     assert "error && !data" in workspace
     assert "imperial-highlight-panel" in themed_surfaces
@@ -346,16 +347,28 @@ def test_profile_page_matches_premium_study_surface():
     assert "最多 500" in profile
 
 
-def test_najia_table_uses_compact_rows_without_losing_line_preview():
+def test_najia_table_uses_compact_rows_without_duplicate_line_preview():
     najia = read("frontend/src/components/workspace/najia-table.tsx")
 
     assert 'CardContent className="p-2 sm:p-3"' in najia
     assert "md:grid-cols-[7rem_minmax(0,1fr)_2.5rem_minmax(0,1fr)]" in najia
     assert "×→" in najia
-    assert "row.changed_mark" in najia
+    assert "row.main_mark" not in najia
+    assert "row.changed_mark" not in najia
+    assert "row.marker" in najia
     assert "min-h-11" in najia
-    assert 'className="h-2.5 w-14"' in najia
+    assert "LineGlyph" not in najia
     assert "imperial-text" in najia
+
+
+def test_chat_panel_feels_like_native_ai_conversation_surface():
+    chat = read("frontend/src/components/workspace/chat-panel.tsx")
+
+    assert "min-h-[42rem]" in chat
+    assert "flex-1 flex-col gap-4 overflow-y-auto" in chat
+    assert "w-full max-w-3xl border-l border-primary/35" in chat
+    assert "surface-soft rounded-lg border border-border/50 p-2" in chat
+    assert "min-h-20 border-0 bg-transparent" in chat
 
 
 def test_reading_desk_has_question_coaching_and_guided_line_builder():

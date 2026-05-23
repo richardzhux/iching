@@ -5,8 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import type { NajiaTable } from "@/types/api"
 
-import { LineGlyph } from "./line-glyph"
-
 type NajiaTableProps = {
   table?: NajiaTable
 }
@@ -28,8 +26,7 @@ export function NajiaTableView({ table }: NajiaTableProps) {
             <span>{messages.workspace.results.changedHexLabel}</span>
           </div>
           {table.rows.map((row) => {
-            const changedType: "yang" | "yin" = row.changed_line_type || row.line_type
-            const rowMarker = row.marker || row.main_mark
+            const rowMarker = row.marker
             return (
               <div
                 key={row.position}
@@ -47,7 +44,6 @@ export function NajiaTableView({ table }: NajiaTableProps) {
                   label={locale === "zh" ? `第${row.position}爻` : `Line ${row.position}`}
                   relation={row.main_relation}
                   marker={rowMarker}
-                  lineType={row.line_type}
                   highlight={row.is_moving}
                 />
                 <div className="hidden text-center text-sm font-semibold md:block">
@@ -56,8 +52,7 @@ export function NajiaTableView({ table }: NajiaTableProps) {
                 <NajiaLineColumn
                   label={messages.workspace.results.changedHexLabel}
                   relation={row.changed_relation}
-                  marker={row.changed_mark}
-                  lineType={changedType}
+                  marker=""
                   highlight={row.is_moving}
                   muted
                 />
@@ -74,7 +69,6 @@ type NajiaLineColumnProps = {
   label: string
   relation: string
   marker: string
-  lineType: "yang" | "yin"
   highlight?: boolean
   muted?: boolean
 }
@@ -83,7 +77,6 @@ function NajiaLineColumn({
   label,
   relation,
   marker,
-  lineType,
   highlight = false,
   muted = false,
 }: NajiaLineColumnProps) {
@@ -95,21 +88,18 @@ function NajiaLineColumn({
   return (
     <div
       className={cn(
-        "flex min-h-11 items-center justify-between gap-3 rounded-md border px-2.5 py-1.5",
+        "flex min-h-11 items-center rounded-md border px-2.5 py-1.5",
         muted
           ? "border-border/30 bg-transparent dark:border-primary/10"
           : "border-border/50 bg-surface/80 shadow-inner dark:border-primary/15 dark:bg-primary/5"
       )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.1rem] text-muted-foreground">
           <span>{label}</span>
           {marker && <span className="text-primary">{marker}</span>}
         </div>
         <p className={relationClasses}>{relation || "—"}</p>
-      </div>
-      <div className="flex shrink-0 items-center">
-        <LineGlyph variant={lineType} highlight={highlight} className="h-2.5 w-14" />
       </div>
     </div>
   )

@@ -183,7 +183,18 @@ def test_session_service_reading_brief_handles_all_moving_qian_kun():
 def test_session_service_reading_brief_uses_ai_summary_when_available(monkeypatch):
     def fake_start_analysis(*args, **kwargs):
         return AIResponseData(
-            text="# 一句话结论\n- 利成，先小后大。\n\n# 行动建议\n- 动作：先验证核心条件。",
+            text=(
+                "# 一句话结论\n"
+                "- 利成，先小后大。\n\n"
+                "# 应期与条件\n"
+                "- 主应期：三日内｜条件：对方给出明确资源｜置信度：71%\n\n"
+                "# 行动建议\n"
+                "- 动作：先验证核心条件｜节奏：今天｜观察指标：是否有人负责\n\n"
+                "# 风险与转折信号\n"
+                "- 对方继续含糊则转弱。\n\n"
+                "# 继续追问\n"
+                "- 哪个条件最先验证？"
+            ),
             response_id="resp_test",
             usage={"input_tokens": 10, "output_tokens": 20, "total_tokens": 30},
         )
@@ -203,6 +214,11 @@ def test_session_service_reading_brief_uses_ai_summary_when_available(monkeypatc
 
     _assert_brief_contract(result.reading_brief)
     assert "利成" in result.reading_brief["headline"]
+    assert result.reading_brief["timing"][0]["window"] == "三日内"
+    assert result.reading_brief["timing"][0]["confidence"] == 71
+    assert result.reading_brief["actions"][0]["action"] == "先验证核心条件"
+    assert result.reading_brief["risks"][0] == "对方继续含糊则转弱。"
+    assert result.reading_brief["followup_prompts"][0] == "哪个条件最先验证？"
 
 
 def test_session_service_marks_relevant_slots_primary_across_sources():

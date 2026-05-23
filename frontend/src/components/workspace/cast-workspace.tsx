@@ -84,14 +84,19 @@ export function CastWorkspace() {
 
   return (
     <div className={cn("space-y-5", "xl:space-y-6")}>
-      <header className="mx-auto max-w-5xl border-b border-border/60 pb-5">
-        <p className="kicker">{messages.workspace.headerKicker}</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          {messages.workspace.headerTitle}
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          {messages.workspace.headerDescription}
-        </p>
+      <header className="mx-auto flex max-w-5xl gap-4 border-b border-border/60 pb-5">
+        <span className="oracle-mark mt-1 text-2xl" aria-hidden="true">
+          🔮
+        </span>
+        <div className="min-w-0">
+          <p className="kicker">{messages.workspace.headerKicker}</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            {messages.workspace.headerTitle}
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            {messages.workspace.headerDescription}
+          </p>
+        </div>
       </header>
       <AnimatePresence mode="wait">
         {view === "form" ? (
