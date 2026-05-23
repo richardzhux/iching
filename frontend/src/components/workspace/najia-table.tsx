@@ -19,20 +19,26 @@ export function NajiaTableView({ table }: NajiaTableProps) {
 
   return (
     <Card className="surface-card border-border/40">
-      <CardContent className="p-3 sm:p-4">
-        <div className="space-y-2">
+      <CardContent className="p-2 sm:p-3">
+        <div className="overflow-hidden rounded-lg border border-border/40 bg-foreground/[0.025] dark:border-primary/15 dark:bg-primary/5">
+          <div className="hidden border-b border-border/35 px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground md:grid md:grid-cols-[7rem_minmax(0,1fr)_2.5rem_minmax(0,1fr)]">
+            <span>{messages.workspace.results.sixGodLabel}</span>
+            <span>{messages.workspace.results.mainHexLabel}</span>
+            <span className="text-center">{locale === "zh" ? "动" : "Move"}</span>
+            <span>{messages.workspace.results.changedHexLabel}</span>
+          </div>
           {table.rows.map((row) => {
             const changedType: "yang" | "yin" = row.changed_line_type || row.line_type
+            const rowMarker = row.marker || row.main_mark
             return (
               <div
                 key={row.position}
-                className="grid gap-2 rounded-md border border-border/40 bg-foreground/[0.025] p-2.5 text-sm dark:border-primary/15 dark:bg-primary/5 md:grid-cols-[8.25rem_minmax(0,1fr)_minmax(0,1fr)] md:items-stretch"
+                className="grid gap-2 border-b border-border/25 px-3 py-2 text-sm last:border-b-0 md:grid-cols-[7rem_minmax(0,1fr)_2.5rem_minmax(0,1fr)] md:items-center"
               >
-                <div className="flex min-h-16 flex-col justify-center gap-0.5 px-1">
-                  <p className="text-[0.62rem] uppercase tracking-[0.28rem] text-muted-foreground">{messages.workspace.results.sixGodLabel}</p>
+                <div className="flex min-h-11 items-center justify-between gap-2 md:block">
                   <p className="text-sm font-semibold leading-5">{row.god || "—"}</p>
                   {row.hidden && (
-                    <p className="text-[0.72rem] leading-4 text-muted-foreground">
+                    <p className="truncate text-[0.72rem] leading-4 text-muted-foreground">
                       {locale === "zh" ? "伏神" : "Hidden"}: {row.hidden}
                     </p>
                   )}
@@ -40,14 +46,17 @@ export function NajiaTableView({ table }: NajiaTableProps) {
                 <NajiaLineColumn
                   label={locale === "zh" ? `第${row.position}爻` : `Line ${row.position}`}
                   relation={row.main_relation}
-                  marker={row.marker}
+                  marker={rowMarker}
                   lineType={row.line_type}
                   highlight={row.is_moving}
                 />
+                <div className="hidden text-center text-sm font-semibold md:block">
+                  {row.is_moving ? <span className="imperial-text">×→</span> : <span className="text-muted-foreground/40">·</span>}
+                </div>
                 <NajiaLineColumn
                   label={messages.workspace.results.changedHexLabel}
                   relation={row.changed_relation}
-                  marker=""
+                  marker={row.changed_mark}
                   lineType={changedType}
                   highlight={row.is_moving}
                   muted
@@ -86,19 +95,21 @@ function NajiaLineColumn({
   return (
     <div
       className={cn(
-        "flex min-h-16 flex-col justify-center gap-1.5 rounded-md border px-3 py-2",
+        "flex min-h-11 items-center justify-between gap-3 rounded-md border px-2.5 py-1.5",
         muted
           ? "border-border/30 bg-transparent dark:border-primary/10"
           : "border-border/50 bg-surface/80 shadow-inner dark:border-primary/15 dark:bg-primary/5"
       )}
     >
-      <div className="flex items-center justify-between gap-2 text-[0.7rem] uppercase tracking-[0.12rem] text-muted-foreground">
-        <span>{label}</span>
-        {marker && <span className="text-primary">{marker}</span>}
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.1rem] text-muted-foreground">
+          <span>{label}</span>
+          {marker && <span className="text-primary">{marker}</span>}
+        </div>
+        <p className={relationClasses}>{relation || "—"}</p>
       </div>
-      <p className={relationClasses}>{relation || "—"}</p>
-      <div className="flex items-center">
-        <LineGlyph variant={lineType} highlight={highlight} className="h-2.5 w-12" />
+      <div className="flex shrink-0 items-center">
+        <LineGlyph variant={lineType} highlight={highlight} className="h-2.5 w-14" />
       </div>
     </div>
   )
