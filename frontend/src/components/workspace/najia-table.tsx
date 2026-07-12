@@ -47,7 +47,11 @@ export function NajiaTableView({ table }: NajiaTableProps) {
                   highlight={row.is_moving}
                 />
                 <div className="hidden text-center text-sm font-semibold md:block">
-                  {row.is_moving ? <span className="imperial-text">×→</span> : <span className="text-muted-foreground/40">·</span>}
+                  {row.movement_tag ? (
+                    <span className="imperial-text">{row.movement_tag}</span>
+                  ) : (
+                    <span className="text-muted-foreground/40">·</span>
+                  )}
                 </div>
                 <NajiaLineColumn
                   label={messages.workspace.results.changedHexLabel}

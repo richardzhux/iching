@@ -4,7 +4,7 @@ from importlib import import_module
 from iching.config import build_app_config
 from iching.integrations.ai import _build_followup_session_context, _build_prompt
 from iching.integrations.najia_repository import NajiaRepository
-from iching.services.session import SessionService
+from iching.services.session import SessionService, _movement_tag_from_value
 
 
 def _najia_helpers():
@@ -23,6 +23,14 @@ def test_rebases_six_relatives_to_the_main_palace():
     assert six_relative_label("木", "土") == "妻财"
     assert rebase_relation("父母戊申金", "震宫") == "官鬼戊申金"
     assert rebase_relation("官鬼戊戌土", "震宫") == "妻财戊戌土"
+
+
+def test_movement_tags_match_old_yang_and_old_yin_values():
+    assert _movement_tag_from_value(9) == "○→"
+    assert _movement_tag_from_value(6) == "×→"
+    assert _movement_tag_from_value(7) == ""
+    assert _movement_tag_from_value(8) == ""
+    assert _movement_tag_from_value(None) == ""
 
 
 def test_repository_adapts_asymmetric_binary_and_line_position_columns():

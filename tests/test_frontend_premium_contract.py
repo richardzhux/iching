@@ -352,7 +352,9 @@ def test_najia_table_uses_compact_rows_without_duplicate_line_preview():
 
     assert 'CardContent className="p-2 sm:p-3"' in najia
     assert "md:grid-cols-[7rem_minmax(0,1fr)_2.5rem_minmax(0,1fr)]" in najia
-    assert "×→" in najia
+    assert "row.movement_tag" in najia
+    assert '"×→"' not in najia
+    assert '"○→"' not in najia
     assert "row.main_mark" not in najia
     assert "row.changed_mark" not in najia
     assert "row.marker" in najia

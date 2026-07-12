@@ -190,9 +190,9 @@ def build_session_najia_payload(
 
 def _movement_tag_from_value(value: Optional[int]) -> str:
     if value == 6:
-        return "○→"
-    if value == 9:
         return "×→"
+    if value == 9:
+        return "○→"
     return ""
 
 
