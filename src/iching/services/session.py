@@ -995,17 +995,19 @@ class SessionService:
         if method is None:
             raise ValueError(f"未知的占卜方法: {method_key}")
 
+        if use_current_time or timestamp is None:
+            timestamp = get_current_time()
+
         if lines_override is not None:
             lines = lines_override
         else:
             lines = method.generate_lines(
                 interactive=interactive,
                 input_func=input_func,
+                now_func=lambda: timestamp,
                 manual_lines=manual_lines,
             )
 
-        if use_current_time or timestamp is None:
-            timestamp = get_current_time()
         current_time_str = timestamp.strftime("%Y.%m.%d %H:%M")
 
         bazi_calculator = BaZiCalculator(timestamp)

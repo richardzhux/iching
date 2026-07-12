@@ -1,9 +1,34 @@
 from datetime import datetime
 
+import iching.core.divination as divination
 from iching.config import build_app_config
 from iching.integrations.ai import AIResponseData
 from iching.integrations.najia_repository import NajiaRepository
 from iching.services.session import SessionService, _build_najia_table
+
+
+def test_session_service_uses_custom_timestamp_for_meihua_lines(monkeypatch):
+    class FrozenWallClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2031, 1, 2, 23, 45, tzinfo=tz)
+
+    monkeypatch.setattr(divination, "datetime", FrozenWallClock)
+    cast_time = datetime(2026, 7, 12, 10, 30)
+    service = SessionService(config=build_app_config(enable_ai=False))
+
+    result = service.create_session(
+        topic="事业",
+        user_question=None,
+        method_key="m",
+        use_current_time=False,
+        timestamp=cast_time,
+        enable_ai=False,
+        interactive=False,
+    )
+
+    assert result.current_time_str == "2026.07.12 10:30"
+    assert result.lines == [8, 7, 8, 6, 8, 8]
 
 
 def _assert_brief_contract(brief):

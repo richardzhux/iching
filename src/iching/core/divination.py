@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable, Iterable, List, Optional, Protocol
 
+import sxtwl
+
 
 class LineGenerator(Protocol):
     def __call__(self) -> int:
@@ -64,18 +66,11 @@ class ShicaoMethod:
     @staticmethod
     def _calculate_line(rng: Optional[random.Random] = None) -> int:
         rng = rng or random
-        total_sticks = 49 - 1
-        counts = []
-        for _ in range(3):
-            left = rng.randint(1, total_sticks - 1)
-            right = total_sticks - left - 1
-            left_remain = left % 4 or 4
-            right_remain = right % 4 or 4
-            total_remainder = left_remain + right_remain + 1
-            total_sticks -= total_remainder
-            counts.append(total_remainder)
-        many_count = sum(1 for count in counts if count >= 8)
-        return {0: 9, 1: 7, 2: 8, 3: 6}.get(many_count, 7)
+        remaining_stalks = 49
+        remaining_stalks -= 5 if rng.random() < 0.75 else 9
+        for _ in range(2):
+            remaining_stalks -= 4 if rng.random() < 0.5 else 8
+        return remaining_stalks // 4
 
 
 @dataclass(slots=True)
@@ -125,7 +120,7 @@ class MeihuaMethod:
             use_numbers = input_func("\n是否要使用三个三位数数字？(y/n): ").lower().strip()
             if use_numbers == "y":
                 numbers = self._get_three_numbers(input_func)
-                lower_gua, upper_gua, changing_line = self._calculate_from_numbers(numbers)
+                upper_gua, lower_gua, changing_line = self._calculate_from_numbers(numbers)
                 time_choice = input_func(
                     "\n使用当前时间进行计算请输入 '1'，输入您自己的时间请输入 '2': "
                 ).strip()
@@ -139,10 +134,10 @@ class MeihuaMethod:
             else:
                 print("将使用当前年月日时分起卦。")
                 current_time = now_func()
-                lower_gua, upper_gua, changing_line = self._calculate_trigrams(current_time)
+                upper_gua, lower_gua, changing_line = self._calculate_trigrams(current_time)
         else:
             current_time = now_func()
-            lower_gua, upper_gua, changing_line = self._calculate_trigrams(current_time)
+            upper_gua, lower_gua, changing_line = self._calculate_trigrams(current_time)
         return self._construct_hexagram(upper_gua, lower_gua, changing_line)
 
     @staticmethod
@@ -160,18 +155,22 @@ class MeihuaMethod:
     @staticmethod
     def _calculate_from_numbers(numbers: Iterable[int]) -> tuple[int, int, int]:
         items = list(numbers)
-        lower = items[0] % 8 or 8
-        upper = items[1] % 8 or 8
+        upper = items[0] % 8 or 8
+        lower = items[1] % 8 or 8
         changing_line = items[2] % 6 or 6
-        return lower, upper, changing_line
+        return upper, lower, changing_line
 
     @staticmethod
     def _calculate_trigrams(dt: datetime) -> tuple[int, int, int]:
-        lower = (dt.hour + dt.minute) % 8 or 8
-        upper = (dt.month + dt.day) % 8 or 8
-        total = dt.year + dt.month + dt.day + dt.hour + dt.minute
-        changing_line = total % 6 or 6
-        return lower, upper, changing_line
+        lunar_day = sxtwl.fromSolar(dt.year, dt.month, dt.day)
+        year_branch = lunar_day.getYearGZ(True).dz + 1
+        hour_branch = lunar_day.getHourGZ(dt.hour).dz + 1
+        date_total = year_branch + lunar_day.getLunarMonth() + lunar_day.getLunarDay()
+        time_total = date_total + hour_branch
+        upper = date_total % 8 or 8
+        lower = time_total % 8 or 8
+        changing_line = time_total % 6 or 6
+        return upper, lower, changing_line
 
     @staticmethod
     def _construct_hexagram(upper: int, lower: int, changing_line: int) -> List[int]:
@@ -187,10 +186,9 @@ class MeihuaMethod:
         }
         upper_binary = trigrams.get(upper, "000")
         lower_binary = trigrams.get(lower, "000")
-        binary = upper_binary + lower_binary
+        binary = lower_binary[::-1] + upper_binary[::-1]
         digits = [int(bit) for bit in binary]
-        index = 6 - changing_line
-        digits[index] ^= 1
+        index = changing_line - 1
 
         lines: List[int] = []
         for idx, digit in enumerate(digits):
