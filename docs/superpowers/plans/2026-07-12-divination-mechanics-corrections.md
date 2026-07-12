@@ -15,6 +15,7 @@
 - Six gods must be identical in `najia_table`, `najia_data`, `najia_text`, and AI input for the same session.
 - Historical cast lines and AI prose must never be regenerated or overwritten by the mechanics backfill.
 - Backfill is dry-run by default and idempotent.
+- Backfill derives six gods only from saved cast time, updates by `(session_id, user_id)`, preserves `updated_at`, and skips concurrent changes.
 - No new runtime dependencies.
 
 ---
@@ -83,11 +84,12 @@
 **Interfaces:**
 - Extends: `_compute_refreshed_snapshot(...)` to recompute `najia_table`, `najia_text`, and `session_dict.najia_data` from saved lines and saved cast time.
 - Preserves: original lines, AI text, user context, and all unrelated snapshot keys.
+- Updates: exactly one owner-scoped row with an optimistic-concurrency predicate; does not modify `updated_at`.
 
-- [ ] Add failing tests with a historical `雷水解 → 坎为水` snapshot and assert exact corrected changed relations, idempotency, and preservation of AI/user fields.
+- [ ] Add failing tests with a historical `雷水解 → 坎为水` snapshot and assert exact corrected changed relations, idempotency, saved-time six gods, owner-scoped writes, concurrency protection, and preservation of AI/user fields.
 - [ ] Run `pytest -q tests/test_backfill_session_interpretations.py` and confirm failure.
 - [ ] Reuse the canonical session Najia builder from Task 1 in the backfill path.
-- [ ] Document dry-run and apply commands plus the non-reroll guarantee.
+- [ ] Document dry-run and apply commands, per-row skip/failure reporting, composite ownership, and the non-reroll guarantee.
 - [ ] Run focused tests, then a Supabase dry-run against all current sessions.
 - [ ] After full verification, run the apply mode once and rerun dry-run expecting `changed: 0`.
 
@@ -104,4 +106,3 @@
 - [ ] Run a deterministic mechanics audit across all 64 hexagrams and all five reference elements.
 - [ ] Dispatch independent subagent code review with the complete branch diff and address every Critical or Important finding.
 - [ ] Re-run the full verification commands after review fixes.
-
