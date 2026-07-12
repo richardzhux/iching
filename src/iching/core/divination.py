@@ -121,16 +121,6 @@ class MeihuaMethod:
             if use_numbers == "y":
                 numbers = self._get_three_numbers(input_func)
                 upper_gua, lower_gua, changing_line = self._calculate_from_numbers(numbers)
-                time_choice = input_func(
-                    "\n使用当前时间进行计算请输入 '1'，输入您自己的时间请输入 '2': "
-                ).strip()
-                if time_choice == "2":
-                    # Re-use manual time entry for CLI, fallback to now on failure
-                    from iching.core.time_utils import get_user_time_input
-
-                    current_time = get_user_time_input(input_func=input_func)
-                else:
-                    current_time = now_func()
             else:
                 print("将使用当前年月日时分起卦。")
                 current_time = now_func()

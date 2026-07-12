@@ -908,7 +908,20 @@ class SessionService:
                         raise SystemExit(0)
 
                     method = self.methods[method_choice]
-                    current_time = get_current_time() if method.key == "m" else None
+                    current_time = None
+                    if method.key == "m":
+                        time_choice = self._get_valid_choice(
+                            "\n使用当前时间进行计算请输入 '1'，输入您自己的时间请输入 '2': ",
+                            choices={"1", "2"},
+                            input_func=input_func,
+                            logger=logger,
+                        )
+                        if time_choice == "1":
+                            current_time = get_current_time()
+                        else:
+                            from iching.core.time_utils import get_user_time_input
+
+                            current_time = get_user_time_input(input_func=input_func)
                     manual_lines = None
                     if method.key == "x":
                         manual_lines = method.generate_lines(

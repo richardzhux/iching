@@ -38,7 +38,7 @@ def test_yarrow_elementary_outcomes_have_exact_canonical_weights():
 
 
 def test_meihua_numbers_use_first_number_for_upper_trigram():
-    answers = iter(("y", "101", "202", "303", "1"))
+    answers = iter(("y", "101", "202", "303"))
 
     lines = MeihuaMethod().generate_lines(
         interactive=True,
