@@ -99,6 +99,8 @@ def _patch_snapshot(
         session_dict["najia_table"] = najia_table
         session_dict["najia_data"] = najia_data
         session_dict["najia_text"] = najia_text
+    else:
+        patched["najia_data"] = najia_data
     return patched
 
 

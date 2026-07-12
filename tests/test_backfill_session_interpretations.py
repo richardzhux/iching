@@ -158,6 +158,15 @@ def test_repairs_modern_snapshot_exactly_without_rerolling_or_rewriting_prose():
         config=config,
     ) == patched
 
+    legacy_patched = _compute_refreshed_snapshot(
+        snapshot=copy.deepcopy(original["session_dict"]),
+        definitions=definitions,
+        interpretation_repo=interpretation_repo,
+        najia_repo=najia_repo,
+        config=config,
+    )
+    assert legacy_patched["najia_data"] == inner["najia_data"]
+
 
 def test_invalid_saved_cast_time_skips_the_whole_snapshot():
     snapshot = _historical_snapshot()

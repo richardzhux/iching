@@ -68,3 +68,23 @@ The warning is the pre-existing Starlette `TestClient` / `httpx` deprecation war
 ## Scope note
 
 The planned production dry-run/apply steps were intentionally not performed because this implementation task explicitly prohibited live Supabase access or mutation. The README contains the commands and safety guarantees for an authorized operator.
+
+## Review fix: legacy top-level Najia data
+
+A focused regression exposed that snapshots without `session_dict` retained stale top-level `najia_data` even though their top-level table and text were repaired.
+
+RED:
+
+```text
+env ICHING_ARCHIVE_BASE=/tmp/iching-task4-legacy-red PYTHONPATH=src pytest -q tests/test_backfill_session_interpretations.py
+1 failed, 2 passed in 0.67s
+```
+
+The legacy shape now receives canonical top-level `najia_data`; modern nested snapshots retain the existing patch contract.
+
+GREEN:
+
+```text
+env ICHING_ARCHIVE_BASE=/tmp/iching-task4-legacy-green PYTHONPATH=src pytest -q tests/test_backfill_session_interpretations.py
+3 passed in 0.58s
+```
