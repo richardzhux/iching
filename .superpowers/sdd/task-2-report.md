@@ -88,3 +88,19 @@ The warning is the existing Starlette `TestClient` / `httpx` deprecation warning
 - Verified empty movement tags preserve the existing neutral-dot presentation.
 - Verified no casting, backfill, Supabase, database, dependency, or unrelated session behavior was changed.
 - Verified `git diff --check` passes.
+
+## Review fix: raw frontend marker detection
+
+The frontend contract originally rejected only quoted marker strings, which would not catch hard-coded JSX text. The assertions now reject raw `×→` and `○→` tokens anywhere in the component while continuing to require `row.movement_tag`.
+
+Focused command:
+
+```text
+env ICHING_ARCHIVE_BASE=/tmp/iching-task2-review PYTHONPATH=src pytest -q tests/test_frontend_premium_contract.py::test_najia_table_uses_compact_rows_without_duplicate_line_preview
+```
+
+Observed result:
+
+```text
+1 passed in 0.04s
+```
