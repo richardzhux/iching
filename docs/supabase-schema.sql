@@ -58,6 +58,7 @@ create table if not exists public.chat_messages (
 );
 
 create index if not exists idx_chat_messages_session on public.chat_messages (session_id, created_at);
+create index if not exists idx_chat_messages_session_user on public.chat_messages (session_id, user_id);
 
 -- Existing deployments: run these ALTER statements in Supabase SQL Editor to add metadata columns.
 alter table public.chat_messages add column if not exists model text null;
@@ -88,6 +89,7 @@ create policy "chat_messages_owner_all" on public.chat_messages
 -- Periodic cleanup: delete sessions older than 365 days (chat_messages are cascaded).
 create or replace function public.purge_old_sessions() returns void
 language plpgsql
+set search_path = ''
 as $$
 begin
   delete from public.sessions
