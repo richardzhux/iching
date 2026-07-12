@@ -14,6 +14,19 @@ PALACE_ELEMENTS = {
 GENERATES = {"木": "火", "火": "土", "土": "金", "金": "水", "水": "木"}
 CONTROLS = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
 SIX_RELATIVES = ("父母", "兄弟", "子孙", "妻财", "官鬼")
+SIX_GOD_SEQUENCE = ("青龙", "朱雀", "勾陈", "腾蛇", "白虎", "玄武")
+SIX_GOD_START_INDEX = {
+    "甲": 0,
+    "乙": 0,
+    "丙": 1,
+    "丁": 1,
+    "戊": 2,
+    "己": 3,
+    "庚": 4,
+    "辛": 4,
+    "壬": 5,
+    "癸": 5,
+}
 
 
 def palace_element(palace: str) -> str:
@@ -47,3 +60,13 @@ def rebase_relation(relation: str, palace: str) -> str:
         return relation
     label = six_relative_label(palace_element(palace), relation[-1])
     return label + relation[len(prefix) :]
+
+
+def derive_six_gods(day_stem: str | None) -> list[str]:
+    start = SIX_GOD_START_INDEX.get(day_stem or "")
+    if start is None:
+        return [""] * 6
+    return [
+        SIX_GOD_SEQUENCE[(start + offset) % len(SIX_GOD_SEQUENCE)]
+        for offset in range(6)
+    ]

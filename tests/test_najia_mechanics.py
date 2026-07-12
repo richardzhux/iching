@@ -101,3 +101,56 @@ def test_ai_context_uses_normalized_table_instead_of_source_gods():
     assert "青龙" in followup
     assert "固定源六神" not in prompt
     assert "固定源六神" not in followup
+
+
+def _legacy_najia_session_payload():
+    return {
+        "najia_data": {
+            "day_stem": "丁",
+            "main": {
+                "name": "雷水解",
+                "palace": "震宫",
+                "lines": [
+                    {
+                        "position_top": 6,
+                        "god": "主卦固定源六神",
+                        "relation": "妻财庚戌土",
+                    }
+                ],
+            },
+            "changed": {
+                "name": "坎为水",
+                "palace": "坎宫",
+                "lines": [
+                    {
+                        "position_top": 4,
+                        "god": "变卦固定源六神",
+                        "hidden": "官鬼庚申金",
+                        "relation": "父母戊申金",
+                    }
+                ],
+            },
+        }
+    }
+
+
+def test_initial_ai_prompt_sanitizes_legacy_najia_without_a_table():
+    prompt = _build_prompt(_legacy_najia_session_payload())
+
+    assert "主卦固定源六神" not in prompt
+    assert "变卦固定源六神" not in prompt
+    assert '"god": "青龙"' in prompt
+    assert '"god": "白虎"' in prompt
+    assert '"relation": "官鬼戊申金"' in prompt
+    assert "官鬼庚申金" not in prompt
+
+
+def test_followup_ai_context_sanitizes_legacy_najia_without_a_table():
+    followup = _build_followup_session_context(_legacy_najia_session_payload())
+
+    assert "主卦固定源六神" not in followup
+    assert "变卦固定源六神" not in followup
+    assert '"god": "青龙"' in followup
+    assert '"god": "白虎"' in followup
+    assert '"relation": "官鬼戊申金"' in followup
+    assert "官鬼庚申金" not in followup

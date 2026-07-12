@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 import os
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
+
+from iching.core.najia import derive_six_gods, rebase_relation
 
 from openai import BadRequestError, OpenAI
 
@@ -111,7 +114,43 @@ def _normalized_najia_for_ai(data: Dict[str, Any]) -> Any:
     najia_table = data.get("najia_table")
     if isinstance(najia_table, dict) and isinstance(najia_table.get("rows"), list):
         return najia_table
-    return data.get("najia_data")
+    legacy = data.get("najia_data")
+    if not isinstance(legacy, dict):
+        return None
+
+    sanitized = deepcopy(legacy)
+    sanitized.pop("block_text", None)
+    gods = derive_six_gods(sanitized.get("day_stem"))
+    main = sanitized.get("main")
+    changed = sanitized.get("changed")
+    main_palace = ""
+    if isinstance(main, dict):
+        main_palace = str(main.get("palace") or main.get("gong") or "")
+
+    for entry, is_changed in ((main, False), (changed, True)):
+        if not isinstance(entry, dict):
+            continue
+        lines = entry.get("lines")
+        if not isinstance(lines, list):
+            continue
+        for line in lines:
+            if not isinstance(line, dict):
+                continue
+            raw_position = line.get("position", line.get("position_top"))
+            try:
+                position = int(raw_position)
+            except (TypeError, ValueError):
+                position = 0
+            line["god"] = gods[position - 1] if 1 <= position <= 6 else ""
+            if is_changed:
+                line["hidden"] = ""
+                relation = line.get("relation")
+                if main_palace and isinstance(relation, str):
+                    try:
+                        line["relation"] = rebase_relation(relation, main_palace)
+                    except ValueError:
+                        pass
+    return sanitized
 
 
 def _build_prompt(data: Dict[str, Any]) -> str:

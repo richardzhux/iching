@@ -102,3 +102,66 @@ changed hidden values: all empty
 - Verified fixed source gods cannot enter new-session AI prompts when a normalized table is present.
 - Verified no tracked database rewrite or new runtime dependency was introduced.
 - Verified no Task 2–4 file or behavior was intentionally modified.
+
+## Review fixes: legacy AI sanitization and unknown-stem safety
+
+Two Important review findings were addressed in a second strict RED → GREEN cycle.
+
+### RED
+
+Command:
+
+```text
+env ICHING_ARCHIVE_BASE=/tmp/iching-task1-review PYTHONPATH=src pytest -q tests/test_najia_mechanics.py tests/test_session_service.py
+```
+
+Observed before the review fixes:
+
+```text
+3 failed, 16 passed in 2.32s
+```
+
+Expected failures:
+
+- The initial AI prompt exposed fixed source gods when a historical payload had `najia_data` but no `najia_table`.
+- The follow-up AI context exposed the same fixed source gods.
+- `_build_najia_table()` fell back to fixed database gods for an unknown day stem.
+
+### GREEN
+
+Focused command:
+
+```text
+env ICHING_ARCHIVE_BASE=/tmp/iching-task1-review PYTHONPATH=src pytest -q tests/test_najia_mechanics.py tests/test_session_service.py
+```
+
+Observed after the fixes:
+
+```text
+19 passed in 2.16s
+```
+
+Full regression command:
+
+```text
+env ICHING_ARCHIVE_BASE=/tmp/iching-task1-review PYTHONPATH=src pytest -q
+```
+
+Observed result:
+
+```text
+61 passed, 1 warning in 2.83s
+```
+
+The warning remains the pre-existing Starlette `TestClient` / `httpx` deprecation warning.
+
+### Fix and compatibility evidence
+
+- Day-stem six-god derivation now lives in `iching.core.najia` and is shared by session normalization and legacy AI sanitization.
+- Missing or unknown day stems now emit six blank gods; source database gods are never used as a fallback.
+- When `najia_table` is absent, AI receives a deep-copied, sanitized legacy payload rather than raw `najia_data`.
+- Legacy `block_text` is removed from AI-visible fallback data because it embeds fixed source gods.
+- Legacy line gods are recomputed from saved `day_stem` and physical line position; invalid/missing positions produce blank gods.
+- Changed relations are rebased to the main palace when metadata is sufficient, and changed hidden values are cleared.
+- Both initial and follow-up AI paths use the same sanitizer and have focused regression coverage.
+- The sanitizer does not mutate the persisted/session payload supplied by the caller.

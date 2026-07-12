@@ -2,7 +2,8 @@ from datetime import datetime
 
 from iching.config import build_app_config
 from iching.integrations.ai import AIResponseData
-from iching.services.session import SessionService
+from iching.integrations.najia_repository import NajiaRepository
+from iching.services.session import SessionService, _build_najia_table
 
 
 def _assert_brief_contract(brief):
@@ -70,6 +71,17 @@ def test_session_service_uses_one_normalized_najia_payload_for_ai(monkeypatch):
     assert captured["najia_data"] == result.najia_data
     assert captured["najia_text"] == result.najia_text
     assert captured["najia_data"]["block_text"] == captured["najia_text"]
+
+
+def test_najia_table_does_not_fall_back_to_source_gods_for_unknown_day_stem():
+    config = build_app_config(enable_ai=False)
+    repository = NajiaRepository(config.paths.najia_db)
+    main_entry = repository.get_by_bottom("010100")
+
+    table = _build_najia_table(main_entry, None, [], "unknown")
+
+    assert main_entry is not None
+    assert [row["god"] for row in table["rows"]] == ["", "", "", "", "", ""]
 
 
 def test_session_service_builds_fallback_reading_brief_without_ai():

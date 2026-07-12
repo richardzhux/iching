@@ -11,7 +11,7 @@ from iching.config import AppConfig, PATHS, build_app_config
 from iching.core.bazi import BaZiCalculator
 from iching.core.divination import AVAILABLE_METHODS, DivinationMethod
 from iching.core.hexagram import Hexagram, load_hexagram_definitions
-from iching.core.najia import rebase_relation
+from iching.core.najia import derive_six_gods, rebase_relation
 from iching.core.time_utils import get_current_time
 from iching.integrations.ai import (
     DEFAULT_MODEL,
@@ -26,21 +26,6 @@ from iching.integrations.najia_repository import NajiaEntry, NajiaRepository
 
 def _default_input(prompt: str) -> str:
     return input(prompt)
-
-
-SIX_GOD_SEQUENCE = ["青龙", "朱雀", "勾陈", "腾蛇", "白虎", "玄武"]
-SIX_GOD_START_INDEX = {
-    "甲": 0,
-    "乙": 0,
-    "丙": 1,
-    "丁": 1,
-    "戊": 2,
-    "己": 3,
-    "庚": 4,
-    "辛": 4,
-    "壬": 5,
-    "癸": 5,
-}
 
 
 def _build_najia_table(
@@ -69,7 +54,7 @@ def _build_najia_table(
     if len(overview) < 6:
         overview.extend({} for _ in range(6 - len(overview)))
 
-    six_gods = _derive_six_gods(day_stem)
+    six_gods = derive_six_gods(day_stem)
     god_map = {index + 1: god for index, god in enumerate(six_gods)}
 
     rows: List[Dict[str, object]] = []
@@ -97,7 +82,7 @@ def _build_najia_table(
                 "changed_line_type": changed_line_type,
                 "is_moving": is_moving,
                 "moving_symbol": moving_symbol,
-                "god": god_map.get(position) or (main_line.god if main_line else ""),
+                "god": god_map.get(position, ""),
                 "hidden": main_line.hidden if main_line else "",
                 "main_relation": main_line.relation if main_line else "",
                 "main_mark": main_line.glyph if main_line else "",
@@ -209,19 +194,6 @@ def _movement_tag_from_value(value: Optional[int]) -> str:
     if value == 9:
         return "×→"
     return ""
-
-
-def _derive_six_gods(day_stem: Optional[str]) -> List[str]:
-    if not day_stem:
-        return [""] * 6
-    start = SIX_GOD_START_INDEX.get(day_stem)
-    if start is None:
-        return [""] * 6
-    order: List[str] = []
-    for offset in range(6):
-        index = (start + offset) % 6
-        order.append(SIX_GOD_SEQUENCE[index])
-    return order
 
 
 @dataclass(slots=True)
