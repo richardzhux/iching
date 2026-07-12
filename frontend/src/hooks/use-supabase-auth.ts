@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { Provider, Session, User } from "@supabase/supabase-js"
-import { getSupabaseClient } from "@/lib/supabase-browser"
+import { getSupabaseClient, hasSupabaseEnv } from "@/lib/supabase-browser"
 
 type AuthHook = {
   session: Session | null
@@ -23,7 +23,7 @@ export function useSupabaseAuth(): AuthHook {
   const missingEnvMessage = "Supabase is not configured. Anonymous mode only."
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(() => Boolean(supabase))
+  const [loading, setLoading] = useState(hasSupabaseEnv)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {

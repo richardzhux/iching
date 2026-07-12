@@ -10,6 +10,9 @@ export type MethodInfo = {
 
 export type ModelInfo = {
   name: string
+  label: string
+  tier: "standard" | "deep" | "more" | "expert" | "fast" | string
+  description: string
   reasoning: string[]
   default_reasoning?: string | null
   verbosity?: boolean
@@ -20,6 +23,91 @@ export type ConfigResponse = {
   topics: TopicInfo[]
   methods: MethodInfo[]
   ai_models: ModelInfo[]
+  default_model: string
+  model_aliases: Record<string, string>
+}
+
+export type MetaphysicsPillar = {
+  label: string
+  stem: string
+  branch: string
+  text: string
+  stem_element: string
+  branch_element: string
+  polarity: string
+  ten_god: string
+  hidden_stems: Array<{ stem: string; element: string; ten_god: string }>
+  nayin: string
+}
+
+export type MetaphysicsChart = {
+  timezone: string
+  input_timestamp: string
+  calculation_timestamp: string
+  calculation_mode: string
+  true_solar_correction_minutes: number
+  day_boundary: string
+  lunar_date: string
+  pillars: MetaphysicsPillar[]
+  bazi: string
+  day_master: string
+  xunkong: string
+  calendar_facts: {
+    gregorian: string
+    month_command: string
+    day_pillar: string
+    day_branch: string
+    month_clash: string
+    month_combine: string
+    day_clash: string
+    day_combine: string
+    six_spirit_start: string
+    six_spirits: string[]
+  }
+  element_counts: Record<string, number>
+  previous_solar_term?: { name: string; timestamp: string; days_away: number; seconds_away: number } | null
+  next_solar_term?: { name: string; timestamp: string; days_away: number; seconds_away: number } | null
+  birth_profile: {
+    calendar_type: "solar" | "lunar"
+    input_date: string
+    is_leap_month: boolean
+    converted_solar_date?: string
+    birth_place: string
+    gender?: "male" | "female" | null
+    hour_uncertain: boolean
+    hour_candidates: Array<{ label: string; time_range: string; pillar: string }>
+    dayun: {
+      status: "not_requested" | "requires_hour" | "available"
+      algorithm?: "sect1" | "sect2"
+      algorithm_note?: string
+      note?: string
+      direction?: "forward" | "reverse"
+      start?: { years: number; months: number; days: number; hours: number; solar_date: string }
+      engine_bazi?: string
+      crosscheck_matches?: boolean
+      cycles: Array<{ index: number; label: string; ganzhi: string; start_year: number; end_year: number; start_age: number; end_age: number }>
+    }
+    engines: Record<string, string>
+  }
+}
+
+export type MetaphysicsChartRequest = {
+  timestamp: string
+  timezone: string
+  longitude?: number | null
+  use_true_solar_time?: boolean
+  day_boundary?: "current" | "forward"
+  calendar_type?: "solar" | "lunar"
+  is_leap_month?: boolean
+  gender?: "male" | "female" | null
+  birth_place?: string | null
+  hour_uncertain?: boolean
+  dayun_algorithm?: "sect1" | "sect2"
+  lunar_year?: number | null
+  lunar_month?: number | null
+  lunar_day?: number | null
+  lunar_hour?: number | null
+  lunar_minute?: number | null
 }
 
 export type HexSection = {
@@ -238,6 +326,7 @@ export type ChatTurnPayload = {
   verbosity?: string | null
   tone?: string | null
   model?: string | null
+  restart?: boolean
 }
 
 export type ChatTranscriptResponse = {
@@ -247,6 +336,9 @@ export type ChatTranscriptResponse = {
   messages: ChatMessage[]
   payload_snapshot?: SessionPayload
   followup_model?: string | null
+  ai_reasoning?: string | null
+  ai_verbosity?: string | null
+  ai_tone?: string | null
 }
 
 export type SessionSummary = {

@@ -1,7 +1,7 @@
 "use client"
 
 import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware"
 import type { SessionPayload } from "@/types/api"
 
 const pad = (value: number) => value.toString().padStart(2, "0")
@@ -9,15 +9,14 @@ const formatDateInput = (date: Date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(
     date.getMinutes()
   )}`
-const MODEL_ALIASES: Record<string, string> = {
-  "gpt-5.1": "gpt-5.5",
-  "gpt-5.2": "gpt-5.5",
-  "gpt-5-mini": "gpt-5.4-mini",
-}
-const normalizeModelId = (model?: string | null) => (model ? MODEL_ALIASES[model] ?? model : "gpt-5.5")
 const isResultsTab = (value: unknown): value is ResultsTab =>
-  value === "summary" || value === "hex" || value === "ai"
+  value === "summary" || value === "hex" || value === "sources" || value === "ai"
 const LOCAL_HISTORY_LIMIT = 10
+const serverStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
+}
 
 export type WorkspaceForm = {
   topic: string
@@ -36,7 +35,7 @@ export type WorkspaceForm = {
 }
 
 export type WorkspaceView = "form" | "results"
-export type ResultsTab = "summary" | "hex" | "ai"
+export type ResultsTab = "summary" | "hex" | "sources" | "ai"
 export type JournalStatus = "open" | "watching" | "resolved"
 
 export type ReadingJournalEntry = {
@@ -78,7 +77,7 @@ const defaultForm: WorkspaceForm = {
   customTimestamp: formatDateInput(new Date()),
   enableAi: false,
   accessPassword: "",
-  aiModel: "gpt-5.5",
+  aiModel: "",
   aiReasoning: null,
   aiVerbosity: null,
   aiTone: "normal",
@@ -172,12 +171,13 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     {
       name: "iching-workspace",
       version: 1,
-	      partialize: (state) => ({
-	        form: {
-	          ...state.form,
-	          accessPassword: "",
-	        },
-	        result: state.result,
+      storage: createJSONStorage(() => (typeof window === "undefined" ? serverStorage : window.localStorage)),
+      partialize: (state) => ({
+        form: {
+          ...state.form,
+          accessPassword: "",
+        },
+        result: state.result,
         history: state.history,
         journal: state.journal,
         view: state.view,
@@ -190,7 +190,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
           state.form = {
             ...defaultForm,
             ...state.form,
-            aiModel: normalizeModelId(state.form?.aiModel),
             customTimestamp: formatDateInput(new Date()),
           }
         } else if (state?.form) {
@@ -198,7 +197,6 @@ export const useWorkspaceStore = create<WorkspaceState>()(
             ...defaultForm,
             ...state.form,
           }
-          state.form.aiModel = normalizeModelId(state.form.aiModel)
         }
         if (state && !state.journal) {
           state.journal = {}

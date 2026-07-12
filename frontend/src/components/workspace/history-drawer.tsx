@@ -47,7 +47,7 @@ export function HistoryDrawer() {
             watching: "观察中",
             resolved: "已结束",
           },
-          title: "阅读复盘",
+          title: "最近卦例",
           revisitAt: "重访日期",
           outcome: "实际发生了什么？",
           outcomePlaceholder: "记录局势如何变化、发生了什么，或你正在等待什么信号。",

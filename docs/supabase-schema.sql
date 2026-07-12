@@ -28,6 +28,12 @@ create table if not exists public.sessions (
 
 create index if not exists idx_sessions_user on public.sessions (user_id);
 
+-- Existing deployments: keep the session-level model controls available to transcript clients.
+alter table public.sessions add column if not exists followup_model text null;
+alter table public.sessions add column if not exists ai_reasoning text null;
+alter table public.sessions add column if not exists ai_verbosity text null;
+alter table public.sessions add column if not exists ai_tone text null;
+
 -- Chat transcript, one row per message (user + assistant).
 create table if not exists public.chat_messages (
   id uuid not null default gen_random_uuid(),
@@ -59,6 +65,26 @@ alter table public.chat_messages add column if not exists reasoning text null;
 alter table public.chat_messages add column if not exists verbosity text null;
 alter table public.chat_messages add column if not exists tone text null;
 
+-- Defense in depth: browser clients can only see rows owned by their authenticated user.
+-- The FastAPI persistence layer uses the service role and remains responsible for
+-- claiming anonymous rows, quota enforcement, and validated writes.
+alter table public.sessions enable row level security;
+alter table public.chat_messages enable row level security;
+
+drop policy if exists "sessions_owner_all" on public.sessions;
+create policy "sessions_owner_all" on public.sessions
+  for all
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "chat_messages_owner_all" on public.chat_messages;
+create policy "chat_messages_owner_all" on public.chat_messages
+  for all
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
 -- Periodic cleanup: delete sessions older than 365 days (chat_messages are cascaded).
 create or replace function public.purge_old_sessions() returns void
 language plpgsql
@@ -69,7 +95,7 @@ begin
 end;
 $$;
 
--- Schedule the cleanup daily at 03:00 UTC. Requires Supabase pg_cron (available on Free & Pro tiers).
+-- Schedule the cleanup daily at 04:00 UTC. Requires Supabase pg_cron (available on Free & Pro tiers).
 select
   cron.schedule(
     'purge-old-sessions',

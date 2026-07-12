@@ -4,13 +4,15 @@ import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from threading import Lock
-from typing import Dict, List, Optional
+from typing import Dict, Iterator, List, Optional
 
 from iching.integrations.ai import (
     MODEL_CAPABILITIES,
     continue_analysis,
     continue_analysis_from_session,
     normalize_model_name,
+    stream_continue_analysis,
+    stream_continue_analysis_from_session,
 )
 from iching.integrations.supabase_client import (
     SupabaseAuthError,
@@ -23,7 +25,7 @@ from iching.web.chat_state import SessionState, SessionStateStore
 
 CHAT_TURN_LIMIT = int(os.getenv("ICHING_CHAT_TURN_LIMIT", "10"))
 CHAT_TOKEN_LIMIT = int(os.getenv("ICHING_CHAT_TOKEN_LIMIT", "150000"))
-CHAT_FOLLOWUP_MODEL = normalize_model_name(os.getenv("ICHING_CHAT_MODEL", "gpt-5.4-mini")) or "gpt-5.4-mini"
+CHAT_FOLLOWUP_MODEL = normalize_model_name(os.getenv("ICHING_CHAT_MODEL", "gpt-5.6-terra")) or "gpt-5.6-terra"
 CHAT_MESSAGE_CHAR_LIMIT = int(os.getenv("ICHING_CHAT_MESSAGE_LIMIT", "10000"))
 ANONYMOUS_USER_ID = os.getenv("ICHING_ANON_USER_ID", "00000000-0000-0000-0000-000000000000")
 USER_DAILY_TOKEN_LIMIT = int(os.getenv("ICHING_USER_DAILY_TOKEN_LIMIT", "300000"))
@@ -185,11 +187,13 @@ class ChatService:
 
     def _sync_followup_model(self, record: Dict[str, object], user_id: str) -> Dict[str, object]:
         current_model = record.get("followup_model")
-        if current_model == CHAT_FOLLOWUP_MODEL:
+        normalized = normalize_model_name(str(current_model)) if current_model else None
+        if normalized in MODEL_CAPABILITIES and normalized == current_model:
             return record
-        payload = {"followup_model": CHAT_FOLLOWUP_MODEL}
+        next_model = normalized if normalized in MODEL_CAPABILITIES else CHAT_FOLLOWUP_MODEL
+        payload = {"followup_model": next_model}
         self.client.update_session(session_id=record["session_id"], user_id=user_id, payload=payload)
-        record["followup_model"] = CHAT_FOLLOWUP_MODEL
+        record["followup_model"] = next_model
         return record
 
     def _persist_initial_message(self, state: SessionState, user: SupabaseUser) -> None:
@@ -280,6 +284,7 @@ class ChatService:
         verbosity: Optional[str],
         tone: Optional[str],
         model_override: Optional[str],
+        restart: bool = False,
     ) -> Dict[str, object]:
         stripped = message.strip()
         if not stripped:
@@ -294,6 +299,7 @@ class ChatService:
         chosen_model = normalize_model_name(model_override) or configured_model
         if chosen_model not in MODEL_CAPABILITIES:
             chosen_model = CHAT_FOLLOWUP_MODEL
+        model_changed = restart or bool(configured_raw and chosen_model != configured_model)
         if chosen_model != configured_raw:
             self.client.update_session(
                 session_id=session_id,
@@ -315,25 +321,36 @@ class ChatService:
         applied_tone = tone or record.get("ai_tone")
 
         last_response_id = record.get("last_response_id")
-        if last_response_id:
+        regeneration_ids: Dict[str, str] = {}
+        if last_response_id and not model_changed:
             ai_result = continue_analysis(
                 previous_response_id=last_response_id,
                 message=stripped,
                 model_name=record.get("followup_model") or CHAT_FOLLOWUP_MODEL,
-                reasoning_effort=reasoning,
-                verbosity=verbosity,
+                reasoning_effort=applied_reasoning,
+                verbosity=applied_verbosity,
                 tone=tone or record.get("ai_tone"),
             )
         else:
             session_context = _extract_session_context(record)
             if not session_context:
                 raise ValueError("当前会话缺少完整快照，暂时无法开启 AI 追问。")
+            if model_changed:
+                session_context = dict(session_context)
+                history = self.client.fetch_chat_messages(
+                    session_id=session_id,
+                    user_id=user.id,
+                )
+                if restart:
+                    regeneration_ids = _regeneration_message_ids(history, stripped)
+                    history = _history_before_regeneration(history, stripped)
+                session_context["conversation_history"] = history
             ai_result = continue_analysis_from_session(
                 session_data=session_context,
                 message=stripped,
                 model_name=record.get("followup_model") or CHAT_FOLLOWUP_MODEL,
-                reasoning_effort=reasoning,
-                verbosity=verbosity,
+                reasoning_effort=applied_reasoning,
+                verbosity=applied_verbosity,
                 tone=tone or record.get("ai_tone"),
             )
 
@@ -349,6 +366,10 @@ class ChatService:
         timestamp = datetime.now(timezone.utc).isoformat()
         update_payload = {
             "last_response_id": ai_result.response_id,
+            "followup_model": chosen_model,
+            "ai_reasoning": applied_reasoning,
+            "ai_verbosity": applied_verbosity,
+            "ai_tone": applied_tone,
             "chat_turns": turns_used,
             "tokens_used": tokens_used,
             "updated_at": timestamp,
@@ -383,6 +404,10 @@ class ChatService:
             "tone": applied_tone,
             **_user_profile_payload(user),
         }
+        if user_message_id := regeneration_ids.get("user"):
+            user_record["id"] = user_message_id
+        if assistant_message_id := regeneration_ids.get("assistant"):
+            assistant_record["id"] = assistant_message_id
         self.client.insert_chat_messages([user_record, assistant_record])
 
         self.store.update_response(session_id, ai_result.response_id or "", increment_turn=True)
@@ -393,6 +418,162 @@ class ChatService:
             "assistant": assistant_record,
             "usage": usage_dict,
         }
+
+    def stream_followup(
+        self,
+        *,
+        session_id: str,
+        user: SupabaseUser,
+        message: str,
+        reasoning: Optional[str],
+        verbosity: Optional[str],
+        tone: Optional[str],
+        model_override: Optional[str],
+        restart: bool = False,
+    ) -> Iterator[Dict[str, object]]:
+        """Stream one follow-up while preserving the same quota and persistence contract."""
+        stripped = message.strip()
+        if not stripped:
+            raise ValueError("问题内容不能为空。")
+        if len(stripped) > CHAT_MESSAGE_CHAR_LIMIT:
+            raise ValueError(f"单次追问最多 {CHAT_MESSAGE_CHAR_LIMIT} 字符。")
+
+        record = self.ensure_session_row(session_id, user)
+        configured_raw = record.get("followup_model")
+        configured_model = normalize_model_name(str(configured_raw)) if configured_raw else CHAT_FOLLOWUP_MODEL
+        chosen_model = normalize_model_name(model_override) or configured_model
+        if chosen_model not in MODEL_CAPABILITIES:
+            chosen_model = CHAT_FOLLOWUP_MODEL
+        model_changed = restart or bool(configured_raw and chosen_model != configured_model)
+        if chosen_model != configured_raw:
+            self.client.update_session(
+                session_id=session_id,
+                user_id=user.id,
+                payload={"followup_model": chosen_model},
+            )
+            record["followup_model"] = chosen_model
+
+        turns_used = int(record.get("chat_turns") or 0)
+        tokens_used = int(record.get("tokens_used") or 0)
+        if turns_used >= CHAT_TURN_LIMIT:
+            raise ChatRateLimitError("本次占卜的追问次数已达上限。")
+        if tokens_used >= CHAT_TOKEN_LIMIT:
+            raise ChatRateLimitError("本次占卜的追问字数已达上限。")
+        self._ensure_user_allowance(user)
+
+        applied_reasoning = reasoning if reasoning is not None else record.get("ai_reasoning")
+        applied_verbosity = verbosity if verbosity is not None else record.get("ai_verbosity")
+        applied_tone = tone or record.get("ai_tone")
+        last_response_id = record.get("last_response_id")
+        session_context: Optional[Dict[str, object]] = None
+        regeneration_ids: Dict[str, str] = {}
+        if not last_response_id or model_changed:
+            session_context = _extract_session_context(record)
+            if not session_context:
+                raise ValueError("当前会话缺少完整快照，暂时无法开启 AI 追问。")
+            if model_changed:
+                session_context = dict(session_context)
+                history = self.client.fetch_chat_messages(
+                    session_id=session_id,
+                    user_id=user.id,
+                )
+                if restart:
+                    regeneration_ids = _regeneration_message_ids(history, stripped)
+                    history = _history_before_regeneration(history, stripped)
+                session_context["conversation_history"] = history
+
+        def generate() -> Iterator[Dict[str, object]]:
+            if last_response_id and not model_changed:
+                stream = stream_continue_analysis(
+                    previous_response_id=str(last_response_id),
+                    message=stripped,
+                    model_name=chosen_model,
+                    reasoning_effort=str(applied_reasoning) if applied_reasoning else None,
+                    verbosity=str(applied_verbosity) if applied_verbosity else None,
+                    tone=str(applied_tone) if applied_tone else None,
+                )
+            else:
+                stream = stream_continue_analysis_from_session(
+                    session_data=session_context or {},
+                    message=stripped,
+                    model_name=chosen_model,
+                    reasoning_effort=str(applied_reasoning) if applied_reasoning else None,
+                    verbosity=str(applied_verbosity) if applied_verbosity else None,
+                    tone=str(applied_tone) if applied_tone else None,
+                )
+
+            ai_result = None
+            for event in stream:
+                if event.get("type") == "delta":
+                    yield {"type": "delta", "delta": str(event.get("delta") or "")}
+                elif event.get("type") == "result":
+                    ai_result = event.get("result")
+            if ai_result is None:
+                raise RuntimeError("OpenAI streaming follow-up did not complete.")
+
+            usage_dict = ai_result.usage or {}
+            prompt_tokens = int(usage_dict.get("input_tokens") or 0)
+            completion_tokens = int(usage_dict.get("output_tokens") or 0)
+            total_tokens = int(usage_dict.get("total_tokens") or (prompt_tokens + completion_tokens))
+            next_tokens_used = tokens_used + total_tokens
+            if next_tokens_used > CHAT_TOKEN_LIMIT:
+                raise ChatRateLimitError("本次占卜的追问字数已达上限。")
+            next_turns_used = turns_used + 1
+            timestamp = datetime.now(timezone.utc).isoformat()
+
+            self.client.update_session(
+                session_id=session_id,
+                user_id=user.id,
+                payload={
+                    "last_response_id": ai_result.response_id,
+                    "followup_model": chosen_model,
+                    "ai_reasoning": applied_reasoning,
+                    "ai_verbosity": applied_verbosity,
+                    "ai_tone": applied_tone,
+                    "chat_turns": next_turns_used,
+                    "tokens_used": next_tokens_used,
+                    "updated_at": timestamp,
+                },
+            )
+            user_record = {
+                "session_id": session_id,
+                "user_id": user.id,
+                "role": "user",
+                "content": message,
+                "tokens_in": prompt_tokens,
+                "tokens_out": 0,
+                "created_at": timestamp,
+                "model": chosen_model,
+                "reasoning": applied_reasoning,
+                "verbosity": applied_verbosity,
+                "tone": applied_tone,
+                **_user_profile_payload(user),
+            }
+            assistant_record = {
+                "session_id": session_id,
+                "user_id": user.id,
+                "role": "assistant",
+                "content": ai_result.text,
+                "tokens_in": 0,
+                "tokens_out": completion_tokens,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "model": chosen_model,
+                "reasoning": applied_reasoning,
+                "verbosity": applied_verbosity,
+                "tone": applied_tone,
+                **_user_profile_payload(user),
+            }
+            if user_message_id := regeneration_ids.get("user"):
+                user_record["id"] = user_message_id
+            if assistant_message_id := regeneration_ids.get("assistant"):
+                assistant_record["id"] = assistant_message_id
+            self.client.insert_chat_messages([user_record, assistant_record])
+            self.store.update_response(session_id, ai_result.response_id or "", increment_turn=True)
+            self.store.add_tokens(session_id, total_tokens)
+            self._record_user_usage(user, total_tokens)
+            yield {"type": "completed", "assistant": assistant_record, "usage": usage_dict}
+
+        return generate()
 
     def _ensure_user_allowance(self, user: SupabaseUser) -> None:
         if not user or not user.id:
@@ -433,6 +614,31 @@ def _user_profile_payload(user: Optional[SupabaseUser]) -> Dict[str, Optional[st
         "user_display_name": display_name,
         "user_avatar_url": avatar_url,
     }
+
+
+def _history_before_regeneration(records: List[Dict[str, object]], message: str) -> List[Dict[str, object]]:
+    history = list(records)
+    if history and history[-1].get("role") == "assistant":
+        history.pop()
+    if history and history[-1].get("role") == "user" and str(history[-1].get("content") or "").strip() == message:
+        history.pop()
+    return history[-12:]
+
+
+def _regeneration_message_ids(records: List[Dict[str, object]], message: str) -> Dict[str, str]:
+    """Reuse the last turn's row ids so regeneration replaces it instead of duplicating it."""
+    history = list(records)
+    result: Dict[str, str] = {}
+    if history and history[-1].get("role") == "assistant":
+        assistant_id = history[-1].get("id")
+        if assistant_id:
+            result["assistant"] = str(assistant_id)
+        history.pop()
+    if history and history[-1].get("role") == "user" and str(history[-1].get("content") or "").strip() == message:
+        user_id = history[-1].get("id")
+        if user_id:
+            result["user"] = str(user_id)
+    return result
 
 
 def _extract_snapshot_field(record: Dict[str, object], key: str) -> Optional[str]:

@@ -4,32 +4,53 @@ from copy import deepcopy
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Iterator, Optional
 
 from iching.core.najia import derive_six_gods, rebase_relation
 
 from openai import BadRequestError, OpenAI
 
 MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
-    "gpt-5.5": {
-        "reasoning": ["none", "minimal", "low", "medium", "high"],
+    "gpt-5.6-terra": {
+        "label": "GPT-5.6 Terra",
+        "tier": "standard",
+        "description": "默认模型，平衡判断质量、速度与成本。",
+        "reasoning": ["none", "low", "medium", "high", "xhigh", "max"],
         "default_reasoning": "medium",
         "verbosity": True,
         "default_verbosity": "medium",
     },
-    "gpt-5.4-mini": {
-        "reasoning": ["minimal", "low", "medium", "high"],
+    "gpt-5.6-sol": {
+        "label": "GPT-5.6 Sol",
+        "tier": "deep",
+        "description": "深度占断与复杂连续追问。",
+        "reasoning": ["none", "low", "medium", "high", "xhigh", "max"],
+        "default_reasoning": "high",
+        "verbosity": True,
+        "default_verbosity": "medium",
+    },
+    "gpt-5.5": {
+        "label": "GPT-5.5",
+        "tier": "more",
+        "description": "保留的上一代通用深度模型。",
+        "reasoning": ["none", "low", "medium", "high", "xhigh"],
         "default_reasoning": "medium",
         "verbosity": True,
         "default_verbosity": "medium",
     },
     "gpt-5.3-codex": {
+        "label": "GPT-5.3 Codex",
+        "tier": "expert",
+        "description": "结构化、技术性或执行方案追问。",
         "reasoning": ["minimal", "low", "medium", "high"],
         "default_reasoning": "medium",
         "verbosity": True,
         "default_verbosity": "medium",
     },
     "gpt-4.1": {
+        "label": "GPT-4.1",
+        "tier": "fast",
+        "description": "轻量追问与快速验证。",
         "reasoning": [],
         "default_reasoning": None,
         "verbosity": False,
@@ -40,10 +61,13 @@ MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
 MODEL_ALIASES: Dict[str, str] = {
     "gpt-5.1": "gpt-5.5",
     "gpt-5.2": "gpt-5.5",
-    "gpt-5-mini": "gpt-5.4-mini",
+    "gpt-5-mini": "gpt-5.6-terra",
+    "gpt-5.4-mini": "gpt-5.6-terra",
+    "gpt-5.5-mini": "gpt-5.6-terra",
+    "gpt-5.6": "gpt-5.6-sol",
 }
 
-DEFAULT_MODEL = "gpt-5.5"
+DEFAULT_MODEL = "gpt-5.6-terra"
 
 TONE_PROFILES: Dict[str, str] = {
     "normal": "现代中文，温和且专业，适度引用经典，保持礼貌敬语。",
@@ -193,6 +217,10 @@ def _build_prompt(data: Dict[str, Any]) -> str:
         reasoning_note = "推理力度: 中。完整展示核心推演步骤与支撑证据，适度展开。"
     elif reasoning == "high":
         reasoning_note = "推理力度: 高。详尽阐述推理过程、备选解释与权衡，同时给出清晰结构。"
+    elif reasoning == "xhigh":
+        reasoning_note = "推理力度: 超高。充分检查复杂关系、备选解释与反证后再收束结论。"
+    elif reasoning == "max":
+        reasoning_note = "推理力度: 最大。优先完整性与严密性，穷尽关键分支后给出最终判断。"
 
     verbosity = data.get("ai_verbosity")
     verbosity_note = ""
@@ -246,13 +274,11 @@ def _prompt_for_password() -> None:
 
 def _interactive_model_selector() -> str:
     options = [
-        ("A", "gpt-4.1", "快速模式"),
-        ("B", "gpt-5.5", "深度推理"),
-        ("C", "gpt-5.4-mini", "兼容/聊天"),
-        ("D", "gpt-5.3-codex", "代码与结构化推理"),
-        ("E", "gpt-4.1-nano", "极速 (最低成本/延迟)"),
-        ("F", "gpt-5", "高阶文本与推理"),
-        ("G", "o3", "最强推理 (更慢/更贵)"),
+        ("A", "gpt-5.6-terra", "标准占断（默认）"),
+        ("B", "gpt-5.6-sol", "深度占断"),
+        ("C", "gpt-5.5", "上一代通用模型"),
+        ("D", "gpt-5.3-codex", "结构化与技术推理"),
+        ("E", "gpt-4.1", "快速模式"),
     ]
     print(f"\n请选择OpenAI模型（默认：{DEFAULT_MODEL}）：")
     for letter, model, desc in options:
@@ -260,13 +286,11 @@ def _interactive_model_selector() -> str:
     choice = input("请尊贵的用户选择：").strip().upper()
     mapping = {
         "": DEFAULT_MODEL,
-        "A": "gpt-4.1",
-        "B": "gpt-5.5",
-        "C": "gpt-5.4-mini",
+        "A": "gpt-5.6-terra",
+        "B": "gpt-5.6-sol",
+        "C": "gpt-5.5",
         "D": "gpt-5.3-codex",
-        "E": "gpt-4.1-nano",
-        "F": "gpt-5",
-        "G": "o3",
+        "E": "gpt-4.1",
     }
     selected = mapping.get(choice)
     if selected:
@@ -317,7 +341,7 @@ def start_analysis(
 
     selected_reasoning = _normalize_reasoning(model_name, reasoning_effort or data.get("ai_reasoning"))
     selected_verbosity = _normalize_verbosity(model_name, verbosity or data.get("ai_verbosity"))
-    reasoning_payload = None if selected_reasoning in (None, "none") else selected_reasoning
+    reasoning_payload = selected_reasoning
 
     client = OpenAI(api_key=api_key)
     user_prompt = _build_prompt(data)
@@ -362,7 +386,7 @@ def continue_analysis(
     resolved_model = normalize_model_name(model_name) or DEFAULT_MODEL
     selected_reasoning = _normalize_reasoning(resolved_model, reasoning_effort)
     selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
-    reasoning_payload = None if selected_reasoning in (None, "none") else selected_reasoning
+    reasoning_payload = selected_reasoning
 
     instruction_block = CHAT_CONTINUATION_PROMPT
     if tone:
@@ -419,7 +443,7 @@ def continue_analysis_from_session(
     resolved_model = normalize_model_name(model_name) or DEFAULT_MODEL
     selected_reasoning = _normalize_reasoning(resolved_model, reasoning_effort)
     selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
-    reasoning_payload = None if selected_reasoning in (None, "none") else selected_reasoning
+    reasoning_payload = selected_reasoning
 
     instruction_block = CHAT_CONTINUATION_PROMPT
     if tone:
@@ -456,6 +480,126 @@ def continue_analysis_from_session(
     )
 
 
+def stream_continue_analysis(
+    *,
+    previous_response_id: str,
+    message: str,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None,
+    reasoning_effort: Optional[str] = None,
+    verbosity: Optional[str] = None,
+    tone: Optional[str] = None,
+) -> Iterator[Dict[str, Any]]:
+    if not previous_response_id:
+        raise ValueError("previous_response_id is required for follow-up calls.")
+    return _stream_analysis(
+        user_input=message,
+        previous_response_id=previous_response_id,
+        api_key=api_key,
+        model_name=model_name,
+        reasoning_effort=reasoning_effort,
+        verbosity=verbosity,
+        tone=tone,
+    )
+
+
+def stream_continue_analysis_from_session(
+    *,
+    session_data: Dict[str, Any],
+    message: str,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None,
+    reasoning_effort: Optional[str] = None,
+    verbosity: Optional[str] = None,
+    tone: Optional[str] = None,
+) -> Iterator[Dict[str, Any]]:
+    stripped = message.strip()
+    if not stripped:
+        raise ValueError("message is required for bootstrap follow-up calls.")
+    context = _build_followup_session_context(session_data)
+    if not context:
+        raise ValueError("session_data is missing required context for bootstrap follow-up.")
+    user_input = (
+        "以下是同一会话的固定占卜上下文，请据此回答用户追问，不要重起卦：\n\n"
+        f"{context}\n\n用户追问：{stripped}"
+    )
+    return _stream_analysis(
+        user_input=user_input,
+        previous_response_id=None,
+        api_key=api_key,
+        model_name=model_name,
+        reasoning_effort=reasoning_effort,
+        verbosity=verbosity,
+        tone=tone,
+    )
+
+
+def _stream_analysis(
+    *,
+    user_input: str,
+    previous_response_id: Optional[str],
+    api_key: Optional[str],
+    model_name: Optional[str],
+    reasoning_effort: Optional[str],
+    verbosity: Optional[str],
+    tone: Optional[str],
+) -> Iterator[Dict[str, Any]]:
+    resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
+    if not resolved_api_key:
+        raise RuntimeError("OPENAI_API_KEY not configured on the server.")
+
+    resolved_model = normalize_model_name(model_name) or DEFAULT_MODEL
+    selected_reasoning = _normalize_reasoning(resolved_model, reasoning_effort)
+    selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
+    instructions = CHAT_CONTINUATION_PROMPT
+    if tone:
+        descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
+        instructions += f"\n\n语气设定: {tone} —— {descriptor}"
+
+    payload: Dict[str, Any] = {
+        "model": resolved_model,
+        "instructions": instructions.strip(),
+        "input": [{"role": "user", "content": user_input}],
+        "stream": True,
+    }
+    if previous_response_id:
+        payload["previous_response_id"] = previous_response_id
+    if selected_reasoning:
+        payload["reasoning"] = _reasoning_payload(resolved_model, selected_reasoning)
+    if selected_verbosity:
+        payload["text"] = {"verbosity": selected_verbosity}
+
+    client = OpenAI(api_key=resolved_api_key)
+
+    def generate() -> Iterator[Dict[str, Any]]:
+        completed_response: Any = None
+        parts: list[str] = []
+        with client.responses.create(**payload) as stream:
+            for event in stream:
+                event_type = getattr(event, "type", "")
+                if event_type == "response.output_text.delta":
+                    delta = getattr(event, "delta", "") or ""
+                    if delta:
+                        parts.append(delta)
+                        yield {"type": "delta", "delta": delta}
+                elif event_type == "response.completed":
+                    completed_response = getattr(event, "response", None)
+
+        text = "".join(parts).strip()
+        if not text and completed_response is not None:
+            text = _extract_response_text(completed_response) or ""
+        if not text:
+            raise RuntimeError("OpenAI streaming follow-up returned an empty response.")
+        result = AIResponseData(
+            text=text,
+            response_id=getattr(completed_response, "id", None),
+            usage=_extract_usage(completed_response) if completed_response is not None else None,
+        )
+        yield {"type": "result", "result": result}
+
+    return generate()
+
+
 def _build_followup_session_context(data: Dict[str, Any]) -> str:
     if not isinstance(data, dict):
         return ""
@@ -484,6 +628,18 @@ def _build_followup_session_context(data: Dict[str, Any]) -> str:
             blocks.append("纳甲/六神/六亲:\n" + str(najia_data))
     if ai_analysis := data.get("ai_analysis"):
         blocks.append("已有 AI 解读（仅作参考）:\n" + str(ai_analysis))
+    history = data.get("conversation_history")
+    if isinstance(history, list) and history:
+        rendered_history = []
+        for item in history[-12:]:
+            if not isinstance(item, dict):
+                continue
+            role = "用户" if item.get("role") == "user" else "AI"
+            content = str(item.get("content") or "").strip()
+            if content:
+                rendered_history.append(f"{role}: {content}")
+        if rendered_history:
+            blocks.append("已有追问对话：\n" + "\n\n".join(rendered_history))
     return "\n\n".join(blocks).strip()
 
 
@@ -511,7 +667,7 @@ def _request_openai_response(
         if previous_response_id:
             payload["previous_response_id"] = previous_response_id
         if use_reasoning and reasoning:
-            payload["reasoning"] = {"effort": reasoning}
+            payload["reasoning"] = _reasoning_payload(model_name, reasoning)
         if use_verbosity and verbosity:
             payload["text"] = {"verbosity": verbosity}
         return payload
@@ -589,14 +745,19 @@ def _normalize_reasoning(model_name: str, requested: Optional[str]) -> Optional[
     allowed = meta.get("reasoning", [])
     if not allowed:
         return None
-    if requested == "none":
-        return "none"
     if requested in allowed:
         return requested
     default_reasoning = meta.get("default_reasoning")
     if default_reasoning in allowed:
         return default_reasoning
     return allowed[0]
+
+
+def _reasoning_payload(model_name: str, effort: str) -> Dict[str, str]:
+    payload = {"effort": effort}
+    if (normalize_model_name(model_name) or model_name).startswith("gpt-5.6"):
+        payload["context"] = "all_turns"
+    return payload
 
 
 def _normalize_verbosity(model_name: str, requested: Optional[str]) -> Optional[str]:

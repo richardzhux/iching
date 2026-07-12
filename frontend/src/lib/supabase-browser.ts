@@ -11,6 +11,9 @@ export function hasSupabaseEnv(): boolean {
 }
 
 export function getSupabaseClient(): SupabaseClient | null {
+  if (typeof window === "undefined") {
+    return null
+  }
   if (browserClient) {
     return browserClient
   }

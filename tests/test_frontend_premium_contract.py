@@ -9,7 +9,7 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_homepage_uses_reading_desk_identity_and_sample_reading():
+def test_homepage_uses_divination_identity_and_sample_case():
     source = read("frontend/src/components/home/home-page.tsx")
     banned_phrases = [
         "From yarrow stalks to AI",
@@ -23,8 +23,8 @@ def test_homepage_uses_reading_desk_identity_and_sample_reading():
     for phrase in banned_phrases:
         assert phrase not in source
 
-    assert "bilingual reading desk" in source
-    assert "source-grounded reading environment" in source
+    assert "Professional Yi divination" in source
+    assert "source-grounded divination environment" in source
     assert "sampleReading" in source
     assert "Hexagram 3" in source
     assert "Hexagram 8" in source
@@ -96,8 +96,8 @@ def test_imperial_amethyst_theme_is_sitewide_and_guarded():
     assert "#0b0714" in globals_css
     assert "#151021" in globals_css
     assert "oracle-mark" in globals_css
-    assert "🔮" in workspace
-    assert "🔮" in cast_form
+    assert "🔮" not in workspace
+    assert "🔮" not in cast_form
     assert "error && !data" in workspace
     assert "imperial-highlight-panel" in themed_surfaces
     assert "imperial-highlight-card" in themed_surfaces
@@ -125,19 +125,23 @@ def test_imperial_amethyst_theme_is_sitewide_and_guarded():
         assert token not in themed_surfaces
 
 
-def test_method_page_and_nav_explain_trust_boundary():
+def test_tools_page_replaces_method_page_and_stays_in_navigation():
     method_page = read("frontend/src/app/[locale]/method/page.tsx")
+    tools_page = read("frontend/src/app/[locale]/tools/page.tsx")
+    tools_ui = read("frontend/src/components/tools/metaphysics-tools.tsx")
     layout = read("frontend/src/app/[locale]/layout.tsx")
     en = read("frontend/src/i18n/catalog/en.ts")
     zh = read("frontend/src/i18n/catalog/zh.ts")
 
-    assert "/method" in layout
+    assert 'redirect(withLocale(locale, "/tools"))' in method_page
+    assert "MetaphysicsTools" in tools_page
+    assert "build_metaphysics" not in tools_ui
+    assert 'import("iztro")' in tools_ui
+    assert "/tools" in layout
+    assert "/method" not in layout
     assert "md:hidden" in layout
-    assert 'method: "Method"' in en
-    assert 'method: "机理"' in zh
-    assert "AI synthesis is allowed" in method_page
-    assert "365-day cloud retention limit" in method_page
-    assert "not medical, legal, financial" in method_page
+    assert 'method: "Metaphysics Tools"' in en
+    assert 'method: "术数工具"' in zh
 
 
 def test_library_has_pinyin_search_and_public_metadata():
@@ -215,7 +219,7 @@ def test_results_source_review_uses_drawer_not_archive_tab_or_inline_expansion()
     assert "onSourceSelect={openSourceReader}" in results
     assert "function ArchiveComparisonPanel" not in results
     assert 'value === "archive"' not in store
-    assert 'export type ResultsTab = "summary" | "hex" | "ai"' in store
+    assert 'export type ResultsTab = "summary" | "hex" | "sources" | "ai"' in store
 
 
 def test_source_drawer_has_classification_and_why_selected():
@@ -242,10 +246,10 @@ def test_mechanics_source_review_no_long_inline_archive_expansion():
 def test_guidance_key_passages_are_highlighted_as_decisive_interpretation():
     results = read("frontend/src/components/workspace/results-panel.tsx")
 
-    assert "keyPassageHighlightSection" in results
+    assert "SourceEvidencePanel" in results
     assert "imperial-highlight-panel" in results
-    assert "卦辞解析" in results
-    assert "Decisive passage analysis" in results
+    assert "本次取用的关键原文" in results
+    assert "Decisive source passages" in results
     assert "imperial-highlight-card" in results
 
 
@@ -335,7 +339,7 @@ def test_profile_page_matches_premium_study_surface():
     assert "max-w-7xl" in profile
     assert "grid gap-6 lg:grid-cols-[18rem_1fr]" in profile
     assert "Reading archive" in profile
-    assert "阅读档案" in profile
+    assert "卦例档案" in profile
     assert "border border-border/60 bg-surface" in profile
     assert "bg-surface-elevated" in profile
     assert "LogOut" in profile
@@ -367,10 +371,13 @@ def test_chat_panel_feels_like_native_ai_conversation_surface():
     chat = read("frontend/src/components/workspace/chat-panel.tsx")
 
     assert "min-h-[42rem]" in chat
-    assert "flex-1 flex-col gap-4 overflow-y-auto" in chat
-    assert "w-full max-w-3xl border-l border-primary/35" in chat
+    assert "flex-1 flex-col gap-5 overflow-y-auto" in chat
+    assert "w-full max-w-3xl border-l border-primary/35 pl-4" in chat
     assert "surface-soft rounded-lg border border-border/50 p-2" in chat
     assert "min-h-20 border-0 bg-transparent" in chat
+    assert "streamChatMessage" in chat
+    assert "abortRef.current?.abort()" in chat
+    assert "Regenerate" in chat
 
 
 def test_reading_desk_has_question_coaching_and_guided_line_builder():
@@ -388,7 +395,6 @@ def test_reading_desk_has_question_coaching_and_guided_line_builder():
     assert "Live hexagram" in cast_form
     assert "AI reading settings" in cast_form
     assert "Time and raw input" in cast_form
-    assert "AI controls stay on the main page" in cast_form
     assert "max-w-[88rem]" in cast_form
     assert "Classical research" not in cast_form
     assert "经典研究" not in cast_form

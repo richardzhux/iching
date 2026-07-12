@@ -1,8 +1,11 @@
 import type {
   ChatTranscriptResponse,
+  ChatMessage,
   ChatTurnPayload,
   ChatTurnResponse,
   ConfigResponse,
+  MetaphysicsChart,
+  MetaphysicsChartRequest,
   SessionHistoryResponse,
   SessionPayload,
   SessionRequest,
@@ -71,6 +74,15 @@ export async function fetchConfig(): Promise<ConfigResponse> {
   return handleResponse<ConfigResponse>(response)
 }
 
+export async function calculateMetaphysicsChart(payload: MetaphysicsChartRequest): Promise<MetaphysicsChart> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/tools/metaphysics`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+  return handleResponse<MetaphysicsChart>(response)
+}
+
 export async function createSession(request: SessionRequest, token?: string): Promise<SessionPayload> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -113,9 +125,89 @@ export async function sendChatMessage(
       verbosity: payload.verbosity ?? undefined,
       tone: payload.tone ?? undefined,
       model: payload.model ?? undefined,
+      restart: payload.restart ?? undefined,
     }),
   })
   return handleResponse<ChatTurnResponse>(response)
+}
+
+export async function streamChatMessage(
+  sessionId: string,
+  token: string,
+  payload: ChatTurnPayload,
+  options: {
+    signal?: AbortSignal
+    onDelta: (delta: string) => void
+  },
+): Promise<ChatTurnResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/api/sessions/${sessionId}/chat/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      Accept: "text/event-stream",
+    },
+    body: JSON.stringify({
+      message: payload.message,
+      reasoning: payload.reasoning ?? undefined,
+      verbosity: payload.verbosity ?? undefined,
+      tone: payload.tone ?? undefined,
+      model: payload.model ?? undefined,
+      restart: payload.restart ?? undefined,
+    }),
+    signal: options.signal,
+  })
+  if (!response.ok) {
+    return handleResponse<ChatTurnResponse>(response)
+  }
+  if (!response.body) {
+    throw new Error("Streaming response body is unavailable.")
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ""
+  let completed: ChatTurnResponse | null = null
+
+  const consumeBlock = (block: string) => {
+    let eventType = "message"
+    const dataLines: string[] = []
+    for (const line of block.split("\n")) {
+      if (line.startsWith("event:")) eventType = line.slice(6).trim()
+      if (line.startsWith("data:")) dataLines.push(line.slice(5).trim())
+    }
+    if (!dataLines.length) return
+    const data = JSON.parse(dataLines.join("\n")) as Record<string, unknown>
+    if (eventType === "delta") {
+      options.onDelta(String(data.delta ?? ""))
+    } else if (eventType === "completed") {
+      completed = {
+        session_id: sessionId,
+        assistant: data.assistant as ChatMessage,
+        usage: (data.usage as Record<string, number>) ?? {},
+      }
+    } else if (eventType === "error") {
+      throw new Error(String(data.detail ?? "AI stream failed."))
+    }
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    buffer += decoder.decode(value, { stream: !done })
+    let boundary = buffer.indexOf("\n\n")
+    while (boundary >= 0) {
+      const block = buffer.slice(0, boundary).trim()
+      buffer = buffer.slice(boundary + 2)
+      if (block) consumeBlock(block)
+      boundary = buffer.indexOf("\n\n")
+    }
+    if (done) break
+  }
+  if (buffer.trim()) consumeBlock(buffer.trim())
+  if (!completed) {
+    throw new Error("AI stream ended before completion.")
+  }
+  return completed
 }
 
 export async function fetchSessionHistory(token: string): Promise<SessionHistoryResponse> {

@@ -10,7 +10,7 @@ from threading import Lock
 from typing import Dict, Optional, Tuple
 
 from iching.config import AppConfig, build_app_config
-from iching.integrations.ai import DEFAULT_MODEL, MODEL_CAPABILITIES
+from iching.integrations.ai import DEFAULT_MODEL, MODEL_ALIASES, MODEL_CAPABILITIES
 from iching.integrations.supabase_client import SupabaseRestClient, SupabaseUser
 from iching.services.session import SessionService
 from iching.web.models import (
@@ -265,6 +265,9 @@ class SessionRunner:
         ai_models = [
             ModelInfo(
                 name=name,
+                label=str(meta.get("label") or name),
+                tier=str(meta.get("tier") or "more"),
+                description=str(meta.get("description") or ""),
                 reasoning=meta.get("reasoning", []),
                 default_reasoning=meta.get("default_reasoning"),
                 verbosity=bool(meta.get("verbosity")),
@@ -272,7 +275,13 @@ class SessionRunner:
             )
             for name, meta in MODEL_CAPABILITIES.items()
         ]
-        return ConfigResponse(topics=topics, methods=methods, ai_models=ai_models)
+        return ConfigResponse(
+            topics=topics,
+            methods=methods,
+            ai_models=ai_models,
+            default_model=DEFAULT_MODEL,
+            model_aliases=MODEL_ALIASES,
+        )
 
 
 _APP_CONFIG = build_app_config()

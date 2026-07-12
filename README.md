@@ -10,19 +10,20 @@ It is built for serious, repeatable analysis: users can cast readings, inspect l
 - **Delivery model**: web app (`Next.js 16`) + API platform (`FastAPI`) + structured interpretation data layer (`SQLite + Supabase history`).
 - **Current readiness**: live-capable architecture with auth, quotas, history persistence, multilingual UI, and deterministic interpretation assembly.
 
-## Delivered Priorities (This Cycle)
+## Delivered Priorities (Current)
 
 These are the exact priorities that were deliberately planned and are now implemented:
 
 1. **Model upgrade across product surfaces**
-- Replaced `gpt-5.2` with `gpt-5.5` in the primary model flow.
-- Replaced `gpt-5-mini` with `gpt-5.4-mini` in the default follow-up flow.
-- Maintained backward compatibility via alias mapping (`gpt-5.1`/`gpt-5.2 -> gpt-5.5`, `gpt-5-mini -> gpt-5.4-mini`).
-- Preserved the same reasoning/verbosity behavior profile expected from the prior 5.1 setup.
+- `gpt-5.6-terra` is the default model for initial interpretation and follow-up.
+- `gpt-5.6-sol` is the deep-analysis option.
+- Both GPT-5.6 profiles expose `none`, `low`, `medium`, `high`, `xhigh`, and `max` reasoning; verbosity defaults to `medium`.
+- Legacy mini model names normalize to Terra, while GPT-5.5, GPT-5.3 Codex, and GPT-4.1 remain available.
 
-2. **Chat model expansion**
-- Added `gpt-5.3-codex` in follow-up chat alongside `gpt-5.4-mini`, `gpt-5.5`, and `gpt-4.1`.
-- Preserved capability-aware controls so unsupported knobs are automatically gated.
+2. **Streaming follow-up chat**
+- Assistant text streams incrementally over SSE and persists only after completion.
+- Chat supports stop, copy, edit, regenerate, model switching, and capability-aware controls.
+- GPT-5.6 responses use persisted `all_turns` reasoning context while the response chain remains on the same model; switching models rebuilds context from the fixed cast and recent transcript.
 
 3. **Bilingual, one-tap language UX**
 - Added locale routing and language switching (`/en`, `/zh`) with one-button toggling.
@@ -35,6 +36,11 @@ These are the exact priorities that were deliberately planned and are now implem
 
 5. **Historical data consistency**
 - Added retroactive backfill tooling so existing Supabase sessions can be upgraded to the new interpretation structure.
+
+6. **Metaphysics tools**
+- Added current Chinese-calendar facts, exact solar-term countdown, month command, day branch, void branches, clashes/combinations, and six-spirit starting order.
+- Added solar/lunar BaZi charting with historical timezone/DST behavior, true-solar-time correction, explicit late-Zi-hour rules, uncertain-hour candidates, selectable Da Yun start rules, and `sxtwl`/`lunar_python` cross-checking.
+- Added Zi Wei Dou Shu charting with the pinned MIT-licensed `iztro` engine, solar/lunar input, leap-month handling, standard/Zhongzhou schools, heaven/earth/human chart modes, four transformations, and decadal/annual periods.
 
 ## Why This Product Is Defensible
 
@@ -70,13 +76,14 @@ Defined in `src/iching/integrations/ai.py` (`MODEL_CAPABILITIES`):
 
 | Model | Reasoning options | Verbosity control | Default reasoning | Default verbosity |
 | --- | --- | --- | --- | --- |
-| `gpt-5.5` | `none`, `minimal`, `low`, `medium`, `high` | yes | `medium` | `medium` |
-| `gpt-5.4-mini` | `minimal`, `low`, `medium`, `high` | yes | `medium` | `medium` |
+| `gpt-5.6-terra` | `none`, `low`, `medium`, `high`, `xhigh`, `max` | yes | `medium` | `medium` |
+| `gpt-5.6-sol` | `none`, `low`, `medium`, `high`, `xhigh`, `max` | yes | `high` | `medium` |
+| `gpt-5.5` | `none`, `low`, `medium`, `high`, `xhigh` | yes | `medium` | `medium` |
 | `gpt-5.3-codex` | `minimal`, `low`, `medium`, `high` | yes | `medium` | `medium` |
 | `gpt-4.1` | none | no | n/a | n/a |
 
 Compatibility:
-- `MODEL_ALIASES` maps `gpt-5.1` and `gpt-5.2` to `gpt-5.5`, and `gpt-5-mini` to `gpt-5.4-mini`.
+- `MODEL_ALIASES` maps `gpt-5.1` and `gpt-5.2` to GPT-5.5, legacy mini names to Terra, and `gpt-5.6` to Sol.
 
 ## Interpretation Knowledge Architecture (SQL)
 
@@ -197,6 +204,8 @@ Primary endpoints:
 - `DELETE /api/sessions/{session_id}`
 - `GET /api/sessions/{session_id}/chat`
 - `POST /api/sessions/{session_id}/chat`
+- `POST /api/sessions/{session_id}/chat/stream`
+- `POST /api/tools/metaphysics`
 
 ## Local Development
 
@@ -234,7 +243,7 @@ Open: `http://localhost:3000`
 - `SUPABASE_SERVICE_KEY`
 
 ### Backend (Key operational controls)
-- `ICHING_CHAT_MODEL` (default `gpt-5.4-mini`)
+- `ICHING_CHAT_MODEL` (default `gpt-5.6-terra`)
 - `ICHING_CHAT_TURN_LIMIT` (default `10`)
 - `ICHING_CHAT_TOKEN_LIMIT` (default `150000`)
 - `ICHING_CHAT_MESSAGE_LIMIT` (default `10000`)

@@ -22,6 +22,9 @@ class MethodInfo(BaseModel):
 
 class ModelInfo(BaseModel):
     name: str
+    label: str
+    tier: str
+    description: str
     reasoning: List[str] = Field(default_factory=list)
     default_reasoning: Optional[str] = None
     verbosity: bool = False
@@ -91,6 +94,52 @@ class ConfigResponse(BaseModel):
     topics: List[TopicInfo]
     methods: List[MethodInfo]
     ai_models: List[ModelInfo]
+    default_model: str
+    model_aliases: Dict[str, str] = Field(default_factory=dict)
+
+
+class MetaphysicsChartRequest(BaseModel):
+    timestamp: datetime
+    timezone: str = "Asia/Shanghai"
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+    use_true_solar_time: bool = False
+    day_boundary: Literal["current", "forward"] = "forward"
+    calendar_type: Literal["solar", "lunar"] = "solar"
+    is_leap_month: bool = False
+    gender: Optional[Literal["male", "female"]] = None
+    birth_place: Optional[str] = Field(default=None, max_length=120)
+    hour_uncertain: bool = False
+    dayun_algorithm: Literal["sect1", "sect2"] = "sect2"
+    lunar_year: Optional[int] = Field(default=None, ge=1, le=9999)
+    lunar_month: Optional[int] = Field(default=None, ge=1, le=12)
+    lunar_day: Optional[int] = Field(default=None, ge=1, le=30)
+    lunar_hour: Optional[int] = Field(default=None, ge=0, le=23)
+    lunar_minute: Optional[int] = Field(default=None, ge=0, le=59)
+
+    @model_validator(mode="after")
+    def _validate_lunar_input(self) -> "MetaphysicsChartRequest":
+        if self.calendar_type == "lunar" and None in (self.lunar_year, self.lunar_month, self.lunar_day):
+            raise ValueError("lunar_year, lunar_month, and lunar_day are required for lunar input")
+        return self
+
+
+class MetaphysicsChartResponse(BaseModel):
+    timezone: str
+    input_timestamp: str
+    calculation_timestamp: str
+    calculation_mode: str
+    true_solar_correction_minutes: float
+    day_boundary: str
+    lunar_date: str
+    pillars: List[Dict[str, object]]
+    bazi: str
+    day_master: str
+    xunkong: str
+    calendar_facts: Dict[str, object]
+    element_counts: Dict[str, int]
+    previous_solar_term: Optional[Dict[str, object]] = None
+    next_solar_term: Optional[Dict[str, object]] = None
+    birth_profile: Dict[str, object]
 
 
 class ChatTurnRequest(BaseModel):
@@ -99,6 +148,7 @@ class ChatTurnRequest(BaseModel):
     verbosity: Optional[str] = None
     tone: Optional[str] = None
     model: Optional[str] = None
+    restart: bool = False
 
 
 class ChatMessage(BaseModel):
@@ -126,6 +176,9 @@ class ChatTranscriptResponse(BaseModel):
     initial_ai_text: Optional[str] = None
     messages: List[ChatMessage]
     followup_model: Optional[str] = None
+    ai_reasoning: Optional[str] = None
+    ai_verbosity: Optional[str] = None
+    ai_tone: Optional[str] = None
     payload_snapshot: Optional[Dict[str, object]] = None
 
 

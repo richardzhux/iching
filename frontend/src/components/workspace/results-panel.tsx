@@ -82,22 +82,20 @@ export function ResultsPanel() {
           <Tabs
             value={resultsTab}
             onValueChange={(value) => {
-              if (value === "summary" || value === "hex" || value === "ai") {
+              if (value === "summary" || value === "hex" || value === "sources" || value === "ai") {
                 setResultsTab(value)
               }
             }}
           >
-            <TabsList className="grid w-full grid-cols-3 rounded-md bg-surface-elevated text-foreground">
-              <TabsTrigger value="summary">{locale === "zh" ? "导引" : "Guidance"}</TabsTrigger>
-              <TabsTrigger value="hex">{locale === "zh" ? "机理" : "Mechanics"}</TabsTrigger>
-              <TabsTrigger value="ai">{locale === "zh" ? "追问" : "Follow-up"}</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 rounded-md bg-surface-elevated text-foreground">
+              <TabsTrigger value="summary">{locale === "zh" ? "断卦" : "Interpretation"}</TabsTrigger>
+              <TabsTrigger value="hex">{locale === "zh" ? "卦盘" : "Chart"}</TabsTrigger>
+              <TabsTrigger value="sources">{locale === "zh" ? "经典依据" : "Sources"}</TabsTrigger>
+              <TabsTrigger value="ai">{locale === "zh" ? "AI 追问" : "AI Chat"}</TabsTrigger>
             </TabsList>
             <TabsContent value="summary">
               <ReadingBriefPanel
                 brief={brief}
-                sessionId={result.session_id}
-                journalEntry={journal[result.session_id]}
-                onJournalChange={(patch) => updateJournal(result.session_id, patch)}
                 onSourceSelect={openSourceReader}
                 onPrompt={(prompt) => {
                   setPendingChatPrompt(prompt)
@@ -108,10 +106,23 @@ export function ResultsPanel() {
             <TabsContent value="hex">
               <HexResultBlock result={result} brief={brief} onSourceSelect={openSourceReader} />
             </TabsContent>
+            <TabsContent value="sources">
+              <SourceEvidencePanel brief={brief} onSourceSelect={openSourceReader} />
+            </TabsContent>
             <TabsContent value="ai">
               <ChatPanel session={result} />
             </TabsContent>
           </Tabs>
+          <details className="mt-4 rounded-lg border border-border/50 bg-surface px-4 py-3">
+            <summary className="cursor-pointer text-sm font-semibold text-foreground">
+              {locale === "zh" ? "应验记录" : "Outcome record"}
+            </summary>
+            <ReadingJournalPanel
+              sessionId={result.session_id}
+              entry={journal[result.session_id]}
+              onChange={(patch) => updateJournal(result.session_id, patch)}
+            />
+          </details>
           <SourceReaderSheet
             brief={brief}
             activeSourceId={activeSourceId}
@@ -453,16 +464,10 @@ function stanceCopy(stance: string, locale: "en" | "zh") {
 
 function ReadingBriefPanel({
   brief,
-  sessionId,
-  journalEntry,
-  onJournalChange,
   onSourceSelect,
   onPrompt,
 }: {
   brief: ReadingBrief
-  sessionId: string
-  journalEntry?: ReadingJournalEntry
-  onJournalChange: (patch: Partial<ReadingJournalEntry>) => void
   onSourceSelect: (sourceId: string) => void
   onPrompt: (prompt: string) => void
 }) {
@@ -470,14 +475,8 @@ function ReadingBriefPanel({
   const labels =
     locale === "zh"
       ? {
-          stance: "判断状态",
-          evidence: "证据短链",
-          keyPassages: "重点段落解析",
-          keyPassageBody: "只保留本次断法真正取用的卦辞、动爻或用九/用六。",
-          excerpt: "原文摘录",
-          meaning: "白话",
-          matters: "为什么重要",
-          source: "来源",
+          stance: "断卦结论",
+          evidence: "断卦依据",
           openSource: "打开原文",
           timing: "应期与条件",
           actions: "行动建议",
@@ -491,12 +490,6 @@ function ReadingBriefPanel({
       : {
           stance: "Reading state",
           evidence: "Evidence chain",
-          keyPassages: "Key Passage Analysis",
-          keyPassageBody: "Only the judgment text, moving line, or Yong Jiu/Yong Liu passage this reading actually uses.",
-          excerpt: "Excerpt",
-          meaning: "Plain meaning",
-          matters: "Why it matters",
-          source: "Source",
           openSource: "Open source",
           timing: "Timing and conditions",
           actions: "Actions",
@@ -507,9 +500,6 @@ function ReadingBriefPanel({
           cadence: "Cadence",
           signal: "Signal",
         }
-  const keyPassageHighlightSection =
-    "imperial-highlight-panel rounded-lg p-5"
-
   return (
     <div className="mt-4 space-y-5">
       <section className="rounded-lg border border-border/50 bg-surface p-5">
@@ -524,78 +514,6 @@ function ReadingBriefPanel({
           </span>
         </div>
       </section>
-
-      {brief.key_passages?.length ? (
-        <section className={keyPassageHighlightSection}>
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="imperial-text text-[0.65rem] font-semibold uppercase tracking-[0.18rem]">
-                {locale === "zh" ? "卦辞解析" : "Decisive passage analysis"}
-              </p>
-              <h3 className="mt-1 text-base font-semibold text-foreground">{labels.keyPassages}</h3>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.keyPassageBody}</p>
-            </div>
-            <span className="imperial-chip w-fit rounded-md px-2 py-1 text-xs font-semibold">
-              {brief.key_passages.length}
-            </span>
-          </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {brief.key_passages.map((passage, index) => (
-              <article
-                key={`${passage.slot_key}-${passage.source}-${index}`}
-                className="imperial-highlight-card rounded-md p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold leading-6 text-foreground">{passage.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {labels.source}: {passage.source_label}
-                    </p>
-                  </div>
-                  {passage.role === "secondary_context" ? (
-                    <span className="rounded-md border border-border/60 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {locale === "zh" ? "次要参照" : "Context"}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-3 rounded-md border border-border/40 bg-surface p-3">
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">
-                    {labels.excerpt}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-foreground">{passage.excerpt || passage.quote || passage.content}</p>
-                </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <div>
-                    <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">
-                      {labels.meaning}
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-foreground">{passage.plain_language}</p>
-                  </div>
-                  <div>
-                    <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">
-                      {labels.matters}
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-foreground">{passage.why_it_matters}</p>
-                  </div>
-                </div>
-                {passage.source_id ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 rounded-md"
-                    onClick={() => onSourceSelect(sourceIdForPassage(passage))}
-                  >
-                    {labels.openSource}
-                  </Button>
-                ) : null}
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <ParallelSourcePanel brief={brief} onSourceSelect={onSourceSelect} />
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-lg border border-border/50 bg-surface p-5">
@@ -677,11 +595,48 @@ function ReadingBriefPanel({
         </div>
       </section>
 
-      <ReadingJournalPanel
-        sessionId={sessionId}
-        entry={journalEntry}
-        onChange={onJournalChange}
-      />
+    </div>
+  )
+}
+
+function SourceEvidencePanel({
+  brief,
+  onSourceSelect,
+}: {
+  brief: ReadingBrief
+  onSourceSelect: (sourceId: string) => void
+}) {
+  const { locale } = useI18n()
+  const labels = locale === "zh"
+    ? { title: "本次取用的关键原文", body: "这里只展示真正参与本次断卦的卦辞、动爻与来源解释。", excerpt: "原文", meaning: "白话", matters: "断卦作用", source: "来源", open: "打开完整原文" }
+    : { title: "Decisive source passages", body: "Only passages actually used in this interpretation appear here.", excerpt: "Excerpt", meaning: "Plain meaning", matters: "Role in the reading", source: "Source", open: "Open full source" }
+
+  return (
+    <div className="mt-4 space-y-5">
+      {brief.key_passages?.length ? (
+        <section className="imperial-highlight-panel rounded-lg p-5">
+          <h2 className="text-base font-semibold text-foreground">{labels.title}</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.body}</p>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {brief.key_passages.map((passage, index) => (
+              <article key={`${passage.slot_key}-${passage.source}-${index}`} className="imperial-highlight-card rounded-md p-4">
+                <p className="text-sm font-semibold leading-6 text-foreground">{passage.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{labels.source}: {passage.source_label}</p>
+                <div className="mt-3 rounded-md border border-border/40 bg-surface p-3">
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{labels.excerpt}</p>
+                  <p className="mt-2 text-sm leading-6 text-foreground">{passage.excerpt || passage.quote || passage.content}</p>
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div><p className="text-xs font-semibold text-muted-foreground">{labels.meaning}</p><p className="mt-1 text-sm leading-6">{passage.plain_language}</p></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground">{labels.matters}</p><p className="mt-1 text-sm leading-6">{passage.why_it_matters}</p></div>
+                </div>
+                {passage.source_id ? <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => onSourceSelect(sourceIdForPassage(passage))}>{labels.open}</Button> : null}
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      <ParallelSourcePanel brief={brief} onSourceSelect={onSourceSelect} />
     </div>
   )
 }
@@ -699,14 +654,14 @@ function ReadingJournalPanel({
   const labels =
     locale === "zh"
       ? {
-          title: "阅读复盘",
-          body: "把这次起卦变成可回看的记录，而不是一次性的回答。",
+          title: "应验记录",
+          body: "记录后来发生了什么，以及这次断卦哪些地方真正应验。",
           status: "状态",
           pin: "固定",
           pinned: "已固定",
           revisit: "重访日期",
           outcome: "实际发生了什么？",
-          placeholder: "记录后来发生的事、哪个爻最准确、当时误读了什么，或还在等待什么信号。",
+          placeholder: "记录后来发生的事、哪个爻最准确、当时误读了什么，或仍在等待什么信号。",
           session: "会话",
         }
       : {
@@ -747,7 +702,7 @@ function ReadingJournalPanel({
                 className="rounded-md"
                 onClick={() => onChange({ status })}
               >
-                {status}
+                {locale === "zh" ? ({ open: "待观察", watching: "应验中", resolved: "已结束" } as const)[status] : status}
               </Button>
             ))}
             <Button
@@ -978,7 +933,7 @@ function SourceReaderSheet({
     locale === "zh"
       ? {
           title: "原文笔记",
-          body: "在右侧查看本次取用的具体来源块，不把导引页撑成长篇档案。",
+          body: "在右侧查看本次取用的具体来源块，保持断卦页简洁。",
 	          sameSlot: "同一槽位",
 	          otherSlots: "其他相关",
 	          citation: "引用",
@@ -1151,7 +1106,7 @@ function MechanicsInsightPanel({
           movement: "爻变诊断",
           sourceDepth: "来源覆盖",
           keyPassages: "重点段落解析",
-          keyBody: "这里不是再铺档案，而是标出本次机理真正生效的文本节点。",
+          keyBody: "标出本次卦盘判断真正取用的文本节点。",
           noMoving: "无动爻，以本卦卦辞为主断。",
           moving: "动爻优先，变卦只作后续背景。",
           allMovingQian: "乾卦六爻全动，以用九统摄。",

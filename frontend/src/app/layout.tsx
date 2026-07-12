@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(PUBLIC_SITE_URL),
   title: "I Ching Studio",
-  description: "A bilingual reading desk for casting, study, source evidence, and return.",
+  description: "A bilingual I Ching divination platform for casting, interpretation, classical evidence, and verification.",
   alternates: {
     canonical: "/",
     languages: {
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "I Ching Studio",
-    description: "A bilingual reading desk for casting, study, source evidence, and return.",
+    description: "A bilingual I Ching divination platform for casting, interpretation, classical evidence, and verification.",
     url: PUBLIC_SITE_URL,
     siteName: "I Ching Studio",
     type: "website",

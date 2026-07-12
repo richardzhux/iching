@@ -39,7 +39,7 @@ type Props = {
 
 const QUESTION_LIMIT = 2000
 const MANUAL_METHOD_KEY = "x"
-type ReadingPreset = "quick" | "deep" | "thread"
+type ReadingPreset = "chart" | "standard" | "deep"
 
 const LINE_VALUE_OPTIONS = [
   { value: 6, en: "6 · old yin", zh: "6 · 老阴" },
@@ -67,17 +67,21 @@ function formatOffsetISOString(date: Date) {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMins}`
 }
 
+function formatLocalDateTime(date: Date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 function getReasoningLines(modelName: string | undefined, locale: "en" | "zh") {
   const name = modelName?.toLowerCase() ?? ""
+  if (name.includes("gpt-5.6")) {
+    return locale === "zh"
+      ? ["关闭：直接回答", "低 / 中：日常占断", "高 / 超高：复杂局势", "最大：最深推演，耗时最长"]
+      : ["None: direct response", "Low / Medium: everyday readings", "High / XHigh: complex situations", "Max: deepest and slowest"]
+  }
   if (name.includes("gpt-5.5")) {
     return locale === "zh"
       ? ["关闭 ≈30s", "极简 ≈40s", "低 ≈50s", "中 ≈65s", "高 ≥90s"]
       : ["None ≈30s", "Minimal ≈40s", "Low ≈50s", "Medium ≈65s", "High ≥90s"]
-  }
-  if (name.includes("gpt-5.4-mini")) {
-    return locale === "zh"
-      ? ["极简 ≈15s", "低 ≈20s", "中 ≈30s", "高 ≥60s"]
-      : ["Minimal ≈15s", "Low ≈20s", "Medium ≈30s", "High ≥60s"]
   }
   if (name.includes("gpt-5.3-codex")) {
     return locale === "zh"
@@ -87,6 +91,19 @@ function getReasoningLines(modelName: string | undefined, locale: "en" | "zh") {
   return locale === "zh"
     ? ["该模型不支持推理力度控制。"]
     : ["This model does not expose reasoning-depth controls."]
+}
+
+function levelLabel(level: string, locale: "en" | "zh") {
+  if (locale === "en") return level === "xhigh" ? "X-high" : level.charAt(0).toUpperCase() + level.slice(1)
+  return {
+    none: "关闭",
+    minimal: "极简",
+    low: "低",
+    medium: "中",
+    high: "高",
+    xhigh: "极高",
+    max: "最大",
+  }[level] ?? level
 }
 
 function manualLineValues(input: string) {
@@ -135,11 +152,11 @@ function analyzeQuestion(question: string, locale: "en" | "zh") {
       title: locale === "zh" ? "避免反复起卦" : "Avoid repeat casting",
       body:
         locale === "zh"
-          ? "如果事实没有变化，更适合回到上一次阅读复盘，而不是立刻重问。"
+          ? "如果事实没有变化，更适合回到上一次卦例查看应验，而不是立刻重问。"
           : "If the facts have not changed, revisit the earlier reading before asking again.",
       suggestion:
         locale === "zh"
-          ? "上一次阅读中，我现在最应该复盘什么？"
+          ? "上一次卦例中，我现在最应该观察什么？"
           : "What should I revisit from the earlier reading now?",
     }
   }
@@ -173,7 +190,6 @@ export function CastForm({ config }: Props) {
   const { messages, locale, toLocalePath } = useI18n()
   const defaultsHydrated = useRef(false)
   const [lastCoinToss, setLastCoinToss] = useState<number[] | null>(null)
-  const [selectedPreset, setSelectedPreset] = useState<ReadingPreset>("quick")
   const form = useWorkspaceStore((state) => state.form)
   const updateForm = useWorkspaceStore((state) => state.updateForm)
   const setForm = useWorkspaceStore((state) => state.setForm)
@@ -183,6 +199,10 @@ export function CastForm({ config }: Props) {
   const canUseAi = Boolean(auth.user)
   const questionCoaching = useMemo(() => analyzeQuestion(form.userQuestion, locale), [form.userQuestion, locale])
   const currentManualValues = manualLineValues(form.manualLines)
+  const defaultModel = config.ai_models.find((model) => model.name === config.default_model) ?? config.ai_models[0]
+  const standardModel = config.ai_models.find((model) => model.tier === "standard") ?? defaultModel
+  const deepModel = config.ai_models.find((model) => model.tier === "deep") ?? standardModel
+  const resolvedModelName = config.model_aliases[form.aiModel] ?? form.aiModel
 
   useEffect(() => {
     if (auth.loading) return
@@ -192,9 +212,15 @@ export function CastForm({ config }: Props) {
   }, [auth.loading, canUseAi, form.enableAi, updateForm])
 
   const activeModel = useMemo<ModelInfo | undefined>(
-    () => config.ai_models.find((model) => model.name === form.aiModel),
-    [config.ai_models, form.aiModel],
+    () => config.ai_models.find((model) => model.name === resolvedModelName) ?? defaultModel,
+    [config.ai_models, defaultModel, resolvedModelName],
   )
+
+  useEffect(() => {
+    if (activeModel && form.aiModel !== activeModel.name) {
+      updateForm("aiModel", activeModel.name)
+    }
+  }, [activeModel, form.aiModel, updateForm])
 
   useEffect(() => {
     if (defaultsHydrated.current) return
@@ -207,10 +233,15 @@ export function CastForm({ config }: Props) {
       config.methods.find((method) => method.label === "五十蓍草法")?.key ||
       config.methods[0]?.key ||
       ""
+    const requestedTimestamp = new URLSearchParams(window.location.search).get("timestamp")
+    const requestedDate = requestedTimestamp ? new Date(requestedTimestamp) : null
     setForm({
       topic: current.topic || preferredTopic,
       methodKey: current.methodKey || preferredMethod,
-      aiModel: current.aiModel || config.ai_models[0]?.name || "gpt-5.5",
+      aiModel: current.aiModel || config.default_model || config.ai_models[0]?.name || "",
+      ...(requestedDate && !Number.isNaN(requestedDate.getTime())
+        ? { useCurrentTime: false, customTimestamp: formatLocalDateTime(requestedDate) }
+        : {}),
     })
     defaultsHydrated.current = true
   }, [config, setForm])
@@ -344,20 +375,17 @@ export function CastForm({ config }: Props) {
   const copy =
     locale === "zh"
       ? {
-          pageKicker: "起卦页",
-          promptTitle: "你现在真正要判断什么？",
-          promptBody: "先写清问题，再补充真正影响判断的背景；卦象、经典文本与追问会围绕同一条判断链展开。",
           contextLabel: "相关背景",
           contextPlaceholder: "例如：对方已经催了两次，但预算、负责人、时间表还没完全确定。",
-          modeLabel: "起卦模式",
-          quickTitle: "快速断读",
-          quickBody: "不启用 AI，直接生成判断简报、重点段落和证据链。",
-          deepTitle: "AI 深度解读",
-          deepBody: "启用 AI 后，模型、推理力度和详略直接在本页调整。",
-          followupTitle: "只建档案",
-          followupBody: "先生成卦象与来源包，稍后从同一记录继续追问。",
+          modeLabel: "解读方式",
+          chartTitle: "仅排盘",
+          chartBody: "生成卦盘、纳甲与经典依据，不调用 AI。",
+          standardTitle: "标准解读",
+          standardBody: "默认使用 GPT-5.6 Terra，兼顾质量与速度。",
+          deepTitle: "深度解读",
+          deepBody: "使用 GPT-5.6 Sol 深入判断复杂问题。",
           advanced: "时间与原始输入",
-          advancedDescription: "只放少用设置：起卦方法、时间与原始六爻输入。AI 控制留在主界面。",
+          advancedDescription: "调整起卦时间与原始六爻输入。",
           questionApply: "采用建议问题",
           ritualTitle: "六爻起卦",
           ritualBody: "用铜钱逐爻生成，或直接选择 6/7/8/9；右侧实时显示本次卦象。六爻始终自下而上。",
@@ -370,23 +398,20 @@ export function CastForm({ config }: Props) {
           previewBody: "第 1 爻在最下方，老阴/老阳会以金色标记为动爻。",
           aiSettingsTitle: "AI 解读设置",
           aiSettingsBody: "选择深度解读后在这里直接调试，不再藏进高级设置。",
-          aiOffBody: "快速断读与只建档案不会调用 AI。",
+          aiOffBody: "仅排盘不会调用 AI。",
         }
       : {
-          pageKicker: "Casting desk",
-          promptTitle: "What are you actually deciding?",
-          promptBody: "Ask clearly, then add the context that actually changes the decision. The reading, evidence, and follow-up stay in one thread.",
           contextLabel: "Relevant context",
           contextPlaceholder: "Example: They are pushing for a fast answer, but budget, owner, and timeline are still unclear.",
-          modeLabel: "Casting mode",
-          quickTitle: "Quick judgment",
-          quickBody: "No AI call; generate the brief, decisive passages, and evidence chain.",
-          deepTitle: "Deep reading",
-          deepBody: "Enable AI and tune model, reasoning, and length directly on this page.",
-          followupTitle: "Record only",
-          followupBody: "Create the cast and source packet now; continue later in the same record.",
+          modeLabel: "Interpretation",
+          chartTitle: "Chart only",
+          chartBody: "Generate the chart, Najia, and classical basis without AI.",
+          standardTitle: "Standard",
+          standardBody: "Use GPT-5.6 Terra for balanced quality and speed.",
+          deepTitle: "Deep",
+          deepBody: "Use GPT-5.6 Sol for difficult divination questions.",
           advanced: "Time and raw input",
-          advancedDescription: "Less common controls only: method, timestamp, and raw six-line input. AI controls stay on the main page.",
+          advancedDescription: "Adjust the cast time and raw six-line input.",
           questionApply: "Use suggested question",
           ritualTitle: "Six-line cast",
           ritualBody: "Use the coin button line by line, or choose exact 6/7/8/9 values. The live hexagram updates beside the builder. Lines are bottom to top.",
@@ -399,17 +424,17 @@ export function CastForm({ config }: Props) {
           previewBody: "Line 1 is at the bottom; old yin and old yang are marked as moving in gold.",
           aiSettingsTitle: "AI reading settings",
           aiSettingsBody: "Deep reading exposes the model controls here instead of hiding them behind Advanced.",
-          aiOffBody: "Quick judgment and Record only do not call AI.",
+          aiOffBody: "Chart only does not call AI.",
         }
 
+  const selectedPreset: ReadingPreset = !form.enableAi ? "chart" : activeModel?.tier === "deep" ? "deep" : "standard"
   const readingModes = [
     {
-      id: "quick",
-      title: copy.quickTitle,
-      body: copy.quickBody,
-      active: selectedPreset === "quick" && !form.enableAi,
+      id: "chart",
+      title: copy.chartTitle,
+      body: copy.chartBody,
+      active: selectedPreset === "chart" && !form.enableAi,
       apply: () => {
-        setSelectedPreset("quick")
         setForm({
           enableAi: false,
           aiReasoning: "medium",
@@ -418,35 +443,38 @@ export function CastForm({ config }: Props) {
       },
     },
     {
-      id: "deep",
-      title: copy.deepTitle,
-      body: copy.deepBody,
-      active: selectedPreset === "deep" || form.enableAi,
+      id: "standard",
+      title: copy.standardTitle,
+      body: copy.standardBody,
+      active: selectedPreset === "standard" && form.enableAi,
       apply: () => {
-        setSelectedPreset("deep")
         if (!canUseAi) {
           toast.error(messages.workspace.cast.aiLoginHint)
           return
         }
         setForm({
           enableAi: true,
-          aiModel: activeModel?.name || form.aiModel || "gpt-5.5",
-          aiReasoning: activeModel?.default_reasoning || form.aiReasoning || "medium",
-          aiVerbosity: activeModel?.default_verbosity || form.aiVerbosity || "medium",
+          aiModel: standardModel?.name ?? config.default_model,
+          aiReasoning: standardModel?.default_reasoning ?? standardModel?.reasoning[0] ?? null,
+          aiVerbosity: standardModel?.default_verbosity ?? null,
         })
       },
     },
     {
-      id: "thread",
-      title: copy.followupTitle,
-      body: copy.followupBody,
-      active: selectedPreset === "thread" && !form.enableAi,
+      id: "deep",
+      title: copy.deepTitle,
+      body: copy.deepBody,
+      active: selectedPreset === "deep" && form.enableAi,
       apply: () => {
-        setSelectedPreset("thread")
+        if (!canUseAi) {
+          toast.error(messages.workspace.cast.aiLoginHint)
+          return
+        }
         setForm({
-          enableAi: false,
-          aiReasoning: "minimal",
-          aiVerbosity: "low",
+          enableAi: true,
+          aiModel: deepModel?.name ?? standardModel?.name ?? config.default_model,
+          aiReasoning: deepModel?.default_reasoning ?? deepModel?.reasoning[0] ?? null,
+          aiVerbosity: deepModel?.default_verbosity ?? null,
         })
       },
     },
@@ -457,18 +485,7 @@ export function CastForm({ config }: Props) {
   return (
     <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[88rem] px-3 sm:px-5">
       <section className="surface-card rounded-lg p-5 sm:p-6">
-        <div className="flex gap-4">
-          <span className="oracle-mark mt-1 text-2xl" aria-hidden="true">
-            🔮
-          </span>
-          <div className="min-w-0">
-            <p className="kicker">{copy.pageKicker}</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{copy.promptTitle}</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{copy.promptBody}</p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(25rem,0.72fr)]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(25rem,0.72fr)]">
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
               <div className="space-y-2">
@@ -485,9 +502,9 @@ export function CastForm({ config }: Props) {
                   placeholder={messages.workspace.cast.questionPlaceholder}
                   value={form.userQuestion}
                   onChange={(event) => updateForm("userQuestion", event.target.value)}
-                  rows={8}
+                  rows={5}
                   maxLength={QUESTION_LIMIT}
-                  className="min-h-[15rem] text-base leading-relaxed"
+                  className="min-h-[10rem] text-base leading-relaxed"
                 />
               </div>
 
@@ -510,7 +527,7 @@ export function CastForm({ config }: Props) {
               </div>
             </div>
 
-            {questionCoaching && (
+            {questionCoaching && questionCoaching.tone !== "good" && (
               <div
                 className={cn(
                   "rounded-md border p-3 text-sm",
@@ -533,20 +550,18 @@ export function CastForm({ config }: Props) {
               </div>
             )}
 
-            <div className="space-y-2">
-              <label htmlFor="reading-context" className="text-sm font-medium text-foreground">
-                {copy.contextLabel}
-              </label>
+            <details className="rounded-lg border border-border/60 bg-surface px-4 py-3">
+              <summary className="cursor-pointer text-sm font-medium text-foreground">{copy.contextLabel}</summary>
               <Textarea
                 id="reading-context"
                 placeholder={copy.contextPlaceholder}
                 value={form.userContext}
                 onChange={(event) => updateForm("userContext", event.target.value)}
-                rows={4}
+                rows={3}
                 maxLength={1200}
-                className="min-h-[7.5rem] text-sm leading-relaxed"
+                className="mt-3 min-h-24 text-sm leading-relaxed"
               />
-            </div>
+            </details>
           </div>
 
           <aside className="surface-soft space-y-4 rounded-lg p-4">
@@ -594,8 +609,12 @@ export function CastForm({ config }: Props) {
                   checked={form.enableAi}
                   disabled={auth.loading || !canUseAi}
                   onCheckedChange={(checked) => {
-                    setSelectedPreset(checked ? "deep" : "quick")
-                    updateForm("enableAi", checked)
+                    setForm({
+                      enableAi: checked,
+                      aiModel: checked ? standardModel?.name ?? config.default_model : form.aiModel,
+                      aiReasoning: checked ? standardModel?.default_reasoning ?? standardModel?.reasoning[0] ?? null : form.aiReasoning,
+                      aiVerbosity: checked ? standardModel?.default_verbosity ?? null : form.aiVerbosity,
+                    })
                   }}
                 />
               </div>
@@ -637,7 +656,7 @@ export function CastForm({ config }: Props) {
                       <SelectContent>
                         {config.ai_models.map((model) => (
                           <SelectItem key={model.name} value={model.name}>
-                            {model.name}
+                            {model.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -669,7 +688,7 @@ export function CastForm({ config }: Props) {
                         <SelectContent>
                           {activeModel.reasoning.map((level) => (
                             <SelectItem key={level} value={level}>
-                              {level}
+                              {levelLabel(level, locale)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -702,7 +721,7 @@ export function CastForm({ config }: Props) {
                         <SelectContent>
                           {["low", "medium", "high"].map((level) => (
                             <SelectItem key={level} value={level}>
-                              {level}
+                              {levelLabel(level, locale)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -734,7 +753,30 @@ export function CastForm({ config }: Props) {
           </aside>
         </div>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.55fr)]">
+        <div className="mt-6 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-[14rem_minmax(0,1fr)] sm:items-end">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.methodLabel}</p>
+              <Select value={form.methodKey} onValueChange={(value) => updateForm("methodKey", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={messages.workspace.cast.methodLabel} />
+                </SelectTrigger>
+                <SelectContent>
+                  {config.methods.map((method) => (
+                    <SelectItem key={method.key} value={method.key}>
+                      {method.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {locale === "zh" ? "选择传统起卦方式；只有手动六爻会展开逐爻构建器。" : "Choose a casting method; the line builder opens only for manual six-line input."}
+            </p>
+          </div>
+
+          {form.methodKey === MANUAL_METHOD_KEY && (
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.55fr)]">
           <div className="rounded-lg border border-border/60 bg-surface p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -788,6 +830,8 @@ export function CastForm({ config }: Props) {
             body={copy.previewBody}
             locale={locale}
           />
+          </div>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -804,22 +848,6 @@ export function CastForm({ config }: Props) {
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">{messages.workspace.cast.methodLabel}</p>
-                  <Select value={form.methodKey} onValueChange={(value) => updateForm("methodKey", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={messages.workspace.cast.methodLabel} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {config.methods.map((method) => (
-                        <SelectItem key={method.key} value={method.key}>
-                          {method.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 {form.methodKey === MANUAL_METHOD_KEY && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">

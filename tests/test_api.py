@@ -27,11 +27,65 @@ def test_config_endpoint() -> None:
     assert "methods" in data and data["methods"]
     assert "ai_models" in data and data["ai_models"]
     assert [model["name"] for model in data["ai_models"]] == [
+        "gpt-5.6-terra",
+        "gpt-5.6-sol",
         "gpt-5.5",
-        "gpt-5.4-mini",
         "gpt-5.3-codex",
         "gpt-4.1",
     ]
+    assert data["ai_models"][0]["label"] == "GPT-5.6 Terra"
+    assert data["ai_models"][0]["default_verbosity"] == "medium"
+    assert data["default_model"] == "gpt-5.6-terra"
+    assert data["model_aliases"]["gpt-5.5-mini"] == "gpt-5.6-terra"
+
+
+def test_metaphysics_chart_endpoint() -> None:
+    response = client.post(
+        "/api/tools/metaphysics",
+        json={
+            "timestamp": "2024-02-10T12:00:00",
+            "timezone": "Asia/Shanghai",
+            "day_boundary": "forward",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["bazi"] == "甲辰 丙寅 甲辰 庚午"
+    assert data["lunar_date"] == "2024年正月初一"
+    assert len(data["pillars"]) == 4
+    assert data["calendar_facts"]["month_command"] == "寅"
+    assert data["calendar_facts"]["day_branch"] == "辰"
+    assert data["calendar_facts"]["six_spirits"] == ["青龙", "朱雀", "勾陈", "腾蛇", "白虎", "玄武"]
+
+
+def test_chat_stream_endpoint_emits_sse_events() -> None:
+    class FakeChatService:
+        def authenticate(self, token: str) -> SupabaseUser:
+            return SupabaseUser(id="00000000-0000-0000-0000-000000000001", email="reader@example.com")
+
+        def stream_followup(self, **kwargs):
+            assert kwargs["model_override"] == "gpt-5.6-terra"
+            assert kwargs["restart"] is False
+            yield {"type": "delta", "delta": "先稳"}
+            yield {"type": "completed", "assistant": {"role": "assistant", "content": "先稳后进"}, "usage": {"total_tokens": 9}}
+
+    fake_chat_service = FakeChatService()
+    app.dependency_overrides[routes._get_chat_service] = lambda: fake_chat_service
+    try:
+        response = client.post(
+            "/api/sessions/session-test/chat/stream",
+            json={"message": "接下来怎么做？", "model": "gpt-5.6-terra"},
+            headers={"Authorization": "Bearer test-token"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert "event: delta" in response.text
+    assert '"delta": "先稳"' in response.text
+    assert "event: completed" in response.text
 
 
 def test_create_session_manual_lines() -> None:

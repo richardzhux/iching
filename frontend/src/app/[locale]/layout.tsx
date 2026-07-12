@@ -80,7 +80,7 @@ export default async function LocaleLayout({ children, params }: Props) {
                   {messages.nav.library}
                 </Link>
                 <Link
-                  href={withLocale(locale, "/method")}
+                  href={withLocale(locale, "/tools")}
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "sm" }),
                     "rounded-full text-xs font-medium",
@@ -122,7 +122,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             {[
               ["/app", messages.nav.workspace],
               ["/library", messages.nav.library],
-              ["/method", messages.nav.method],
+              ["/tools", messages.nav.method],
               ["/profile", messages.nav.profile],
             ].map(([href, label]) => (
               <Link
