@@ -908,16 +908,24 @@ class SessionService:
                         raise SystemExit(0)
 
                     method = self.methods[method_choice]
+                    current_time = get_current_time() if method.key == "m" else None
                     manual_lines = None
                     if method.key == "x":
                         manual_lines = method.generate_lines(
                             interactive=True, input_func=input_func
                         )
-                    lines = (
-                        manual_lines
-                        if manual_lines is not None
-                        else method.generate_lines(interactive=True, input_func=input_func)
-                    )
+                    if manual_lines is not None:
+                        lines = manual_lines
+                    elif method.key == "m":
+                        lines = method.generate_lines(
+                            interactive=True,
+                            input_func=input_func,
+                            now_func=lambda: current_time,
+                        )
+                    else:
+                        lines = method.generate_lines(
+                            interactive=True, input_func=input_func
+                        )
 
                     if method.key == "x":
                         time_choice = self._get_valid_choice(
@@ -932,7 +940,7 @@ class SessionService:
                             from iching.core.time_utils import get_user_time_input
 
                             current_time = get_user_time_input(input_func=input_func)
-                    else:
+                    elif current_time is None:
                         current_time = get_current_time()
 
                     result = self.create_session(
@@ -941,6 +949,7 @@ class SessionService:
                         method_key=method.key,
                         lines_override=lines,
                         timestamp=current_time,
+                        use_current_time=False,
                         enable_ai=enable_ai,
                         interactive=True,
                         input_func=input_func,

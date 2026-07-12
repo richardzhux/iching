@@ -1,10 +1,55 @@
 from datetime import datetime
+from types import SimpleNamespace
 
 import iching.core.divination as divination
 from iching.config import build_app_config
 from iching.integrations.ai import AIResponseData
 from iching.integrations.najia_repository import NajiaRepository
 from iching.services.session import SessionService, _build_najia_table
+
+
+def test_console_uses_one_timestamp_for_meihua_lines_and_session(monkeypatch):
+    class FrozenWallClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2031, 1, 2, 23, 45, tzinfo=tz)
+
+    cast_time = datetime(2026, 7, 12, 10, 30)
+    time_calls = []
+    captured = {}
+    answers = iter(("1", "n", "m", "n", "n"))
+    service = SessionService(config=build_app_config(enable_ai=False))
+
+    def fake_get_current_time():
+        time_calls.append(None)
+        return cast_time
+
+    def fake_create_session(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            current_time_str="2026.07.12 10:30",
+            bazi_output="",
+            elements_output="",
+            hex_text="",
+            najia_text="",
+            ai_analysis=None,
+        )
+
+    monkeypatch.setattr(divination, "datetime", FrozenWallClock)
+    monkeypatch.setattr(divination.time, "sleep", lambda _seconds: None)
+    monkeypatch.setattr("iching.services.session.get_current_time", fake_get_current_time)
+    monkeypatch.setattr(service, "create_session", fake_create_session)
+
+    service.run_console(
+        input_func=lambda _prompt: next(answers),
+        print_func=lambda _text: None,
+        enable_ai=False,
+    )
+
+    assert len(time_calls) == 1
+    assert captured["timestamp"] == cast_time
+    assert captured["use_current_time"] is False
+    assert captured["lines_override"] == [8, 7, 8, 6, 8, 8]
 
 
 def test_session_service_uses_custom_timestamp_for_meihua_lines(monkeypatch):

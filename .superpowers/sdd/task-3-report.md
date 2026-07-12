@@ -76,3 +76,26 @@ The warning is the existing Starlette `TestClient` / `httpx` deprecation warning
 - Historical lines are not rerolled.
 - The Meihua calendar calculation uses the already-declared `sxtwl` dependency.
 - The only test-suite warning is pre-existing and unrelated to this task.
+
+## Review fix: interactive CLI timestamp consistency
+
+Review identified that `run_console()` still generated interactive Meihua lines before resolving `current_time`, then passed a timestamp that `create_session()` replaced because `use_current_time` remained true.
+
+A focused regression first failed because the CLI handoff omitted `use_current_time=False` and its Meihua lines came from a separate wall clock:
+
+```text
+env ICHING_ARCHIVE_BASE=/tmp/iching-task3-cli-red PYTHONPATH=src pytest -q tests/test_session_service.py::test_console_uses_one_timestamp_for_meihua_lines_and_session
+1 failed in 0.57s
+```
+
+The CLI now resolves one timestamp before interactive Meihua generation, injects it through `now_func`, and preserves the already-resolved timestamp at the session handoff. Other methods retain their existing generation and prompt flow.
+
+Focused GREEN commands:
+
+```text
+env ICHING_ARCHIVE_BASE=/tmp/iching-task3-cli-green PYTHONPATH=src pytest -q tests/test_session_service.py::test_console_uses_one_timestamp_for_meihua_lines_and_session
+1 passed in 0.46s
+
+env ICHING_ARCHIVE_BASE=/tmp/iching-task3-cli-final PYTHONPATH=src pytest -q tests/test_divination_methods.py tests/test_session_service.py
+24 passed in 2.16s
+```
