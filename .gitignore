@@ -1,5 +1,6 @@
 # OS / editor
 .DS_Store
+.superpowers/
 
 # Python
 __pycache__/
