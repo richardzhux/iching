@@ -62,15 +62,17 @@
 
 **Files:**
 - Modify: `src/iching/core/divination.py`
+- Modify: `src/iching/services/session.py`
 - Create: `tests/test_divination_methods.py`
+- Test: `tests/test_session_service.py`
 
 **Interfaces:**
 - Keeps: `generate_lines(...) -> List[int]` in bottom-to-top order.
 - Produces: `_calculate_trigrams(datetime) -> tuple[upper, lower, moving_line]` and `_calculate_from_numbers(...) -> tuple[upper, lower, moving_line]`.
 
-- [ ] Add deterministic failing tests for yarrow remaining-stalk outcomes, a seeded distribution bounded around `1/16, 5/16, 7/16, 3/16`, first-number-as-upper Meihua behavior, the classical lunar time formula, and an upper-Zhen/lower-Kan orientation vector.
+- [ ] Add deterministic failing tests for yarrow remaining-stalk outcomes, exact seeded `1/16, 5/16, 7/16, 3/16` weights, first-number-as-upper Meihua behavior, the classical lunar time formula, an upper-Zhen/lower-Kan orientation vector, and session custom-time consistency.
 - [ ] Run `pytest -q tests/test_divination_methods.py` and confirm failures match the known root causes.
-- [ ] Replace yarrow remainder classification with the remaining-stalk algorithm starting from 49.
+- [ ] Replace yarrow remainder classification with the canonical weighted three-operation algorithm starting from 49.
 - [ ] Correct Meihua number/time formulas and construct bottom-to-top lines while preserving the original moving-line polarity.
 - [ ] Run focused tests and the complete Python suite.
 

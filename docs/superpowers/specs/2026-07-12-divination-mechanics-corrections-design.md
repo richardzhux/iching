@@ -15,10 +15,11 @@ Make every displayed and persisted chart use one canonical mechanics model: the 
 
 ## Casting engines
 
-- Yarrow casting begins with 49 usable stalks. Each of three operations splits the current total, removes one stalk from the right heap, counts both heaps by fours, and subtracts the remainders plus the removed stalk. The final line value is the remaining stalk count divided by four.
+- Yarrow casting begins with 49 usable stalks and models the canonical removal probabilities exactly: the first operation removes 5 with probability `3/4` or 9 with `1/4`; the second and third remove 4 or 8 with equal probability. The final line value is the remaining stalk count divided by four, producing exact `6/7/8/9 = 1/16, 5/16, 7/16, 3/16` weights.
 - Three-coin casting remains unchanged.
 - Three-number Meihua casting uses the first number for the upper trigram, the second for the lower trigram, and the third for the moving line.
 - Time-based Meihua casting uses year-branch number plus lunar month and lunar day for the upper trigram; adding the hour-branch number yields the lower trigram and moving line.
+- The session resolves cast time before line generation and passes the same saved time into Meihua, so a custom timestamp cannot produce a wall-clock hexagram with a different displayed BaZi time.
 - Hexagram line arrays always cross the core boundary bottom-to-top. The moving line keeps its original polarity and is encoded as `9` for moving yang or `6` for moving yin.
 
 ## Persistence and compatibility
