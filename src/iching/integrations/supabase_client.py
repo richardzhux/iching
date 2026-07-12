@@ -141,6 +141,37 @@ class SupabaseRestClient:
         )
         response.raise_for_status()
 
+    def update_session_if_unchanged(
+        self,
+        *,
+        session_id: str,
+        user_id: str,
+        expected_updated_at: str,
+        payload: Dict[str, Any],
+    ) -> bool:
+        """Update one owner-scoped row only if its timestamp still matches."""
+        if not self.enabled:
+            return False
+        if "updated_at" in payload:
+            raise ValueError("Guarded snapshot updates must preserve updated_at.")
+        headers = self._service_headers()
+        headers["Prefer"] = "return=representation"
+        params = {
+            "session_id": f"eq.{session_id}",
+            "user_id": f"eq.{user_id}",
+            "updated_at": f"eq.{expected_updated_at}",
+        }
+        response = self._client.patch(
+            f"{self.rest_base}/sessions", params=params, headers=headers, json=payload
+        )
+        response.raise_for_status()
+        records = response.json()
+        if not isinstance(records, list):
+            raise RuntimeError("Supabase guarded update returned an invalid response.")
+        if len(records) > 1:
+            raise RuntimeError("Supabase guarded update affected more than one row.")
+        return len(records) == 1
+
     def insert_chat_messages(self, records: List[Dict[str, Any]]) -> None:
         if not self.enabled or not records:
             return

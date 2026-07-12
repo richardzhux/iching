@@ -147,18 +147,25 @@ Core cloud tables (see `docs/supabase-schema.sql`):
 Backfill tool for historical sessions:
 
 ```bash
-# dry-run sample
+# dry-run sample (default; performs no writes)
 python tools/backfill_session_interpretations.py --limit 100
 
 # dry-run for specific sessions
 python tools/backfill_session_interpretations.py --session-ids "uuid-a,uuid-b"
 
-# apply globally (service key scope)
+# apply the deterministic repair globally (service key scope)
 python tools/backfill_session_interpretations.py --apply
+
+# apply only selected sessions
+python tools/backfill_session_interpretations.py --apply --session-ids "uuid-a,uuid-b"
 ```
 
 Operational note:
 - Unfiltered `--apply` with service-role credentials can update all users’ session snapshots in the project.
+- The command reports concise per-row skip/failure reasons to stderr and prints aggregate JSON statistics to stdout.
+- Writes are scoped by `(session_id, user_id)` and guarded by the row's original `updated_at`; concurrent changes are skipped, and the repair does not modify `updated_at`.
+- The repair is idempotent and derives Najia fields and six gods only from each snapshot's saved lines and `current_time_str`. Missing or invalid inputs skip the whole snapshot.
+- Historical yarrow and other casts are never rerolled. Saved lines, AI prose/IDs/usage, reading briefs, full text, user context, chats, and unrelated snapshot keys are preserved.
 - Supabase session retention is `365 days`; deleting or purging a session cascades to its `chat_messages`.
 
 ## System Architecture
