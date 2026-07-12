@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 class NajiaLine:
     position_top: int
     position_bottom: int
+    position: int
     god: str
     hidden: str
     relation: str
@@ -17,10 +18,11 @@ class NajiaLine:
     glyph: str
     line_type: str
 
-    def to_payload(self) -> Dict[str, str]:
+    def to_payload(self) -> Dict[str, object]:
         return {
             "position_top": self.position_top,
             "position_bottom": self.position_bottom,
+            "position": self.position,
             "god": self.god,
             "hidden": self.hidden,
             "relation": self.relation,
@@ -44,6 +46,12 @@ class NajiaEntry:
     def get_line_by_top(self, position_top: int) -> Optional[NajiaLine]:
         for line in self.lines:
             if line.position_top == position_top:
+                return line
+        return None
+
+    def get_line_by_position(self, position: int) -> Optional[NajiaLine]:
+        for line in self.lines:
+            if line.position == position:
                 return line
         return None
 
@@ -105,8 +113,13 @@ class NajiaRepository:
         lines_by_hex: Dict[int, List[NajiaLine]] = {}
         for row in line_rows:
             line = NajiaLine(
-                position_top=row["line_position_top"],
-                position_bottom=row["line_position_bottom"],
+                # The tracked database's legacy column names are reversed:
+                # line_position_bottom is the ordinal counted from the top,
+                # while line_position_top is the physical line counted up from
+                # the bottom. Adapt them here instead of rewriting the database.
+                position_top=row["line_position_bottom"],
+                position_bottom=row["line_position_top"],
+                position=row["line_position_top"],
                 god=row["god"] or "",
                 hidden=row["hidden"] or "",
                 relation=row["relation"] or "",
@@ -118,14 +131,15 @@ class NajiaRepository:
 
         for row in hex_rows:
             lines = lines_by_hex.get(row["id"], [])
-            # Ensure ordering from top (6) to bottom (1)
-            lines.sort(key=lambda item: -item.position_top)
+            # Public rows are ordered from the top line to the bottom line.
+            lines.sort(key=lambda item: item.position_top)
             entry = NajiaEntry(
                 name=row["name"],
                 palace=row["palace"] or "",
                 descriptor=row["descriptor"] or "",
-                binary_top_to_bottom=row["binary_top_to_bottom"],
-                binary_bottom_to_top=row["binary_bottom_to_top"],
+                # These legacy database columns are reversed as well.
+                binary_top_to_bottom=row["binary_bottom_to_top"],
+                binary_bottom_to_top=row["binary_top_to_bottom"],
                 header=row["header"] or "",
                 block_text=row["block_text"] or "",
                 lines=lines,

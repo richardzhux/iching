@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from iching.config import build_app_config
 from iching.integrations.ai import AIResponseData
 from iching.services.session import SessionService
@@ -40,6 +42,34 @@ def test_session_service_manual_lines_without_ai():
     assert "青龙" in result.najia_text
     assert result.ai_analysis is None
     assert "起卦时间" in result.full_text
+
+
+def test_session_service_uses_one_normalized_najia_payload_for_ai(monkeypatch):
+    captured = {}
+
+    def fake_start_analysis(data, **kwargs):
+        captured.update(data)
+        return None
+
+    monkeypatch.setattr("iching.services.session.start_analysis", fake_start_analysis)
+    config = build_app_config(enable_ai=True)
+    service = SessionService(config=config)
+
+    result = service.create_session(
+        topic="事业",
+        user_question="何时推进？",
+        method_key="x",
+        manual_lines=[8, 7, 8, 9, 6, 8],
+        timestamp=datetime(2026, 7, 2, 12, 0),
+        use_current_time=False,
+        enable_ai=True,
+        interactive=False,
+    )
+
+    assert captured["najia_table"] == result.najia_table
+    assert captured["najia_data"] == result.najia_data
+    assert captured["najia_text"] == result.najia_text
+    assert captured["najia_data"]["block_text"] == captured["najia_text"]
 
 
 def test_session_service_builds_fallback_reading_brief_without_ai():

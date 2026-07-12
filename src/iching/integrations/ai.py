@@ -107,6 +107,13 @@ SYSTEM_PROMPT_PRO = """
 """
 
 
+def _normalized_najia_for_ai(data: Dict[str, Any]) -> Any:
+    najia_table = data.get("najia_table")
+    if isinstance(najia_table, dict) and isinstance(najia_table.get("rows"), list):
+        return najia_table
+    return data.get("najia_data")
+
+
 def _build_prompt(data: Dict[str, Any]) -> str:
     blocks = []
     if topic := data.get("topic"):
@@ -125,7 +132,7 @@ def _build_prompt(data: Dict[str, Any]) -> str:
         blocks.append("五行分析:\n" + str(elements))
     if text := data.get("hex_text"):
         blocks.append("卦辞解释（含本卦/变卦/错/综/互 + guaci）:\n" + str(text))
-    najia_data = data.get("najia_data")
+    najia_data = _normalized_najia_for_ai(data)
     if najia_data:
         try:
             blocks.append(
@@ -430,7 +437,7 @@ def _build_followup_session_context(data: Dict[str, Any]) -> str:
         blocks.append("五行:\n" + str(elements))
     if hex_text := data.get("hex_text"):
         blocks.append("卦象与卦辞:\n" + str(hex_text))
-    najia_data = data.get("najia_data")
+    najia_data = _normalized_najia_for_ai(data)
     if najia_data:
         try:
             blocks.append("纳甲/六神/六亲:\n" + json.dumps(najia_data, ensure_ascii=False, indent=2))

@@ -11,6 +11,7 @@ from iching.config import AppConfig, PATHS, build_app_config
 from iching.core.bazi import BaZiCalculator
 from iching.core.divination import AVAILABLE_METHODS, DivinationMethod
 from iching.core.hexagram import Hexagram, load_hexagram_definitions
+from iching.core.najia import rebase_relation
 from iching.core.time_utils import get_current_time
 from iching.integrations.ai import (
     DEFAULT_MODEL,
@@ -81,10 +82,13 @@ def _build_najia_table(
         moving_symbol = line_info.get("moving_symbol", "")
         value = line_info.get("value")
 
-        main_line = main_entry.get_line_by_top(position)
+        main_line = main_entry.get_line_by_position(position)
         changed_line = (
-            changed_entry.get_line_by_top(position) if changed_entry else None
+            changed_entry.get_line_by_position(position) if changed_entry else None
         )
+        changed_relation = changed_line.relation if changed_line else ""
+        if changed_relation:
+            changed_relation = rebase_relation(changed_relation, main_entry.palace)
 
         rows.append(
             {
@@ -99,12 +103,104 @@ def _build_najia_table(
                 "main_mark": main_line.glyph if main_line else "",
                 "marker": main_line.marker if main_line else "",
                 "movement_tag": _movement_tag_from_value(value),
-                "changed_relation": changed_line.relation if changed_line else "",
+                "changed_relation": changed_relation,
                 "changed_mark": changed_line.glyph if changed_line else "",
             }
         )
 
     return {"meta": meta, "rows": rows}
+
+
+def _normalized_entry_payload(
+    entry: Optional[NajiaEntry],
+    rows: List[Dict[str, object]],
+    *,
+    changed: bool,
+) -> Optional[Dict[str, object]]:
+    if entry is None:
+        return None
+    payload = entry.to_payload()
+    rows_by_position = {row["position"]: row for row in rows}
+    line_payloads = payload.get("lines")
+    if not isinstance(line_payloads, list):
+        return payload
+    for line in line_payloads:
+        if not isinstance(line, dict):
+            continue
+        row = rows_by_position.get(line.get("position"))
+        if not row:
+            continue
+        line["god"] = row.get("god", "")
+        if changed:
+            line["relation"] = row.get("changed_relation", "")
+            line["hidden"] = ""
+    return payload
+
+
+def _render_najia_text(najia_table: Dict[str, object]) -> str:
+    meta = najia_table.get("meta")
+    rows = najia_table.get("rows")
+    if not isinstance(meta, dict) or not isinstance(rows, list):
+        return ""
+    main_meta = meta.get("main")
+    changed_meta = meta.get("changed")
+    if not isinstance(main_meta, dict):
+        return ""
+
+    header = f"六神　伏神　{main_meta.get('gong', '')}：{main_meta.get('name', '')}"
+    if isinstance(changed_meta, dict):
+        header += f"　之　{changed_meta.get('gong', '')}：{changed_meta.get('name', '')}"
+    rendered = [header]
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        main = "　".join(
+            filter(
+                None,
+                [
+                    str(row.get("god", "")),
+                    str(row.get("hidden", "")),
+                    str(row.get("main_mark", "")),
+                    str(row.get("main_relation", "")),
+                    str(row.get("marker", "")),
+                ],
+            )
+        )
+        changed_relation = str(row.get("changed_relation", ""))
+        if changed_relation:
+            main += "　→　" + "　".join(
+                filter(
+                    None,
+                    [str(row.get("changed_mark", "")), changed_relation],
+                )
+            )
+        rendered.append(main)
+    return "\n".join(rendered)
+
+
+def build_session_najia_payload(
+    main_entry: Optional[NajiaEntry],
+    changed_entry: Optional[NajiaEntry],
+    line_overview: List[Dict[str, object]],
+    day_stem: Optional[str],
+) -> Tuple[Dict[str, object], Dict[str, object], str]:
+    najia_table = _build_najia_table(
+        main_entry, changed_entry, line_overview, day_stem
+    )
+    rows = najia_table.get("rows")
+    normalized_rows = rows if isinstance(rows, list) else []
+    najia_text = _render_najia_text(najia_table)
+    najia_data = {
+        "main": _normalized_entry_payload(
+            main_entry, normalized_rows, changed=False
+        ),
+        "changed": _normalized_entry_payload(
+            changed_entry, normalized_rows, changed=True
+        ),
+        "block_text": najia_text,
+        "day_stem": day_stem,
+    }
+    return najia_table, najia_data, najia_text
 
 
 def _movement_tag_from_value(value: Optional[int]) -> str:
@@ -953,20 +1049,13 @@ class SessionService:
             interpretation_repo=self.interpretation_repo,
         )
 
-        main_najia_entry = self.najia_repo.get_by_bottom(hexagram.binary[::-1])
+        main_najia_entry = self.najia_repo.get_by_bottom(hexagram.binary)
         changed_najia_entry = (
-            self.najia_repo.get_by_bottom(hexagram.changed_hexagram.binary[::-1])
+            self.najia_repo.get_by_bottom(hexagram.changed_hexagram.binary)
             if hexagram.changed_hexagram
             else None
         )
-        najia_text = main_najia_entry.block_text if main_najia_entry else ""
-        najia_data = {
-            "main": main_najia_entry.to_payload() if main_najia_entry else None,
-            "changed": changed_najia_entry.to_payload() if changed_najia_entry else None,
-            "block_text": najia_text,
-            "day_stem": day_stem,
-        }
-        najia_table = _build_najia_table(
+        najia_table, najia_data, najia_text = build_session_najia_payload(
             main_najia_entry, changed_najia_entry, hex_overview.get("lines", []), day_stem
         )
 
