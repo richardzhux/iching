@@ -10,6 +10,7 @@ export type Messages = {
   nav: {
     brand: string
     workspace: string
+    reading: string
     library: string
     method: string
     profile: string

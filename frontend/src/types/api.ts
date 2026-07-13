@@ -38,6 +38,9 @@ export type MetaphysicsPillar = {
   ten_god: string
   hidden_stems: Array<{ stem: string; element: string; ten_god: string }>
   nayin: string
+  xunkong: string
+  di_shi: string
+  self_seat: string
 }
 
 export type MetaphysicsChart = {
@@ -52,6 +55,9 @@ export type MetaphysicsChart = {
   bazi: string
   day_master: string
   xunkong: string
+  stem_relations: string[]
+  branch_relations: string[]
+  element_season_status: Record<string, string>
   calendar_facts: {
     gregorian: string
     month_command: string

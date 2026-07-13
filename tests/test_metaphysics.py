@@ -29,6 +29,21 @@ def test_known_lunar_new_year_chart() -> None:
     }
 
 
+def test_professional_pillar_facts_and_relationships_match_known_chart() -> None:
+    chart = build_metaphysics_chart(datetime(2004, 6, 26, 4), timezone_name="Asia/Shanghai")
+
+    assert chart["bazi"] == "甲申 庚午 丙子 庚寅"
+    assert [pillar["xunkong"] for pillar in chart["pillars"]] == ["午未", "戌亥", "申酉", "午未"]
+    assert [pillar["di_shi"] for pillar in chart["pillars"]] == ["病", "帝旺", "胎", "长生"]
+    assert [pillar["self_seat"] for pillar in chart["pillars"]] == ["绝", "沐浴", "胎", "绝"]
+    assert chart["stem_relations"] == ["甲庚冲", "丙庚克"]
+    assert "申子半合水" in chart["branch_relations"]
+    assert "寅午半合火" in chart["branch_relations"]
+    assert "子午相冲" in chart["branch_relations"]
+    assert "寅申相冲" in chart["branch_relations"]
+    assert chart["element_season_status"] == {"火": "旺", "土": "相", "木": "休", "水": "囚", "金": "死"}
+
+
 def test_late_zi_hour_day_boundary_is_explicit() -> None:
     timestamp = datetime(2024, 1, 1, 23, 30)
 

@@ -19,10 +19,9 @@ export function NajiaTableView({ table }: NajiaTableProps) {
     <Card className="surface-card border-border/40">
       <CardContent className="p-2 sm:p-3">
         <div className="overflow-hidden rounded-lg border border-border/40 bg-foreground/[0.025] dark:border-primary/15 dark:bg-primary/5">
-          <div className="hidden border-b border-border/35 px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground md:grid md:grid-cols-[7rem_minmax(0,1fr)_2.5rem_minmax(0,1fr)]">
+          <div className="grid grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)] border-b border-border/35 px-2 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.12rem] text-muted-foreground sm:grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)] sm:px-3">
             <span>{messages.workspace.results.sixGodLabel}</span>
             <span>{messages.workspace.results.mainHexLabel}</span>
-            <span className="text-center">{locale === "zh" ? "动" : "Move"}</span>
             <span>{messages.workspace.results.changedHexLabel}</span>
           </div>
           {table.rows.map((row) => {
@@ -30,9 +29,9 @@ export function NajiaTableView({ table }: NajiaTableProps) {
             return (
               <div
                 key={row.position}
-                className="grid gap-2 border-b border-border/25 px-3 py-2 text-sm last:border-b-0 md:grid-cols-[7rem_minmax(0,1fr)_2.5rem_minmax(0,1fr)] md:items-center"
+                className="grid grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-1 border-b border-border/25 px-2 py-1.5 text-sm last:border-b-0 sm:grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)] sm:gap-2 sm:px-3"
               >
-                <div className="flex min-h-11 items-center justify-between gap-2 md:block">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold leading-5">{row.god || "—"}</p>
                   {row.hidden && (
                     <p className="truncate text-[0.72rem] leading-4 text-muted-foreground">
@@ -44,15 +43,9 @@ export function NajiaTableView({ table }: NajiaTableProps) {
                   label={locale === "zh" ? `第${row.position}爻` : `Line ${row.position}`}
                   relation={row.main_relation}
                   marker={rowMarker}
+                  movementTag={row.movement_tag}
                   highlight={row.is_moving}
                 />
-                <div className="hidden text-center text-sm font-semibold md:block">
-                  {row.movement_tag ? (
-                    <span className="imperial-text">{row.movement_tag}</span>
-                  ) : (
-                    <span className="text-muted-foreground/40">·</span>
-                  )}
-                </div>
                 <NajiaLineColumn
                   label={messages.workspace.results.changedHexLabel}
                   relation={row.changed_relation}
@@ -73,6 +66,7 @@ type NajiaLineColumnProps = {
   label: string
   relation: string
   marker: string
+  movementTag?: string
   highlight?: boolean
   muted?: boolean
 }
@@ -81,6 +75,7 @@ function NajiaLineColumn({
   label,
   relation,
   marker,
+  movementTag,
   highlight = false,
   muted = false,
 }: NajiaLineColumnProps) {
@@ -92,16 +87,17 @@ function NajiaLineColumn({
   return (
     <div
       className={cn(
-        "flex min-h-11 items-center rounded-md border px-2.5 py-1.5",
+        "flex min-h-9 items-center rounded-md border px-2 py-1",
         muted
           ? "border-border/30 bg-transparent dark:border-primary/10"
           : "border-border/50 bg-surface/80 shadow-inner dark:border-primary/15 dark:bg-primary/5"
       )}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.1rem] text-muted-foreground">
-          <span>{label}</span>
+        <div className="flex items-center gap-1.5 text-[0.62rem] uppercase tracking-[0.06rem] text-muted-foreground">
+          <span className="sr-only">{label}</span>
           {marker && <span className="text-primary">{marker}</span>}
+          {movementTag && <span className="imperial-text">{movementTag}</span>}
         </div>
         <p className={relationClasses}>{relation || "—"}</p>
       </div>

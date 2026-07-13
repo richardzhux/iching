@@ -12,6 +12,7 @@ export const zhMessages: Messages = {
   nav: {
     brand: "I Ching Studio",
     workspace: "起卦",
+    reading: "解卦",
     library: "查卦",
     method: "排盘",
     profile: "我的",

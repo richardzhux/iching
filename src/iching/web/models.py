@@ -135,6 +135,9 @@ class MetaphysicsChartResponse(BaseModel):
     bazi: str
     day_master: str
     xunkong: str
+    stem_relations: List[str] = Field(default_factory=list)
+    branch_relations: List[str] = Field(default_factory=list)
+    element_season_status: Dict[str, str] = Field(default_factory=dict)
     calendar_facts: Dict[str, object]
     element_counts: Dict[str, int]
     previous_solar_term: Optional[Dict[str, object]] = None

@@ -39,6 +39,22 @@ LUNAR_DAYS = [
 ]
 BRANCH_CLASH = dict(zip(BRANCHES, ["午", "未", "申", "酉", "戌", "亥", "子", "丑", "寅", "卯", "辰", "巳"]))
 BRANCH_COMBINE = dict(zip(BRANCHES, ["丑", "子", "亥", "戌", "酉", "申", "未", "午", "巳", "辰", "卯", "寅"]))
+CHANG_SHENG = ["长生", "沐浴", "冠带", "临官", "帝旺", "衰", "病", "死", "墓", "绝", "胎", "养"]
+CHANG_SHENG_OFFSET = {"甲": 1, "丙": 10, "戊": 10, "庚": 7, "壬": 4, "乙": 6, "丁": 9, "己": 9, "辛": 0, "癸": 3}
+STEM_CLASHES = {frozenset(pair) for pair in (("甲", "庚"), ("乙", "辛"), ("丙", "壬"), ("丁", "癸"))}
+ELEMENT_CONTROLS = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
+BRANCH_CLASHES = {frozenset(pair) for pair in (("子", "午"), ("丑", "未"), ("寅", "申"), ("卯", "酉"), ("辰", "戌"), ("巳", "亥"))}
+BRANCH_HARMS = {frozenset(pair) for pair in (("子", "未"), ("丑", "午"), ("寅", "巳"), ("卯", "辰"), ("申", "亥"), ("酉", "戌"))}
+BRANCH_BREAKS = {frozenset(pair) for pair in (("子", "酉"), ("丑", "辰"), ("寅", "亥"), ("卯", "午"), ("巳", "申"), ("未", "戌"))}
+BRANCH_HARMONIES = (("申子辰", "水"), ("亥卯未", "木"), ("寅午戌", "火"), ("巳酉丑", "金"))
+BRANCH_MEETINGS = (("亥子丑", "水"), ("寅卯辰", "木"), ("巳午未", "火"), ("申酉戌", "金"))
+SEASONAL_ELEMENT_STATUS = {
+    "spring": {"木": "旺", "火": "相", "水": "休", "金": "囚", "土": "死"},
+    "summer": {"火": "旺", "土": "相", "木": "休", "水": "囚", "金": "死"},
+    "autumn": {"金": "旺", "水": "相", "土": "休", "火": "囚", "木": "死"},
+    "winter": {"水": "旺", "木": "相", "金": "休", "土": "囚", "火": "死"},
+    "earth": {"土": "旺", "金": "相", "火": "休", "木": "囚", "水": "死"},
+}
 
 
 def _timezone(name: str) -> ZoneInfo:
@@ -154,6 +170,12 @@ def _ten_god(day_stem: str, other_stem: str) -> str:
     return "偏印" if same_polarity else "正印"
 
 
+def _growth_stage(stem: str, branch: str) -> str:
+    branch_index = BRANCHES.index(branch)
+    index = CHANG_SHENG_OFFSET[stem] + (branch_index if STEMS.index(stem) % 2 == 0 else -branch_index)
+    return CHANG_SHENG[index % 12]
+
+
 def _pillar(label: str, gz: Any, day_stem: str) -> Dict[str, Any]:
     stem = STEMS[gz.tg]
     branch = BRANCHES[gz.dz]
@@ -171,12 +193,84 @@ def _pillar(label: str, gz: Any, day_stem: str) -> Dict[str, Any]:
             for hidden in HIDDEN_STEMS[branch]
         ],
         "nayin": _nayin(stem, branch),
+        "xunkong": _xunkong(stem, branch),
+        "di_shi": _growth_stage(day_stem, branch),
+        "self_seat": _growth_stage(stem, branch),
     }
 
 
 def _xunkong(day_stem: str, day_branch: str) -> str:
     start_branch = (BRANCHES.index(day_branch) - STEMS.index(day_stem)) % 12
     return f"{BRANCHES[(start_branch - 2) % 12]}{BRANCHES[(start_branch - 1) % 12]}"
+
+
+def _stem_relations(pillars: list[Dict[str, Any]]) -> list[str]:
+    stems = [pillar["stem"] for pillar in pillars if pillar["stem"] in STEMS]
+    relations: list[str] = []
+    for left_index, left in enumerate(stems):
+        for right in stems[left_index + 1:]:
+            pair = frozenset((left, right))
+            if pair in STEM_CLASHES:
+                relation = f"{left}{right}冲"
+            elif ELEMENT_CONTROLS[STEM_ELEMENTS[left]] == STEM_ELEMENTS[right]:
+                relation = f"{left}{right}克"
+            elif ELEMENT_CONTROLS[STEM_ELEMENTS[right]] == STEM_ELEMENTS[left]:
+                relation = f"{right}{left}克"
+            else:
+                continue
+            if relation not in relations:
+                relations.append(relation)
+    return relations
+
+
+def _branch_relations(pillars: list[Dict[str, Any]]) -> list[str]:
+    branches = [pillar["branch"] for pillar in pillars if pillar["branch"] in BRANCHES]
+    relations: list[str] = []
+    for group, element in BRANCH_HARMONIES:
+        unique = [branch for branch in group if branch in branches]
+        if len(unique) == 3:
+            relations.append(f"{''.join(unique)}三合{element}")
+        elif len(unique) == 2:
+            relations.append(f"{''.join(unique)}半合{element}")
+    for group, element in BRANCH_MEETINGS:
+        unique = [branch for branch in group if branch in branches]
+        if len(unique) == 3:
+            relations.append(f"{''.join(unique)}三会{element}")
+        elif len(unique) == 2:
+            relations.append(f"{''.join(unique)}半会{element}")
+    for left_index, left in enumerate(branches):
+        for right in branches[left_index + 1:]:
+            pair = frozenset((left, right))
+            labels: list[str] = []
+            if pair in BRANCH_CLASHES:
+                labels.append("相冲")
+            if pair in BRANCH_HARMS:
+                labels.append("相害")
+            if pair in BRANCH_BREAKS:
+                labels.append("相破")
+            if pair <= frozenset(("寅", "巳", "申")) or pair == frozenset(("子", "卯")):
+                labels.append("相刑")
+            if left == right and left in {"辰", "午", "酉", "亥"}:
+                labels.append("自刑")
+            for label in labels:
+                ordered_pair = "".join(sorted((left, right), key=BRANCHES.index))
+                relation = f"{ordered_pair}{label}"
+                if relation not in relations:
+                    relations.append(relation)
+    return relations
+
+
+def _seasonal_status(month_branch: str) -> Dict[str, str]:
+    season = "earth"
+    if month_branch in {"寅", "卯"}:
+        season = "spring"
+    elif month_branch in {"巳", "午"}:
+        season = "summer"
+    elif month_branch in {"申", "酉"}:
+        season = "autumn"
+    elif month_branch in {"亥", "子"}:
+        season = "winter"
+    return SEASONAL_ELEMENT_STATUS[season]
 
 
 def _jieqi_datetime(item: Any, zone: ZoneInfo) -> datetime:
@@ -346,6 +440,9 @@ def build_metaphysics_chart(
             "ten_god": "待定",
             "hidden_stems": [],
             "nayin": "—",
+            "xunkong": "—",
+            "di_shi": "—",
+            "self_seat": "—",
         }
     direct_elements: Iterable[str] = (
         value
@@ -382,6 +479,9 @@ def build_metaphysics_chart(
         "bazi": bazi_text,
         "day_master": day_stem,
         "xunkong": _xunkong(pillars[2]["stem"], pillars[2]["branch"]),
+        "stem_relations": _stem_relations(pillars),
+        "branch_relations": _branch_relations(pillars),
+        "element_season_status": _seasonal_status(month_branch),
         "calendar_facts": {
             "gregorian": calculation_time.isoformat(),
             "month_command": month_branch,

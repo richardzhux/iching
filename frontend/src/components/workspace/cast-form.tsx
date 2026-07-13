@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { CircleHelp } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
@@ -207,6 +208,7 @@ function analyzeQuestion(question: string, locale: "en" | "zh") {
 export function CastForm({ config }: Props) {
   const auth = useAuthContext()
   const { messages, locale, toLocalePath } = useI18n()
+  const router = useRouter()
   const defaultsHydrated = useRef(false)
   const storeHydrated = useSyncExternalStore(
     subscribeToStoreHydration,
@@ -300,6 +302,7 @@ export function CastForm({ config }: Props) {
     accessToken: auth.accessToken ?? undefined,
 	    onSuccess: (payload) => {
 	      setResult(payload)
+	      router.push(toLocalePath("/reading"))
 	      trackProductEvent("reading_created", {
 	        method: typeof payload.session_dict?.method === "string" ? payload.session_dict.method : form.methodKey,
 	        ai_enabled: Boolean(form.enableAi),

@@ -16,7 +16,7 @@ import { useWorkspaceStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import type { ChatMessage, SessionPayload } from "@/types/api"
 
-type Props = { session: SessionPayload }
+type Props = { session: SessionPayload; embedded?: boolean }
 type LocalChatMessage = ChatMessage & { status?: "streaming" | "error" | "stopped" }
 
 const CHAT_MESSAGE_LIMIT = 10000
@@ -28,7 +28,7 @@ const makeLocalId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-export function ChatPanel({ session }: Props) {
+export function ChatPanel({ session, embedded = false }: Props) {
   const auth = useAuthContext()
   const { messages, locale } = useI18n()
   const configQuery = useConfigQuery()
@@ -235,7 +235,7 @@ export function ChatPanel({ session }: Props) {
   }
 
   return (
-    <div className="surface-card mt-4 flex min-h-[42rem] flex-col overflow-hidden rounded-lg p-0">
+    <div className={cn("surface-card flex flex-col overflow-hidden rounded-lg p-0", embedded ? "min-h-[34rem]" : "mt-4 min-h-[42rem]")}>
       <div className="border-b border-border/50 px-4 py-3 sm:px-5">
         <div className="flex items-center justify-between gap-3">
           <div><p className="kicker">{messages.workspace.chat.title}</p><p className="mt-1 text-xs text-muted-foreground">{activeModel?.label ?? selectedChatModel ?? "—"} · {reasoningLabels[reasoning] || reasoning || "—"} · {verbosityLabels[verbosity] || verbosity || "—"}</p></div>

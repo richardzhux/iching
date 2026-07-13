@@ -99,7 +99,7 @@ export function HexagramHeader({
             )}
           </div>
         )}
-        <div className="mt-4 flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+        <div className={cn("mt-4 flex flex-col gap-4 lg:grid lg:items-center", overview.changed_hexagram ? "lg:grid-cols-[1fr_auto_1fr]" : "lg:grid-cols-1")}>
           <HexagramCard
             key={`main-${overview.main_hexagram?.name || "unknown"}-${lineSignature}`}
             label={messages.workspace.results.mainHexLabel}

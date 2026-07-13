@@ -12,6 +12,7 @@ export const enMessages: Messages = {
   nav: {
     brand: "I Ching Studio",
     workspace: "Cast",
+    reading: "Read",
     library: "Study",
     method: "Charts",
     profile: "My",

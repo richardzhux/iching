@@ -285,7 +285,8 @@ def test_p1_bazi_results_lead_with_factual_digest_and_split_solar_term_modes():
     chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
 
     assert '<BaziChartView chart={currentChart} locale={locale} mode="current"' in tools
-    assert '<BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt} locale={locale} mode="birth"' in tools
+    assert '<BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt}' in tools
+    assert 'subjectName={birthResult.subjectName}' in tools
     assert "日主" in chart
     assert "Day master" in chart
     assert "四柱" in chart
@@ -300,11 +301,10 @@ def test_p1_bazi_results_lead_with_factual_digest_and_split_solar_term_modes():
     assert "currentYear <= cycle.end_year" in chart
     assert "精确交接以所选起运规则为准" in chart
     assert "Exact handoff follows the configured start rule" in chart
-    assert 'role="meter"' in chart
-    assert "element_counts" in chart
-    assert "专业命盘数据" in chart
-    assert "Professional chart data" in chart
-    assert "<details" in chart
+    assert "element_season_status" in chart
+    assert "专业命盘" in chart
+    assert "Professional chart" in chart
+    assert "BaziProfessionalTable" in chart
     assert "LiveSolarTermCountdown" in chart
     assert "HistoricalSolarTerm" in chart
     historical = chart[chart.index("function HistoricalSolarTerm") :]
@@ -592,16 +592,15 @@ def test_task7_bazi_is_summary_first_share_ready_and_keeps_raw_facts_collapsed()
     assert "currentCycle" in chart
     assert "确定性历法事实" in chart
     assert "Deterministic calendar facts" in chart
-    assert "data-element={pillar.stem_element}" in chart
-    assert "grid-cols-4" in chart
-    assert "divide-x" in chart
-    assert "Five-element distribution" in chart
+    assert "data-element={row.elements?.[index]}" in chart
+    assert "grid-cols-[3.75rem_repeat(4" in chart
+    assert "buildBaziMarkdown" in chart
     assert "DayunTimeline" in chart
     assert "overflow-x-auto" in chart
     assert 'aria-current={isCurrent ? "step" : undefined}' in chart
-    assert "Professional chart data" in chart
-    professional = chart[chart.index("Professional chart data") :]
-    for raw_fact in ("hidden_stems", "ten_god", "nayin", "xunkong", "engines", "dayun.cycles"):
+    assert "Professional chart" in chart
+    professional = chart[chart.index("function BaziProfessionalTable") :]
+    for raw_fact in ("hidden_stems", "ten_god", "nayin", "xunkong", "di_shi", "self_seat"):
         assert raw_fact in professional
     assert ".chart-share-canvas" in css
     assert ".chart-export-canvas" in css
@@ -653,7 +652,7 @@ def test_task7_visible_summary_is_not_immediately_duplicated_and_details_are_fla
     bazi = read("frontend/src/components/tools/bazi-chart-view.tsx")
     ziwei = read("frontend/src/components/tools/ziwei-chart-view.tsx")
 
-    assert bazi.count("<PillarComposition chart={chart} locale={locale} />") == 1
+    assert bazi.count("<BaziProfessionalTable chart={chart} locale={locale} />") == 2
     assert "ZiweiDigest" not in ziwei
     assert ziwei.count("<ZiweiIdentitySummary") == 2  # visible once, export-only once
     assert 'className="chart-share-canvas chart-export-canvas"' in ziwei
@@ -937,22 +936,17 @@ def test_results_source_review_uses_drawer_not_archive_tab_or_inline_expansion()
     assert 'value === "sources" ? "hex"' in store
 
 
-def test_p0_result_page_has_three_trustworthy_tabs_and_safe_source_fallbacks():
+def test_p0_result_page_is_one_continuous_trustworthy_reading_flow():
     results = read("frontend/src/components/workspace/results-panel.tsx")
     chinese = read("frontend/src/i18n/catalog/zh.ts")
     english = read("frontend/src/i18n/catalog/en.ts")
 
-    assert results.count("<TabsTrigger") == 3
-    assert '<TabsTrigger value="summary">' in results
-    assert '<TabsTrigger value="hex">' in results
-    assert '<TabsTrigger value="ai">' in results
-    assert '<TabsTrigger value="sources">' not in results
-    assert 'tabSummary: "断卦"' in chinese
-    assert 'tabHex: "卦盘与依据"' in chinese
-    assert 'tabAi: "继续追问"' in chinese
-    assert 'tabSummary: "Interpretation"' in english
-    assert 'tabHex: "Chart & Evidence"' in english
-    assert 'tabAi: "Continue"' in english
+    assert "<TabsTrigger" not in results
+    assert '<HexResultBlock result={result}' in results
+    assert '<ChatPanel session={result} embedded' in results
+    assert 'id="ai-followup"' in results
+    assert 'reading: "解卦"' in chinese
+    assert 'reading: "Read"' in english
     assert "{labels.confidence} {item.confidence}%" not in results
     assert 'stable: "无动爻"' in results
     assert 'stable: "No moving lines"' in results
@@ -1030,7 +1024,8 @@ def test_mechanics_page_has_professional_cast_logic_not_archive_replica():
     assert "显示补充" in results
     assert "sectionSourceIdForDrawer" in results
     assert results.index("<MechanicsInsightPanel") < results.index("<HexSectionGroup")
-    assert results.index("<HexResultBlock") < results.index("<SourceEvidencePanel")
+    assert results.index("<HexResultBlock") < results.index("<ChatPanel")
+    assert "<SourceEvidencePanel" not in results
 
 
 def test_hexagram_archive_data_organizes_all_sources_by_hexagram():
@@ -1152,7 +1147,8 @@ def test_hexagram_detail_prioritizes_meaning_progression_and_collapsed_sources()
     assert "sourcePreview" in detail_page
     assert "<details open=" not in detail_page
     assert "entry.slotKey" not in detail_page
-    assert "sourceCounts" not in detail_page
+    assert "archive.sourceCounts" in detail_page
+    assert "查看全文" in detail_page
     assert "Cast with this context" not in detail_page
     assert "用此卦起一条阅读" not in detail_page
 
@@ -1322,14 +1318,14 @@ def test_najia_table_uses_compact_rows_without_duplicate_line_preview():
     najia = read("frontend/src/components/workspace/najia-table.tsx")
 
     assert 'CardContent className="p-2 sm:p-3"' in najia
-    assert "md:grid-cols-[7rem_minmax(0,1fr)_2.5rem_minmax(0,1fr)]" in najia
+    assert "grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)]" in najia
     assert "row.movement_tag" in najia
     assert "×→" not in najia
     assert "○→" not in najia
     assert "row.main_mark" not in najia
     assert "row.changed_mark" not in najia
     assert "row.marker" in najia
-    assert "min-h-11" in najia
+    assert "min-h-9" in najia
     assert "LineGlyph" not in najia
     assert "imperial-text" in najia
 
