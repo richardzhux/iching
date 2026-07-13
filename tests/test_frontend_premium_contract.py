@@ -502,6 +502,16 @@ def test_task6_current_location_invalidates_stale_permission_and_nearest_city_re
     assert "invalidateGeolocation()" in query_handler
 
 
+def test_frontend_ci_supplies_inert_public_config_for_mocked_browser_flows():
+    workflow = read(".github/workflows/frontend-ci.yml")
+
+    assert "NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8001" in workflow
+    assert "NEXT_PUBLIC_SUPABASE_URL: https://ci-test.supabase.co" in workflow
+    assert "NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-test-anon-key" in workflow
+    assert "NEXT_PUBLIC_API_BASE_URL: ${{ secrets." not in workflow
+    assert "NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets." not in workflow
+
+
 def test_task6_manual_overrides_are_visible_and_preserved_when_city_is_cleared():
     tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
     field = read("frontend/src/components/tools/birth-place-field.tsx")
