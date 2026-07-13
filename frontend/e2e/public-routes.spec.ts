@@ -399,7 +399,7 @@ test("signed-in My shows saved readings and safe record controls", async ({ page
   await expect(page.getByRole("button", { name: "Download", exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "Open session", exact: true })).toBeVisible()
   await expect(page.getByRole("button", { name: "Delete", exact: true })).toBeVisible()
-  await expect(page.getByText("Revisit saved readings, export a copy, or continue a follow-up conversation.")).toHaveCount(1)
+  await expect(page.getByText("Your private home for readings and personal charts. Reopen any record without starting over.")).toHaveCount(1)
 
   const download = page.waitForEvent("download")
   await page.getByRole("button", { name: "Download", exact: true }).click()
