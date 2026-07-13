@@ -42,8 +42,23 @@ BRANCH_COMBINE = dict(zip(BRANCHES, ["丑", "子", "亥", "戌", "酉", "申", "
 CHANG_SHENG = ["长生", "沐浴", "冠带", "临官", "帝旺", "衰", "病", "死", "墓", "绝", "胎", "养"]
 CHANG_SHENG_OFFSET = {"甲": 1, "丙": 10, "戊": 10, "庚": 7, "壬": 4, "乙": 6, "丁": 9, "己": 9, "辛": 0, "癸": 3}
 STEM_CLASHES = {frozenset(pair) for pair in (("甲", "庚"), ("乙", "辛"), ("丙", "壬"), ("丁", "癸"))}
+STEM_COMBINATIONS = {
+    frozenset(("甲", "己")): "甲己合土",
+    frozenset(("乙", "庚")): "乙庚合金",
+    frozenset(("丙", "辛")): "丙辛合水",
+    frozenset(("丁", "壬")): "丁壬合木",
+    frozenset(("戊", "癸")): "戊癸合火",
+}
 ELEMENT_CONTROLS = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
 BRANCH_CLASHES = {frozenset(pair) for pair in (("子", "午"), ("丑", "未"), ("寅", "申"), ("卯", "酉"), ("辰", "戌"), ("巳", "亥"))}
+BRANCH_SIX_COMBINATIONS = {
+    frozenset(("子", "丑")): "子丑六合土",
+    frozenset(("寅", "亥")): "寅亥六合木",
+    frozenset(("卯", "戌")): "卯戌六合火",
+    frozenset(("辰", "酉")): "辰酉六合金",
+    frozenset(("巳", "申")): "巳申六合水",
+    frozenset(("午", "未")): "午未六合",
+}
 BRANCH_HARMS = {frozenset(pair) for pair in (("子", "未"), ("丑", "午"), ("寅", "巳"), ("卯", "辰"), ("申", "亥"), ("酉", "戌"))}
 BRANCH_BREAKS = {frozenset(pair) for pair in (("子", "酉"), ("丑", "辰"), ("寅", "亥"), ("卯", "午"), ("巳", "申"), ("未", "戌"))}
 BRANCH_HARMONIES = (("申子辰", "水"), ("亥卯未", "木"), ("寅午戌", "火"), ("巳酉丑", "金"))
@@ -212,6 +227,8 @@ def _stem_relations(pillars: list[Dict[str, Any]]) -> list[str]:
             pair = frozenset((left, right))
             if pair in STEM_CLASHES:
                 relation = f"{left}{right}冲"
+            elif pair in STEM_COMBINATIONS:
+                relation = STEM_COMBINATIONS[pair]
             elif ELEMENT_CONTROLS[STEM_ELEMENTS[left]] == STEM_ELEMENTS[right]:
                 relation = f"{left}{right}克"
             elif ELEMENT_CONTROLS[STEM_ELEMENTS[right]] == STEM_ELEMENTS[left]:
@@ -242,17 +259,28 @@ def _branch_relations(pillars: list[Dict[str, Any]]) -> list[str]:
         for right in branches[left_index + 1:]:
             pair = frozenset((left, right))
             labels: list[str] = []
+            if pair in BRANCH_SIX_COMBINATIONS:
+                labels.append(BRANCH_SIX_COMBINATIONS[pair])
             if pair in BRANCH_CLASHES:
                 labels.append("相冲")
             if pair in BRANCH_HARMS:
                 labels.append("相害")
             if pair in BRANCH_BREAKS:
                 labels.append("相破")
-            if pair <= frozenset(("寅", "巳", "申")) or pair == frozenset(("子", "卯")):
+            if (
+                pair <= frozenset(("寅", "巳", "申"))
+                or pair <= frozenset(("丑", "未", "戌"))
+                or pair == frozenset(("子", "卯"))
+            ):
                 labels.append("相刑")
             if left == right and left in {"辰", "午", "酉", "亥"}:
                 labels.append("自刑")
             for label in labels:
+                if label.endswith("六合") or "六合" in label:
+                    relation = label
+                    if relation not in relations:
+                        relations.append(relation)
+                    continue
                 ordered_pair = "".join(sorted((left, right), key=BRANCHES.index))
                 relation = f"{ordered_pair}{label}"
                 if relation not in relations:

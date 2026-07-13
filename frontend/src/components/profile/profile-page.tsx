@@ -6,12 +6,15 @@ import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   BookOpen,
+  CalendarDays,
   Download,
   Loader2,
   LogOut,
   MessageSquare,
+  Plus,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   Trash2,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -19,22 +22,23 @@ import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuthContext } from "@/components/providers/auth-provider"
-import { useSessionHistoryQuery } from "@/lib/queries"
-import { deleteSession, fetchChatTranscript } from "@/lib/api"
+import { useMetaphysicsChartHistoryQuery, useSessionHistoryQuery } from "@/lib/queries"
+import { deleteMetaphysicsChart, deleteSession, fetchChatTranscript } from "@/lib/api"
 import { useWorkspaceStore } from "@/lib/store"
 import type { Locale } from "@/i18n/config"
 import type { Messages } from "@/i18n/messages"
-import type { SessionPayload, SessionSummary } from "@/types/api"
+import type { MetaphysicsChartSummary, SessionPayload, SessionSummary } from "@/types/api"
 
 const PROFILE_COPY = {
   en: {
     signedIn: "Signed in",
     accountLabel: "Account",
-    readingArchiveBody: "Revisit saved readings, export a copy, or continue a follow-up conversation.",
+    readingArchiveBody: "Your private home for readings and personal charts. Reopen any record without starting over.",
     retentionNote: "A 365-day cloud retention limit applies to reading records, with up to 500 saved readings per account; deleting a reading also removes its follow-up transcript.",
     secureRecord: "Secure record",
     secureRecordBody: "Saved readings stay tied to your account and can be reopened from the casting desk.",
     savedReadings: "Saved readings",
+    savedCharts: "Personal charts",
     followups: "Follow-up ready",
     library: "Explore the 64 hexagrams",
     workspace: "Cast a reading",
@@ -43,15 +47,30 @@ const PROFILE_COPY = {
     noRecordsBody: "Complete a reading and it will be saved here for review and follow-up.",
     historyErrorTitle: "Saved readings could not load",
     historyErrorBody: "Your saved readings may still be intact. Retry before treating this as an empty history.",
+    chartArchive: "BaZi & Zi Wei archive",
+    chartArchiveBody: "Each chart is private to this account and reopens with its original birth data, rules, and result.",
+    chartArchiveEmpty: "No personal charts yet",
+    chartArchiveEmptyBody: "Generate a BaZi or Zi Wei chart and it will appear here automatically.",
+    chartArchiveError: "Personal charts could not load. Retry before creating a duplicate.",
+    anonymous: "Anonymous chart",
+    baziChart: "BaZi",
+    ziweiChart: "Zi Wei",
+    dayPillar: "Day pillar",
+    openChart: "Open chart",
+    newChart: "New chart",
+    confirmDeleteChart: "Delete this private chart permanently?",
+    deletedChart: "Chart deleted",
+    deleteChartFailed: "Chart could not be deleted. Try again.",
   },
   zh: {
     signedIn: "已登录",
     accountLabel: "账户",
-    readingArchiveBody: "回看已保存的卦例、导出副本，或继续上次的追问。",
+    readingArchiveBody: "集中管理你的私人卦例与个人命盘，无需重新输入即可继续查看。",
     retentionNote: "云端卦例最长保留 365 天，每个账户最多 500 条；删除卦例也会同步删除其追问文本。",
     secureRecord: "安全记录",
     secureRecordBody: "已保存卦例仅绑定当前账户，可从起卦页面重新打开并继续追问。",
     savedReadings: "已保存",
+    savedCharts: "个人命盘",
     followups: "可追问",
     library: "查阅六十四卦",
     workspace: "去起一卦",
@@ -60,6 +79,20 @@ const PROFILE_COPY = {
     noRecordsBody: "完成一次起卦后，会保存在这里，方便日后回看与追问。",
     historyErrorTitle: "已保存卦例暂时无法读取",
     historyErrorBody: "这不代表记录为空。请先重试同步，再判断是否没有历史记录。",
+    chartArchive: "八字与紫微档案",
+    chartArchiveBody: "每张命盘仅当前账户可见，并保留原始出生资料、排盘规则与结果。",
+    chartArchiveEmpty: "暂无个人命盘",
+    chartArchiveEmptyBody: "生成八字或紫微命盘后，会自动保存在这里。",
+    chartArchiveError: "个人命盘暂时无法读取，请先重试，避免重复建档。",
+    anonymous: "匿名命主",
+    baziChart: "八字",
+    ziweiChart: "紫微",
+    dayPillar: "日柱",
+    openChart: "打开命盘",
+    newChart: "新建命盘",
+    confirmDeleteChart: "确定永久删除这张私人命盘吗？",
+    deletedChart: "命盘已删除",
+    deleteChartFailed: "命盘删除失败，请稍后重试。",
   },
 } as const satisfies Record<Locale, Record<string, string>>
 
@@ -72,6 +105,7 @@ type AccountSummaryPanelProps = {
   email?: string | null
   messages: Messages
   followupCount: number
+  chartCount: number
   sessionCount: number
   toLocalePath: (path?: string) => string
 }
@@ -92,6 +126,20 @@ type CloudHistoryPanelProps = {
   onRefresh: () => void
   onSignOut: () => void
   sessions: SessionSummary[]
+  toLocalePath: (path?: string) => string
+}
+
+type ChartArchivePanelProps = {
+  charts: MetaphysicsChartSummary[]
+  copy: ProfileCopy
+  deletingId: string | null
+  isFetching: boolean
+  isLoading: boolean
+  locale: Locale
+  loadError: Error | null
+  onDelete: (chart: MetaphysicsChartSummary) => void
+  onOpen: (chart: MetaphysicsChartSummary) => void
+  onRefresh: () => void
   toLocalePath: (path?: string) => string
 }
 
@@ -140,6 +188,7 @@ function AccountSummaryPanel({
   displayName,
   email,
   followupCount,
+  chartCount,
   messages,
   sessionCount,
   toLocalePath,
@@ -165,8 +214,9 @@ function AccountSummaryPanel({
         </div>
       </section>
 
-      <section className="grid grid-cols-2 divide-x divide-border/60 border-y border-border/60">
+      <section className="grid grid-cols-3 divide-x divide-border/60 border-y border-border/60">
         <ProfileStatCard label={copy.savedReadings} value={String(sessionCount)} />
+        <ProfileStatCard label={copy.savedCharts} value={String(chartCount)} />
         <ProfileStatCard label={copy.followups} value={String(followupCount)} />
       </section>
 
@@ -205,6 +255,89 @@ function ProfileStatCard({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
     </div>
+  )
+}
+
+function ChartArchivePanel({
+  charts,
+  copy,
+  deletingId,
+  isFetching,
+  isLoading,
+  locale,
+  loadError,
+  onDelete,
+  onOpen,
+  onRefresh,
+  toLocalePath,
+}: ChartArchivePanelProps) {
+  return (
+    <section aria-labelledby="chart-archive-title">
+      <div className="flex flex-col gap-4 border-b border-border/60 pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 id="chart-archive-title" className="text-2xl font-semibold tracking-tight text-foreground">{copy.chartArchive}</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{copy.chartArchiveBody}</p>
+        </div>
+        <Button asChild size="sm">
+          <Link href={`${toLocalePath("/tools")}?tab=bazi`}>
+            <Plus className="size-4" />
+            {copy.newChart}
+          </Link>
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex min-h-28 items-center justify-center gap-2 border-b border-border/60 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          {locale === "zh" ? "正在读取命盘…" : "Loading charts…"}
+        </div>
+      ) : loadError ? (
+        <div className="border-b border-border/60 py-5">
+          <p className="text-sm text-muted-foreground">{copy.chartArchiveError}</p>
+          <Button type="button" size="sm" variant="outline" className="mt-3" disabled={isFetching} onClick={onRefresh}>
+            <RefreshCw className="size-4" />
+            {locale === "zh" ? "重新同步" : "Retry"}
+          </Button>
+        </div>
+      ) : charts.length === 0 ? (
+        <div className="border-b border-border/60 py-6">
+          <p className="font-semibold text-foreground">{copy.chartArchiveEmpty}</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy.chartArchiveEmptyBody}</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-border/60 border-b border-border/60">
+          {charts.map((chart) => {
+            const isBazi = chart.chart_type === "bazi"
+            const displayName = chart.display_name?.trim() || copy.anonymous
+            return (
+              <article key={chart.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <button type="button" className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => onOpen(chart)}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+                      {isBazi ? <CalendarDays className="size-3.5" /> : <Sparkles className="size-3.5" />}
+                      {isBazi ? copy.baziChart : copy.ziweiChart}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{formatTimestamp(chart.updated_at, locale)}</span>
+                  </div>
+                  <h3 className="mt-1.5 truncate text-base font-semibold text-foreground">{displayName}</h3>
+                  <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                    <span>{chart.birth_date}</span>
+                    {chart.day_pillar ? <span>{copy.dayPillar} <strong className="font-semibold text-primary">{chart.day_pillar}</strong></span> : null}
+                    {chart.birth_place ? <span className="truncate">{chart.birth_place}</span> : null}
+                  </p>
+                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button type="button" size="sm" variant="ghost" onClick={() => onOpen(chart)}>{copy.openChart}</Button>
+                  <Button type="button" size="icon-sm" variant="ghost" aria-label={copy.confirmDeleteChart} disabled={deletingId === chart.id} onClick={() => onDelete(chart)}>
+                    {deletingId === chart.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                  </Button>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -461,6 +594,7 @@ export default function ProfilePage() {
   const auth = useAuthContext()
   const { locale, messages, toLocalePath } = useI18n()
   const historyQuery = useSessionHistoryQuery(auth.accessToken ?? null)
+  const chartHistoryQuery = useMetaphysicsChartHistoryQuery(auth.accessToken ?? null)
   const router = useRouter()
   const setResult = useWorkspaceStore((state) => state.setResult)
   const [authMode, setAuthMode] = useState<"signIn" | "signUp">("signIn")
@@ -470,8 +604,10 @@ export default function ProfilePage() {
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [continuingId, setContinuingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deletingChartId, setDeletingChartId] = useState<string | null>(null)
   const copy = PROFILE_COPY[locale]
   const sessions = useMemo(() => historyQuery.data?.sessions ?? [], [historyQuery.data?.sessions])
+  const charts = useMemo(() => chartHistoryQuery.data?.charts ?? [], [chartHistoryQuery.data?.charts])
   const profileName = auth.displayName ?? auth.user?.email ?? messages.profileMenu.guestMode
   const profileAvatar = auth.avatarUrl ?? null
   const followupCount = useMemo(() => sessions.filter((session) => session.followup_available).length, [sessions])
@@ -567,6 +703,24 @@ export default function ProfilePage() {
     }
   }
 
+  function handleOpenChart(chart: MetaphysicsChartSummary) {
+    router.push(`${toLocalePath("/tools")}?tab=${chart.chart_type}&chart=${chart.id}`)
+  }
+
+  async function handleDeleteChart(chart: MetaphysicsChartSummary) {
+    if (!auth.accessToken || !confirm(copy.confirmDeleteChart)) return
+    setDeletingChartId(chart.id)
+    try {
+      await deleteMetaphysicsChart(chart.id, auth.accessToken)
+      toast.success(copy.deletedChart)
+      await chartHistoryQuery.refetch()
+    } catch {
+      toast.error(copy.deleteChartFailed)
+    } finally {
+      setDeletingChartId(null)
+    }
+  }
+
   function triggerDownload(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement("a")
@@ -648,28 +802,44 @@ export default function ProfilePage() {
           displayName={profileName}
           email={auth.user.email}
           followupCount={followupCount}
+          chartCount={charts.length}
           messages={messages}
           sessionCount={sessions.length}
           toLocalePath={toLocalePath}
         />
-        <CloudHistoryPanel
-          continuingId={continuingId}
-          copy={copy}
-          deletingId={deletingId}
-          exportingId={exportingId}
-          isFetching={historyQuery.isFetching}
-          isLoading={historyQuery.isLoading}
-          historyError={historyQuery.error instanceof Error ? historyQuery.error : null}
-          locale={locale}
-          messages={messages}
-          onContinue={handleContinue}
-          onDelete={handleDelete}
-          onDownload={handleDownload}
-          onRefresh={() => historyQuery.refetch()}
-          onSignOut={handleSignOut}
-          sessions={sessions}
-          toLocalePath={toLocalePath}
-        />
+        <div className="space-y-10">
+          <ChartArchivePanel
+            charts={charts}
+            copy={copy}
+            deletingId={deletingChartId}
+            isFetching={chartHistoryQuery.isFetching}
+            isLoading={chartHistoryQuery.isLoading}
+            locale={locale}
+            loadError={chartHistoryQuery.error instanceof Error ? chartHistoryQuery.error : null}
+            onDelete={handleDeleteChart}
+            onOpen={handleOpenChart}
+            onRefresh={() => chartHistoryQuery.refetch()}
+            toLocalePath={toLocalePath}
+          />
+          <CloudHistoryPanel
+            continuingId={continuingId}
+            copy={copy}
+            deletingId={deletingId}
+            exportingId={exportingId}
+            isFetching={historyQuery.isFetching}
+            isLoading={historyQuery.isLoading}
+            historyError={historyQuery.error instanceof Error ? historyQuery.error : null}
+            locale={locale}
+            messages={messages}
+            onContinue={handleContinue}
+            onDelete={handleDelete}
+            onDownload={handleDownload}
+            onRefresh={() => historyQuery.refetch()}
+            onSignOut={handleSignOut}
+            sessions={sessions}
+            toLocalePath={toLocalePath}
+          />
+        </div>
       </section>
     </div>
   ) : (

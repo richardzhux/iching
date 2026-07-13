@@ -1,10 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
-import { CalendarClock, Compass, Loader2, Sparkles } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { CalendarClock, Check, Cloud, Compass, Loader2, Pencil, Plus, Sparkles } from "lucide-react"
 import { toast } from "sonner"
+import { useAuthContext } from "@/components/providers/auth-provider"
 import { useI18n } from "@/components/providers/i18n-provider"
+import { BirthPlaceField } from "@/components/tools/birth-place-field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -13,9 +16,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BaziChartView } from "@/components/tools/bazi-chart-view"
 import { BaziControls } from "@/components/tools/metaphysics-controls"
 import { ZiweiChartView, type ZiweiProvenance } from "@/components/tools/ziwei-chart-view"
-import { calculateMetaphysicsChart } from "@/lib/api"
+import { calculateMetaphysicsChart, fetchMetaphysicsChart, saveMetaphysicsChart } from "@/lib/api"
 import type { LocationResult } from "@/lib/location-search"
-import type { MetaphysicsChart } from "@/types/api"
+import type { MetaphysicsChart, MetaphysicsChartRecord, MetaphysicsChartSavePayload } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 
@@ -31,6 +34,7 @@ type ZiweiResultSnapshot = {
   horoscopeDate: string
   generatedAt: string
   provenance: ZiweiProvenance
+  subjectName: string
 }
 
 type BaziResultSnapshot = {
@@ -58,6 +62,10 @@ function isSupportedHoroscopeDate(value: string) {
 
 export function MetaphysicsTools() {
   const { locale, toLocalePath } = useI18n()
+  const auth = useAuthContext()
+  const router = useRouter()
+  const loadedChartRef = useRef<string | null>(null)
+  const [activeTab, setActiveTab] = useState<"current" | "bazi" | "ziwei">("current")
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai")
   const [currentChart, setCurrentChart] = useState<MetaphysicsChart | null>(null)
   const [currentLoading, setCurrentLoading] = useState(true)
@@ -90,6 +98,10 @@ export function MetaphysicsTools() {
   const [ziweiResult, setZiweiResult] = useState<ZiweiResultSnapshot | null>(null)
   const [ziweiLoading, setZiweiLoading] = useState(false)
   const [ziweiEditorOpen, setZiweiEditorOpen] = useState(true)
+  const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null)
+  const [activeBaziChartId, setActiveBaziChartId] = useState<string | null>(null)
+  const [activeZiweiChartId, setActiveZiweiChartId] = useState<string | null>(null)
+  const [savingType, setSavingType] = useState<"bazi" | "ziwei" | null>(null)
   const timezoneOptions = useMemo(() => TIMEZONES.includes(timezone) ? TIMEZONES : [timezone, ...TIMEZONES], [timezone])
   const locationOverrideActive = Boolean(locationAutofill && (
     timezone !== locationAutofill.appliedTimezone || longitude !== locationAutofill.appliedLongitude
@@ -148,6 +160,12 @@ export function MetaphysicsTools() {
     exactYear: "立春",
     horoscopeDate: "运限日期",
     chartNote: "历法与星盘数据由确定性算法生成；旺衰、格局与断语因流派而异，应与所采用的规则体系一并核对。",
+    newChart: "新建命盘",
+    savedCloud: "已自动保存到我的档案",
+    savingCloud: "正在保存…",
+    loginToSave: "登录后自动保存并可随时打开",
+    saveFailed: "命盘已生成，但云端保存失败，请稍后重试。",
+    loadedChart: "已打开私人命盘档案。",
   } : {
     subjectName: "Chart name",
     title: "BaZi & Zi Wei Charts",
@@ -201,6 +219,12 @@ export function MetaphysicsTools() {
     exactYear: "Start of Spring",
     horoscopeDate: "Horoscope date",
     chartNote: "Calendar and chart facts are deterministic; strength, pattern, and interpretation rules vary by school and should be reviewed with the selected method.",
+    newChart: "New chart",
+    savedCloud: "Automatically saved to My Charts",
+    savingCloud: "Saving…",
+    loginToSave: "Sign in to save and reopen this chart",
+    saveFailed: "The chart was generated, but cloud saving failed. Try again later.",
+    loadedChart: "Private chart opened.",
   }
 
   useEffect(() => {
@@ -227,10 +251,187 @@ export function MetaphysicsTools() {
     }
   }, [timezone])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    const requestedTab = params.get("tab")
+    if (requestedTab === "bazi" || requestedTab === "ziwei" || requestedTab === "current") {
+      setActiveTab(requestedTab)
+    }
+    const chartId = params.get("chart")
+    if (!chartId || auth.loading || loadedChartRef.current === chartId) return
+    if (!auth.accessToken) {
+      toast.info(copy.loginToSave)
+      return
+    }
+    loadedChartRef.current = chartId
+    void fetchMetaphysicsChart(chartId, auth.accessToken)
+      .then((record) => {
+        hydrateSavedChart(record)
+        toast.success(copy.loadedChart)
+      })
+      .catch((error) => {
+        loadedChartRef.current = null
+        toast.error((error as Error).message)
+      })
+  // `copy` and the hydrator are intentionally omitted so a locale render cannot refetch the same record.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.accessToken, auth.loading])
+
   const castHref = useMemo(() => {
     if (!currentChart?.calculation_timestamp) return toLocalePath("/app")
     return `${toLocalePath("/app")}?timestamp=${encodeURIComponent(currentChart.calculation_timestamp)}`
   }, [currentChart?.calculation_timestamp, toLocalePath])
+
+  function hydrateSavedChart(record: MetaphysicsChartRecord) {
+    const form = (record.input_snapshot.form ?? {}) as Record<string, unknown>
+    const subjectName = record.subject.display_name ?? ""
+    setActiveSubjectId(record.subject_id)
+    setBaziSubjectName(subjectName)
+    setTimezone(record.subject.timezone)
+    setBirthPlace(record.subject.birth_place ?? "")
+    setLongitude(record.subject.longitude == null ? "" : String(record.subject.longitude))
+    setBaziCalendar(record.subject.calendar_type)
+    setBaziGender(record.subject.gender ?? "male")
+    setGender(record.subject.gender === "female" ? "女" : "男")
+    if (typeof form.birth_time === "string") setBirthTime(form.birth_time)
+    if (typeof form.lunar_birth_date === "string") setLunarBirthDate(form.lunar_birth_date)
+    if (typeof form.lunar_birth_time === "string") setLunarBirthTime(form.lunar_birth_time)
+    if (typeof form.true_solar === "boolean") setTrueSolar(form.true_solar)
+    if (form.day_boundary === "current" || form.day_boundary === "forward") setDayBoundary(form.day_boundary)
+    if (typeof form.is_leap_month === "boolean") setIsLeapMonth(form.is_leap_month)
+    if (typeof form.hour_uncertain === "boolean") setHourUncertain(form.hour_uncertain)
+    if (form.dayun_algorithm === "sect1" || form.dayun_algorithm === "sect2") setDayunAlgorithm(form.dayun_algorithm)
+    if (typeof form.fix_leap === "boolean") setFixLeap(form.fix_leap)
+    if (form.ziwei_calendar === "solar" || form.ziwei_calendar === "lunar") setZiweiCalendar(form.ziwei_calendar)
+    if (typeof form.ziwei_leap_month === "boolean") setZiweiLeapMonth(form.ziwei_leap_month)
+    if (form.ziwei_algorithm === "default" || form.ziwei_algorithm === "zhongzhou") setZiweiAlgorithm(form.ziwei_algorithm)
+    if (form.ziwei_astro_type === "heaven" || form.ziwei_astro_type === "earth" || form.ziwei_astro_type === "human") setZiweiAstroType(form.ziwei_astro_type)
+    if (form.ziwei_year_divide === "normal" || form.ziwei_year_divide === "exact") setZiweiYearDivide(form.ziwei_year_divide)
+    if (typeof form.horoscope_date === "string") setHoroscopeDate(form.horoscope_date)
+    const savedLocation = form.selected_location
+    if (savedLocation && typeof savedLocation === "object") {
+      setSelectedBirthPlace(savedLocation as LocationResult)
+    } else if (record.subject.latitude != null && record.subject.longitude != null) {
+      setSelectedBirthPlace({
+        id: record.subject.location_id ?? `saved:${record.subject.id}`,
+        name: record.subject.birth_place ?? (subjectName || (locale === "zh" ? "已保存地点" : "Saved place")),
+        region: "",
+        country: "",
+        latitude: record.subject.latitude,
+        longitude: record.subject.longitude,
+        timezone: record.subject.timezone,
+      })
+    }
+
+    if (record.chart_type === "bazi") {
+      const snapshot = record.result_snapshot as { chart?: MetaphysicsChart; generated_at?: string; subject_name?: string }
+      if (!snapshot.chart) throw new Error(locale === "zh" ? "八字命盘快照不完整。" : "The BaZi snapshot is incomplete.")
+      setBirthResult({ chart: snapshot.chart, generatedAt: snapshot.generated_at ?? record.updated_at, subjectName: snapshot.subject_name ?? subjectName })
+      setActiveBaziChartId(record.id)
+      setBaziEditorOpen(false)
+      setActiveTab("bazi")
+    } else {
+      const snapshot = record.result_snapshot as {
+        chart?: IFunctionalAstrolabe
+        horoscope?: IFunctionalHoroscope
+        horoscope_date?: string
+        generated_at?: string
+        provenance?: ZiweiProvenance
+        subject_name?: string
+      }
+      if (!snapshot.chart || !snapshot.horoscope || !snapshot.provenance) throw new Error(locale === "zh" ? "紫微命盘快照不完整。" : "The Zi Wei snapshot is incomplete.")
+      setZiweiResult({
+        chart: snapshot.chart,
+        horoscope: snapshot.horoscope,
+        horoscopeDate: snapshot.horoscope_date ?? record.birth_date,
+        generatedAt: snapshot.generated_at ?? record.updated_at,
+        provenance: snapshot.provenance,
+        subjectName: snapshot.subject_name ?? subjectName,
+      })
+      setActiveZiweiChartId(record.id)
+      setZiweiEditorOpen(false)
+      setActiveTab("ziwei")
+    }
+  }
+
+  function formSnapshot() {
+    return {
+      birth_time: birthTime,
+      lunar_birth_date: lunarBirthDate,
+      lunar_birth_time: lunarBirthTime,
+      true_solar: trueSolar,
+      day_boundary: dayBoundary,
+      is_leap_month: isLeapMonth,
+      hour_uncertain: hourUncertain,
+      dayun_algorithm: dayunAlgorithm,
+      selected_location: selectedBirthPlace,
+      fix_leap: fixLeap,
+      ziwei_calendar: ziweiCalendar,
+      ziwei_leap_month: ziweiLeapMonth,
+      ziwei_algorithm: ziweiAlgorithm,
+      ziwei_astro_type: ziweiAstroType,
+      ziwei_year_divide: ziweiYearDivide,
+      horoscope_date: horoscopeDate,
+    }
+  }
+
+  function subjectPayload(calendarType: "solar" | "lunar", subjectGender: "male" | "female") {
+    const localTimestamp = calendarType === "solar"
+      ? birthTime
+      : `${lunarBirthDate}T${hourUncertain ? "12:00" : lunarBirthTime}`
+    return {
+      id: activeSubjectId,
+      display_name: baziSubjectName.trim() || null,
+      birth_local_timestamp: localTimestamp,
+      timezone,
+      calendar_type: calendarType,
+      gender: subjectGender,
+      birth_place: birthPlace || null,
+      location_id: selectedBirthPlace?.id ?? null,
+      latitude: selectedBirthPlace?.latitude ?? null,
+      longitude: longitude ? Number(longitude) : selectedBirthPlace?.longitude ?? null,
+    } satisfies MetaphysicsChartSavePayload["subject"]
+  }
+
+  async function persistGeneratedChart(payload: MetaphysicsChartSavePayload) {
+    if (!auth.accessToken) return null
+    setSavingType(payload.chart_type)
+    try {
+      const record = await saveMetaphysicsChart(payload, auth.accessToken)
+      setActiveSubjectId(record.subject_id)
+      if (record.chart_type === "bazi") setActiveBaziChartId(record.id)
+      else setActiveZiweiChartId(record.id)
+      loadedChartRef.current = record.id
+      router.replace(`${toLocalePath("/tools")}?tab=${record.chart_type}&chart=${record.id}`, { scroll: false })
+      return record
+    } catch {
+      toast.error(copy.saveFailed)
+      return null
+    } finally {
+      setSavingType(null)
+    }
+  }
+
+  function startNewChart() {
+    setBirthResult(null)
+    setZiweiResult(null)
+    setActiveSubjectId(null)
+    setActiveBaziChartId(null)
+    setActiveZiweiChartId(null)
+    setBaziSubjectName("")
+    setBirthTime(localDateTimeValue(new Date(1990, 0, 1, 12, 0)))
+    setLunarBirthDate("1990-01-01")
+    setLunarBirthTime("12:00")
+    setBirthPlace("")
+    setSelectedBirthPlace(null)
+    setLocationAutofill(null)
+    setBaziEditorOpen(true)
+    setZiweiEditorOpen(true)
+    loadedChartRef.current = null
+    router.replace(`${toLocalePath("/tools")}?tab=${activeTab}`, { scroll: false })
+    window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })
+  }
 
   function handleBirthPlaceSelect(location: LocationResult) {
     const appliedLongitude = String(location.longitude)
@@ -273,7 +474,7 @@ export function MetaphysicsTools() {
     }
     setBirthLoading(true)
     try {
-      const chart = await calculateMetaphysicsChart({
+      const calculationRequest = {
         timestamp: baziCalendar === "solar" ? birthTime : `${lunarBirthDate}T${hourUncertain ? "12:00" : lunarBirthTime}`,
         timezone,
         longitude: longitude ? Number(longitude) : null,
@@ -290,9 +491,26 @@ export function MetaphysicsTools() {
         lunar_day: lunarMatch ? Number(lunarMatch[3]) : null,
         lunar_hour: lunarTimeMatch ? (hourUncertain ? 12 : Number(lunarTimeMatch[1])) : null,
         lunar_minute: lunarTimeMatch ? (hourUncertain ? 0 : Number(lunarTimeMatch[2])) : null,
-      })
-      setBirthResult({ chart, generatedAt: new Date().toISOString(), subjectName: baziSubjectName.trim() })
+      } as const
+      const chart = await calculateMetaphysicsChart(calculationRequest)
+      const generatedAt = new Date().toISOString()
+      const subjectName = baziSubjectName.trim()
+      setBirthResult({ chart, generatedAt, subjectName })
       setBaziEditorOpen(false)
+      await persistGeneratedChart({
+        id: activeBaziChartId,
+        chart_type: "bazi",
+        subject: subjectPayload(baziCalendar, baziGender),
+        title: subjectName ? `${subjectName} · 八字` : null,
+        birth_date: (chart.birth_profile.converted_solar_date ?? chart.calculation_timestamp).slice(0, 10),
+        day_pillar: chart.calendar_facts.day_pillar,
+        input_snapshot: { form: formSnapshot(), calculation_request: calculationRequest },
+        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName },
+        engine_name: "sxtwl+lunar-python",
+        engine_version: "2.0.7+1.4.8",
+        rules_version: `bazi-v1:${dayBoundary}:${dayunAlgorithm}`,
+        schema_version: 1,
+      })
     } catch (error) {
       toast.error((error as Error).message)
     } finally {
@@ -347,14 +565,31 @@ export function MetaphysicsTools() {
         astroType: provenance.astroType,
       })
       const horoscope = chart.horoscope(horoscopeDate)
+      const generatedAt = new Date().toISOString()
+      const subjectName = baziSubjectName.trim()
       setZiweiResult({
         chart,
         horoscope,
         horoscopeDate,
-        generatedAt: new Date().toISOString(),
+        generatedAt,
         provenance,
+        subjectName,
       })
       setZiweiEditorOpen(false)
+      await persistGeneratedChart({
+        id: activeZiweiChartId,
+        chart_type: "ziwei",
+        subject: subjectPayload(ziweiCalendar, gender === "女" ? "female" : "male"),
+        title: subjectName ? `${subjectName} · 紫微` : null,
+        birth_date: chart.solarDate.slice(0, 10),
+        day_pillar: chart.rawDates.chineseDate.daily.join(""),
+        input_snapshot: { form: formSnapshot(), provenance },
+        result_snapshot: { chart, horoscope, horoscope_date: horoscopeDate, generated_at: generatedAt, provenance, subject_name: subjectName },
+        engine_name: "iztro",
+        engine_version: "2.5.8",
+        rules_version: `ziwei-v1:${ziweiAlgorithm}:${ziweiYearDivide}:${dayBoundary}`,
+        schema_version: 1,
+      })
     } catch (error) {
       toast.error((error as Error).message || (locale === "zh" ? "紫微排盘内核加载失败。" : "Zi Wei engine failed to load."))
     } finally {
@@ -371,7 +606,7 @@ export function MetaphysicsTools() {
         <p className="mt-3 max-w-3xl text-xs leading-5 text-muted-foreground">{copy.chartNote}</p>
       </header>
 
-      <Tabs defaultValue="current">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "current" | "bazi" | "ziwei")}>
         <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="current"><CalendarClock className="mr-2 size-4" />{copy.current}</TabsTrigger><TabsTrigger value="bazi"><Compass className="mr-2 size-4" />{copy.bazi}</TabsTrigger><TabsTrigger value="ziwei"><Sparkles className="mr-2 size-4" />{copy.ziwei}</TabsTrigger></TabsList>
         <TabsContent value="current" className="mt-4 space-y-4">
           <div aria-live="polite" aria-busy={currentLoading}>
@@ -380,7 +615,12 @@ export function MetaphysicsTools() {
           <Button asChild><Link href={castHref}>{copy.useToCast}</Link></Button>
         </TabsContent>
         <TabsContent value="bazi" className="mt-4 space-y-4">
-          {birthResult ? <BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt} subjectName={birthResult.subjectName} locale={locale} mode="birth" /> : null}
+          {birthResult ? (
+            <>
+              <ChartPersistenceBar copy={copy} isSaving={savingType === "bazi"} isSaved={Boolean(activeBaziChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => setBaziEditorOpen(true)} onNew={startNewChart} />
+              <BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt} subjectName={birthResult.subjectName} locale={locale} mode="birth" />
+            </>
+          ) : null}
           <details data-export-exclude open={baziEditorOpen} onToggle={(event) => setBaziEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{birthResult ? copy.editDetails : copy.basicSettings}</summary>
             <div className="mt-4 space-y-4">
@@ -393,13 +633,22 @@ export function MetaphysicsTools() {
           </div>
         </TabsContent>
         <TabsContent value="ziwei" className="mt-4 space-y-4">
-          {ziweiResult ? <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} /> : null}
+          {ziweiResult ? (
+            <>
+              <ChartPersistenceBar copy={copy} isSaving={savingType === "ziwei"} isSaved={Boolean(activeZiweiChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => setZiweiEditorOpen(true)} onNew={startNewChart} />
+              <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} />
+            </>
+          ) : null}
           <details id="ziwei-edit-details" data-export-exclude open={ziweiEditorOpen} onToggle={(event) => setZiweiEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{ziweiResult ? copy.editDetails : copy.ziweiBasicSettings}</summary>
             <div className="mt-4 space-y-4">
           <section aria-labelledby="ziwei-basic-title">
             <h2 id="ziwei-basic-title" className="text-sm font-semibold">{copy.ziweiBasicSettings}</h2>
             <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <label htmlFor="ziwei-subject-name" className="text-sm font-medium">{copy.subjectName}</label>
+                <Input id="ziwei-subject-name" value={baziSubjectName} maxLength={40} autoComplete="name" placeholder={locale === "zh" ? "选填，留空显示匿名命主" : "Optional; blank displays Anonymous"} onChange={(event) => setBaziSubjectName(event.target.value)} />
+              </div>
               <div className="space-y-2">
                 <label id="ziwei-calendar-label" className="text-sm font-medium">{copy.calendar}</label>
                 <Select value={ziweiCalendar} onValueChange={(value) => setZiweiCalendar(value as "solar" | "lunar")}>
@@ -423,6 +672,7 @@ export function MetaphysicsTools() {
                 </Select>
               </div>
               <div className="space-y-2"><label htmlFor="ziwei-horoscope-date" className="text-sm font-medium">{copy.horoscopeDate}</label><Input id="ziwei-horoscope-date" type="date" value={horoscopeDate} onChange={(event) => setHoroscopeDate(event.target.value)} /></div>
+              <div className="md:col-span-2 lg:col-span-4"><BirthPlaceField locale={locale} selectedLocation={selectedBirthPlace} overrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onSelect={handleBirthPlaceSelect} onClear={handleBirthPlaceClear} /></div>
             </div>
           </section>
 
@@ -467,6 +717,36 @@ export function MetaphysicsTools() {
         </TabsContent>
       </Tabs>
     </main>
+  )
+}
+
+function ChartPersistenceBar({ copy, isSaving, isSaved, isAuthenticated, onEdit, onNew }: {
+  copy: { newChart: string; editDetails: string; savedCloud: string; savingCloud: string; loginToSave: string }
+  isSaving: boolean
+  isSaved: boolean
+  isAuthenticated: boolean
+  onEdit: () => void
+  onNew: () => void
+}) {
+  const status = isSaving ? copy.savingCloud : isSaved ? copy.savedCloud : copy.loginToSave
+  return (
+    <div data-export-exclude className="flex flex-col gap-3 border-y border-border/60 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        {isSaving ? <Loader2 className="size-3.5 animate-spin text-primary" /> : isSaved ? <Check className="size-3.5 text-primary" /> : <Cloud className="size-3.5" />}
+        {status}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
+          <Pencil className="size-4" />
+          {copy.editDetails}
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={onNew}>
+          <Plus className="size-4" />
+          {copy.newChart}
+        </Button>
+      </div>
+      {!isAuthenticated ? <span className="sr-only">{copy.loginToSave}</span> : null}
+    </div>
   )
 }
 

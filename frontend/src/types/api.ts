@@ -116,6 +116,79 @@ export type MetaphysicsChartRequest = {
   lunar_minute?: number | null
 }
 
+export type ChartSubjectPayload = {
+  id?: string | null
+  display_name?: string | null
+  birth_local_timestamp: string
+  timezone: string
+  calendar_type: "solar" | "lunar"
+  gender?: "male" | "female" | null
+  birth_place?: string | null
+  location_id?: string | null
+  latitude?: number | null
+  longitude?: number | null
+}
+
+export type MetaphysicsChartSavePayload = {
+  id?: string | null
+  chart_type: "bazi" | "ziwei"
+  subject: ChartSubjectPayload
+  title?: string | null
+  birth_date: string
+  day_pillar?: string | null
+  input_snapshot: Record<string, unknown>
+  result_snapshot: Record<string, unknown>
+  engine_name: string
+  engine_version: string
+  rules_version: string
+  schema_version: number
+}
+
+export type ChartSubjectRecord = ChartSubjectPayload & {
+  id: string
+  utc_offset_minutes: number
+}
+
+export type MetaphysicsChartRecord = {
+  id: string
+  subject_id: string
+  chart_type: "bazi" | "ziwei"
+  title?: string | null
+  birth_date: string
+  day_pillar?: string | null
+  input_snapshot: Record<string, unknown>
+  result_snapshot: Record<string, unknown>
+  engine_name: string
+  engine_version: string
+  rules_version: string
+  schema_version: number
+  pinned: boolean
+  created_at: string
+  updated_at: string
+  last_opened_at: string
+  subject: ChartSubjectRecord
+}
+
+export type MetaphysicsChartSummary = {
+  id: string
+  subject_id: string
+  chart_type: "bazi" | "ziwei"
+  title?: string | null
+  display_name?: string | null
+  birth_date: string
+  day_pillar?: string | null
+  birth_place?: string | null
+  engine_name: string
+  engine_version: string
+  pinned: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type MetaphysicsChartListResponse = {
+  charts: MetaphysicsChartSummary[]
+}
+
 export type HexSection = {
   id: string
   hexagram_type: "main" | "changed"
@@ -353,9 +426,6 @@ export type SessionSummary = {
   created_at?: string | null
   ai_enabled: boolean
   followup_available: boolean
-  user_email?: string | null
-  user_display_name?: string | null
-  user_avatar_url?: string | null
   topic_label?: string | null
   method_label?: string | null
 }

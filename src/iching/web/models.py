@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+import json
+from datetime import date, datetime
 from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -145,6 +146,98 @@ class MetaphysicsChartResponse(BaseModel):
     birth_profile: Dict[str, object]
 
 
+class ChartSubjectInput(BaseModel):
+    id: Optional[str] = None
+    display_name: Optional[str] = Field(default=None, max_length=80)
+    birth_local_timestamp: datetime
+    timezone: str = Field(min_length=1, max_length=80)
+    calendar_type: Literal["solar", "lunar"] = "solar"
+    gender: Optional[Literal["male", "female"]] = None
+    birth_place: Optional[str] = Field(default=None, max_length=160)
+    location_id: Optional[str] = Field(default=None, max_length=240)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+
+
+class MetaphysicsChartSaveRequest(BaseModel):
+    id: Optional[str] = None
+    chart_type: Literal["bazi", "ziwei"]
+    subject: ChartSubjectInput
+    title: Optional[str] = Field(default=None, max_length=120)
+    birth_date: date
+    day_pillar: Optional[str] = Field(default=None, max_length=16)
+    input_snapshot: Dict[str, object]
+    result_snapshot: Dict[str, object]
+    engine_name: str = Field(min_length=1, max_length=80)
+    engine_version: str = Field(min_length=1, max_length=40)
+    rules_version: str = Field(min_length=1, max_length=80)
+    schema_version: int = Field(default=1, ge=1, le=32767)
+
+    @model_validator(mode="after")
+    def validate_snapshot_sizes(self):
+        input_bytes = len(json.dumps(self.input_snapshot, ensure_ascii=False, separators=(",", ":")).encode())
+        result_bytes = len(json.dumps(self.result_snapshot, ensure_ascii=False, separators=(",", ":")).encode())
+        if input_bytes > 262_144:
+            raise ValueError("命盘输入快照不能超过 256 KB。")
+        if result_bytes > 2_097_152:
+            raise ValueError("命盘结果快照不能超过 2 MB。")
+        return self
+
+
+class ChartSubjectResponse(BaseModel):
+    id: str
+    display_name: Optional[str] = None
+    birth_local_timestamp: datetime
+    timezone: str
+    utc_offset_minutes: int
+    calendar_type: Literal["solar", "lunar"]
+    gender: Optional[Literal["male", "female"]] = None
+    birth_place: Optional[str] = None
+    location_id: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class MetaphysicsChartRecord(BaseModel):
+    id: str
+    subject_id: str
+    chart_type: Literal["bazi", "ziwei"]
+    title: Optional[str] = None
+    birth_date: date
+    day_pillar: Optional[str] = None
+    input_snapshot: Dict[str, object]
+    result_snapshot: Dict[str, object]
+    engine_name: str
+    engine_version: str
+    rules_version: str
+    schema_version: int
+    pinned: bool = False
+    created_at: datetime
+    updated_at: datetime
+    last_opened_at: datetime
+    subject: ChartSubjectResponse
+
+
+class MetaphysicsChartSummary(BaseModel):
+    id: str
+    subject_id: str
+    chart_type: Literal["bazi", "ziwei"]
+    title: Optional[str] = None
+    display_name: Optional[str] = None
+    birth_date: date
+    day_pillar: Optional[str] = None
+    birth_place: Optional[str] = None
+    engine_name: str
+    engine_version: str
+    pinned: bool = False
+    created_at: datetime
+    updated_at: datetime
+
+
+class MetaphysicsChartListResponse(BaseModel):
+    charts: List[MetaphysicsChartSummary]
+
+
 class ChatTurnRequest(BaseModel):
     message: str
     reasoning: Optional[str] = None
@@ -191,9 +284,6 @@ class SessionSummary(BaseModel):
     created_at: Optional[datetime] = None
     ai_enabled: bool = False
     followup_available: bool = False
-    user_email: Optional[str] = None
-    user_display_name: Optional[str] = None
-    user_avatar_url: Optional[str] = None
     topic_label: Optional[str] = None
     method_label: Optional[str] = None
 

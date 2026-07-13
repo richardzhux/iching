@@ -5,7 +5,10 @@ import type {
   ChatTurnResponse,
   ConfigResponse,
   MetaphysicsChart,
+  MetaphysicsChartListResponse,
+  MetaphysicsChartRecord,
   MetaphysicsChartRequest,
+  MetaphysicsChartSavePayload,
   SessionHistoryResponse,
   SessionPayload,
   SessionRequest,
@@ -81,6 +84,39 @@ export async function calculateMetaphysicsChart(payload: MetaphysicsChartRequest
     body: JSON.stringify(payload),
   })
   return handleResponse<MetaphysicsChart>(response)
+}
+
+export async function saveMetaphysicsChart(payload: MetaphysicsChartSavePayload, token: string): Promise<MetaphysicsChartRecord> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/metaphysics/charts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  })
+  return handleResponse<MetaphysicsChartRecord>(response)
+}
+
+export async function fetchMetaphysicsChart(chartId: string, token: string): Promise<MetaphysicsChartRecord> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/metaphysics/charts/${chartId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  })
+  return handleResponse<MetaphysicsChartRecord>(response)
+}
+
+export async function fetchMetaphysicsCharts(token: string): Promise<MetaphysicsChartListResponse> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/metaphysics/charts`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  })
+  return handleResponse<MetaphysicsChartListResponse>(response)
+}
+
+export async function deleteMetaphysicsChart(chartId: string, token: string): Promise<void> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/metaphysics/charts/${chartId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!response.ok) throw new Error(await response.text())
 }
 
 export async function createSession(request: SessionRequest, token?: string): Promise<SessionPayload> {

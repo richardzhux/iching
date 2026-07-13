@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from iching.core.metaphysics import build_metaphysics_chart
+from iching.core.metaphysics import _branch_relations, _stem_relations, build_metaphysics_chart
 
 
 def test_known_lunar_new_year_chart() -> None:
@@ -42,6 +42,21 @@ def test_professional_pillar_facts_and_relationships_match_known_chart() -> None
     assert "子午相冲" in chart["branch_relations"]
     assert "寅申相冲" in chart["branch_relations"]
     assert chart["element_season_status"] == {"火": "旺", "土": "相", "木": "休", "水": "囚", "金": "死"}
+
+
+def test_heavenly_stem_combinations_take_precedence_over_element_control() -> None:
+    assert _stem_relations([{"stem": "甲"}, {"stem": "己"}]) == ["甲己合土"]
+    assert _stem_relations([{"stem": "己"}, {"stem": "甲"}]) == ["甲己合土"]
+    assert _stem_relations([{"stem": "丙"}, {"stem": "辛"}]) == ["丙辛合水"]
+
+
+def test_branch_relations_include_six_combinations_and_bully_punishment() -> None:
+    relations = _branch_relations([{"branch": branch} for branch in ("子", "丑", "未", "戌")])
+
+    assert "子丑六合土" in relations
+    assert "丑未相刑" in relations
+    assert "丑戌相刑" in relations
+    assert "未戌相刑" in relations
 
 
 def test_late_zi_hour_day_boundary_is_explicit() -> None:

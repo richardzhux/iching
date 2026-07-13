@@ -132,7 +132,6 @@ class ChatService:
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
-        payload.update(_user_profile_payload(user))
         self.client.upsert_session(payload)
 
     def ensure_session_row(self, session_id: str, user: SupabaseUser) -> Dict[str, object]:
@@ -164,7 +163,6 @@ class ChatService:
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
-        payload.update(_user_profile_payload(user))
         record = self.client.upsert_session(payload) or payload
         self._persist_initial_message(state=state, user=user)
         return record
@@ -178,11 +176,9 @@ class ChatService:
         payload = {
             "user_id": user.id,
             "updated_at": datetime.now(timezone.utc).isoformat(),
-            **_user_profile_payload(user),
         }
         self.client.update_session(session_id=session_id, user_id=ANONYMOUS_USER_ID, payload=payload)
         record["user_id"] = user.id
-        record.update(_user_profile_payload(user))
         return record
 
     def _sync_followup_model(self, record: Dict[str, object], user_id: str) -> Dict[str, object]:
@@ -218,7 +214,6 @@ class ChatService:
                 "reasoning": state.ai_reasoning,
                 "verbosity": state.ai_verbosity,
                 "tone": state.ai_tone,
-                **_user_profile_payload(user),
             }
         ]
         self.client.insert_chat_messages(records)
@@ -238,8 +233,7 @@ class ChatService:
             "user_id": f"eq.{user.id}",
             "order": "updated_at.desc",
             "select": (
-                "session_id,summary_text,created_at,updated_at,initial_ai_text,"
-                "user_email,user_display_name,user_avatar_url,payload_snapshot"
+                "session_id,summary_text,created_at,updated_at,initial_ai_text,payload_snapshot"
             ),
         }
         headers = self.client._service_headers()
@@ -253,9 +247,6 @@ class ChatService:
                 "created_at": record.get("created_at") or record.get("updated_at"),
                 "ai_enabled": bool(record.get("initial_ai_text")),
                 "followup_available": _is_followup_available(record),
-                "user_email": record.get("user_email"),
-                "user_display_name": record.get("user_display_name"),
-                "user_avatar_url": record.get("user_avatar_url"),
                 "topic_label": _extract_snapshot_field(record, "topic")
                 or _infer_label_from_summary(record.get("summary_text"), prefix="主题")
                 or record.get("topic_label"),
@@ -388,7 +379,6 @@ class ChatService:
             "reasoning": applied_reasoning,
             "verbosity": applied_verbosity,
             "tone": applied_tone,
-            **_user_profile_payload(user),
         }
         assistant_record = {
             "session_id": session_id,
@@ -402,7 +392,6 @@ class ChatService:
             "reasoning": applied_reasoning,
             "verbosity": applied_verbosity,
             "tone": applied_tone,
-            **_user_profile_payload(user),
         }
         if user_message_id := regeneration_ids.get("user"):
             user_record["id"] = user_message_id
@@ -547,7 +536,6 @@ class ChatService:
                 "reasoning": applied_reasoning,
                 "verbosity": applied_verbosity,
                 "tone": applied_tone,
-                **_user_profile_payload(user),
             }
             assistant_record = {
                 "session_id": session_id,
@@ -561,7 +549,6 @@ class ChatService:
                 "reasoning": applied_reasoning,
                 "verbosity": applied_verbosity,
                 "tone": applied_tone,
-                **_user_profile_payload(user),
             }
             if user_message_id := regeneration_ids.get("user"):
                 user_record["id"] = user_message_id
@@ -596,24 +583,6 @@ class ChatService:
                 self.store.remove(session_id)
             except Exception:
                 continue
-
-
-def _user_profile_payload(user: Optional[SupabaseUser]) -> Dict[str, Optional[str]]:
-    if not user:
-        return {"user_email": None, "user_display_name": None, "user_avatar_url": None}
-    metadata = user.metadata or {}
-    display_name = (
-        metadata.get("full_name")
-        or metadata.get("name")
-        or metadata.get("user_name")
-        or (user.email.split("@")[0] if user.email else None)
-    )
-    avatar_url = metadata.get("avatar_url") or metadata.get("picture") or metadata.get("profile_image_url")
-    return {
-        "user_email": user.email,
-        "user_display_name": display_name,
-        "user_avatar_url": avatar_url,
-    }
 
 
 def _history_before_regeneration(records: List[Dict[str, object]], message: str) -> List[Dict[str, object]]:

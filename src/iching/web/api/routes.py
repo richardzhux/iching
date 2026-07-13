@@ -3,19 +3,24 @@ from __future__ import annotations
 import json
 import logging
 
+import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 
 from iching.integrations.supabase_client import SupabaseAuthError
 from iching.core.metaphysics import build_metaphysics_chart
 from iching.web.chat_service import ChatRateLimitError
+from iching.web.chart_service import ChartArchiveService
 from iching.web.models import (
+    MetaphysicsChartListResponse,
+    MetaphysicsChartRecord,
     ChatTranscriptResponse,
     ChatTurnRequest,
     ChatTurnResponse,
     ConfigResponse,
     MetaphysicsChartRequest,
     MetaphysicsChartResponse,
+    MetaphysicsChartSaveRequest,
     SessionCreateRequest,
     SessionPayload,
     SessionHistoryResponse,
@@ -39,6 +44,10 @@ def _get_runner() -> SessionRunner:
 
 def _get_chat_service():
     return get_chat_service()
+
+
+def _get_chart_service() -> ChartArchiveService:
+    return ChartArchiveService(get_chat_service().client)
 
 
 @router.get("/health", tags=["meta"])
@@ -75,6 +84,80 @@ def calculate_metaphysics_chart(payload: MetaphysicsChartRequest) -> Metaphysics
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return MetaphysicsChartResponse(**result)
+
+
+@router.post(
+    "/metaphysics/charts",
+    response_model=MetaphysicsChartRecord,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_metaphysics_chart(
+    payload: MetaphysicsChartSaveRequest,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    chart_service: ChartArchiveService = Depends(_get_chart_service),
+):
+    token = _parse_bearer(authorization)
+    try:
+        user = chart_service.authenticate(token)
+        return chart_service.save_chart(request=payload, user=user)
+    except SupabaseAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except (RuntimeError, httpx.HTTPError) as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="命盘暂时无法保存，请稍后重试。") from exc
+
+
+@router.get("/metaphysics/charts", response_model=MetaphysicsChartListResponse)
+def list_metaphysics_charts(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    chart_service: ChartArchiveService = Depends(_get_chart_service),
+):
+    token = _parse_bearer(authorization)
+    try:
+        user = chart_service.authenticate(token)
+        return {"charts": chart_service.list_charts(user=user)}
+    except SupabaseAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except (RuntimeError, httpx.HTTPError) as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="命盘档案暂时无法读取。") from exc
+
+
+@router.get("/metaphysics/charts/{chart_id}", response_model=MetaphysicsChartRecord)
+def read_metaphysics_chart(
+    chart_id: str,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    chart_service: ChartArchiveService = Depends(_get_chart_service),
+):
+    token = _parse_bearer(authorization)
+    try:
+        user = chart_service.authenticate(token)
+        return chart_service.fetch_chart(chart_id=chart_id, user=user)
+    except SupabaseAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (RuntimeError, httpx.HTTPError) as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="命盘暂时无法读取。") from exc
+
+
+@router.delete("/metaphysics/charts/{chart_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_metaphysics_chart(
+    chart_id: str,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    chart_service: ChartArchiveService = Depends(_get_chart_service),
+):
+    token = _parse_bearer(authorization)
+    try:
+        user = chart_service.authenticate(token)
+        chart_service.delete_chart(chart_id=chart_id, user=user)
+    except SupabaseAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except (RuntimeError, httpx.HTTPError) as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="命盘暂时无法删除。") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _extract_ip(request: Request) -> str:

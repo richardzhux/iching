@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
+import { buildZiweiMarkdown } from "@/lib/chart-markdown"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 import type { IFunctionalPalace } from "iztro/lib/astro/FunctionalPalace"
@@ -50,22 +51,29 @@ function formatTransformations(horoscope: IFunctionalHoroscope, locale: Locale) 
   return horoscope.yearly.mutagen.map((star, index) => `${labels[index]} ${star || "—"}`).join(" · ")
 }
 
-export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, locale, provenance }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; horoscopeDate: string; generatedAt: string; locale: Locale; provenance: ZiweiProvenance }) {
+export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, locale, provenance, subjectName }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; horoscopeDate: string; generatedAt: string; locale: Locale; provenance: ZiweiProvenance; subjectName: string }) {
   const exportTargetId = `ziwei-export-${useId().replaceAll(":", "")}`
   const [selectedPalaceIndex, setSelectedPalaceIndex] = useState(() => chart.palaces[0]?.index ?? 0)
   const selectedPalace = chart.palaces.find((palace) => palace.index === selectedPalaceIndex) ?? chart.palaces[0]
   const provenanceLabels = getProvenanceLabels(provenance, locale)
+  const markdown = buildZiweiMarkdown(chart, horoscope, subjectName, locale)
   const trustNote = locale === "zh"
     ? "确定性星盘事实；不自动生成性格、吉凶、运势或命运断语。"
     : "Deterministic chart facts; no personality, auspiciousness, forecast, or fate claim is generated."
 
   return (
-    <section className="chart-report min-w-0 space-y-10" aria-label={locale === "zh" ? "紫微斗数星盘结果" : "Zi Wei Dou Shu chart result"}>
+    <section className="chart-report min-w-0 space-y-8" aria-label={locale === "zh" ? "紫微斗数星盘结果" : "Zi Wei Dou Shu chart result"}>
       <div data-export-exclude className="flex justify-end">
-        <ChartExportButton targetId={exportTargetId} label={locale === "zh" ? "导出命盘" : "Export chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated. Try again."} safeBaseFilename={`ziwei-${horoscopeDate}`} />
+        <ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出命盘" : "Export chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated. Try again."} safeBaseFilename={`ziwei-${horoscopeDate}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败，请改用下载。" : "Copy failed. Use the download instead."} />
       </div>
 
-      <ZiweiIdentitySummary chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} />
+      <ZiweiIdentitySummary chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} />
+
+      <section className="chart-report-chapter border-t border-border/60 pt-6">
+        <h2 className="text-xl font-semibold">{locale === "zh" ? "星盘结构" : "Chart structure"}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "以下只统计星曜落点、亮度与四化，不换算为吉凶分数。" : "Star positions, brightness, and transformations only—no fortune score."}</p>
+        <div className="mt-5"><ZiweiStatistics chart={chart} horoscope={horoscope} locale={locale} /></div>
+      </section>
 
       <section className="chart-report-chapter min-w-0 border-t border-border/60 pt-6">
         <h2 className="text-xl font-semibold">{locale === "zh" ? "十二宫星盘" : "Twelve-palace chart"}</h2>
@@ -88,16 +96,17 @@ export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, l
         </div>
       </details>
 
-      <ZiweiExportCanvas exportTargetId={exportTargetId} chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} />
+      <ZiweiExportCanvas exportTargetId={exportTargetId} chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} />
     </section>
   )
 }
 
-function ZiweiExportCanvas({ exportTargetId, chart, horoscope, horoscopeDate, generatedAt, locale, trustNote }: { exportTargetId: string; chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; horoscopeDate: string; generatedAt: string; locale: Locale; trustNote: string }) {
+function ZiweiExportCanvas({ exportTargetId, chart, horoscope, horoscopeDate, generatedAt, locale, trustNote, subjectName }: { exportTargetId: string; chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; horoscopeDate: string; generatedAt: string; locale: Locale; trustNote: string; subjectName: string }) {
   return (
     <div aria-hidden="true" className="chart-export-stage">
       <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
-        <ZiweiIdentitySummary chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} />
+        <ZiweiIdentitySummary chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} />
+        <div className="mt-8"><ZiweiStatistics chart={chart} horoscope={horoscope} locale={locale} /></div>
         <div className="mt-8">
           <ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} />
         </div>
@@ -106,11 +115,58 @@ function ZiweiExportCanvas({ exportTargetId, chart, horoscope, horoscopeDate, ge
   )
 }
 
-function ZiweiIdentitySummary({ chart, horoscope, horoscopeDate, generatedAt, locale, trustNote }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; horoscopeDate: string; generatedAt: string; locale: Locale; trustNote: string }) {
+type ChartStar = { name: string; brightness?: string; mutagen?: string }
+
+function ZiweiStatistics({ chart, horoscope, locale }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; locale: Locale }) {
+  const allStarsByPalace = chart.palaces.map((palace) => ({ palace, stars: [...palace.majorStars, ...palace.minorStars, ...palace.adjectiveStars] as ChartStar[] }))
+  const majorPlacements = chart.palaces.flatMap((palace) => palace.majorStars.map((star) => `${star.name}→${palace.name}`))
+  const emptyPalaces = chart.palaces.filter((palace) => palace.majorStars.length === 0)
+  const brightnessCounts = new Map<string, number>()
+  chart.palaces.flatMap((palace) => palace.majorStars).forEach((star) => {
+    const key = star.brightness || (locale === "zh" ? "未标" : "Unmarked")
+    brightnessCounts.set(key, (brightnessCounts.get(key) ?? 0) + 1)
+  })
+  const natalTransformations = allStarsByPalace.flatMap(({ palace, stars }) => stars.filter((star) => star.mutagen).map((star) => `${star.mutagen} ${star.name}→${palace.name}`))
+  const annualTransformations = horoscope.yearly.mutagen.map((starName, index) => {
+    const palace = allStarsByPalace.find((entry) => entry.stars.some((star) => star.name === starName))?.palace
+    const label = locale === "zh" ? ["禄", "权", "科", "忌"][index] : ["Prosperity", "Power", "Merit", "Obstacle"][index]
+    return `${label} ${starName || "—"}${palace ? `→${palace.name}` : ""}`
+  })
+  const auspiciousNames = new Set(locale === "zh" ? ["左辅", "右弼", "文昌", "文曲", "天魁", "天钺"] : ["officer", "helper", "scholar", "artist", "assistant", "aide"])
+  const challengingNames = new Set(locale === "zh" ? ["擎羊", "陀罗", "火星", "铃星", "地空", "地劫"] : ["driven", "tangled", "impulsive", "spark", "ideologue", "fickle"])
+  const importantPlacements = (names: Set<string>) => allStarsByPalace.flatMap(({ palace, stars }) => stars.filter((star) => names.has(star.name)).map((star) => `${star.name}→${palace.name}`))
+  const auspiciousPlacements = importantPlacements(auspiciousNames)
+  const challengingPlacements = importantPlacements(challengingNames)
+  return (
+    <div className="grid border-y border-border/60 md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-border/50">
+      <ZiweiStatisticBlock title={locale === "zh" ? "十四主星落宫" : "Major-star positions"} value={`${majorPlacements.length}`}>
+        <p>{majorPlacements.join(" · ") || "—"}</p>
+      </ZiweiStatisticBlock>
+      <ZiweiStatisticBlock title={locale === "zh" ? "宫位星曜密度" : "Palace density"} value={`${emptyPalaces.length} ${locale === "zh" ? "空宫" : "empty"}`}>
+        <p>{chart.palaces.map((palace) => `${palace.name} ${palace.majorStars.length + palace.minorStars.length + palace.adjectiveStars.length}`).join(" · ")}</p>
+      </ZiweiStatisticBlock>
+      <ZiweiStatisticBlock title={locale === "zh" ? "主星亮度" : "Major-star brightness"} value={`${chart.palaces.flatMap((palace) => palace.majorStars).length}`}>
+        <p>{Array.from(brightnessCounts.entries()).map(([name, count]) => `${name} ${count}`).join(" · ") || "—"}</p>
+      </ZiweiStatisticBlock>
+      <ZiweiStatisticBlock title={locale === "zh" ? "四化落宫" : "Transformations"} value={`${natalTransformations.length} / ${annualTransformations.length}`}>
+        <p><strong>{locale === "zh" ? "生年" : "Natal"}：</strong>{natalTransformations.join(" · ") || "—"}</p><p className="mt-2"><strong>{locale === "zh" ? "流年" : "Annual"}：</strong>{annualTransformations.join(" · ")}</p>
+      </ZiweiStatisticBlock>
+      <ZiweiStatisticBlock title={locale === "zh" ? "六吉与六煞" : "Six auspicious / challenging"} value={`${auspiciousPlacements.length} / ${challengingPlacements.length}`}>
+        <p><strong>{locale === "zh" ? "六吉" : "Auspicious"}：</strong>{auspiciousPlacements.join(" · ") || "—"}</p><p className="mt-2"><strong>{locale === "zh" ? "六煞" : "Challenging"}：</strong>{challengingPlacements.join(" · ") || "—"}</p>
+      </ZiweiStatisticBlock>
+    </div>
+  )
+}
+
+function ZiweiStatisticBlock({ title, value, children }: { title: string; value: string; children: React.ReactNode }) {
+  return <section className="min-w-0 px-4 py-4"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-2 text-2xl font-semibold text-primary">{value}</p><div className="mt-3 text-xs leading-5 text-muted-foreground">{children}</div></section>
+}
+
+function ZiweiIdentitySummary({ chart, horoscope, horoscopeDate, generatedAt, locale, trustNote, subjectName }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; horoscopeDate: string; generatedAt: string; locale: Locale; trustNote: string; subjectName: string }) {
   return (
     <section className="border-b border-border/60 pb-6" aria-label={locale === "zh" ? "命盘身份摘要" : "Chart identity summary"}>
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div><p className="kicker">State of I Ching · 易经决策</p><h3 className="mt-3 text-3xl font-semibold">{locale === "zh" ? "紫微斗数命盘" : "Zi Wei personal chart"}</h3><p className="mt-2 text-sm text-muted-foreground">{chart.chineseDate}</p></div>
+        <div><p className="kicker">State of I Ching · 易经决策</p><h3 className="mt-3 text-3xl font-semibold">{subjectName || (locale === "zh" ? "匿名命主 · 紫微斗数" : "Anonymous · Zi Wei")}</h3><p className="mt-2 text-sm text-muted-foreground">{chart.chineseDate}</p></div>
         <div className="text-right"><p className="text-xs text-muted-foreground">{locale === "zh" ? "五行局" : "Five-element class"}</p><p className="mt-1 text-2xl font-semibold text-primary">{chart.fiveElementsClass}</p></div>
       </header>
       <div className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -130,7 +186,7 @@ function ZiweiIdentitySummary({ chart, horoscope, horoscopeDate, generatedAt, lo
 
 function ZiweiPalaceChart({ chart, horoscope, locale, interactive, selectedPalaceIndex, onSelect }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; locale: Locale; interactive: boolean; selectedPalaceIndex?: number; onSelect?: (index: number) => void }) {
   return (
-    <div className={`grid grid-cols-4 grid-rows-4 gap-2 ${interactive ? "min-h-[52rem] min-w-[64rem]" : "h-[760px] w-full"}`}>
+    <div className={`grid grid-cols-4 grid-rows-4 gap-px overflow-hidden border border-border/60 bg-border/60 ${interactive ? "min-h-[46rem] min-w-[58rem]" : "h-[760px] w-full"}`}>
       {chart.palaces.slice(0, 12).map((palace, index) => {
         const isSelected = selectedPalaceIndex === palace.index
         const isDecadal = horoscope?.decadal.index === palace.index
@@ -139,18 +195,19 @@ function ZiweiPalaceChart({ chart, horoscope, locale, interactive, selectedPalac
           return <PalaceButton key={`${palace.name}-${palace.earthlyBranch}`} palace={palace} position={PALACE_POSITIONS[index]} locale={locale} isSelected={isSelected} isDecadal={isDecadal} isYearly={isYearly} onSelect={() => onSelect?.(palace.index)} />
         }
         return (
-          <section key={`${palace.name}-${palace.earthlyBranch}`} style={{ gridColumnStart: PALACE_POSITIONS[index][0] + 1, gridRowStart: PALACE_POSITIONS[index][1] + 1 }} className="border border-border/60 bg-surface-elevated p-3">
-            <div className="flex items-start justify-between gap-2"><strong className="text-sm">{palace.name}{palace.isBodyPalace ? ` · ${locale === "zh" ? "身" : "Body"}` : ""}</strong><span className="text-xs text-muted-foreground">{palace.heavenlyStem}{palace.earthlyBranch}</span></div>
-            <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs leading-5">{palace.majorStars.length ? palace.majorStars.map((star, starIndex) => <span key={`${star.name}-${starIndex}`} className="font-semibold text-primary">{star.name}{star.mutagen ? ` · ${star.mutagen}` : ""}</span>) : <span className="text-muted-foreground">{locale === "zh" ? "空宫" : "Empty palace"}</span>}</div>
-            <p className="mt-2 text-[0.65rem] text-muted-foreground">{isDecadal ? `${locale === "zh" ? "大限" : "Decadal"} · ` : ""}{isYearly ? `${locale === "zh" ? "流年" : "Annual"} · ` : ""}{palace.changsheng12} · {palace.decadal.range[0]}–{palace.decadal.range[1]}</p>
+          <section key={`${palace.name}-${palace.earthlyBranch}`} style={{ gridColumnStart: PALACE_POSITIONS[index][0] + 1, gridRowStart: PALACE_POSITIONS[index][1] + 1 }} className="bg-surface p-3.5">
+            <div className="flex items-start justify-between gap-2"><strong className="text-base">{palace.name}{palace.isBodyPalace ? ` · ${locale === "zh" ? "身" : "Body"}` : ""}</strong><span className="text-sm text-muted-foreground">{palace.heavenlyStem}{palace.earthlyBranch}</span></div>
+            <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-sm leading-5">{palace.majorStars.length ? palace.majorStars.map((star, starIndex) => <span key={`${star.name}-${starIndex}`} className="font-semibold text-primary">{star.name}{star.brightness ? `(${star.brightness})` : ""}{star.mutagen ? ` · ${star.mutagen}` : ""}</span>) : <span className="text-muted-foreground">{locale === "zh" ? "空宫" : "Empty palace"}</span>}</div>
+            <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">{[...palace.minorStars, ...palace.adjectiveStars].map((star) => star.name).join(" · ") || "—"}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{isDecadal ? `${locale === "zh" ? "大限" : "Decadal"} · ` : ""}{isYearly ? `${locale === "zh" ? "流年" : "Annual"} · ` : ""}{palace.changsheng12} · {palace.decadal.range[0]}–{palace.decadal.range[1]}</p>
           </section>
         )
       })}
-      <div className="col-start-2 col-end-4 row-start-2 row-end-4 flex flex-col items-center justify-center border border-primary/30 bg-primary/8 p-6 text-center">
-        <p className="text-xl font-semibold">{locale === "zh" ? "十二宫命盘" : "Twelve-palace chart"}</p>
-        <p className="mt-3 text-sm">{horoscope.solarDate}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{horoscope.lunarDate}</p>
-        <p className="mt-4 text-xs text-muted-foreground">{locale === "zh" ? "宫位 · 干支 · 主星 · 四化" : "Palace · stems/branches · major stars · transformations"}</p>
+      <div className="col-start-2 col-end-4 row-start-2 row-end-4 flex flex-col items-center justify-center bg-primary/[0.07] p-6 text-center">
+        <p className="text-2xl font-semibold">{locale === "zh" ? "十二宫命盘" : "Twelve-palace chart"}</p>
+        <p className="mt-4 text-base font-medium">{horoscope.solarDate}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{horoscope.lunarDate}</p>
+        <p className="mt-5 text-sm text-muted-foreground">{locale === "zh" ? "宫位 · 干支 · 主星 · 四化" : "Palace · stems/branches · major stars · transformations"}</p>
       </div>
     </div>
   )
@@ -165,15 +222,16 @@ function PalaceButton({ palace, position, locale, isSelected, isDecadal, isYearl
       aria-label={palaceLabel}
       aria-pressed={isSelected}
       onClick={onSelect}
-      className={`min-w-0 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${isSelected ? "border-primary bg-primary/10" : "border-border/60 bg-surface-elevated hover:border-primary/50"}`}
+      className={`min-w-0 p-3.5 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isSelected ? "bg-primary/12 shadow-[inset_0_0_0_2px_var(--primary)]" : "bg-surface hover:bg-primary/[0.055]"}`}
     >
-      <span className="flex items-start justify-between gap-2"><strong className="text-sm">{palace.name}{palace.isBodyPalace ? ` · ${locale === "zh" ? "身" : "Body"}` : ""}</strong><span className="text-xs text-muted-foreground">{palace.heavenlyStem}{palace.earthlyBranch}</span></span>
+      <span className="flex items-start justify-between gap-2"><strong className="text-base">{palace.name}{palace.isBodyPalace ? ` · ${locale === "zh" ? "身" : "Body"}` : ""}</strong><span className="text-sm text-muted-foreground">{palace.heavenlyStem}{palace.earthlyBranch}</span></span>
       <span className="mt-2 flex flex-wrap gap-1">
         {isDecadal ? <span className="rounded border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[0.65rem] font-semibold">{locale === "zh" ? "大限" : "Decadal"}</span> : null}
         {isYearly ? <span className="rounded border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[0.65rem] font-semibold">{locale === "zh" ? "流年" : "Annual"}</span> : null}
       </span>
-      <span className="mt-2 flex flex-wrap gap-1">{palace.majorStars.length ? palace.majorStars.map((star, index) => <span key={`${star.name}-${index}`} className="rounded bg-primary/15 px-1.5 py-0.5 text-[0.65rem] font-semibold text-primary">{star.name}{star.mutagen ? ` · ${star.mutagen}` : ""}</span>) : <span className="text-xs text-muted-foreground">{locale === "zh" ? "空宫" : "Empty palace"}</span>}</span>
-      <span className="mt-2 block text-[0.65rem] text-muted-foreground">{palace.changsheng12} · {palace.decadal.range[0]}–{palace.decadal.range[1]}</span>
+      <span className="mt-2 flex flex-wrap gap-x-2 gap-y-1">{palace.majorStars.length ? palace.majorStars.map((star, index) => <span key={`${star.name}-${index}`} className="text-sm font-semibold text-primary">{star.name}{star.brightness ? `(${star.brightness})` : ""}{star.mutagen ? ` · ${star.mutagen}` : ""}</span>) : <span className="text-sm text-muted-foreground">{locale === "zh" ? "空宫" : "Empty palace"}</span>}</span>
+      <span className="mt-2 line-clamp-2 block text-xs leading-5 text-muted-foreground">{[...palace.minorStars, ...palace.adjectiveStars].map((star) => star.name).join(" · ") || "—"}</span>
+      <span className="mt-2 block text-xs text-muted-foreground">{palace.changsheng12} · {palace.decadal.range[0]}–{palace.decadal.range[1]}</span>
     </button>
   )
 }

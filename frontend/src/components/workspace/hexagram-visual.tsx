@@ -276,7 +276,7 @@ function HexagramSourcePreview({ section }: { section?: HexSection }) {
   )
 }
 
-function LineSvg({
+export function LineSvg({
   type,
   moving,
   active,

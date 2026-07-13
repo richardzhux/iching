@@ -53,12 +53,16 @@ export function BaziChartView(props: BaziChartViewProps) {
   const resultGeneratedAt = generatedAt
 
   return (
-    <section className="chart-report space-y-10" aria-label={locale === "zh" ? "八字排盘结果" : "BaZi chart result"}>
+    <section className="chart-report space-y-8" aria-label={locale === "zh" ? "八字排盘结果" : "BaZi chart result"}>
       <div data-export-exclude className="flex justify-end">
-        <ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出命盘" : "Export chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated. Try again."} safeBaseFilename={`bazi-${chart.birth_profile.input_date}`} />
+        <ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出命盘" : "Export chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated. Try again."} safeBaseFilename={`bazi-${chart.birth_profile.input_date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败，请改用下载。" : "Copy failed. Use the download instead."} />
       </div>
 
       <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={resultGeneratedAt} trustNote={trustNote} />
+
+      <ReportChapter title={locale === "zh" ? "命盘结构" : "Chart structure"} intro={locale === "zh" ? "以下均为原始数量、关系与时间位置，不换算为吉凶或强弱分数。" : "Raw counts, relationships, and cycle positions only—no luck or strength score."}>
+        <BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />
+      </ReportChapter>
 
       <ReportChapter title={locale === "zh" ? "专业命盘" : "Professional chart"} intro={locale === "zh" ? "四柱信息按列对照；地势、自坐、空亡与干支关系均由当前排盘规则直接计算。" : "Compare all four pillars by column. Life stages, voids, and stem/branch relations are calculated from the selected rules."}>
         <BaziProfessionalTable chart={chart} locale={locale} />
@@ -163,6 +167,75 @@ function BaziProfessionalTable({ chart, locale }: { chart: MetaphysicsChart; loc
   )
 }
 
+function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChart; locale: Locale; currentYear: number }) {
+  const elements = ["木", "火", "土", "金", "水"]
+  const hiddenElements = Object.fromEntries(elements.map((element) => [element, 0])) as Record<string, number>
+  const visibleGods = new Map<string, number>()
+  const hiddenGods = new Map<string, number>()
+  chart.pillars.forEach((pillar) => {
+    visibleGods.set(pillar.ten_god || "—", (visibleGods.get(pillar.ten_god || "—") ?? 0) + 1)
+    pillar.hidden_stems.forEach((stem) => {
+      hiddenElements[stem.element] = (hiddenElements[stem.element] ?? 0) + 1
+      hiddenGods.set(stem.ten_god || "—", (hiddenGods.get(stem.ten_god || "—") ?? 0) + 1)
+    })
+  })
+  const yangStems = new Set(["甲", "丙", "戊", "庚", "壬"])
+  const yinStems = new Set(["乙", "丁", "己", "辛", "癸"])
+  const yangBranches = new Set(["子", "寅", "辰", "午", "申", "戌"])
+  const yinBranches = new Set(["丑", "卯", "巳", "未", "酉", "亥"])
+  const visibleCharacters = chart.pillars.flatMap((pillar) => [pillar.stem, pillar.branch])
+  const yangCount = visibleCharacters.filter((value, index) => index % 2 === 0 ? yangStems.has(value) : yangBranches.has(value)).length
+  const yinCount = visibleCharacters.filter((value, index) => index % 2 === 0 ? yinStems.has(value) : yinBranches.has(value)).length
+  const unknownCount = 8 - yangCount - yinCount
+  const currentCycle = chart.birth_profile.dayun.cycles.find((cycle) => cycle.start_year <= currentYear && currentYear <= cycle.end_year)
+  const relationshipGroups = [
+    { key: "合", label: locale === "zh" ? "合" : "Combine" },
+    { key: "会", label: locale === "zh" ? "会" : "Meeting" },
+    { key: "冲", label: locale === "zh" ? "冲" : "Clash" },
+    { key: "克", label: locale === "zh" ? "克" : "Control" },
+    { key: "刑", label: locale === "zh" ? "刑" : "Punish" },
+    { key: "害", label: locale === "zh" ? "害" : "Harm" },
+    { key: "破", label: locale === "zh" ? "破" : "Break" },
+  ]
+  const allRelations = [...chart.stem_relations, ...chart.branch_relations]
+  return (
+    <div className="grid border-y border-border/60 md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-border/50">
+      <StatisticBlock title={locale === "zh" ? "五行数量" : "Five elements"} description={locale === "zh" ? "明字与藏干分列" : "Visible and hidden separated"}>
+        <CountRows values={elements.map((element) => ({ label: element, primary: chart.element_counts[element] ?? 0, secondary: hiddenElements[element] ?? 0, element }))} primaryLabel={locale === "zh" ? "明" : "V"} secondaryLabel={locale === "zh" ? "藏" : "H"} />
+      </StatisticBlock>
+      <StatisticBlock title={locale === "zh" ? "阴阳结构" : "Yin / Yang"} description={unknownCount ? (locale === "zh" ? `${unknownCount} 个待定明字未计入` : `${unknownCount} uncertain characters excluded`) : (locale === "zh" ? "只计算八个明字" : "Eight visible characters")}>
+        <div className="mt-4 grid grid-cols-2 divide-x divide-border/50 text-center"><RawNumber label={locale === "zh" ? "阳" : "Yang"} value={yangCount} /><RawNumber label={locale === "zh" ? "阴" : "Yin"} value={yinCount} /></div>
+      </StatisticBlock>
+      <StatisticBlock title={locale === "zh" ? "十神频次" : "Ten Gods"} description={locale === "zh" ? "明干与藏干分列" : "Visible and hidden separated"}>
+        <div className="mt-3 space-y-2 text-xs leading-5"><p><strong>{locale === "zh" ? "明" : "Visible"}：</strong>{formatCounts(visibleGods)}</p><p><strong>{locale === "zh" ? "藏" : "Hidden"}：</strong>{formatCounts(hiddenGods)}</p></div>
+      </StatisticBlock>
+      <StatisticBlock title={locale === "zh" ? "干支关系" : "Relationships"} description={locale === "zh" ? "按已识别规则计数" : "Exact recognized rules"}>
+        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs">{relationshipGroups.map((group) => <span key={group.key}><strong>{group.label}</strong> {allRelations.filter((item) => item.includes(group.key)).length}</span>)}</div>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">{allRelations.join(" / ") || "—"}</p>
+      </StatisticBlock>
+      <StatisticBlock title={locale === "zh" ? "当前大运" : "Current Da Yun"} description={locale === "zh" ? "按公历年份定位" : "Located by calendar year"}>
+        {currentCycle ? <div className="mt-3"><p className="text-2xl font-semibold text-primary">{currentCycle.ganzhi}</p><p className="mt-1 text-xs text-muted-foreground">{currentCycle.start_year}–{currentCycle.end_year} · {locale === "zh" ? `距周期末 ${Math.max(0, currentCycle.end_year - currentYear)} 年` : `${Math.max(0, currentCycle.end_year - currentYear)} years to cycle end`}</p></div> : <p className="mt-3 text-sm text-muted-foreground">—</p>}
+      </StatisticBlock>
+    </div>
+  )
+}
+
+function StatisticBlock({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return <section className="min-w-0 px-4 py-4"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-xs text-muted-foreground">{description}</p>{children}</section>
+}
+
+function CountRows({ values, primaryLabel, secondaryLabel }: { values: Array<{ label: string; primary: number; secondary: number; element: string }>; primaryLabel: string; secondaryLabel: string }) {
+  return <div className="mt-3 space-y-1.5">{values.map((item) => <div key={item.label} className="grid grid-cols-[1rem_1fr] items-center gap-2 text-xs"><span data-element={item.element} className="chart-element-text font-semibold">{item.label}</span><span className="text-muted-foreground">{primaryLabel} {item.primary} · {secondaryLabel} {item.secondary}</span></div>)}</div>
+}
+
+function RawNumber({ label, value }: { label: string; value: number }) {
+  return <div className="px-2"><p className="text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{label}</p></div>
+}
+
+function formatCounts(counts: Map<string, number>) {
+  return Array.from(counts.entries()).map(([label, count]) => `${label} ${count}`).join(" · ") || "—"
+}
+
 function DayunTimeline({ chart, locale, currentYear }: { chart: MetaphysicsChart; locale: Locale; currentYear: number }) {
   const dayun = chart.birth_profile.dayun
   const currentRef = useRef<HTMLElement>(null)
@@ -210,6 +283,7 @@ function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculat
     <div aria-hidden="true" className="chart-export-stage">
       <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
         <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
+        <div className="mt-8"><BaziStatistics chart={chart} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></div>
         <div className="mt-8"><BaziProfessionalTable chart={chart} locale={locale} /></div>
       </article>
     </div>

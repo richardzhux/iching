@@ -13,9 +13,12 @@ type Props = {
   errorLabel: string
   safeBaseFilename: string
   markdown?: string
+  copyLabel?: string
+  copySuccess?: string
+  copyError?: string
 }
 
-export function ChartExportButton({ targetId, label, loadingLabel, errorLabel, safeBaseFilename, markdown }: Props) {
+export function ChartExportButton({ targetId, label, loadingLabel, errorLabel, safeBaseFilename, markdown, copyLabel = "复制 Markdown", copySuccess = "Markdown 已复制", copyError = "复制失败，请改用下载。" }: Props) {
   const [exporting, setExporting] = useState(false)
 
   async function handleExport() {
@@ -50,9 +53,9 @@ export function ChartExportButton({ targetId, label, loadingLabel, errorLabel, s
     if (!markdown) return
     try {
       await navigator.clipboard.writeText(markdown)
-      toast.success("Markdown 已复制")
+      toast.success(copySuccess)
     } catch {
-      toast.error("复制失败，请改用下载。")
+      toast.error(copyError)
     }
   }
 
@@ -69,7 +72,7 @@ export function ChartExportButton({ targetId, label, loadingLabel, errorLabel, s
         <span>{exporting ? loadingLabel : markdown ? `${label} PNG` : label}</span>
       </Button>
       {markdown ? <Button type="button" variant="outline" onClick={downloadMarkdown}><FileText aria-hidden="true" className="mr-2 size-4" />Markdown</Button> : null}
-      {markdown ? <Button type="button" variant="ghost" onClick={() => void copyMarkdown()} aria-label="复制 Markdown"><Clipboard aria-hidden="true" className="size-4" /></Button> : null}
+      {markdown ? <Button type="button" variant="ghost" onClick={() => void copyMarkdown()} aria-label={copyLabel}><Clipboard aria-hidden="true" className="size-4" /></Button> : null}
       <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {exporting ? loadingLabel : label}
       </span>

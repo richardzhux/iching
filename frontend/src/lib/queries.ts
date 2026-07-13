@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { createSession, fetchConfig, fetchSessionHistory } from "@/lib/api"
+import { createSession, fetchConfig, fetchMetaphysicsCharts, fetchSessionHistory } from "@/lib/api"
 import type { SessionPayload, SessionRequest } from "@/types/api"
 
 export function useConfigQuery() {
@@ -33,6 +33,17 @@ export function useSessionHistoryQuery(accessToken: string | null) {
         throw new Error("Authentication required to read session history.")
       }
       return fetchSessionHistory(accessToken)
+    },
+    enabled: Boolean(accessToken),
+  })
+}
+
+export function useMetaphysicsChartHistoryQuery(accessToken: string | null) {
+  return useQuery({
+    queryKey: ["metaphysics-chart-history", accessToken],
+    queryFn: () => {
+      if (!accessToken) throw new Error("Authentication required to read chart history.")
+      return fetchMetaphysicsCharts(accessToken)
     },
     enabled: Boolean(accessToken),
   })

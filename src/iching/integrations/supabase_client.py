@@ -251,6 +251,75 @@ class SupabaseRestClient:
         records = response.json()
         return records if isinstance(records, list) else []
 
+    def select_rows(
+        self,
+        table: str,
+        *,
+        params: Dict[str, str],
+    ) -> List[Dict[str, Any]]:
+        """Read rows through the server-only Data API client."""
+        if not self.enabled:
+            return []
+        response = self._client.get(
+            f"{self.rest_base}/{table}",
+            params=params,
+            headers=self._service_headers(),
+        )
+        response.raise_for_status()
+        records = response.json()
+        return records if isinstance(records, list) else []
+
+    def insert_row(self, table: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.enabled:
+            raise SupabaseConfigurationError("Supabase persistence is not configured.")
+        headers = self._service_headers()
+        headers["Prefer"] = "return=representation"
+        response = self._client.post(f"{self.rest_base}/{table}", headers=headers, json=payload)
+        response.raise_for_status()
+        records = response.json()
+        if not isinstance(records, list) or len(records) != 1:
+            raise RuntimeError(f"Supabase insert into {table} returned an invalid response.")
+        return records[0]
+
+    def update_rows(
+        self,
+        table: str,
+        *,
+        params: Dict[str, str],
+        payload: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        if not self.enabled:
+            raise SupabaseConfigurationError("Supabase persistence is not configured.")
+        headers = self._service_headers()
+        headers["Prefer"] = "return=representation"
+        response = self._client.patch(
+            f"{self.rest_base}/{table}",
+            params=params,
+            headers=headers,
+            json=payload,
+        )
+        response.raise_for_status()
+        records = response.json()
+        if not isinstance(records, list):
+            raise RuntimeError(f"Supabase update of {table} returned an invalid response.")
+        return records
+
+    def delete_rows(self, table: str, *, params: Dict[str, str]) -> List[Dict[str, Any]]:
+        if not self.enabled:
+            raise SupabaseConfigurationError("Supabase persistence is not configured.")
+        headers = self._service_headers()
+        headers["Prefer"] = "return=representation"
+        response = self._client.delete(
+            f"{self.rest_base}/{table}",
+            params=params,
+            headers=headers,
+        )
+        response.raise_for_status()
+        records = response.json()
+        if not isinstance(records, list):
+            raise RuntimeError(f"Supabase delete from {table} returned an invalid response.")
+        return records
+
     def _service_headers(self) -> Dict[str, str]:
         if not self.enabled:
             raise SupabaseConfigurationError("Supabase credentials missing.")
