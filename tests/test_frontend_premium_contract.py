@@ -115,7 +115,7 @@ def test_task4_review_navigation_search_and_home_hierarchy_are_unambiguous():
 def test_task4_rereview_english_search_examples_and_live_count_are_truthful():
     search = read("frontend/src/components/library/library-search.tsx")
 
-    assert 'placeholder: "qian, difficulty, waiting, relationships..."' in search
+    assert 'placeholder: "qian, hexagram 3, difficulty, judgment..."' in search
     assert 'matched === 1 ? "result" : "results"' in search
     assert 'placeholder: "qian, 屯, difficulty, 利贞, timing..."' not in search
 
@@ -500,6 +500,16 @@ def test_task6_current_location_invalidates_stale_permission_and_nearest_city_re
     assert "!query.trim() ? currentLocationCandidate : null" in field
     query_handler = field[field.index("function handleQueryChange") : field.index("\n  }", field.index("function handleQueryChange"))]
     assert "invalidateGeolocation()" in query_handler
+
+
+def test_frontend_ci_supplies_inert_public_config_for_mocked_browser_flows():
+    workflow = read(".github/workflows/frontend-ci.yml")
+
+    assert "NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8001" in workflow
+    assert "NEXT_PUBLIC_SUPABASE_URL: https://ci-test.supabase.co" in workflow
+    assert "NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-test-anon-key" in workflow
+    assert "NEXT_PUBLIC_API_BASE_URL: ${{ secrets." not in workflow
+    assert "NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets." not in workflow
 
 
 def test_task6_manual_overrides_are_visible_and_preserved_when_city_is_cleared():
@@ -1065,10 +1075,61 @@ def test_library_page_is_a_consumer_browse_index_without_database_metrics():
     assert "localizedHexagramThemes" in library_page
     assert "localizedHexagramMeaning" in copy_helpers
     assert "localizedHexagramThemes" in copy_helpers
-    assert "themeFilters" in search
+    assert "themeFilters" not in search
+    assert "HEXAGRAM_THEME_FILTERS" not in search
+    assert "matchesThemeFilter" not in search
     assert 'role="status"' in search
     assert 'aria-live="polite"' in search
     assert "focus-visible:" in search
+
+
+def test_hexagram_consumers_use_symmetric_glyphs_and_shared_quick_navigation():
+    glyph_path = ROOT / "frontend/src/components/hexagram/hexagram-glyph.tsx"
+    nav_path = ROOT / "frontend/src/components/hexagram/hexagram-quick-nav.tsx"
+    home = read("frontend/src/components/home/home-page.tsx")
+    library = read("frontend/src/app/[locale]/library/page.tsx")
+    detail = read("frontend/src/app/[locale]/hexagram/[slug]/page.tsx")
+
+    assert glyph_path.exists()
+    assert nav_path.exists()
+    glyph = glyph_path.read_text(encoding="utf-8")
+    nav = nav_path.read_text(encoding="utf-8")
+    assert "flex-1" in glyph
+    assert "gap-[18%]" in glyph
+    assert "bg-gradient-to-r" not in glyph
+    for consumer in (home, library, detail):
+        assert "HexagramGlyph" in consumer
+        assert "bg-gradient-to-r" not in consumer
+    assert "HEXAGRAM_LIBRARY.map" in nav
+    assert 'mode: "anchors" | "routes"' in nav
+    assert "HexagramQuickNav" in library
+    assert 'mode="anchors"' in library
+    assert "HexagramQuickNav" in detail
+    assert 'mode="routes"' in detail
+    assert 'id={`hexagram-${entry.number}`}' in library
+
+
+def test_library_search_has_no_heuristic_theme_filter_controls():
+    search = read("frontend/src/components/library/library-search.tsx")
+    copy_helpers = read("frontend/src/lib/hexagram-copy.ts")
+
+    for token in ("activeTheme", "themeFilters", "HEXAGRAM_THEME_FILTERS", "matchesThemeFilter", "aria-pressed"):
+        assert token not in search
+    assert "HEXAGRAM_THEME_FILTERS" not in copy_helpers
+    assert "matchesThemeFilter" not in copy_helpers
+
+
+def test_cast_form_has_consumer_facing_step_order_and_compact_controls():
+    cast_form = read("frontend/src/components/workspace/cast-form.tsx")
+
+    assert 'data-cast-step="question" className="order-1' in cast_form
+    assert 'data-cast-step="cast" className="order-2' in cast_form
+    assert 'data-cast-step="interpret" className="order-3' in cast_form
+    assert 'data-cast-page-title="true"' in cast_form
+    assert 'sm:grid-cols-3' in cast_form
+    assert 'xl:grid-cols-4' in cast_form
+    assert 'data-ai-enable-switch="true"' not in cast_form
+    assert 'aria-labelledby="reading-topic-label" className="h-11 w-full' in cast_form
 
 
 def test_hexagram_detail_prioritizes_meaning_progression_and_collapsed_sources():
@@ -1199,7 +1260,7 @@ def test_task8_review_uses_bilingual_saved_reading_copy_once_and_no_internal_fal
 
     assert "slot or source group" not in results
     assert "槽位或来源组" not in results
-    assert 'empty: "No matching hexagram. Try a name, situation, or theme."' in search
+    assert 'empty: "No matching hexagram. Try a name, pinyin, number, or source phrase."' in search
     assert "source snippet" not in search.lower()
 
     assert "signed-in My shows saved readings and safe record controls" in e2e

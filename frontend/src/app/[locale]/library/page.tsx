@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { defaultLocale, isLocale, type Locale } from "@/i18n/config"
 import { withLocale } from "@/i18n/path"
+import { HexagramGlyph } from "@/components/hexagram/hexagram-glyph"
+import { HexagramQuickNav } from "@/components/hexagram/hexagram-quick-nav"
 import { LibrarySearch, type LibrarySearchDocument } from "@/components/library/library-search"
 import { PUBLIC_SITE_URL } from "@/lib/env"
 import { getHexagramArchive } from "@/lib/hexagram-archive"
@@ -48,8 +50,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: locale === "zh" ? "查阅六十四卦 · I Ching Studio" : "Explore the 64 Hexagrams · I Ching Studio",
     description:
       locale === "zh"
-        ? "按卦名、拼音、处境与主题查阅六十四卦，并阅读卦辞、高岛易断、英文注释与象意。"
-        : "Explore the 64 hexagrams by name, pinyin, situation, and theme, with optional classical source layers.",
+        ? "按卦名、拼音、编号与原文查阅六十四卦，并阅读卦辞、高岛易断、英文注释与象意。"
+        : "Explore the 64 hexagrams by name, pinyin, number, and source text, with optional classical source layers.",
     alternates: {
       canonical,
       languages: {
@@ -72,7 +74,7 @@ export default async function LibraryPage({ params }: Props) {
       ? {
           eyebrow: "六十四卦",
           title: "查阅六十四卦",
-          subtitle: "按名称、拼音、常见处境或主题查找一卦。每一页先说明卦意与六爻进程，再按需展开经典来源。",
+          subtitle: "按名称、拼音、编号或原文查找一卦。每一页先说明卦意与六爻进程，再按需展开经典来源。",
           deskCta: "另行起卦",
           browse: "依次浏览",
           open: "查看此卦",
@@ -80,7 +82,7 @@ export default async function LibraryPage({ params }: Props) {
       : {
           eyebrow: "The 64 hexagrams",
           title: "Explore the 64 hexagrams",
-          subtitle: "Find a hexagram by name, pinyin, common situation, or theme. Each page leads with meaning and progression, with source layers available on demand.",
+          subtitle: "Find a hexagram by name, pinyin, number, or source phrase. Each page leads with meaning and progression, with source layers available on demand.",
           deskCta: "Start a separate reading",
           browse: "Browse in order",
           open: "View hexagram",
@@ -104,17 +106,20 @@ export default async function LibraryPage({ params }: Props) {
 
       <LibrarySearch locale={locale} documents={searchDocuments} />
 
-      <section aria-labelledby="hexagram-browse-title">
-        <h2 id="hexagram-browse-title" className="text-lg font-semibold text-foreground">{copy.browse}</h2>
-        <div className="mt-4 grid gap-x-6 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid items-start gap-7 lg:grid-cols-[11rem_minmax(0,1fr)]">
+        <HexagramQuickNav locale={locale} mode="anchors" />
+        <section aria-labelledby="hexagram-browse-title" className="min-w-0">
+          <h2 id="hexagram-browse-title" className="text-lg font-semibold text-foreground">{copy.browse}</h2>
+          <div className="mt-4 grid gap-x-6 sm:grid-cols-2 xl:grid-cols-3">
           {HEXAGRAM_LIBRARY.map((entry) => {
             const meaning = localizedHexagramMeaning(entry, locale)
             const themes = localizedHexagramThemes(entry.themes, locale)
             return (
               <Link
                 key={entry.slug}
+                id={`hexagram-${entry.number}`}
                 href={withLocale(locale, `/hexagram/${entry.slug}`)}
-                className="group min-h-44 border-b border-border/60 py-5 outline-none transition hover:border-primary/60 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="group min-h-44 scroll-mt-24 border-b border-border/60 py-5 outline-none transition hover:border-primary/60 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -123,14 +128,7 @@ export default async function LibraryPage({ params }: Props) {
                     <p className="mt-1 text-xs text-muted-foreground">{getHexagramPinyin(entry.slug)}</p>
                     {locale === "en" && <p className="mt-1 text-sm text-muted-foreground">{entry.titleEn}</p>}
                   </div>
-                  <div className="grid w-12 gap-1" aria-hidden="true">
-                    {hexagramLines(entry.binary).map((line, index) => (
-                      <span
-                        key={`${entry.slug}-${index}`}
-                        className={line === "1" ? "h-1.5 rounded bg-foreground" : "h-1.5 rounded bg-gradient-to-r from-foreground from-40% via-transparent via-40% to-foreground to-60%"}
-                      />
-                    ))}
-                  </div>
+                  <HexagramGlyph lines={hexagramLines(entry.binary)} className="w-12 gap-1" lineClassName="h-1.5" />
                 </div>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{meaning}</p>
                 <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -140,8 +138,9 @@ export default async function LibraryPage({ params }: Props) {
               </Link>
             )
           })}
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
     </div>
   )
 }

@@ -429,8 +429,7 @@ export function CastForm({ config }: Props) {
           previewTitle: "实时卦象",
           previewBody: "第 1 爻在最下方，老阴/老阳会以金色标记为动爻。",
           aiSettingsTitle: "AI 解读设置",
-          aiSettingsBody: "选择深度解读后在这里直接调试，不再藏进高级设置。",
-          aiOffBody: "仅排盘不会调用 AI。",
+          aiSettingsBody: "按需要调整模型、推理力度、输出篇幅与语气。",
         }
       : {
           contextLabel: "Relevant context",
@@ -455,8 +454,7 @@ export function CastForm({ config }: Props) {
           previewTitle: "Live hexagram",
           previewBody: "Line 1 is at the bottom; old yin and old yang are marked as moving in gold.",
           aiSettingsTitle: "AI reading settings",
-          aiSettingsBody: "Deep reading exposes the model controls here instead of hiding them behind Advanced.",
-          aiOffBody: "Chart only does not call AI.",
+          aiSettingsBody: "Adjust the model, reasoning, response length, and tone when needed.",
         }
 
   const selectedPreset: ReadingPreset = !form.enableAi ? "chart" : activeModel?.tier === "deep" ? "deep" : "standard"
@@ -511,6 +509,7 @@ export function CastForm({ config }: Props) {
       },
     },
   ]
+  const activeReadingMode = readingModes.find((mode) => mode.active) ?? readingModes[0]
 
   const showAiControls = selectedPreset === "deep" || form.enableAi
   const activeMethodDescription =
@@ -526,6 +525,14 @@ export function CastForm({ config }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[88rem] px-3 sm:px-5">
+      <header className="mb-4 px-1" data-cast-page-title="true">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          {locale === "zh" ? "起卦" : "Cast"}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {locale === "zh" ? "问清一件事，选一种起卦方式。" : "Ask one clear question and choose how to cast."}
+        </p>
+      </header>
       <section className="surface-card rounded-lg p-5 sm:p-6">
         <ol className="mb-6 grid border-y border-border/60 md:grid-cols-3 md:divide-x md:divide-border/60" aria-label={locale === "zh" ? "起卦步骤" : "Casting steps"}>
           {[
@@ -539,8 +546,8 @@ export function CastForm({ config }: Props) {
             </li>
           ))}
         </ol>
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(25rem,0.72fr)]">
-          <div className="space-y-5">
+        <div className="flex flex-col gap-6">
+        <div data-cast-step="question" className="order-1 space-y-5">
             <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -573,7 +580,7 @@ export function CastForm({ config }: Props) {
                     updateForm("topic", value)
                   }}
                 >
-                  <SelectTrigger aria-labelledby="reading-topic-label">
+                  <SelectTrigger aria-labelledby="reading-topic-label" className="h-11 w-full rounded-md bg-surface-elevated px-3 text-base">
                     <SelectValue placeholder={messages.workspace.cast.topicLabel} />
                   </SelectTrigger>
                   <SelectContent>
@@ -622,19 +629,19 @@ export function CastForm({ config }: Props) {
                 className="mt-3 min-h-24 text-sm leading-relaxed"
               />
             </details>
-          </div>
+        </div>
 
-          <aside className="surface-soft space-y-4 rounded-lg p-4">
+        <aside data-cast-step="interpret" className="order-3 surface-soft space-y-4 rounded-lg p-4 sm:p-5">
             <div className="space-y-3">
               <p className="text-sm font-semibold text-foreground">{messages.workspace.cast.stepInterpret}</p>
-              <div className="grid gap-2">
+              <div className="grid gap-2 sm:grid-cols-3">
                 {readingModes.map((mode) => (
                   <button
                     key={mode.id}
                     type="button"
                     onClick={mode.apply}
                     className={cn(
-                      "rounded-lg border p-3 text-left transition",
+                      "min-h-11 rounded-md border px-3 py-2 text-center transition",
                       mode.active
                         ? "border-primary/60 bg-primary/10 text-foreground"
                         : "border-border/60 bg-surface/70 hover:border-primary/40",
@@ -642,18 +649,19 @@ export function CastForm({ config }: Props) {
                     aria-pressed={mode.active}
                   >
                     <span className="text-sm font-semibold">{mode.title}</span>
-                    <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{mode.body}</span>
                   </button>
                 ))}
               </div>
+              <p className="text-xs leading-5 text-muted-foreground">{activeReadingMode.body}</p>
             </div>
 
-            <div className={cn("rounded-lg border p-4", showAiControls ? "imperial-highlight-panel" : "border-border/60 bg-surface")}>
-              <div className="flex items-start justify-between gap-4">
+            {showAiControls && (
+            <div className="imperial-highlight-panel rounded-lg border p-4">
+              <div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{copy.aiSettingsTitle}</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    {showAiControls ? copy.aiSettingsBody : copy.aiOffBody}
+                    {copy.aiSettingsBody}
                   </p>
                   {!auth.loading && !canUseAi && showAiControls && (
                     <p className="mt-2 text-xs text-muted-foreground">
@@ -665,23 +673,11 @@ export function CastForm({ config }: Props) {
                     </p>
                   )}
                 </div>
-                <Switch
-                  checked={form.enableAi}
-                  disabled={auth.loading || !canUseAi}
-                  onCheckedChange={(checked) => {
-                    setForm({
-                      enableAi: checked,
-                      aiModel: checked ? standardModel?.name ?? config.default_model : form.aiModel,
-                      aiReasoning: checked ? standardModel?.default_reasoning ?? standardModel?.reasoning[0] ?? null : form.aiReasoning,
-                      aiVerbosity: checked ? standardModel?.default_verbosity ?? null : form.aiVerbosity,
-                    })
-                  }}
-                />
               </div>
 
               {form.enableAi && (
-                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-                  <div className="space-y-2 md:col-span-2 xl:col-span-1">
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-2 sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-center">
                     <p className="text-sm font-medium text-foreground">{messages.workspace.cast.accessPasswordLabel}</p>
                     <Input
                       type="password"
@@ -691,6 +687,7 @@ export function CastForm({ config }: Props) {
                     />
                   </div>
 
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-foreground">{messages.workspace.cast.modelLabel}</p>
@@ -789,7 +786,7 @@ export function CastForm({ config }: Props) {
                     </div>
                   )}
 
-                  <div className="space-y-2 md:col-span-2 xl:col-span-1">
+                  <div className="space-y-2">
                     <p className="text-sm font-medium text-foreground">{messages.workspace.cast.toneLabel}</p>
                     <Select value={form.aiTone} onValueChange={(value) => updateForm("aiTone", value)}>
                       <SelectTrigger>
@@ -803,17 +800,18 @@ export function CastForm({ config }: Props) {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {activeToneOption?.description ?? messages.workspace.cast.toneDescriptionDefault}
-                    </p>
                   </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {activeToneOption?.description ?? messages.workspace.cast.toneDescriptionDefault}
+                  </p>
                 </div>
               )}
             </div>
+            )}
           </aside>
-        </div>
 
-        <div className="mt-6 space-y-4">
+        <div data-cast-step="cast" className="order-2 space-y-4 border-t border-border/60 pt-6">
           <div className="grid gap-3 sm:grid-cols-[14rem_minmax(0,1fr)] sm:items-end">
             <div className="space-y-2">
               <p className="text-sm font-medium text-foreground">{messages.workspace.cast.stepCast}</p>
@@ -909,6 +907,7 @@ export function CastForm({ config }: Props) {
           />
           </div>
           )}
+        </div>
         </div>
 
         <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">

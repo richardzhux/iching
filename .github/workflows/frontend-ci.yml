@@ -4,19 +4,26 @@ on:
   push:
     paths:
       - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
   pull_request:
     paths:
       - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Test-only public configuration. Playwright intercepts every request that uses these values.
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8001
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-test.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-test-anon-key
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm

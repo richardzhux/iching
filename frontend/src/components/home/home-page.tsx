@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { motion, useReducedMotion } from "framer-motion"
+import { HexagramGlyph } from "@/components/hexagram/hexagram-glyph"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
 
@@ -79,7 +80,7 @@ export function HomePage() {
             <SampleRow label={copy.questionLabel} value={sampleReading.question} prominent />
             <SampleRow label={copy.castLabel} value={sampleReading.cast} />
             <div className="grid gap-4 py-4 sm:grid-cols-[6rem_1fr]">
-              <HexMini lines={["yin", "yang", "yin", "yin", "yin", "yang"]} />
+              <HexagramGlyph lines={["yin", "yang", "yin", "yin", "yin", "yang"]} className="w-full gap-2 py-1" lineClassName="h-2" />
               <SampleText label={copy.passageLabel} value={sampleReading.passage} />
             </div>
             <SampleRow label={copy.interpretationLabel} value={sampleReading.interpretation} />
@@ -111,23 +112,6 @@ function SampleText({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-xs font-semibold uppercase tracking-[0.16rem] text-muted-foreground">{label}</p>
       <p className="mt-2 text-base leading-7 text-foreground">{value}</p>
-    </div>
-  )
-}
-
-function HexMini({ lines }: { lines: Array<"yang" | "yin"> }) {
-  return (
-    <div className="grid gap-2 py-1" aria-hidden="true">
-      {lines.map((line, index) => (
-        <span
-          key={`${line}-${index}`}
-          className={
-            line === "yang"
-              ? "h-2 rounded bg-foreground"
-              : "h-2 rounded bg-gradient-to-r from-foreground from-40% via-transparent via-40% to-foreground to-60%"
-          }
-        />
-      ))}
     </div>
   )
 }

@@ -5,7 +5,6 @@ import { useMemo, useState } from "react"
 import type { Locale } from "@/i18n/config"
 import { withLocale } from "@/i18n/path"
 import { trackProductEvent } from "@/lib/analytics"
-import { HEXAGRAM_THEME_FILTERS, matchesThemeFilter } from "@/lib/hexagram-copy"
 
 export type LibrarySearchDocument = {
   slug: string
@@ -31,35 +30,28 @@ function normalize(value: string) {
 
 export function LibrarySearch({ locale, documents }: Props) {
   const [query, setQuery] = useState("")
-  const [activeTheme, setActiveTheme] = useState("")
-  const themeFilters = HEXAGRAM_THEME_FILTERS
   const labels =
     locale === "zh"
       ? {
           title: "查卦名与卦意",
-          placeholder: "乾、qian、屯、利贞、时机、感情...",
-          empty: "没有找到匹配的卦，试试卦名、处境或主题。",
+          placeholder: "乾、qian、第 3 卦、利贞...",
+          empty: "没有找到匹配的卦，试试卦名、拼音、编号或原文。",
           open: "打开卦页",
-          allThemes: "全部",
           showing: (displayed: number, matched: number) => `显示 ${displayed} / ${matched} 个结果`,
         }
       : {
           title: "Search the Yi",
-          placeholder: "qian, difficulty, waiting, relationships...",
-          empty: "No matching hexagram. Try a name, situation, or theme.",
+          placeholder: "qian, hexagram 3, difficulty, judgment...",
+          empty: "No matching hexagram. Try a name, pinyin, number, or source phrase.",
           open: "Open hexagram",
-          allThemes: "All",
           showing: (displayed: number, matched: number) =>
             `Showing ${displayed} of ${matched} ${matched === 1 ? "result" : "results"}`,
         }
 
   const matchedResults = useMemo(() => {
     const needle = normalize(query.trim())
-    const filteredByTheme = activeTheme
-      ? documents.filter((document) => matchesThemeFilter(document.themes, activeTheme))
-      : documents
-    if (!needle) return filteredByTheme
-    return filteredByTheme
+    if (!needle) return documents
+    return documents
       .map((document) => {
         const titleHaystack = normalize(
           [
@@ -84,9 +76,9 @@ export function LibrarySearch({ locale, documents }: Props) {
       .filter((entry) => entry.score > 0)
       .sort((a, b) => b.score - a.score || a.document.number - b.document.number)
       .map((entry) => entry.document)
-  }, [activeTheme, documents, query])
+  }, [documents, query])
 
-  const displayedResults = matchedResults.slice(0, query.trim() || activeTheme ? 12 : 8)
+  const displayedResults = matchedResults.slice(0, query.trim() ? 12 : 8)
 
   return (
     <section className="border-b border-border/60 pb-7">
@@ -106,27 +98,6 @@ export function LibrarySearch({ locale, documents }: Props) {
         placeholder={labels.placeholder}
         className="mt-3 h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       />
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label={locale === "zh" ? "按主题筛选" : "Filter by theme"}>
-        <button
-          type="button"
-          onClick={() => setActiveTheme("")}
-          aria-pressed={!activeTheme}
-          className="min-h-11 shrink-0 rounded-md px-3 text-sm font-medium outline-none transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {labels.allThemes}
-        </button>
-        {themeFilters.map((filter) => (
-          <button
-            type="button"
-            key={filter.id}
-            onClick={() => setActiveTheme(filter.id)}
-            aria-pressed={activeTheme === filter.id}
-            className="min-h-11 shrink-0 rounded-md px-3 text-sm font-medium outline-none transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary/10 aria-pressed:text-primary"
-          >
-            {filter[locale]}
-          </button>
-        ))}
-      </div>
       <p className="mt-3 text-sm text-muted-foreground" role="status" aria-live="polite">
         {labels.showing(displayedResults.length, matchedResults.length)}
       </p>

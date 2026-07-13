@@ -20,14 +20,6 @@ const THEME_RULES: ThemeRule[] = [
   { en: "Action", zh: "行动", pattern: /power|strength|creative|action|breakthrough|enforcement|mobilization|inspiration|visibility/ },
 ]
 
-export const HEXAGRAM_THEME_FILTERS = [
-  { id: "change", en: "Change", zh: "变化", pattern: /change|transformation|renewal|return|progress|movement/ },
-  { id: "relationships", en: "Relationships", zh: "关系", pattern: /relationship|marriage|attraction|alliance|belonging|family|communication/ },
-  { id: "work", en: "Work", zh: "事业", pattern: /leadership|organization|responsibility|recognition|command|growth|achievement/ },
-  { id: "timing", en: "Timing", zh: "时机", pattern: /timing|patience|waiting|readiness|sequence|duration|gradual/ },
-  { id: "challenge", en: "Challenges", zh: "困难", pattern: /danger|risk|conflict|obstruction|blockage|constraint|difficulty|exhaustion/ },
-] as const
-
 export function localizedHexagramThemes(themes: readonly string[], locale: Locale) {
   if (locale === "en") return themes.slice(0, 3)
   const labels: string[] = []
@@ -58,9 +50,4 @@ export function localizedTrigram(value: string, locale: Locale) {
     Mountain: "艮 · 山",
     Lake: "兑 · 泽",
   }[value] ?? value
-}
-
-export function matchesThemeFilter(themes: readonly string[], filterId: string) {
-  const filter = HEXAGRAM_THEME_FILTERS.find((candidate) => candidate.id === filterId)
-  return !filter || themes.some((theme) => filter.pattern.test(theme))
 }

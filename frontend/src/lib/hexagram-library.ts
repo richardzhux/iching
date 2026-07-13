@@ -143,5 +143,5 @@ export function getHexagramPinyin(slug: HexagramLibraryEntry["slug"] | string) {
 }
 
 export function hexagramLines(binary: string) {
-  return binary.split("").reverse()
+  return binary.split("").reverse() as Array<"0" | "1">
 }
