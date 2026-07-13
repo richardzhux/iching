@@ -5,18 +5,12 @@ import { Button } from "@/components/ui/button"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { CastForm } from "@/components/workspace/cast-form"
 import { HistoryDrawer } from "@/components/workspace/history-drawer"
-import { ResultsPanel } from "@/components/workspace/results-panel"
 import { useConfigQuery } from "@/lib/queries"
-import { cn } from "@/lib/utils"
 import { useWorkspaceStore } from "@/lib/store"
 import { BookOpen, Loader2, RotateCw } from "lucide-react"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 
 export function CastWorkspace() {
   const { messages, toLocalePath } = useI18n()
-  const reduceMotion = useReducedMotion()
-  const view = useWorkspaceStore((state) => state.view)
-  const reopenResults = useWorkspaceStore((state) => state.reopenResults)
   const hasResult = useWorkspaceStore((state) => Boolean(state.result))
   const { data, isLoading, isFetching, error, refetch } = useConfigQuery()
   const errorDetail = error instanceof Error ? error.message : messages.common.unknownError
@@ -83,42 +77,14 @@ export function CastWorkspace() {
   }
 
   return (
-    <div className={cn("space-y-5", "xl:space-y-6")}>
-      <AnimatePresence mode="wait">
-        {view === "form" ? (
-	          <motion.div
-	            key="form"
-	            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-	            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-	            exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
-	            transition={{ duration: reduceMotion ? 0 : 0.2 }}
-          >
-            <div className="space-y-4">
-              <CastForm config={data} />
-              {hasResult && (
-                <Button
-                  variant="outline"
-                  onClick={() => reopenResults()}
-                  className="w-full rounded-lg"
-                >
-                  {messages.workspace.viewLastResult}
-                </Button>
-              )}
-            </div>
-          </motion.div>
-        ) : (
-	          <motion.div
-	            key="results"
-	            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-	            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-	            exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
-	            transition={{ duration: reduceMotion ? 0 : 0.2 }}
-          >
-            <ResultsPanel />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {view === "results" && <HistoryDrawer />}
+    <div className="space-y-5 xl:space-y-6">
+      <CastForm config={data} />
+      {hasResult ? (
+        <Button asChild variant="outline" className="w-full rounded-lg">
+          <Link href={toLocalePath("/reading")}>{messages.workspace.viewLastResult}</Link>
+        </Button>
+      ) : null}
+      <HistoryDrawer />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { BirthPlaceField } from "@/components/tools/birth-place-field"
 import type { LocationResult } from "@/lib/location-search"
 
 export type BaziControlCopy = {
+  subjectName: string
   basicSettings: string
   professionalSettings: string
   professionalSettingsHint: string
@@ -36,6 +37,8 @@ export type BaziControlCopy = {
 type Props = {
   copy: BaziControlCopy
   locale: "en" | "zh"
+  subjectName: string
+  setSubjectName: (value: string) => void
   birthTime: string
   setBirthTime: (value: string) => void
   lunarBirthDate: string
@@ -72,6 +75,8 @@ type Props = {
 export function BaziControls({
   copy,
   locale,
+  subjectName,
+  setSubjectName,
   birthTime,
   setBirthTime,
   lunarBirthDate,
@@ -109,6 +114,10 @@ export function BaziControls({
       <section aria-labelledby="bazi-basic-heading" className="rounded-lg border border-border/60 bg-surface p-4">
         <h2 id="bazi-basic-heading" className="text-sm font-semibold text-foreground">{copy.basicSettings}</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor="bazi-subject-name" className="text-sm font-medium">{copy.subjectName}</label>
+            <Input id="bazi-subject-name" value={subjectName} maxLength={40} autoComplete="name" placeholder={locale === "zh" ? "选填，用于命盘与导出" : "Optional, used on the chart and export"} onChange={(event) => setSubjectName(event.target.value)} />
+          </div>
           <div className="space-y-2">
             <label id="bazi-calendar-label" className="text-sm font-medium">{copy.calendar}</label>
             <Select value={calendar} onValueChange={(value) => setCalendar(value as "solar" | "lunar")}>

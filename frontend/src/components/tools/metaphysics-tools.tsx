@@ -36,6 +36,7 @@ type ZiweiResultSnapshot = {
 type BaziResultSnapshot = {
   chart: MetaphysicsChart
   generatedAt: string
+  subjectName: string
 }
 
 type LocationAutofillState = {
@@ -61,6 +62,7 @@ export function MetaphysicsTools() {
   const [currentChart, setCurrentChart] = useState<MetaphysicsChart | null>(null)
   const [currentLoading, setCurrentLoading] = useState(true)
   const [birthTime, setBirthTime] = useState(() => localDateTimeValue(new Date(1990, 0, 1, 12, 0)))
+  const [baziSubjectName, setBaziSubjectName] = useState("")
   const [baziCalendar, setBaziCalendar] = useState<"solar" | "lunar">("solar")
   const [lunarBirthDate, setLunarBirthDate] = useState("1990-01-01")
   const [lunarBirthTime, setLunarBirthTime] = useState("12:00")
@@ -76,6 +78,7 @@ export function MetaphysicsTools() {
   const [dayBoundary, setDayBoundary] = useState<"current" | "forward">("forward")
   const [birthResult, setBirthResult] = useState<BaziResultSnapshot | null>(null)
   const [birthLoading, setBirthLoading] = useState(false)
+  const [baziEditorOpen, setBaziEditorOpen] = useState(true)
   const [gender, setGender] = useState<"男" | "女">("男")
   const [fixLeap, setFixLeap] = useState(true)
   const [ziweiCalendar, setZiweiCalendar] = useState<"solar" | "lunar">("solar")
@@ -93,6 +96,7 @@ export function MetaphysicsTools() {
   ))
 
   const copy = locale === "zh" ? {
+    subjectName: "命主称呼",
     title: "八字与紫微排盘",
     subtitle: "输入出生信息生成个人命盘，也可随时查看当前时令。",
     current: "当前时令",
@@ -145,6 +149,7 @@ export function MetaphysicsTools() {
     horoscopeDate: "运限日期",
     chartNote: "历法与星盘数据由确定性算法生成；旺衰、格局与断语因流派而异，应与所采用的规则体系一并核对。",
   } : {
+    subjectName: "Chart name",
     title: "BaZi & Zi Wei Charts",
     subtitle: "Enter birth details to generate a personal chart, or check the current calendar at a glance.",
     current: "Current Time",
@@ -286,7 +291,8 @@ export function MetaphysicsTools() {
         lunar_hour: lunarTimeMatch ? (hourUncertain ? 12 : Number(lunarTimeMatch[1])) : null,
         lunar_minute: lunarTimeMatch ? (hourUncertain ? 0 : Number(lunarTimeMatch[2])) : null,
       })
-      setBirthResult({ chart, generatedAt: new Date().toISOString() })
+      setBirthResult({ chart, generatedAt: new Date().toISOString(), subjectName: baziSubjectName.trim() })
+      setBaziEditorOpen(false)
     } catch (error) {
       toast.error((error as Error).message)
     } finally {
@@ -374,10 +380,16 @@ export function MetaphysicsTools() {
           <Button asChild><Link href={castHref}>{copy.useToCast}</Link></Button>
         </TabsContent>
         <TabsContent value="bazi" className="mt-4 space-y-4">
-          <BaziControls copy={copy} locale={locale} birthTime={birthTime} setBirthTime={setBirthTime} lunarBirthDate={lunarBirthDate} setLunarBirthDate={setLunarBirthDate} lunarBirthTime={lunarBirthTime} setLunarBirthTime={setLunarBirthTime} timezone={timezone} setTimezone={setTimezone} timezoneOptions={timezoneOptions} longitude={longitude} setLongitude={setLongitude} trueSolar={trueSolar} setTrueSolar={setTrueSolar} dayBoundary={dayBoundary} setDayBoundary={setDayBoundary} calendar={baziCalendar} setCalendar={setBaziCalendar} gender={baziGender} setGender={setBaziGender} selectedLocation={selectedBirthPlace} birthPlaceOverrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onBirthPlaceSelect={handleBirthPlaceSelect} onBirthPlaceClear={handleBirthPlaceClear} isLeapMonth={isLeapMonth} setIsLeapMonth={setIsLeapMonth} hourUncertain={hourUncertain} setHourUncertain={setHourUncertain} dayunAlgorithm={dayunAlgorithm} setDayunAlgorithm={setDayunAlgorithm} />
-          <Button onClick={generateBazi} disabled={birthLoading}>{birthLoading ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
+          {birthResult ? <BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt} subjectName={birthResult.subjectName} locale={locale} mode="birth" /> : null}
+          <details data-export-exclude open={baziEditorOpen} onToggle={(event) => setBaziEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
+            <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{birthResult ? copy.editDetails : copy.basicSettings}</summary>
+            <div className="mt-4 space-y-4">
+              <BaziControls copy={copy} locale={locale} subjectName={baziSubjectName} setSubjectName={setBaziSubjectName} birthTime={birthTime} setBirthTime={setBirthTime} lunarBirthDate={lunarBirthDate} setLunarBirthDate={setLunarBirthDate} lunarBirthTime={lunarBirthTime} setLunarBirthTime={setLunarBirthTime} timezone={timezone} setTimezone={setTimezone} timezoneOptions={timezoneOptions} longitude={longitude} setLongitude={setLongitude} trueSolar={trueSolar} setTrueSolar={setTrueSolar} dayBoundary={dayBoundary} setDayBoundary={setDayBoundary} calendar={baziCalendar} setCalendar={setBaziCalendar} gender={baziGender} setGender={setBaziGender} selectedLocation={selectedBirthPlace} birthPlaceOverrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onBirthPlaceSelect={handleBirthPlaceSelect} onBirthPlaceClear={handleBirthPlaceClear} isLeapMonth={isLeapMonth} setIsLeapMonth={setIsLeapMonth} hourUncertain={hourUncertain} setHourUncertain={setHourUncertain} dayunAlgorithm={dayunAlgorithm} setDayunAlgorithm={setDayunAlgorithm} />
+              <Button onClick={generateBazi} disabled={birthLoading}>{birthLoading ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
+            </div>
+          </details>
           <div aria-live="polite" aria-busy={birthLoading}>
-            {birthLoading && !birthResult ? <Loading locale={locale} label={copy.loadingResult} /> : birthResult ? <BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt} locale={locale} mode="birth" /> : null}
+            {birthLoading && !birthResult ? <Loading locale={locale} label={copy.loadingResult} /> : null}
           </div>
         </TabsContent>
         <TabsContent value="ziwei" className="mt-4 space-y-4">

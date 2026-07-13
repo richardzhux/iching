@@ -84,19 +84,20 @@ function sourcePreview(slot: ArchiveSlot) {
 function SourceEntryCard({ entry, locale }: { entry: HexagramArchiveEntry; locale: Locale }) {
   const sourceName = SOURCE_NAMES[entry.sourceKey][locale]
   return (
-    <article className="border-t border-border/60 py-5 first:border-t-0 first:pt-0">
-      <div>
-        <p className="text-sm font-semibold text-foreground">{sourceName}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{entry.sourceLabel}</p>
-      </div>
+    <details className="group/source border-t border-border/50 py-1 first:border-t-0">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-md px-2 py-3 outline-none marker:hidden hover:bg-surface-elevated/60 focus-visible:ring-2 focus-visible:ring-ring">
+        <span><span className="text-sm font-semibold text-foreground">{sourceName}</span><span className="ml-2 text-xs text-muted-foreground">{entry.sourceLabel}</span></span>
+        <span className="text-xs font-semibold text-primary group-open/source:hidden">{locale === "zh" ? "查看全文" : "Read"}</span>
+        <span className="hidden text-xs font-semibold text-primary group-open/source:inline">{locale === "zh" ? "收起" : "Close"}</span>
+      </summary>
       <pre
         tabIndex={0}
         aria-label={`${sourceName} · ${entry.sourceLabel}`}
-        className="custom-scrollbar mt-4 max-h-[28rem] overflow-y-auto whitespace-pre-wrap rounded-md bg-surface-elevated/70 p-4 font-sans text-sm leading-7 text-foreground/90 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="custom-scrollbar mb-4 mt-1 max-h-[28rem] overflow-y-auto whitespace-pre-wrap rounded-md bg-surface-elevated/70 p-4 font-sans text-sm leading-7 text-foreground/90 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {entry.content}
       </pre>
-    </article>
+    </details>
   )
 }
 
@@ -245,6 +246,13 @@ export default async function HexagramDetailPage({ params }: Props) {
       <section aria-labelledby="sources-heading">
         <h2 id="sources-heading" className="text-xl font-semibold text-foreground">{copy.sources}</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{copy.sourcesBody}</p>
+        <div className="mt-4 flex flex-wrap gap-2" aria-label={locale === "zh" ? "本卦可用版本" : "Available editions"}>
+          {SOURCE_KEYS.filter((key) => archive.sourceCounts[key] > 0).map((key) => (
+            <span key={key} className="rounded-full border border-border/60 bg-surface-elevated/55 px-3 py-1.5 text-xs font-medium text-foreground">
+              {SOURCE_NAMES[key][locale]} · {archive.sourceCounts[key]}
+            </span>
+          ))}
+        </div>
         <div className="mt-5">
           {archiveSlots.map((slot) => (
             <section key={slot.slotKey} id={slot.slotKey.replaceAll(".", "-")} className="scroll-mt-[9rem] md:scroll-mt-24">

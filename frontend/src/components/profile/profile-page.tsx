@@ -539,7 +539,7 @@ export default function ProfilePage() {
         throw new Error(messages.profile.noFollowupHint)
       }
       setResult(transcript.payload_snapshot as SessionPayload)
-      router.push(toLocalePath("/app"))
+      router.push(toLocalePath("/reading"))
     } catch {
       toast.error(messages.profile.openFailed)
     } finally {

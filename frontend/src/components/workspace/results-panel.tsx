@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion, useReducedMotion } from "framer-motion"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
@@ -8,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MarkdownContent } from "@/components/ui/markdown-content"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useWorkspaceStore, type JournalStatus, type ReadingJournalEntry } from "@/lib/store"
 import { trackProductEvent } from "@/lib/analytics"
@@ -27,13 +27,11 @@ import { HexagramHeader } from "./hexagram-visual"
 import { NajiaTableView } from "./najia-table"
 
 export function ResultsPanel() {
-  const { messages, locale } = useI18n()
+  const { messages, locale, toLocalePath } = useI18n()
+  const router = useRouter()
   const reduceMotion = useReducedMotion()
   const result = useWorkspaceStore((state) => state.result)
   const resetSession = useWorkspaceStore((state) => state.resetSession)
-  const setView = useWorkspaceStore((state) => state.setView)
-  const resultsTab = useWorkspaceStore((state) => state.resultsTab)
-  const setResultsTab = useWorkspaceStore((state) => state.setResultsTab)
   const setPendingChatPrompt = useWorkspaceStore((state) => state.setPendingChatPrompt)
   const journal = useWorkspaceStore((state) => state.journal)
   const updateJournal = useWorkspaceStore((state) => state.updateJournal)
@@ -65,50 +63,30 @@ export function ResultsPanel() {
       <Card className="surface-card rounded-lg border-border/40 text-foreground">
         <CardHeader className="flex flex-col gap-3 border-b border-border/50 pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle className="text-lg">{messages.workspace.results.title}</CardTitle>
+            <CardTitle className="text-lg">{locale === "zh" ? "解卦" : "Reading"}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              {locale === "zh" ? "先看判断简报，再展开证据与追问。" : "Start with the brief, then inspect evidence or continue the thread."}
+              {locale === "zh" ? "卦象、纳甲、经典依据与 AI 追问都保留在这一页。" : "Hexagram mechanics, Najia, source evidence, and AI follow-up stay on this page."}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setView("form")}>
+            <Button variant="outline" size="sm" onClick={() => router.push(toLocalePath("/app"))}>
               {messages.workspace.results.backToSetup}
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => resetSession()}>
+            <Button variant="secondary" size="sm" onClick={() => { resetSession(); router.push(toLocalePath("/app")) }}>
               {messages.workspace.results.startNew}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs
-            value={resultsTab}
-            onValueChange={(value) => {
-              if (value === "summary" || value === "hex" || value === "ai") {
-                setResultsTab(value)
-              }
-            }}
-          >
-            <TabsList className="grid w-full grid-cols-3 rounded-md bg-surface-elevated text-foreground">
-              <TabsTrigger value="summary">{messages.workspace.results.tabSummary}</TabsTrigger>
-              <TabsTrigger value="hex">{messages.workspace.results.tabHex}</TabsTrigger>
-              <TabsTrigger value="ai">{messages.workspace.results.tabAi}</TabsTrigger>
-            </TabsList>
-            <TabsContent value="summary">
-              <ReadingBriefPanel
-                brief={brief}
-                onSourceSelect={openSourceReader}
-              />
-            </TabsContent>
-            <TabsContent value="hex">
-              <div className="space-y-5">
-                <HexResultBlock result={result} brief={brief} onSourceSelect={openSourceReader} />
-                <SourceEvidencePanel brief={brief} onSourceSelect={openSourceReader} />
+          <div className="space-y-9 pb-2">
+            <HexResultBlock result={result} brief={brief} onSourceSelect={openSourceReader} />
+            <section id="ai-followup" className="scroll-mt-24 border-t border-border/60 pt-7">
+              <div className="mb-4">
+                <p className="kicker">{locale === "zh" ? "继续解卦" : "Continue the reading"}</p>
+                <h2 className="mt-2 text-xl font-semibold text-foreground">{locale === "zh" ? "结合这份卦盘继续追问" : "Ask a follow-up from this chart"}</h2>
               </div>
-            </TabsContent>
-            <TabsContent value="ai">
-              <div className="mt-4 space-y-4">
                 {brief.followup_prompts.length ? (
-                  <section className="rounded-lg border border-border/50 bg-surface p-4">
+                  <div className="mb-4 rounded-lg bg-surface-elevated/45 p-4">
                     <h2 className="text-sm font-semibold text-foreground">
                       {locale === "zh" ? "可以继续问" : "Suggested follow-ups"}
                     </h2>
@@ -119,12 +97,11 @@ export function ResultsPanel() {
                         </Button>
                       ))}
                     </div>
-                  </section>
+                  </div>
                 ) : null}
-                <ChatPanel session={result} />
-              </div>
-            </TabsContent>
-          </Tabs>
+                <ChatPanel session={result} embedded />
+            </section>
+          </div>
           <details className="mt-4 rounded-lg border border-border/50 bg-surface px-4 py-3">
             <summary className="cursor-pointer text-sm font-semibold text-foreground">
               {locale === "zh" ? "应验记录" : "Outcome record"}
@@ -1327,25 +1304,18 @@ function HexSectionGroup({
       <p className="mb-3 text-xs uppercase tracking-[0.28rem] text-muted-foreground">{title}</p>
 	      <div className="divide-y divide-border/50">
 	        {sections.map((section) => (
-	          <div key={section.id} className="py-4 text-foreground first:pt-0 last:pb-0">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-muted-foreground">
-              <span>{section.title}</span>
-              <span className="text-[0.65rem] uppercase tracking-widest">
-                {section.hexagram_name} ·{" "}
-                {section.hexagram_type === "main"
-                  ? messages.workspace.results.lineMetaMain
-                  : messages.workspace.results.lineMetaChanged}{" "}
-                ·{" "}
-                {sourceDisplayLabel(section.source, locale)}
-              </span>
-            </div>
-            <div className="mt-1 text-[0.65rem] uppercase tracking-widest text-muted-foreground/80">
-              {section.importance === "primary"
-                ? messages.workspace.results.importancePrimary
-                : messages.workspace.results.importanceSecondary}
-            </div>
-            <MarkdownContent content={section.content} className="mt-3" />
-          </div>
+	          <details key={section.id} className="group/source py-2 text-foreground first:pt-0 last:pb-0">
+              <summary className="cursor-pointer list-none rounded-md px-1 py-2 outline-none marker:hidden focus-visible:ring-2 focus-visible:ring-ring">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-muted-foreground">
+                  <span>{section.title}</span>
+                  <span className="text-[0.65rem] uppercase tracking-widest">{section.hexagram_name} · {section.hexagram_type === "main" ? messages.workspace.results.lineMetaMain : messages.workspace.results.lineMetaChanged} · {sourceDisplayLabel(section.source, locale)}</span>
+                </div>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-foreground/80">{compactText(section.content, 180)}</p>
+                <span className="mt-1 inline-block text-xs font-semibold text-primary group-open/source:hidden">{locale === "zh" ? "展开原文" : "Open source"}</span>
+                <span className="mt-1 hidden text-xs font-semibold text-primary group-open/source:inline">{locale === "zh" ? "收起" : "Close"}</span>
+              </summary>
+              <MarkdownContent content={section.content} className="px-1 pb-3 pt-2" />
+            </details>
         ))}
       </div>
     </div>

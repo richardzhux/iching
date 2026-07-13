@@ -2,13 +2,14 @@
 
 import { useEffect, useId, useRef, useState } from "react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
+import { buildBaziMarkdown } from "@/lib/chart-markdown"
 import type { MetaphysicsChart } from "@/types/api"
 
 type Locale = "en" | "zh"
 type SolarTerm = NonNullable<MetaphysicsChart["next_solar_term"]>
 type BaziChartViewProps =
   | { chart: MetaphysicsChart; locale: Locale; mode: "current"; generatedAt?: never }
-  | { chart: MetaphysicsChart; locale: Locale; mode: "birth"; generatedAt: string }
+  | { chart: MetaphysicsChart; locale: Locale; mode: "birth"; generatedAt: string; subjectName: string }
 
 function formatChartTimestamp(timestamp: string, locale: Locale, timeZone: string) {
   return new Date(timestamp).toLocaleString(locale === "zh" ? "zh-CN" : "en-US", { timeZone })
@@ -18,7 +19,8 @@ function currentYearInTimeZone(timeZone: string) {
   return Number(new Intl.DateTimeFormat("en", { timeZone, year: "numeric" }).format(new Date()))
 }
 
-export function BaziChartView({ chart, generatedAt, locale, mode }: BaziChartViewProps) {
+export function BaziChartView(props: BaziChartViewProps) {
+  const { chart, locale, mode } = props
   const exportTargetId = `bazi-export-${useId().replaceAll(":", "")}`
   const facts = chart.calendar_facts
   const currentYear = currentYearInTimeZone(chart.timezone)
@@ -39,6 +41,9 @@ export function BaziChartView({ chart, generatedAt, locale, mode }: BaziChartVie
     return <CurrentBaziView chart={chart} locale={locale} />
   }
 
+  const { generatedAt, subjectName } = props
+  const markdown = buildBaziMarkdown(chart, subjectName, locale)
+
   const trustNote = locale === "zh"
     ? "确定性历法事实；不自动判断旺衰、格局、喜用神、性格或命运结果。"
     : "Deterministic calendar facts; no strength, pattern, favorable-element, personality, or fate claim is inferred."
@@ -50,62 +55,44 @@ export function BaziChartView({ chart, generatedAt, locale, mode }: BaziChartVie
   return (
     <section className="chart-report space-y-10" aria-label={locale === "zh" ? "八字排盘结果" : "BaZi chart result"}>
       <div data-export-exclude className="flex justify-end">
-        <ChartExportButton targetId={exportTargetId} label={locale === "zh" ? "导出命盘" : "Export chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated. Try again."} safeBaseFilename={`bazi-${chart.birth_profile.input_date}`} />
+        <ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出命盘" : "Export chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated. Try again."} safeBaseFilename={`bazi-${chart.birth_profile.input_date}`} />
       </div>
 
-      <BaziIdentitySummary chart={chart} locale={locale} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={resultGeneratedAt} trustNote={trustNote} />
+      <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={resultGeneratedAt} trustNote={trustNote} />
 
-      <ReportChapter title={locale === "zh" ? "四柱结构" : "Four pillars"} intro={locale === "zh" ? "年、月、日、时四柱按同一结构并列，日主来自日柱天干。" : "Year, month, day, and hour pillars are shown as one composition; the day master comes from the day stem."}>
-        <PillarComposition chart={chart} locale={locale} />
-      </ReportChapter>
-
-      <ReportChapter title={locale === "zh" ? "五行分布" : "Five-element distribution"} intro={locale === "zh" ? "仅呈现排盘中的可计数分布，不推导旺衰或喜用。" : "Counted chart distribution only; no strength or favorable-element inference is added."}>
-        <ElementDistribution chart={chart} />
-      </ReportChapter>
-
-      <ReportChapter title={locale === "zh" ? "当前时令" : "Solar-term context"}>
-        <p className="text-sm">{chart.previous_solar_term?.name || "—"} → {chart.next_solar_term?.name || "—"}</p>
-        {chart.next_solar_term ? <HistoricalSolarTerm term={chart.next_solar_term} calculationTimestamp={chart.calculation_timestamp} locale={locale} timeZone={chart.timezone} /> : null}
+      <ReportChapter title={locale === "zh" ? "专业命盘" : "Professional chart"} intro={locale === "zh" ? "四柱信息按列对照；地势、自坐、空亡与干支关系均由当前排盘规则直接计算。" : "Compare all four pillars by column. Life stages, voids, and stem/branch relations are calculated from the selected rules."}>
+        <BaziProfessionalTable chart={chart} locale={locale} />
       </ReportChapter>
 
       <ReportChapter title={locale === "zh" ? "大运时间线" : "Da Yun timeline"} intro={locale === "zh" ? "当前标记按公历年份定位；精确交接以所选起运规则为准。" : "The current marker is located by calendar year. Exact handoff follows the configured start rule."}>
         <DayunTimeline chart={chart} locale={locale} currentYear={currentYear} />
       </ReportChapter>
 
-      <details data-export-exclude className="border-t border-border/60 pt-5">
-        <summary className="cursor-pointer text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "专业命盘数据" : "Professional chart data"}</summary>
-        <div className="mt-6 space-y-8">
+      <ReportChapter title={locale === "zh" ? "排盘时令与规则" : "Calendar context and rules"}>
+        <div className="space-y-8">
+          <div><p className="text-sm">{chart.previous_solar_term?.name || "—"} → {chart.next_solar_term?.name || "—"}</p>{chart.next_solar_term ? <HistoricalSolarTerm term={chart.next_solar_term} calculationTimestamp={chart.calculation_timestamp} locale={locale} timeZone={chart.timezone} /> : null}</div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <RawFact label={locale === "zh" ? "旬空" : "Void branches"} value={chart.xunkong} />
             <RawFact label={locale === "zh" ? "月建冲合" : "Month clash/combine"} value={`${facts.month_command} · ${facts.month_clash} · ${facts.month_combine}`} />
             <RawFact label={locale === "zh" ? "日辰冲合" : "Day clash/combine"} value={`${facts.day_pillar} · ${facts.day_clash} · ${facts.day_combine}`} />
             <RawFact label={locale === "zh" ? "六神" : "Six spirits"} value={`${facts.six_spirit_start} · ${facts.six_spirits.join(" · ")}`} />
           </div>
-          <div className="grid grid-cols-2 gap-px bg-border/60 sm:grid-cols-4">
-            {chart.pillars.map((pillar) => (
-              <section key={pillar.label} className="bg-background p-4">
-                <h3 className="font-semibold">{pillar.label}{locale === "zh" ? "柱" : " pillar"} · {pillar.ten_god}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{pillar.text} · {pillar.nayin}</p>
-                <p className="mt-3 text-xs leading-5 text-muted-foreground">{pillar.hidden_stems.map((item) => `${item.stem} ${item.ten_god}`).join(" · ") || "—"}</p>
-              </section>
-            ))}
-          </div>
           {chart.birth_profile.hour_uncertain ? <HourCandidates candidates={chart.birth_profile.hour_candidates} locale={locale} /> : null}
           <div><h3 className="text-sm font-semibold">{locale === "zh" ? "原始大运周期" : "Raw Da Yun cycles"}</h3><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{dayun.cycles.map((cycle) => <p key={cycle.index} className="text-xs leading-5 text-muted-foreground">{cycle.index}. {cycle.ganzhi} · {cycle.start_age}–{cycle.end_age} · {cycle.start_year}–{cycle.end_year}</p>)}</div></div>
           <p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {trustNote}</p>
         </div>
-      </details>
+      </ReportChapter>
 
-      <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={resultGeneratedAt} trustNote={trustNote} />
+      <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={resultGeneratedAt} trustNote={trustNote} />
     </section>
   )
 }
 
-function BaziIdentitySummary({ chart, locale, calculationRule, currentCycleText, generatedAt, trustNote }: { chart: MetaphysicsChart; locale: Locale; calculationRule: string; currentCycleText: string; generatedAt: string; trustNote: string }) {
+function BaziIdentitySummary({ chart, locale, subjectName, calculationRule, currentCycleText, generatedAt, trustNote }: { chart: MetaphysicsChart; locale: Locale; subjectName: string; calculationRule: string; currentCycleText: string; generatedAt: string; trustNote: string }) {
   return (
     <section className="border-b border-border/60 pb-6" aria-label={locale === "zh" ? "命盘身份摘要" : "Chart identity summary"}>
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div><p className="kicker">State of I Ching · 易经决策</p><h3 className="mt-3 text-3xl font-semibold">{locale === "zh" ? "八字命盘" : "BaZi personal chart"}</h3><p className="mt-2 text-sm text-muted-foreground">{chart.lunar_date}</p></div>
+        <div><p className="kicker">State of I Ching · 易经决策</p><h3 className="mt-3 text-3xl font-semibold">{subjectName || (locale === "zh" ? "我的八字命盘" : "My BaZi chart")}</h3><p className="mt-2 text-sm text-muted-foreground">{chart.lunar_date}</p></div>
         <div className="text-right"><p className="text-xs text-muted-foreground">{locale === "zh" ? "日主" : "Day master"}</p><p className="mt-1 text-4xl font-semibold text-primary">{chart.day_master}</p></div>
       </header>
       <div className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
@@ -134,23 +121,46 @@ function ReportChapter({ title, intro, children }: { title: string; intro?: stri
   return <section className="chart-report-chapter border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{title}</h2>{intro ? <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{intro}</p> : null}<div className="mt-5">{children}</div></section>
 }
 
-function PillarComposition({ chart, locale, compact = false }: { chart: MetaphysicsChart; locale: Locale; compact?: boolean }) {
+function BaziProfessionalTable({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+  const rows = [
+    { label: locale === "zh" ? "干神" : "Stem relation", values: chart.pillars.map((pillar) => pillar.ten_god) },
+    { label: locale === "zh" ? "天干" : "Stem", values: chart.pillars.map((pillar) => pillar.stem), elements: chart.pillars.map((pillar) => pillar.stem_element), prominent: true },
+    { label: locale === "zh" ? "地支" : "Branch", values: chart.pillars.map((pillar) => pillar.branch), elements: chart.pillars.map((pillar) => pillar.branch_element), prominent: true },
+    { label: locale === "zh" ? "藏干" : "Hidden stems", values: chart.pillars.map((pillar) => pillar.hidden_stems.map((item) => `${item.stem}·${item.element}`).join(" / ") || "—") },
+    { label: locale === "zh" ? "支神" : "Hidden relations", values: chart.pillars.map((pillar) => pillar.hidden_stems.map((item) => item.ten_god).join(" / ") || "—") },
+    { label: locale === "zh" ? "纳音" : "Na Yin", values: chart.pillars.map((pillar) => pillar.nayin) },
+    { label: locale === "zh" ? "空亡" : "Void", values: chart.pillars.map((pillar) => pillar.xunkong) },
+    { label: locale === "zh" ? "地势" : "Life stage", values: chart.pillars.map((pillar) => pillar.di_shi) },
+    { label: locale === "zh" ? "自坐" : "Self seat", values: chart.pillars.map((pillar) => pillar.self_seat) },
+  ]
+  const status = Object.entries(chart.element_season_status)
   return (
-    <div className="grid grid-cols-4 divide-x divide-border/60 border-y border-border/60">
-      {chart.pillars.map((pillar) => (
-        <section key={pillar.label} data-element={pillar.stem_element} className={`chart-pillar text-center ${compact ? "px-2 py-4" : "px-3 py-6"}`}>
-          <p className="text-xs text-muted-foreground">{pillar.label}{locale === "zh" ? "柱" : " pillar"}</p>
-          <p className={`${compact ? "mt-2 text-2xl" : "mt-3 text-4xl"} font-semibold tracking-wider`}>{pillar.text}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{pillar.ten_god}</p>
-        </section>
-      ))}
+    <div className="overflow-x-auto rounded-xl border border-border/50 bg-surface-elevated/35 custom-scrollbar">
+      <div className="min-w-[22rem] md:min-w-[48rem]">
+        <div className="grid grid-cols-[3.75rem_repeat(4,minmax(4.6rem,1fr))] border-b border-border/50 bg-primary/[0.06] md:grid-cols-[7rem_repeat(4,minmax(0,1fr))]">
+          <div className="px-2 py-3 text-xs font-semibold text-muted-foreground">{locale === "zh" ? "四柱" : "Pillars"}</div>
+          {chart.pillars.map((pillar) => <div key={pillar.label} className="border-l border-border/35 px-2 py-3 text-center text-sm font-semibold">{pillar.label}{locale === "zh" ? "柱" : ""}</div>)}
+        </div>
+        {rows.map((row, rowIndex) => (
+          <div key={row.label} className={`grid grid-cols-[3.75rem_repeat(4,minmax(4.6rem,1fr))] border-b border-border/30 last:border-b-0 md:grid-cols-[7rem_repeat(4,minmax(0,1fr))] ${rowIndex % 2 ? "bg-background/50" : ""}`}>
+            <div className="flex items-center px-2 py-3 text-xs font-medium text-muted-foreground md:px-3">{row.label}</div>
+            {row.values.map((value, index) => (
+              <div key={`${row.label}-${chart.pillars[index].label}`} data-element={row.elements?.[index]} className="flex min-h-12 items-center justify-center border-l border-border/30 px-1.5 py-2 text-center text-xs leading-5 md:px-3 md:text-sm">
+                <span className={row.prominent ? "chart-element-text text-3xl font-semibold leading-none md:text-4xl" : "break-words"}>{value}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+        <div className="space-y-3 border-t border-border/50 bg-primary/[0.035] px-3 py-4 text-sm leading-6 md:px-5">
+          <p><strong>{locale === "zh" ? "天干关系" : "Stem relations"}：</strong>{chart.stem_relations.join(" / ") || "—"}</p>
+          <p><strong>{locale === "zh" ? "地支关系" : "Branch relations"}：</strong>{chart.branch_relations.join(" / ") || "—"}</p>
+          <div className="flex flex-wrap gap-x-5 gap-y-2" aria-label={locale === "zh" ? "五行旺相休囚死" : "Seasonal element states"}>
+            {status.map(([element, value]) => <span key={element} data-element={element} className="chart-element-text font-semibold">{element}{value}</span>)}
+          </div>
+        </div>
+      </div>
     </div>
   )
-}
-
-function ElementDistribution({ chart }: { chart: MetaphysicsChart }) {
-  const total = Object.values(chart.element_counts).reduce((sum, count) => sum + count, 0)
-  return <div className="space-y-4">{Object.entries(chart.element_counts).map(([element, count]) => { const percentage = total ? (count / total) * 100 : 0; return <div key={element} data-element={element}><div className="flex items-center justify-between text-sm"><span>{element}</span><strong>{count}</strong></div><div role="meter" aria-label={`${element}: ${count}/${total}`} aria-valuemin={0} aria-valuemax={total} aria-valuenow={count} className="mt-2 h-2 overflow-hidden rounded-full bg-surface-elevated"><div className="chart-element-bar h-full rounded-full" style={{ width: `${percentage}%` }} /></div></div>})}</div>
 }
 
 function DayunTimeline({ chart, locale, currentYear }: { chart: MetaphysicsChart; locale: Locale; currentYear: number }) {
@@ -195,12 +205,12 @@ function HistoricalSolarTerm({ term, calculationTimestamp, locale, timeZone }: {
   return <div className="mt-2 text-xs leading-5 text-muted-foreground"><p>{locale === "zh" ? `距排盘时刻 ${distance}（${term.days_away.toFixed(2)} 天）` : `${distance} after chart time (${term.days_away.toFixed(2)} days)`}</p><p>{locale === "zh" ? "排盘时刻" : "Chart time"}: <time dateTime={calculationTimestamp}>{formatChartTimestamp(calculationTimestamp, locale, timeZone)}</time></p><p>{locale === "zh" ? "节气准确时刻" : "Exact term time"}: <time dateTime={term.timestamp}>{exactTimestamp}</time></p></div>
 }
 
-function BaziExportCanvas({ exportTargetId, chart, locale, calculationRule, currentCycleText, generatedAt, trustNote }: { exportTargetId: string; chart: MetaphysicsChart; locale: Locale; calculationRule: string; currentCycleText: string; generatedAt: string; trustNote: string }) {
+function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculationRule, currentCycleText, generatedAt, trustNote }: { exportTargetId: string; chart: MetaphysicsChart; locale: Locale; subjectName: string; calculationRule: string; currentCycleText: string; generatedAt: string; trustNote: string }) {
   return (
     <div aria-hidden="true" className="chart-export-stage">
       <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
-        <BaziIdentitySummary chart={chart} locale={locale} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
-        <div className="mt-8"><PillarComposition chart={chart} locale={locale} compact /></div>
+        <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
+        <div className="mt-8"><BaziProfessionalTable chart={chart} locale={locale} /></div>
       </article>
     </div>
   )

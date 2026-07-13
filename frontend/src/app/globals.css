@@ -263,6 +263,10 @@
   background: var(--element-accent, hsl(var(--primary)));
 }
 
+.chart-element-text {
+  color: var(--element-accent, hsl(var(--primary)));
+}
+
 [data-element="木"] { --element-accent: hsl(143 44% 42%); }
 [data-element="火"] { --element-accent: hsl(8 65% 52%); }
 [data-element="土"] { --element-accent: hsl(var(--imperial-metal)); }
