@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Clipboard, Download, FileText, Loader2 } from "lucide-react"
+import { Clipboard, Download, FileText, Loader2, Printer } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { exportChartPng, sanitizeExportFilename } from "@/lib/chart-export"
+import { exportChartPng, printChartPdf, sanitizeExportFilename } from "@/lib/chart-export"
 
 type Props = {
   targetId: string
@@ -59,6 +59,19 @@ export function ChartExportButton({ targetId, label, loadingLabel, errorLabel, s
     }
   }
 
+  function handlePrint() {
+    const target = document.getElementById(targetId)
+    if (!target) {
+      toast.error(errorLabel)
+      return
+    }
+    try {
+      printChartPdf(target, safeBaseFilename)
+    } catch {
+      toast.error(errorLabel)
+    }
+  }
+
   return (
     <div className="flex flex-wrap justify-end gap-2" data-export-exclude>
       <Button
@@ -72,6 +85,7 @@ export function ChartExportButton({ targetId, label, loadingLabel, errorLabel, s
         <span>{exporting ? loadingLabel : markdown ? `${label} PNG` : label}</span>
       </Button>
       {markdown ? <Button type="button" variant="outline" onClick={downloadMarkdown}><FileText aria-hidden="true" className="mr-2 size-4" />Markdown</Button> : null}
+      <Button type="button" variant="outline" onClick={handlePrint}><Printer aria-hidden="true" className="mr-2 size-4" />PDF</Button>
       {markdown ? <Button type="button" variant="ghost" onClick={() => void copyMarkdown()} aria-label={copyLabel}><Clipboard aria-hidden="true" className="size-4" /></Button> : null}
       <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {exporting ? loadingLabel : label}

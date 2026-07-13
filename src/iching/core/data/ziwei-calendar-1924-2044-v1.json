@@ -1,0 +1,469 @@
+{
+  "id": "ziwei-calendar-1924-2044-v1",
+  "chart_type": "ziwei",
+  "kind": "calendar_sample_frequency",
+  "label": "1924-02-05—2044-02-04 紫微历法样本",
+  "start": "1924-02-05T09:49:32+08:00",
+  "end": "2044-02-04T12:43:35+08:00",
+  "timezone": "Asia/Shanghai",
+  "day_boundary": "iztro-default",
+  "engine": "iztro 2.5.8",
+  "rules_version": "ziwei-structural-2026.07-v1",
+  "sample_unit": "chart",
+  "sample_weight": 1051896,
+  "method": "逐日 × 12时辰 × 两种性别确定性穷举；所选本命结构经引擎确认不随性别变化，按男女各一份计权；不使用用户数据或随机抽样。",
+  "gender_weighting": "male_and_female_equal; selected natal structural features are gender-invariant",
+  "features": {
+    "ziwei.auspicious_max_density.1": {
+      "hit_weight": 298176
+    },
+    "ziwei.auspicious_max_density.2": {
+      "hit_weight": 605828
+    },
+    "ziwei.auspicious_max_density.3": {
+      "hit_weight": 133254
+    },
+    "ziwei.auspicious_max_density.4": {
+      "hit_weight": 10228
+    },
+    "ziwei.auspicious_max_density.5": {
+      "hit_weight": 4410
+    },
+    "ziwei.auspicious_palaces.2": {
+      "hit_weight": 8820
+    },
+    "ziwei.auspicious_palaces.3": {
+      "hit_weight": 51076
+    },
+    "ziwei.auspicious_palaces.4": {
+      "hit_weight": 326024
+    },
+    "ziwei.auspicious_palaces.5": {
+      "hit_weight": 367800
+    },
+    "ziwei.auspicious_palaces.6": {
+      "hit_weight": 298176
+    },
+    "ziwei.body_branch.chen": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.chou": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.hai": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.mao": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.shen": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.si": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.wei": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.wu": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.xu": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.yin": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.you": {
+      "hit_weight": 87658
+    },
+    "ziwei.body_branch.zi": {
+      "hit_weight": 87658
+    },
+    "ziwei.brightness.de.1": {
+      "hit_weight": 185200
+    },
+    "ziwei.brightness.de.2": {
+      "hit_weight": 556588
+    },
+    "ziwei.brightness.de.3": {
+      "hit_weight": 113988
+    },
+    "ziwei.brightness.li.1": {
+      "hit_weight": 417436
+    },
+    "ziwei.brightness.li.2": {
+      "hit_weight": 196104
+    },
+    "ziwei.brightness.li.3": {
+      "hit_weight": 71244
+    },
+    "ziwei.brightness.miao.3": {
+      "hit_weight": 377600
+    },
+    "ziwei.brightness.miao.4": {
+      "hit_weight": 153816
+    },
+    "ziwei.brightness.miao.5": {
+      "hit_weight": 302964
+    },
+    "ziwei.brightness.miao.6": {
+      "hit_weight": 106876
+    },
+    "ziwei.brightness.miao.7": {
+      "hit_weight": 110640
+    },
+    "ziwei.brightness.ping.1": {
+      "hit_weight": 292520
+    },
+    "ziwei.brightness.ping.2": {
+      "hit_weight": 406520
+    },
+    "ziwei.brightness.ping.3": {
+      "hit_weight": 178104
+    },
+    "ziwei.brightness.unmarked.1": {
+      "hit_weight": 410316
+    },
+    "ziwei.brightness.unmarked.2": {
+      "hit_weight": 160512
+    },
+    "ziwei.brightness.wang.1": {
+      "hit_weight": 225084
+    },
+    "ziwei.brightness.wang.2": {
+      "hit_weight": 178104
+    },
+    "ziwei.brightness.wang.3": {
+      "hit_weight": 299228
+    },
+    "ziwei.brightness.wang.4": {
+      "hit_weight": 196120
+    },
+    "ziwei.brightness.wang.5": {
+      "hit_weight": 64116
+    },
+    "ziwei.brightness.wang.6": {
+      "hit_weight": 89244
+    },
+    "ziwei.brightness.xian.1": {
+      "hit_weight": 331480
+    },
+    "ziwei.brightness.xian.2": {
+      "hit_weight": 352820
+    },
+    "ziwei.brightness.xian.3": {
+      "hit_weight": 171448
+    },
+    "ziwei.brightness.xian.4": {
+      "hit_weight": 85508
+    },
+    "ziwei.challenging_max_density.1": {
+      "hit_weight": 315642
+    },
+    "ziwei.challenging_max_density.2": {
+      "hit_weight": 666214
+    },
+    "ziwei.challenging_max_density.3": {
+      "hit_weight": 70040
+    },
+    "ziwei.challenging_palaces.3": {
+      "hit_weight": 21856
+    },
+    "ziwei.challenging_palaces.4": {
+      "hit_weight": 201510
+    },
+    "ziwei.challenging_palaces.5": {
+      "hit_weight": 512888
+    },
+    "ziwei.challenging_palaces.6": {
+      "hit_weight": 315642
+    },
+    "ziwei.empty_palaces.0": {
+      "hit_weight": 185232
+    },
+    "ziwei.empty_palaces.2": {
+      "hit_weight": 695248
+    },
+    "ziwei.empty_palaces.4": {
+      "hit_weight": 171416
+    },
+    "ziwei.five_elements.earth-5": {
+      "hit_weight": 210268
+    },
+    "ziwei.five_elements.fire-6": {
+      "hit_weight": 210428
+    },
+    "ziwei.five_elements.metal-4": {
+      "hit_weight": 210284
+    },
+    "ziwei.five_elements.water-2": {
+      "hit_weight": 210516
+    },
+    "ziwei.five_elements.wood-3": {
+      "hit_weight": 210400
+    },
+    "ziwei.life_combo.empty": {
+      "hit_weight": 173020
+    },
+    "ziwei.life_combo.jumen": {
+      "hit_weight": 44848
+    },
+    "ziwei.life_combo.jumen-taiyang": {
+      "hit_weight": 14284
+    },
+    "ziwei.life_combo.jumen-tianji": {
+      "hit_weight": 15156
+    },
+    "ziwei.life_combo.jumen-tiantong": {
+      "hit_weight": 13372
+    },
+    "ziwei.life_combo.lianzhen": {
+      "hit_weight": 15154
+    },
+    "ziwei.life_combo.lianzhen-pojun": {
+      "hit_weight": 14290
+    },
+    "ziwei.life_combo.lianzhen-qisha": {
+      "hit_weight": 14836
+    },
+    "ziwei.life_combo.lianzhen-tanlang": {
+      "hit_weight": 14554
+    },
+    "ziwei.life_combo.lianzhen-tianfu": {
+      "hit_weight": 13374
+    },
+    "ziwei.life_combo.lianzhen-tianxiang": {
+      "hit_weight": 15434
+    },
+    "ziwei.life_combo.pojun": {
+      "hit_weight": 43968
+    },
+    "ziwei.life_combo.pojun-wuqu": {
+      "hit_weight": 14844
+    },
+    "ziwei.life_combo.pojun-ziwei": {
+      "hit_weight": 14566
+    },
+    "ziwei.life_combo.qisha": {
+      "hit_weight": 43968
+    },
+    "ziwei.life_combo.qisha-wuqu": {
+      "hit_weight": 14554
+    },
+    "ziwei.life_combo.qisha-ziwei": {
+      "hit_weight": 14288
+    },
+    "ziwei.life_combo.taiyang": {
+      "hit_weight": 44846
+    },
+    "ziwei.life_combo.taiyang-taiyin": {
+      "hit_weight": 15160
+    },
+    "ziwei.life_combo.taiyang-tianliang": {
+      "hit_weight": 13376
+    },
+    "ziwei.life_combo.taiyin": {
+      "hit_weight": 43366
+    },
+    "ziwei.life_combo.taiyin-tianji": {
+      "hit_weight": 14844
+    },
+    "ziwei.life_combo.taiyin-tiantong": {
+      "hit_weight": 14282
+    },
+    "ziwei.life_combo.tanlang": {
+      "hit_weight": 43966
+    },
+    "ziwei.life_combo.tanlang-wuqu": {
+      "hit_weight": 14282
+    },
+    "ziwei.life_combo.tanlang-ziwei": {
+      "hit_weight": 14844
+    },
+    "ziwei.life_combo.tianfu": {
+      "hit_weight": 43692
+    },
+    "ziwei.life_combo.tianfu-wuqu": {
+      "hit_weight": 15160
+    },
+    "ziwei.life_combo.tianfu-ziwei": {
+      "hit_weight": 15438
+    },
+    "ziwei.life_combo.tianji": {
+      "hit_weight": 43384
+    },
+    "ziwei.life_combo.tianji-tianliang": {
+      "hit_weight": 14288
+    },
+    "ziwei.life_combo.tianliang": {
+      "hit_weight": 45432
+    },
+    "ziwei.life_combo.tianliang-tiantong": {
+      "hit_weight": 14554
+    },
+    "ziwei.life_combo.tiantong": {
+      "hit_weight": 45428
+    },
+    "ziwei.life_combo.tianxiang": {
+      "hit_weight": 43694
+    },
+    "ziwei.life_combo.tianxiang-wuqu": {
+      "hit_weight": 13376
+    },
+    "ziwei.life_combo.tianxiang-ziwei": {
+      "hit_weight": 15162
+    },
+    "ziwei.life_combo.wuqu": {
+      "hit_weight": 15436
+    },
+    "ziwei.life_combo.ziwei": {
+      "hit_weight": 13376
+    },
+    "ziwei.mutagen.ji.palace-0": {
+      "hit_weight": 100426
+    },
+    "ziwei.mutagen.ji.palace-1": {
+      "hit_weight": 96990
+    },
+    "ziwei.mutagen.ji.palace-10": {
+      "hit_weight": 98610
+    },
+    "ziwei.mutagen.ji.palace-11": {
+      "hit_weight": 104870
+    },
+    "ziwei.mutagen.ji.palace-2": {
+      "hit_weight": 86122
+    },
+    "ziwei.mutagen.ji.palace-3": {
+      "hit_weight": 80790
+    },
+    "ziwei.mutagen.ji.palace-4": {
+      "hit_weight": 76082
+    },
+    "ziwei.mutagen.ji.palace-5": {
+      "hit_weight": 70182
+    },
+    "ziwei.mutagen.ji.palace-6": {
+      "hit_weight": 75854
+    },
+    "ziwei.mutagen.ji.palace-7": {
+      "hit_weight": 79846
+    },
+    "ziwei.mutagen.ji.palace-8": {
+      "hit_weight": 88558
+    },
+    "ziwei.mutagen.ji.palace-9": {
+      "hit_weight": 93566
+    },
+    "ziwei.mutagen.ke.palace-0": {
+      "hit_weight": 97226
+    },
+    "ziwei.mutagen.ke.palace-1": {
+      "hit_weight": 99426
+    },
+    "ziwei.mutagen.ke.palace-10": {
+      "hit_weight": 87122
+    },
+    "ziwei.mutagen.ke.palace-11": {
+      "hit_weight": 95530
+    },
+    "ziwei.mutagen.ke.palace-2": {
+      "hit_weight": 94350
+    },
+    "ziwei.mutagen.ke.palace-3": {
+      "hit_weight": 86554
+    },
+    "ziwei.mutagen.ke.palace-4": {
+      "hit_weight": 86674
+    },
+    "ziwei.mutagen.ke.palace-5": {
+      "hit_weight": 81634
+    },
+    "ziwei.mutagen.ke.palace-6": {
+      "hit_weight": 78590
+    },
+    "ziwei.mutagen.ke.palace-7": {
+      "hit_weight": 78038
+    },
+    "ziwei.mutagen.ke.palace-8": {
+      "hit_weight": 81654
+    },
+    "ziwei.mutagen.ke.palace-9": {
+      "hit_weight": 85098
+    },
+    "ziwei.mutagen.lu.palace-0": {
+      "hit_weight": 95056
+    },
+    "ziwei.mutagen.lu.palace-1": {
+      "hit_weight": 98976
+    },
+    "ziwei.mutagen.lu.palace-10": {
+      "hit_weight": 97712
+    },
+    "ziwei.mutagen.lu.palace-11": {
+      "hit_weight": 101560
+    },
+    "ziwei.mutagen.lu.palace-2": {
+      "hit_weight": 87860
+    },
+    "ziwei.mutagen.lu.palace-3": {
+      "hit_weight": 85520
+    },
+    "ziwei.mutagen.lu.palace-4": {
+      "hit_weight": 77896
+    },
+    "ziwei.mutagen.lu.palace-5": {
+      "hit_weight": 72232
+    },
+    "ziwei.mutagen.lu.palace-6": {
+      "hit_weight": 77068
+    },
+    "ziwei.mutagen.lu.palace-7": {
+      "hit_weight": 77220
+    },
+    "ziwei.mutagen.lu.palace-8": {
+      "hit_weight": 88680
+    },
+    "ziwei.mutagen.lu.palace-9": {
+      "hit_weight": 92116
+    },
+    "ziwei.mutagen.quan.palace-0": {
+      "hit_weight": 99476
+    },
+    "ziwei.mutagen.quan.palace-1": {
+      "hit_weight": 101392
+    },
+    "ziwei.mutagen.quan.palace-10": {
+      "hit_weight": 93876
+    },
+    "ziwei.mutagen.quan.palace-11": {
+      "hit_weight": 101328
+    },
+    "ziwei.mutagen.quan.palace-2": {
+      "hit_weight": 94424
+    },
+    "ziwei.mutagen.quan.palace-3": {
+      "hit_weight": 88476
+    },
+    "ziwei.mutagen.quan.palace-4": {
+      "hit_weight": 79976
+    },
+    "ziwei.mutagen.quan.palace-5": {
+      "hit_weight": 73720
+    },
+    "ziwei.mutagen.quan.palace-6": {
+      "hit_weight": 74080
+    },
+    "ziwei.mutagen.quan.palace-7": {
+      "hit_weight": 74220
+    },
+    "ziwei.mutagen.quan.palace-8": {
+      "hit_weight": 83544
+    },
+    "ziwei.mutagen.quan.palace-9": {
+      "hit_weight": 87384
+    }
+  },
+  "hash": "sha256:29d08616e684c222176653a9c0191dfc996b19447b6b1c49aeddd0721d5912d8"
+}

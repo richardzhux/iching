@@ -11,6 +11,8 @@ from lunar_python import Lunar as LunarCalendar
 from lunar_python import Solar as SolarCalendar
 
 from iching.core.najia import derive_six_gods
+from iching.core.metaphysics_statistics import statistics_for_shensha
+from iching.core.shensha import RULES_VERSION, evaluate_shensha
 
 STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
 BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
@@ -359,6 +361,7 @@ def _dayun_payload(
     day_boundary: str,
     algorithm: str,
     expected_bazi: str,
+    natal_pillars: list[Dict[str, Any]],
 ) -> Dict[str, Any]:
     if gender not in {"male", "female"}:
         return {"status": "not_requested", "cycles": []}
@@ -375,8 +378,76 @@ def _dayun_payload(
     crosscheck_bazi = eight_char.toString()
     sect = 2 if algorithm == "sect2" else 1
     yun = eight_char.getYun(1 if gender == "male" else 0, sect)
+    reference = datetime.now(value.tzinfo)
+    reference_lunar = SolarCalendar.fromYmdHms(
+        reference.year, reference.month, reference.day, reference.hour, reference.minute, reference.second
+    ).getLunar()
+    natal_relations = set(_stem_relations(natal_pillars) + _branch_relations(natal_pillars))
     cycles = []
+    current_year_payload: Optional[Dict[str, Any]] = None
+    current_month_payload: Optional[Dict[str, Any]] = None
     for cycle in yun.getDaYun(9):
+        years = []
+        for liu_nian in cycle.getLiuNian():
+            year_ganzhi = liu_nian.getGanZhi()
+            year_pillar = {
+                "label": "流年",
+                "stem": year_ganzhi[0],
+                "branch": year_ganzhi[1],
+                "text": year_ganzhi,
+            }
+            year_hits = [
+                hit for hit in evaluate_shensha([*natal_pillars, year_pillar])
+                if "流年" in hit["pillar_labels"]
+            ]
+            year_relations = _stem_relations([*natal_pillars, year_pillar]) + _branch_relations([*natal_pillars, year_pillar])
+            months = []
+            for liu_yue in liu_nian.getLiuYue():
+                month_ganzhi = liu_yue.getGanZhi()
+                month_pillar = {
+                    "label": "流月",
+                    "stem": month_ganzhi[0],
+                    "branch": month_ganzhi[1],
+                    "text": month_ganzhi,
+                }
+                month_payload = {
+                    "layer": "liuyue",
+                    "index": liu_yue.getIndex(),
+                    "label": f"{liu_yue.getMonthInChinese()}月",
+                    "ganzhi": month_ganzhi,
+                    "ten_god": _ten_god(natal_pillars[2]["stem"], month_ganzhi[0]),
+                    "xunkong": liu_yue.getXunKong(),
+                    "shen_sha": [
+                        hit["name"] for hit in evaluate_shensha([*natal_pillars, year_pillar, month_pillar])
+                        if "流月" in hit["pillar_labels"]
+                    ],
+                    "relations": [
+                        relation for relation in (
+                            _stem_relations([*natal_pillars, year_pillar, month_pillar])
+                            + _branch_relations([*natal_pillars, year_pillar, month_pillar])
+                        )
+                        if relation not in set(year_relations)
+                    ],
+                }
+                months.append(month_payload)
+                if liu_nian.getYear() == reference.year and liu_yue.getMonthInChinese() == reference_lunar.getMonthInChinese():
+                    current_month_payload = month_payload
+            year_payload = {
+                "layer": "liunian",
+                "index": liu_nian.getIndex(),
+                "year": liu_nian.getYear(),
+                "age": liu_nian.getAge(),
+                "label": str(liu_nian.getYear()),
+                "ganzhi": year_ganzhi,
+                "ten_god": _ten_god(natal_pillars[2]["stem"], year_ganzhi[0]),
+                "xunkong": liu_nian.getXunKong(),
+                "shen_sha": [hit["name"] for hit in year_hits],
+                "relations": [relation for relation in year_relations if relation not in natal_relations],
+                "months": months,
+            }
+            years.append(year_payload)
+            if liu_nian.getYear() == reference.year:
+                current_year_payload = {key: value for key, value in year_payload.items() if key != "months"}
         cycles.append({
             "index": cycle.getIndex(),
             "label": "童限" if cycle.getIndex() == 0 else cycle.getGanZhi(),
@@ -385,6 +456,8 @@ def _dayun_payload(
             "end_year": cycle.getEndYear(),
             "start_age": cycle.getStartAge(),
             "end_age": cycle.getEndAge(),
+            "ten_god": _ten_god(natal_pillars[2]["stem"], cycle.getGanZhi()[0]) if cycle.getGanZhi() else "—",
+            "years": years,
         })
     return {
         "status": "available",
@@ -401,6 +474,11 @@ def _dayun_payload(
         "engine_bazi": crosscheck_bazi,
         "crosscheck_matches": crosscheck_bazi == expected_bazi,
         "cycles": cycles,
+        "current": {
+            "as_of": reference.isoformat(),
+            "year": current_year_payload,
+            "month": current_month_payload,
+        },
     }
 
 
@@ -494,7 +572,10 @@ def build_metaphysics_chart(
         day_boundary=day_boundary,
         algorithm=dayun_algorithm,
         expected_bazi=bazi_text,
+        natal_pillars=pillars,
     )
+    shen_sha = evaluate_shensha(pillars)
+    statistics = statistics_for_shensha(shen_sha, day_boundary)
     return {
         "timezone": timezone_name,
         "input_timestamp": local.isoformat(),
@@ -523,6 +604,15 @@ def build_metaphysics_chart(
             "six_spirits": six_gods,
         },
         "element_counts": {element: counts.get(element, 0) for element in ELEMENTS},
+        "derived_schema_version": 2,
+        "rules_version": RULES_VERSION,
+        "shen_sha": shen_sha,
+        "statistics": statistics,
+        "period_layers": {
+            "dayun": dayun.get("cycles", []),
+            "current": dayun.get("current", {"as_of": datetime.now(calculation_time.tzinfo).isoformat(), "year": None, "month": None}),
+            "engine": "lunar_python 1.4.8",
+        },
         "previous_solar_term": previous_term,
         "next_solar_term": next_term,
         "birth_profile": {

@@ -16,9 +16,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BaziChartView } from "@/components/tools/bazi-chart-view"
 import { BaziControls } from "@/components/tools/metaphysics-controls"
 import { ZiweiChartView, type ZiweiProvenance } from "@/components/tools/ziwei-chart-view"
-import { calculateMetaphysicsChart, fetchMetaphysicsChart, saveMetaphysicsChart } from "@/lib/api"
+import { calculateMetaphysicsChart, fetchMetaphysicsChart, fetchMetaphysicsStatistics, saveMetaphysicsChart } from "@/lib/api"
 import type { LocationResult } from "@/lib/location-search"
-import type { MetaphysicsChart, MetaphysicsChartRecord, MetaphysicsChartSavePayload } from "@/types/api"
+import { ZIWEI_BASELINE_ID, ziweiFeatureIds } from "@/lib/ziwei-statistics"
+import type { MetaphysicsChart, MetaphysicsChartRecord, MetaphysicsChartSavePayload, MetaphysicsStatistics } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 
@@ -35,6 +36,7 @@ type ZiweiResultSnapshot = {
   generatedAt: string
   provenance: ZiweiProvenance
   subjectName: string
+  statistics: MetaphysicsStatistics
 }
 
 type BaziResultSnapshot = {
@@ -266,8 +268,8 @@ export function MetaphysicsTools() {
     }
     loadedChartRef.current = chartId
     void fetchMetaphysicsChart(chartId, auth.accessToken)
-      .then((record) => {
-        hydrateSavedChart(record)
+      .then(async (record) => {
+        await hydrateSavedChart(record)
         toast.success(copy.loadedChart)
       })
       .catch((error) => {
@@ -283,7 +285,7 @@ export function MetaphysicsTools() {
     return `${toLocalePath("/app")}?timestamp=${encodeURIComponent(currentChart.calculation_timestamp)}`
   }, [currentChart?.calculation_timestamp, toLocalePath])
 
-  function hydrateSavedChart(record: MetaphysicsChartRecord) {
+  async function hydrateSavedChart(record: MetaphysicsChartRecord) {
     const form = (record.input_snapshot.form ?? {}) as Record<string, unknown>
     const subjectName = record.subject.display_name ?? ""
     setActiveSubjectId(record.subject_id)
@@ -327,7 +329,14 @@ export function MetaphysicsTools() {
     if (record.chart_type === "bazi") {
       const snapshot = record.result_snapshot as { chart?: MetaphysicsChart; generated_at?: string; subject_name?: string }
       if (!snapshot.chart) throw new Error(locale === "zh" ? "八字命盘快照不完整。" : "The BaZi snapshot is incomplete.")
-      setBirthResult({ chart: snapshot.chart, generatedAt: snapshot.generated_at ?? record.updated_at, subjectName: snapshot.subject_name ?? subjectName })
+      let chart = snapshot.chart
+      if (!chart.derived_schema_version || !chart.shen_sha || !chart.statistics || !chart.period_layers) {
+        const request = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
+        if (!request) throw new Error(locale === "zh" ? "旧命盘缺少可重算的原始参数。" : "This legacy chart lacks the original calculation inputs.")
+        chart = await calculateMetaphysicsChart(request)
+        toast.info(locale === "zh" ? "已按新版规则临时补算；原档案仍保留旧结果，重新保存后升级。" : "Recomputed with the new rules for this view. The stored legacy result remains unchanged until you save again.")
+      }
+      setBirthResult({ chart, generatedAt: snapshot.generated_at ?? record.updated_at, subjectName: snapshot.subject_name ?? subjectName })
       setActiveBaziChartId(record.id)
       setBaziEditorOpen(false)
       setActiveTab("bazi")
@@ -339,8 +348,10 @@ export function MetaphysicsTools() {
         generated_at?: string
         provenance?: ZiweiProvenance
         subject_name?: string
+        statistics?: MetaphysicsStatistics
       }
       if (!snapshot.chart || !snapshot.horoscope || !snapshot.provenance) throw new Error(locale === "zh" ? "紫微命盘快照不完整。" : "The Zi Wei snapshot is incomplete.")
+      const statistics = snapshot.statistics ?? await fetchMetaphysicsStatistics({ chart_type: "ziwei", baseline_id: ZIWEI_BASELINE_ID, feature_ids: ziweiFeatureIds(snapshot.chart) })
       setZiweiResult({
         chart: snapshot.chart,
         horoscope: snapshot.horoscope,
@@ -348,6 +359,7 @@ export function MetaphysicsTools() {
         generatedAt: snapshot.generated_at ?? record.updated_at,
         provenance: snapshot.provenance,
         subjectName: snapshot.subject_name ?? subjectName,
+        statistics,
       })
       setActiveZiweiChartId(record.id)
       setZiweiEditorOpen(false)
@@ -493,9 +505,10 @@ export function MetaphysicsTools() {
         lunar_minute: lunarTimeMatch ? (hourUncertain ? 0 : Number(lunarTimeMatch[2])) : null,
       } as const
       const chart = await calculateMetaphysicsChart(calculationRequest)
-      const generatedAt = new Date().toISOString()
       const subjectName = baziSubjectName.trim()
-      setBirthResult({ chart, generatedAt, subjectName })
+      const nextBirthResult = { chart, generatedAt: new Date().toISOString(), subjectName }
+      const generatedAt = nextBirthResult.generatedAt
+      setBirthResult(nextBirthResult)
       setBaziEditorOpen(false)
       await persistGeneratedChart({
         id: activeBaziChartId,
@@ -505,11 +518,11 @@ export function MetaphysicsTools() {
         birth_date: (chart.birth_profile.converted_solar_date ?? chart.calculation_timestamp).slice(0, 10),
         day_pillar: chart.calendar_facts.day_pillar,
         input_snapshot: { form: formSnapshot(), calculation_request: calculationRequest },
-        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName },
+        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 2, baseline_id: chart.statistics.baseline.id },
         engine_name: "sxtwl+lunar-python",
         engine_version: "2.0.7+1.4.8",
-        rules_version: `bazi-v1:${dayBoundary}:${dayunAlgorithm}`,
-        schema_version: 1,
+        rules_version: `${chart.rules_version}:${dayBoundary}:${dayunAlgorithm}`,
+        schema_version: 2,
       })
     } catch (error) {
       toast.error((error as Error).message)
@@ -565,6 +578,18 @@ export function MetaphysicsTools() {
         astroType: provenance.astroType,
       })
       const horoscope = chart.horoscope(horoscopeDate)
+      const statisticsChart = locale === "zh" ? chart : astro.withOptions({
+        type: ziweiCalendar,
+        dateStr: ziweiCalendar === "lunar" ? lunarBirthDate : birthTime.slice(0, 10),
+        timeIndex,
+        gender,
+        isLeapMonth: ziweiCalendar === "lunar" && ziweiLeapMonth,
+        fixLeap,
+        language: "zh-CN",
+        config: { algorithm: ziweiAlgorithm, dayDivide: dayBoundary, yearDivide: ziweiYearDivide, horoscopeDivide: ziweiYearDivide },
+        astroType: provenance.astroType,
+      })
+      const statistics = await fetchMetaphysicsStatistics({ chart_type: "ziwei", baseline_id: ZIWEI_BASELINE_ID, feature_ids: ziweiFeatureIds(statisticsChart) })
       const generatedAt = new Date().toISOString()
       const subjectName = baziSubjectName.trim()
       setZiweiResult({
@@ -574,6 +599,7 @@ export function MetaphysicsTools() {
         generatedAt,
         provenance,
         subjectName,
+        statistics,
       })
       setZiweiEditorOpen(false)
       await persistGeneratedChart({
@@ -584,11 +610,11 @@ export function MetaphysicsTools() {
         birth_date: chart.solarDate.slice(0, 10),
         day_pillar: chart.rawDates.chineseDate.daily.join(""),
         input_snapshot: { form: formSnapshot(), provenance },
-        result_snapshot: { chart, horoscope, horoscope_date: horoscopeDate, generated_at: generatedAt, provenance, subject_name: subjectName },
+        result_snapshot: { chart, horoscope, horoscope_date: horoscopeDate, generated_at: generatedAt, provenance, subject_name: subjectName, statistics, derived_schema_version: 2, baseline_id: statistics.baseline.id },
         engine_name: "iztro",
         engine_version: "2.5.8",
-        rules_version: `ziwei-v1:${ziweiAlgorithm}:${ziweiYearDivide}:${dayBoundary}`,
-        schema_version: 1,
+        rules_version: `ziwei-v2:${ziweiAlgorithm}:${ziweiYearDivide}:${dayBoundary}`,
+        schema_version: 2,
       })
     } catch (error) {
       toast.error((error as Error).message || (locale === "zh" ? "紫微排盘内核加载失败。" : "Zi Wei engine failed to load."))
@@ -633,12 +659,8 @@ export function MetaphysicsTools() {
           </div>
         </TabsContent>
         <TabsContent value="ziwei" className="mt-4 space-y-4">
-          {ziweiResult ? (
-            <>
-              <ChartPersistenceBar copy={copy} isSaving={savingType === "ziwei"} isSaved={Boolean(activeZiweiChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => setZiweiEditorOpen(true)} onNew={startNewChart} />
-              <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} />
-            </>
-          ) : null}
+          {ziweiResult ? <ChartPersistenceBar copy={copy} isSaving={savingType === "ziwei"} isSaved={Boolean(activeZiweiChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => setZiweiEditorOpen(true)} onNew={startNewChart} /> : null}
+          {ziweiResult ? <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} statistics={ziweiResult.statistics} /> : null}
           <details id="ziwei-edit-details" data-export-exclude open={ziweiEditorOpen} onToggle={(event) => setZiweiEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{ziweiResult ? copy.editDetails : copy.ziweiBasicSettings}</summary>
             <div className="mt-4 space-y-4">

@@ -42,3 +42,18 @@ export async function exportChartPng(target: HTMLElement, safeBaseFilename: stri
   link.click()
   link.remove()
 }
+
+export function printChartPdf(target: HTMLElement, title: string) {
+  const printWindow = window.open("", "_blank")
+  if (!printWindow) throw new Error("print_window_blocked")
+  printWindow.opener = null
+  const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+    .map((node) => node.outerHTML)
+    .join("\n")
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title.replace(/[<>]/g, "")}</title>${styles}<style>@page{size:A4;margin:12mm}body{background:white!important;padding:0}.chart-share-canvas{width:100%!important;max-width:none!important;box-shadow:none!important;border:0!important}[data-export-exclude]{display:none!important}</style></head><body>${target.outerHTML}</body></html>`)
+  printWindow.document.close()
+  printWindow.addEventListener("load", () => {
+    printWindow.focus()
+    printWindow.print()
+  }, { once: true })
+}

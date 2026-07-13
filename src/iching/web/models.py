@@ -144,6 +144,33 @@ class MetaphysicsChartResponse(BaseModel):
     previous_solar_term: Optional[Dict[str, object]] = None
     next_solar_term: Optional[Dict[str, object]] = None
     birth_profile: Dict[str, object]
+    derived_schema_version: int = 2
+    rules_version: str
+    shen_sha: List[Dict[str, object]] = Field(default_factory=list)
+    statistics: Dict[str, object]
+    period_layers: Dict[str, object]
+
+
+class MetaphysicsStatisticsRequest(BaseModel):
+    chart_type: Literal["bazi", "ziwei"]
+    baseline_id: str = Field(min_length=1, max_length=120)
+    feature_ids: List[str] = Field(default_factory=list, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_feature_ids(self):
+        import re
+
+        pattern = re.compile(r"^(bazi|ziwei)\.[a-z0-9_.-]{1,96}$")
+        if any(not pattern.fullmatch(item) or not item.startswith(f"{self.chart_type}.") for item in self.feature_ids):
+            raise ValueError("feature_ids must be normalized and match chart_type")
+        return self
+
+
+class MetaphysicsStatisticsResponse(BaseModel):
+    baseline: Dict[str, object]
+    rarity_metrics: List[Dict[str, object]] = Field(default_factory=list)
+    rule_indices: List[Dict[str, object]] = Field(default_factory=list)
+    disclaimer: str
 
 
 class ChartSubjectInput(BaseModel):

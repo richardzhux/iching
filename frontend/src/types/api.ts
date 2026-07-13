@@ -43,6 +43,99 @@ export type MetaphysicsPillar = {
   self_seat: string
 }
 
+export type ShenShaHit = {
+  rule_id: string
+  feature_id: string
+  name: string
+  category: string
+  axis: "助力" | "才学" | "情缘" | "执行" | "迁动" | "考验"
+  level: "core" | "extended"
+  pillar_labels: string[]
+  trigger: string
+  source: { title: string; note: string }
+  school_note?: string
+  rules_version: string
+}
+
+export type RarityMetric = {
+  feature_id: string
+  hit_weight: number
+  total_weight: number
+  percentage: number
+  display_percentage: string
+  level: "common" | "less_common" | "rare" | "very_rare"
+  baseline_id: string
+}
+
+export type RuleIndex = {
+  dimension: "助力" | "才学" | "情缘" | "执行" | "迁动" | "考验"
+  raw_count: number
+  percentile: number
+  contribution_rule_ids: string[]
+  contribution_rules: string[]
+  denominator: string
+  baseline_id: string
+}
+
+export type MetaphysicsStatistics = {
+  baseline: {
+    id: string
+    chart_type: "bazi" | "ziwei"
+    kind: "calendar_sample_frequency"
+    label: string
+    start: string
+    end: string
+    timezone: string
+    day_boundary: string
+    engine: string
+    rules_version: string
+    sample_unit: string
+    sample_weight: number
+    method: string
+    hash: string
+  }
+  rarity_metrics: RarityMetric[]
+  rule_indices: RuleIndex[]
+  disclaimer: string
+}
+
+export type PeriodMonth = {
+  layer: "liuyue"
+  index: number
+  label: string
+  ganzhi: string
+  ten_god: string
+  xunkong: string
+  shen_sha: string[]
+  relations: string[]
+}
+
+export type PeriodYear = {
+  layer: "liunian"
+  index: number
+  year: number
+  age: number
+  label: string
+  ganzhi: string
+  ten_god: string
+  xunkong: string
+  shen_sha: string[]
+  relations: string[]
+  months: PeriodMonth[]
+}
+
+export type DayunCycle = {
+  index: number
+  label: string
+  ganzhi: string
+  start_year: number
+  end_year: number
+  start_age: number
+  end_age: number
+  ten_god?: string
+  years: PeriodYear[]
+}
+
 export type MetaphysicsChart = {
   timezone: string
   input_timestamp: string
@@ -71,6 +164,19 @@ export type MetaphysicsChart = {
     six_spirits: string[]
   }
   element_counts: Record<string, number>
+  derived_schema_version: number
+  rules_version: string
+  shen_sha: ShenShaHit[]
+  statistics: MetaphysicsStatistics
+  period_layers: {
+    dayun: DayunCycle[]
+    current: {
+      as_of: string
+      year: Omit<PeriodYear, "months"> | null
+      month: PeriodMonth | null
+    }
+    engine: string
+  }
   previous_solar_term?: { name: string; timestamp: string; days_away: number; seconds_away: number } | null
   next_solar_term?: { name: string; timestamp: string; days_away: number; seconds_away: number } | null
   birth_profile: {
@@ -91,7 +197,12 @@ export type MetaphysicsChart = {
       start?: { years: number; months: number; days: number; hours: number; solar_date: string }
       engine_bazi?: string
       crosscheck_matches?: boolean
-      cycles: Array<{ index: number; label: string; ganzhi: string; start_year: number; end_year: number; start_age: number; end_age: number }>
+      cycles: DayunCycle[]
+      current?: {
+        as_of: string
+        year: Omit<PeriodYear, "months"> | null
+        month: PeriodMonth | null
+      }
     }
     engines: Record<string, string>
   }
