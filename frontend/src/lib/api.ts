@@ -9,6 +9,7 @@ import type {
   MetaphysicsChartRecord,
   MetaphysicsChartRequest,
   MetaphysicsChartSavePayload,
+  MetaphysicsStatistics,
   SessionHistoryResponse,
   SessionPayload,
   SessionRequest,
@@ -84,6 +85,15 @@ export async function calculateMetaphysicsChart(payload: MetaphysicsChartRequest
     body: JSON.stringify(payload),
   })
   return handleResponse<MetaphysicsChart>(response)
+}
+
+export async function fetchMetaphysicsStatistics(payload: { chart_type: "bazi" | "ziwei"; baseline_id: string; feature_ids: string[] }): Promise<MetaphysicsStatistics> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/tools/metaphysics/statistics`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+  return handleResponse<MetaphysicsStatistics>(response)
 }
 
 export async function saveMetaphysicsChart(payload: MetaphysicsChartSavePayload, token: string): Promise<MetaphysicsChartRecord> {

@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useId, useRef, useState } from "react"
+import { ChevronRight } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
+import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
 import { buildBaziMarkdown } from "@/lib/chart-markdown"
-import type { MetaphysicsChart } from "@/types/api"
+import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit } from "@/types/api"
 
 type Locale = "en" | "zh"
 type SolarTerm = NonNullable<MetaphysicsChart["next_solar_term"]>
@@ -22,12 +24,17 @@ function currentYearInTimeZone(timeZone: string) {
 export function BaziChartView(props: BaziChartViewProps) {
   const { chart, locale, mode } = props
   const exportTargetId = `bazi-export-${useId().replaceAll(":", "")}`
+  const tableExportTargetId = `bazi-table-${useId().replaceAll(":", "")}`
   const facts = chart.calendar_facts
   const currentYear = currentYearInTimeZone(chart.timezone)
   const dayun = chart.birth_profile.dayun
   const currentCycle = dayun.cycles.find(
     (cycle) => cycle.start_year <= currentYear && currentYear <= cycle.end_year,
   )
+  const [selectedCycleIndex, setSelectedCycleIndex] = useState(() => currentCycle?.index ?? dayun.cycles[0]?.index ?? 0)
+  const initialYear = dayun.current?.year?.year ?? currentYear
+  const [selectedYear, setSelectedYear] = useState(initialYear)
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(() => dayun.current?.month?.index ?? 0)
   const calculationRule = [
     chart.calculation_mode === "true_solar"
       ? (locale === "zh" ? "真太阳时" : "True solar time")
@@ -60,19 +67,39 @@ export function BaziChartView(props: BaziChartViewProps) {
 
       <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={resultGeneratedAt} trustNote={trustNote} />
 
-      <ReportChapter title={locale === "zh" ? "命盘结构" : "Chart structure"} intro={locale === "zh" ? "以下均为原始数量、关系与时间位置，不换算为吉凶或强弱分数。" : "Raw counts, relationships, and cycle positions only—no luck or strength score."}>
-        <BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />
+      <ChartSectionNav locale={locale} />
+
+      <ReportChapter id="bazi-chart" title={locale === "zh" ? "命盘" : "Chart"} intro={locale === "zh" ? "四柱、十神、藏干与神煞按列对照；左侧字段固定，手机可横向滑动。" : "Compare pillars, Ten Gods, hidden stems, and Shen Sha by column. The field column stays visible on mobile."}>
+        <div data-export-exclude className="mb-3 flex justify-end"><ChartAssetExportButton targetId={tableExportTargetId} label={locale === "zh" ? "单独导出四柱表" : "Export pillar table"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "四柱表导出失败。" : "Pillar table export failed."} safeBaseFilename={`bazi-pillars-${chart.birth_profile.input_date}`} /></div>
+        <div id={tableExportTargetId}><BaziProfessionalTable chart={chart} locale={locale} /></div>
       </ReportChapter>
 
-      <ReportChapter title={locale === "zh" ? "专业命盘" : "Professional chart"} intro={locale === "zh" ? "四柱信息按列对照；地势、自坐、空亡与干支关系均由当前排盘规则直接计算。" : "Compare all four pillars by column. Life stages, voids, and stem/branch relations are calculated from the selected rules."}>
-        <BaziProfessionalTable chart={chart} locale={locale} />
+      <ReportChapter id="bazi-periods" title={locale === "zh" ? "运限" : "Periods"} intro={locale === "zh" ? "依次选择大运、流年和流月；每层显示干支、十神、旬空与该层新增命中。当前标记按公历年份定位，精确交接以所选起运规则为准。" : "Select a Da Yun, year, and month to inspect its stems, Ten God, void, and newly activated rules. The current marker uses the calendar year. Exact handoff follows the configured start rule."}>
+        <BaziPeriodNavigator
+          cycles={dayun.cycles}
+          locale={locale}
+          currentYear={currentYear}
+          selectedCycleIndex={selectedCycleIndex}
+          selectedYear={selectedYear}
+          selectedMonthIndex={selectedMonthIndex}
+          onCycleChange={(cycle) => { setSelectedCycleIndex(cycle.index); setSelectedYear(cycle.years.find((year) => year.year === currentYear)?.year ?? cycle.years[0]?.year ?? cycle.start_year); setSelectedMonthIndex(0) }}
+          onYearChange={(year) => { setSelectedYear(year.year); setSelectedMonthIndex(0) }}
+          onMonthChange={(month) => setSelectedMonthIndex(month.index)}
+        />
       </ReportChapter>
 
-      <ReportChapter title={locale === "zh" ? "大运时间线" : "Da Yun timeline"} intro={locale === "zh" ? "当前标记按公历年份定位；精确交接以所选起运规则为准。" : "The current marker is located by calendar year. Exact handoff follows the configured start rule."}>
-        <DayunTimeline chart={chart} locale={locale} currentYear={currentYear} />
+      <ReportChapter id="bazi-shensha" title={locale === "zh" ? "神煞" : "Shen Sha"} intro={locale === "zh" ? "默认先看核心规则；每项可核对命中柱位、公式、样本频率与传统来源。" : "Core rules appear first. Every item exposes its pillar, trigger, calendar-sample frequency, and traditional source."}>
+        <ShenShaPanel chart={chart} locale={locale} />
       </ReportChapter>
 
-      <ReportChapter title={locale === "zh" ? "排盘时令与规则" : "Calendar context and rules"}>
+      <ReportChapter id="bazi-statistics" title={locale === "zh" ? "统计" : "Statistics"} intro={locale === "zh" ? "只展示透明计数与同规则基线百分位；不是命运分数，也不代表吉凶。" : "Transparent counts and within-rule-set percentiles only; these are not fate or luck scores."}>
+        <div className="space-y-8">
+          <RuleIndexPanel chart={chart} locale={locale} />
+          <BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />
+        </div>
+      </ReportChapter>
+
+      <ReportChapter title={locale === "zh" ? "排盘规则与版本" : "Rules and versions"}>
         <div className="space-y-8">
           <div><p className="text-sm">{chart.previous_solar_term?.name || "—"} → {chart.next_solar_term?.name || "—"}</p>{chart.next_solar_term ? <HistoricalSolarTerm term={chart.next_solar_term} calculationTimestamp={chart.calculation_timestamp} locale={locale} timeZone={chart.timezone} /> : null}</div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -83,7 +110,8 @@ export function BaziChartView(props: BaziChartViewProps) {
           </div>
           {chart.birth_profile.hour_uncertain ? <HourCandidates candidates={chart.birth_profile.hour_candidates} locale={locale} /> : null}
           <div><h3 className="text-sm font-semibold">{locale === "zh" ? "原始大运周期" : "Raw Da Yun cycles"}</h3><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{dayun.cycles.map((cycle) => <p key={cycle.index} className="text-xs leading-5 text-muted-foreground">{cycle.index}. {cycle.ganzhi} · {cycle.start_age}–{cycle.end_age} · {cycle.start_year}–{cycle.end_year}</p>)}</div></div>
-          <p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {trustNote}</p>
+          <p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {chart.rules_version} · {chart.statistics.baseline.id}</p>
+          <p className="text-xs leading-5 text-muted-foreground">{chart.statistics.disclaimer}</p>
         </div>
       </ReportChapter>
 
@@ -121,8 +149,13 @@ function CurrentBaziView({ chart, locale }: { chart: MetaphysicsChart; locale: L
   )
 }
 
-function ReportChapter({ title, intro, children }: { title: string; intro?: string; children: React.ReactNode }) {
-  return <section className="chart-report-chapter border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{title}</h2>{intro ? <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{intro}</p> : null}<div className="mt-5">{children}</div></section>
+function ReportChapter({ id, title, intro, children }: { id?: string; title: string; intro?: string; children: React.ReactNode }) {
+  return <section id={id} className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{title}</h2>{intro ? <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{intro}</p> : null}<div className="mt-5">{children}</div></section>
+}
+
+function ChartSectionNav({ locale }: { locale: Locale }) {
+  const items = locale === "zh" ? [["#bazi-chart", "命盘"], ["#bazi-periods", "运限"], ["#bazi-shensha", "神煞"], ["#bazi-statistics", "统计"]] : [["#bazi-chart", "Chart"], ["#bazi-periods", "Periods"], ["#bazi-shensha", "Shen Sha"], ["#bazi-statistics", "Statistics"]]
+  return <nav aria-label={locale === "zh" ? "八字命盘章节" : "BaZi chart sections"} className="sticky top-20 z-20 -mx-2 flex gap-1 overflow-x-auto rounded-2xl border border-border/60 bg-background/90 p-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/75"><span className="sr-only">{locale === "zh" ? "跳转到" : "Jump to"}</span>{items.map(([href, label]) => <a key={href} href={href} className="min-w-20 flex-1 whitespace-nowrap rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-muted-foreground transition hover:bg-primary/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{label}</a>)}</nav>
 }
 
 function BaziProfessionalTable({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
@@ -136,6 +169,7 @@ function BaziProfessionalTable({ chart, locale }: { chart: MetaphysicsChart; loc
     { label: locale === "zh" ? "空亡" : "Void", values: chart.pillars.map((pillar) => pillar.xunkong ?? "—") },
     { label: locale === "zh" ? "地势" : "Life stage", values: chart.pillars.map((pillar) => pillar.di_shi ?? "—") },
     { label: locale === "zh" ? "自坐" : "Self seat", values: chart.pillars.map((pillar) => pillar.self_seat ?? "—") },
+    { label: locale === "zh" ? "神煞" : "Shen Sha", values: chart.pillars.map((pillar) => chart.shen_sha.filter((hit) => hit.pillar_labels.includes(pillar.label)).map((hit) => hit.name).join(" / ") || "—") },
   ]
   const status = Object.entries(chart.element_season_status ?? {})
   return (
@@ -147,7 +181,7 @@ function BaziProfessionalTable({ chart, locale }: { chart: MetaphysicsChart; loc
         </div>
         {rows.map((row, rowIndex) => (
           <div key={row.label} className={`grid grid-cols-[3.75rem_repeat(4,minmax(4.6rem,1fr))] border-b border-border/30 last:border-b-0 md:grid-cols-[7rem_repeat(4,minmax(0,1fr))] ${rowIndex % 2 ? "bg-background/50" : ""}`}>
-            <div className="flex items-center px-2 py-3 text-xs font-medium text-muted-foreground md:px-3">{row.label}</div>
+            <div className="sticky left-0 z-10 flex items-center border-r border-border/30 bg-background px-2 py-3 text-xs font-medium text-muted-foreground md:px-3">{row.label}</div>
             {row.values.map((value, index) => (
               <div key={`${row.label}-${chart.pillars[index].label}`} data-element={row.elements?.[index]} className="flex min-h-12 items-center justify-center border-l border-border/30 px-1.5 py-2 text-center text-xs leading-5 md:px-3 md:text-sm">
                 <span className={row.prominent ? "chart-element-text text-3xl font-semibold leading-none md:text-4xl" : "break-words"}>{value}</span>
@@ -165,6 +199,91 @@ function BaziProfessionalTable({ chart, locale }: { chart: MetaphysicsChart; loc
       </div>
     </div>
   )
+}
+
+function BaziPeriodNavigator({ cycles, locale, currentYear, selectedCycleIndex, selectedYear, selectedMonthIndex, onCycleChange, onYearChange, onMonthChange }: {
+  cycles: DayunCycle[]
+  locale: Locale
+  currentYear: number
+  selectedCycleIndex: number
+  selectedYear: number
+  selectedMonthIndex: number
+  onCycleChange: (cycle: DayunCycle) => void
+  onYearChange: (year: PeriodYear) => void
+  onMonthChange: (month: PeriodMonth) => void
+}) {
+  const selectedCycle = cycles.find((cycle) => cycle.index === selectedCycleIndex) ?? cycles[0]
+  const year = selectedCycle?.years.find((item) => item.year === selectedYear) ?? selectedCycle?.years[0]
+  const month = year?.months.find((item) => item.index === selectedMonthIndex) ?? year?.months[0]
+  if (!selectedCycle) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "需要准确出生时辰和性别后才可计算运限。" : "An exact birth hour and gender are required for period calculations."}</p>
+  return (
+    <div className="space-y-6">
+      <PeriodRail label={locale === "zh" ? "大运" : "Da Yun"}>
+        {cycles.map((cycle) => <PeriodButton key={cycle.index} selected={cycle.index === selectedCycle.index} current={cycle.start_year <= currentYear && currentYear <= cycle.end_year} onClick={() => onCycleChange(cycle)} title={cycle.ganzhi || cycle.label} meta={`${cycle.start_age}–${cycle.end_age}${locale === "zh" ? "岁" : "y"}`} footer={`${cycle.start_year}–${cycle.end_year}`} />)}
+      </PeriodRail>
+      <PeriodRail label={locale === "zh" ? "流年" : "Year"}>
+        {selectedCycle.years.map((item) => <PeriodButton key={item.year} selected={item.year === year?.year} current={item.year === currentYear} onClick={() => onYearChange(item)} title={item.ganzhi} meta={`${item.year}`} footer={`${item.age}${locale === "zh" ? "岁" : "y"} · ${item.ten_god}`} />)}
+      </PeriodRail>
+      {year ? <PeriodRail label={locale === "zh" ? "流月" : "Month"}>
+        {year.months.map((item) => <PeriodButton key={item.index} selected={item.index === month?.index} onClick={() => onMonthChange(item)} title={item.ganzhi} meta={item.label} footer={item.ten_god} />)}
+      </PeriodRail> : null}
+      <div className="grid gap-3 rounded-2xl bg-primary/[0.055] p-4 sm:grid-cols-3">
+        <PeriodSummary label={locale === "zh" ? "所选大运" : "Selected Da Yun"} value={`${selectedCycle.ganzhi || selectedCycle.label} · ${selectedCycle.ten_god || "—"}`} detail={`${selectedCycle.start_year}–${selectedCycle.end_year}`} />
+        <PeriodSummary label={locale === "zh" ? "所选流年" : "Selected year"} value={year ? `${year.ganzhi} · ${year.ten_god}` : "—"} detail={year ? `${year.year} · ${locale === "zh" ? "旬空" : "Void"} ${year.xunkong}` : "—"} />
+        <PeriodSummary label={locale === "zh" ? "所选流月" : "Selected month"} value={month ? `${month.ganzhi} · ${month.ten_god}` : "—"} detail={month ? `${locale === "zh" ? "旬空" : "Void"} ${month.xunkong}` : "—"} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <PeriodActivations title={locale === "zh" ? "流年新增命中与关系" : "Year activations and relations"} values={[...(year?.shen_sha ?? []), ...(year?.relations ?? [])]} locale={locale} />
+        <PeriodActivations title={locale === "zh" ? "流月新增命中与关系" : "Month activations and relations"} values={[...(month?.shen_sha ?? []), ...(month?.relations ?? [])]} locale={locale} />
+      </div>
+    </div>
+  )
+}
+
+function PeriodRail({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div><div className="mb-2 flex items-center gap-2"><h3 className="text-sm font-semibold">{label}</h3><ChevronRight aria-hidden="true" className="size-3.5 text-muted-foreground" /></div><div className="overflow-x-auto pb-2 custom-scrollbar"><div className="flex min-w-max gap-2">{children}</div></div></div>
+}
+
+function PeriodButton({ selected, current, onClick, title, meta, footer }: { selected: boolean; current?: boolean; onClick: () => void; title: string; meta: string; footer: string }) {
+  return <button type="button" aria-pressed={selected} onClick={onClick} className={`w-28 shrink-0 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected ? "border-primary bg-primary/10 shadow-sm" : "border-border/55 bg-surface hover:border-primary/45"}`}><span className="flex items-center justify-between gap-1 text-[0.68rem] text-muted-foreground"><span>{meta}</span>{current ? <span className="rounded-full bg-primary/12 px-1.5 py-0.5 font-semibold text-primary">今</span> : null}</span><strong className="mt-1 block text-lg">{title}</strong><span className="mt-1 block text-xs text-muted-foreground">{footer}</span></button>
+}
+
+function PeriodSummary({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return <div><p className="text-xs font-semibold text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>
+}
+
+function PeriodActivations({ title, values, locale }: { title: string; values: string[]; locale: Locale }) {
+  return <section className="border-t border-border/55 pt-3"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{values.join(" · ") || (locale === "zh" ? "没有新增命中；这不等于无事发生。" : "No newly matched rule; this does not mean nothing happens.")}</p></section>
+}
+
+function ShenShaPanel({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+  const [showExtended, setShowExtended] = useState(false)
+  const metrics = new Map(chart.statistics.rarity_metrics.map((metric) => [metric.feature_id, metric]))
+  const visible = chart.shen_sha.filter((hit) => showExtended || hit.level === "core")
+  const categories = ["助力", "才学", "情缘", "执行", "迁动", "考验"]
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{locale === "zh" ? `核心命中 ${chart.shen_sha.filter((hit) => hit.level === "core").length} 项 · 扩展命中 ${chart.shen_sha.filter((hit) => hit.level === "extended").length} 项` : `${chart.shen_sha.filter((hit) => hit.level === "core").length} core · ${chart.shen_sha.filter((hit) => hit.level === "extended").length} extended hits`}</p>
+        <button type="button" aria-pressed={showExtended} onClick={() => setShowExtended((value) => !value)} className="rounded-full border border-border/60 px-3 py-1.5 text-xs font-semibold transition hover:border-primary/50 hover:text-primary">{showExtended ? (locale === "zh" ? "隐藏扩展规则" : "Hide extended") : (locale === "zh" ? "显示扩展规则" : "Show extended")}</button>
+      </div>
+      {categories.map((category) => {
+        const hits = visible.filter((hit) => hit.category === category)
+        if (!hits.length) return null
+        return <section key={category}><h3 className="text-sm font-semibold">{category}</h3><div className="mt-2 grid gap-2 lg:grid-cols-2">{hits.map((hit) => <ShenShaRow key={hit.rule_id} hit={hit} metric={metrics.get(hit.feature_id)} locale={locale} />)}</div></section>
+      })}
+      <p className="text-xs leading-5 text-muted-foreground">{chart.statistics.disclaimer}</p>
+    </div>
+  )
+}
+
+function ShenShaRow({ hit, metric, locale }: { hit: ShenShaHit; metric?: RarityMetric; locale: Locale }) {
+  const rarityLabels = locale === "zh" ? { common: "常见", less_common: "较少", rare: "稀有", very_rare: "罕见" } : { common: "Common", less_common: "Less common", rare: "Rare", very_rare: "Very rare" }
+  return <details className="group rounded-xl border border-border/50 bg-surface px-4 py-3 open:border-primary/35 open:bg-primary/[0.035]"><summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-4"><span><strong>{hit.name}</strong><span className="ml-2 text-xs text-muted-foreground">{hit.pillar_labels.join("、")}{locale === "zh" ? "柱" : " pillar"}</span></span><span className="text-right text-xs"><strong className="text-primary">{metric?.display_percentage ?? "—"}</strong><span className="ml-1 text-muted-foreground">{metric ? rarityLabels[metric.level] : ""}</span></span></span></summary><div className="mt-3 space-y-2 border-t border-border/45 pt-3 text-xs leading-5 text-muted-foreground"><p>{hit.trigger}</p><p><strong className="text-foreground">{locale === "zh" ? "来源" : "Source"}：</strong>{hit.source.title} · {hit.source.note}</p>{hit.school_note ? <p><strong className="text-foreground">{locale === "zh" ? "流派备注" : "School note"}：</strong>{hit.school_note}</p> : null}<p>{locale === "zh" ? "分母" : "Denominator"}：{metric?.total_weight.toLocaleString() ?? "—"} {locale === "zh" ? "历法分钟权重" : "calendar-minute weight"}</p></div></details>
+}
+
+function RuleIndexPanel({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+  return <section aria-labelledby="rule-index-title"><div className="flex flex-wrap items-end justify-between gap-2"><div><h3 id="rule-index-title" className="text-base font-semibold">{locale === "zh" ? "六项规则指数" : "Six rule indices"}</h3><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "同一规则集内的百分位；条形长度不是吉凶。" : "Percentiles within the same rule set; bar length is not luck."}</p></div><p className="text-xs text-muted-foreground">{chart.statistics.baseline.label}</p></div><div className="mt-4 grid gap-x-8 gap-y-4 md:grid-cols-2">{chart.statistics.rule_indices.map((item) => <div key={item.dimension}><div className="flex items-end justify-between gap-3 text-sm"><span className="font-semibold">{item.dimension}</span><span><strong>{item.percentile.toFixed(0)}</strong><span className="ml-1 text-xs text-muted-foreground">{locale === "zh" ? "百分位" : "percentile"}</span></span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-primary/10"><div className="h-full rounded-full bg-primary/65" style={{ width: `${Math.max(1, item.percentile)}%` }} /></div><p className="mt-1.5 text-xs text-muted-foreground">{locale === "zh" ? `核心命中 ${item.raw_count} 项` : `${item.raw_count} core hits`} · {item.contribution_rules.join("、") || "—"}</p></div>)}</div></section>
 }
 
 function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChart; locale: Locale; currentYear: number }) {
@@ -206,8 +325,8 @@ function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChar
       <StatisticBlock title={locale === "zh" ? "阴阳结构" : "Yin / Yang"} description={unknownCount ? (locale === "zh" ? `${unknownCount} 个待定明字未计入` : `${unknownCount} uncertain characters excluded`) : (locale === "zh" ? "只计算八个明字" : "Eight visible characters")}>
         <div className="mt-4 grid grid-cols-2 divide-x divide-border/50 text-center"><RawNumber label={locale === "zh" ? "阳" : "Yang"} value={yangCount} /><RawNumber label={locale === "zh" ? "阴" : "Yin"} value={yinCount} /></div>
       </StatisticBlock>
-      <StatisticBlock title={locale === "zh" ? "十神频次" : "Ten Gods"} description={locale === "zh" ? "明干与藏干分列" : "Visible and hidden separated"}>
-        <div className="mt-3 space-y-2 text-xs leading-5"><p><strong>{locale === "zh" ? "明" : "Visible"}：</strong>{formatCounts(visibleGods)}</p><p><strong>{locale === "zh" ? "藏" : "Hidden"}：</strong>{formatCounts(hiddenGods)}</p></div>
+      <StatisticBlock title={locale === "zh" ? "十神频次" : "Ten Gods"} description={locale === "zh" ? `分母：明干 ${visibleCharacters.filter((_, index) => index % 2 === 0).length} 项 · 藏干 ${Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)} 项` : `Denominators: ${visibleCharacters.filter((_, index) => index % 2 === 0).length} visible stems · ${Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)} hidden stems`}>
+        <div className="mt-3 space-y-2 text-xs leading-5"><p><strong>{locale === "zh" ? "明干" : "Visible stems"}：</strong>{formatCounts(visibleGods)}</p><p><strong>{locale === "zh" ? "藏干" : "Hidden stems"}：</strong>{formatCounts(hiddenGods)}</p></div>
       </StatisticBlock>
       <StatisticBlock title={locale === "zh" ? "干支关系" : "Relationships"} description={locale === "zh" ? "按已识别规则计数" : "Exact recognized rules"}>
         <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs">{relationshipGroups.map((group) => <span key={group.key}><strong>{group.label}</strong> {allRelations.filter((item) => item.includes(group.key)).length}</span>)}</div>

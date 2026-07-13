@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from iching.integrations.supabase_client import SupabaseAuthError
 from iching.core.metaphysics import build_metaphysics_chart
+from iching.core.metaphysics_statistics import lookup_statistics
 from iching.web.chat_service import ChatRateLimitError
 from iching.web.chart_service import ChartArchiveService
 from iching.web.models import (
@@ -20,6 +21,8 @@ from iching.web.models import (
     ConfigResponse,
     MetaphysicsChartRequest,
     MetaphysicsChartResponse,
+    MetaphysicsStatisticsRequest,
+    MetaphysicsStatisticsResponse,
     MetaphysicsChartSaveRequest,
     SessionCreateRequest,
     SessionPayload,
@@ -84,6 +87,19 @@ def calculate_metaphysics_chart(payload: MetaphysicsChartRequest) -> Metaphysics
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return MetaphysicsChartResponse(**result)
+
+
+@router.post("/tools/metaphysics/statistics", response_model=MetaphysicsStatisticsResponse)
+def read_metaphysics_statistics(payload: MetaphysicsStatisticsRequest) -> MetaphysicsStatisticsResponse:
+    try:
+        result = lookup_statistics(
+            chart_type=payload.chart_type,
+            baseline_id=payload.baseline_id,
+            feature_ids=payload.feature_ids,
+        )
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return MetaphysicsStatisticsResponse(**result)
 
 
 @router.post(

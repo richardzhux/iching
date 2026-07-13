@@ -1,4 +1,4 @@
-import type { MetaphysicsChart } from "@/types/api"
+import type { MetaphysicsChart, MetaphysicsStatistics } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 
@@ -10,8 +10,8 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
   const zh = locale === "zh"
   const title = subjectName.trim() || (zh ? "未命名命盘" : "Personal chart")
   const labels = zh
-    ? ["干神", "天干", "地支", "藏干", "支神", "纳音", "空亡", "地势", "自坐"]
-    : ["Stem relation", "Stem", "Branch", "Hidden stems", "Hidden relations", "Na Yin", "Void", "Life stage", "Self seat"]
+    ? ["干神", "天干", "地支", "藏干", "支神", "纳音", "空亡", "地势", "自坐", "神煞"]
+    : ["Stem relation", "Stem", "Branch", "Hidden stems", "Hidden relations", "Na Yin", "Void", "Life stage", "Self seat", "Shen Sha"]
   const rows = [
     chart.pillars.map((pillar) => pillar.ten_god),
     chart.pillars.map((pillar) => `${pillar.stem}·${pillar.stem_element}`),
@@ -22,6 +22,7 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
     chart.pillars.map((pillar) => pillar.xunkong ?? "—"),
     chart.pillars.map((pillar) => pillar.di_shi ?? "—"),
     chart.pillars.map((pillar) => pillar.self_seat ?? "—"),
+    chart.pillars.map((pillar) => chart.shen_sha.filter((hit) => hit.pillar_labels.includes(pillar.label)).map((hit) => hit.name).join(" / ") || "—"),
   ]
   const headings = zh ? [title, "年柱", "月柱", "日柱", "时柱"] : [title, "Year", "Month", "Day", "Hour"]
   const table = [
@@ -41,7 +42,26 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
         `Branch relations: ${(chart.branch_relations ?? []).join(" / ") || "None listed"}`,
         `Seasonal element state: ${seasonal}`,
       ]
-  return [`## ${zh ? "命主" : "Chart"}：${title}`, "", `## ${zh ? "生辰八字" : "BaZi"}`, "", ...table, "", ...facts].join("\n")
+  const shensha = chart.shen_sha.map((hit) => {
+    const rarity = chart.statistics.rarity_metrics.find((metric) => metric.feature_id === hit.feature_id)
+    return `- ${hit.name}｜${hit.pillar_labels.join("、")}${zh ? "柱" : " pillar"}｜${rarity?.display_percentage ?? "—"}｜${hit.source.title}`
+  })
+  const dayun = chart.birth_profile.dayun.cycles.length ? [
+    `## ${zh ? "大运" : "Da Yun"}`,
+    "",
+    `| ${zh ? "干支" : "Pillar"} | ${zh ? "年龄" : "Ages"} | ${zh ? "年份" : "Years"} | ${zh ? "十神" : "Ten God"} |`,
+    "| --- | --- | --- | --- |",
+    ...chart.birth_profile.dayun.cycles.map((cycle) => `| ${cell(cycle.ganzhi || cycle.label)} | ${cycle.start_age}–${cycle.end_age} | ${cycle.start_year}–${cycle.end_year} | ${cell(cycle.ten_god || "—")} |`),
+    "",
+  ] : []
+  const indices = chart.statistics.rule_indices.map((item) => `- ${item.dimension}：${item.percentile.toFixed(0)} ${zh ? "百分位" : "percentile"}｜${zh ? "核心命中" : "core hits"} ${item.raw_count}｜${item.contribution_rules.join("、") || "—"}`)
+  return [
+    `## ${zh ? "命主" : "Chart"}：${title}`, "", `## ${zh ? "生辰八字" : "BaZi"}`, "", ...table, "", ...facts,
+    "", ...dayun,
+    "", `## ${zh ? "神煞与历法样本频率" : "Shen Sha and calendar-sample frequency"}`, "", ...shensha,
+    "", `## ${zh ? "透明规则指数" : "Transparent rule indices"}`, "", ...indices,
+    "", `> ${chart.statistics.disclaimer}`, `> ${zh ? "规则版本" : "Rules"}: ${chart.rules_version} · ${zh ? "统计基线" : "Baseline"}: ${chart.statistics.baseline.id}`,
+  ].join("\n")
 }
 
 export function buildZiweiMarkdown(
@@ -49,6 +69,7 @@ export function buildZiweiMarkdown(
   horoscope: IFunctionalHoroscope,
   subjectName: string,
   locale: Locale,
+  statistics?: MetaphysicsStatistics,
 ) {
   const zh = locale === "zh"
   const title = subjectName.trim() || (zh ? "匿名命主" : "Anonymous chart")
@@ -90,5 +111,6 @@ export function buildZiweiMarkdown(
     ...summaryTable,
     "",
     ...palaceTable,
+    ...(statistics ? ["", `> ${statistics.disclaimer}`, `> ${zh ? "统计基线" : "Baseline"}: ${statistics.baseline.id} · ${statistics.baseline.hash}`] : []),
   ].join("\n")
 }
