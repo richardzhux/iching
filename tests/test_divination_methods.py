@@ -4,7 +4,7 @@ from itertools import product
 
 import pytest
 
-from iching.core.divination import MeihuaMethod, ShicaoMethod
+from iching.core.divination import CoinMethod, MeihuaMethod, ShicaoMethod
 
 
 class _SequenceRng:
@@ -35,6 +35,22 @@ def test_yarrow_elementary_outcomes_have_exact_canonical_weights():
     )
 
     assert outcomes == {6: 1, 7: 5, 8: 7, 9: 3}
+
+
+def test_coin_method_preserves_valid_browser_lines_and_rejects_invalid_values():
+    method = CoinMethod()
+    provided = [6, 7, 8, 9, 7, 6]
+
+    assert method.generate_lines(interactive=False, manual_lines=provided) == provided
+
+    with pytest.raises(ValueError, match="manual_lines"):
+        method.generate_lines(interactive=False, manual_lines=[6, 7, 8])
+    with pytest.raises(ValueError, match="manual_lines"):
+        method.generate_lines(interactive=False, manual_lines=[6, 7, 8, 9, 7, 5])
+    with pytest.raises(ValueError, match="manual_lines"):
+        method.generate_lines(interactive=False, manual_lines=[6.0, 7, 8, 9, 7, 6])
+    with pytest.raises(ValueError, match="manual_lines"):
+        method.generate_lines(interactive=False, manual_lines=[True, 7, 8, 9, 7, 6])
 
 
 def test_meihua_numbers_use_first_number_for_upper_trigram():

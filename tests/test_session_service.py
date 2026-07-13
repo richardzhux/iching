@@ -78,7 +78,7 @@ def _assert_brief_contract(brief):
     assert brief["key_passages"]
     assert brief["source_passages"]
     assert brief["archive_sources"]
-    assert brief["timing"]
+    assert isinstance(brief["timing"], list)
     assert brief["actions"]
     assert brief["risks"]
     assert brief["followup_prompts"]
@@ -164,6 +164,26 @@ def test_session_service_builds_fallback_reading_brief_without_ai():
     _assert_brief_contract(result.reading_brief)
     assert result.reading_brief["headline"].startswith("事业")
     assert "合作" in result.reading_brief["plain_language"]
+
+
+def test_chart_only_fallback_does_not_invent_timing_precision_or_near_term_claims():
+    config = build_app_config(enable_ai=False)
+    service = SessionService(config=config)
+
+    result = service.create_session(
+        topic="事业",
+        user_question="我现在应该先观察什么？",
+        method_key="x",
+        manual_lines=[7, 8, 7, 8, 7, 8],
+        enable_ai=False,
+        interactive=False,
+    )
+
+    assert result.reading_brief["timing"] == []
+    assert all(
+        "一到两周" not in str(item.get("cadence") or "")
+        for item in result.reading_brief["actions"]
+    )
 
 
 def test_session_service_preserves_user_context_in_payload_and_brief():

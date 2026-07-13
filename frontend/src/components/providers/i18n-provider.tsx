@@ -22,7 +22,7 @@ type Props = {
 export function I18nProvider({ locale, messages, children }: Props) {
   useEffect(() => {
     if (typeof document === "undefined") return
-    document.documentElement.lang = locale === "zh" ? "zh-Hans" : "en"
+    document.documentElement.lang = locale === "zh" ? "zh-CN" : "en"
   }, [locale])
 
   return (

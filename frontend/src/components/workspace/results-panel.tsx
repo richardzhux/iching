@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useWorkspaceStore, type JournalStatus, type ReadingJournalEntry } from "@/lib/store"
 import { trackProductEvent } from "@/lib/analytics"
+import { sourceDisplayLabel } from "@/lib/source-labels"
 import type {
   BaziPillar,
   HexSection,
@@ -82,35 +83,46 @@ export function ResultsPanel() {
           <Tabs
             value={resultsTab}
             onValueChange={(value) => {
-              if (value === "summary" || value === "hex" || value === "sources" || value === "ai") {
+              if (value === "summary" || value === "hex" || value === "ai") {
                 setResultsTab(value)
               }
             }}
           >
-            <TabsList className="grid w-full grid-cols-4 rounded-md bg-surface-elevated text-foreground">
-              <TabsTrigger value="summary">{locale === "zh" ? "断卦" : "Interpretation"}</TabsTrigger>
-              <TabsTrigger value="hex">{locale === "zh" ? "卦盘" : "Chart"}</TabsTrigger>
-              <TabsTrigger value="sources">{locale === "zh" ? "经典依据" : "Sources"}</TabsTrigger>
-              <TabsTrigger value="ai">{locale === "zh" ? "AI 追问" : "AI Chat"}</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 rounded-md bg-surface-elevated text-foreground">
+              <TabsTrigger value="summary">{messages.workspace.results.tabSummary}</TabsTrigger>
+              <TabsTrigger value="hex">{messages.workspace.results.tabHex}</TabsTrigger>
+              <TabsTrigger value="ai">{messages.workspace.results.tabAi}</TabsTrigger>
             </TabsList>
             <TabsContent value="summary">
               <ReadingBriefPanel
                 brief={brief}
                 onSourceSelect={openSourceReader}
-                onPrompt={(prompt) => {
-                  setPendingChatPrompt(prompt)
-                  setResultsTab("ai")
-                }}
               />
             </TabsContent>
             <TabsContent value="hex">
-              <HexResultBlock result={result} brief={brief} onSourceSelect={openSourceReader} />
-            </TabsContent>
-            <TabsContent value="sources">
-              <SourceEvidencePanel brief={brief} onSourceSelect={openSourceReader} />
+              <div className="space-y-5">
+                <HexResultBlock result={result} brief={brief} onSourceSelect={openSourceReader} />
+                <SourceEvidencePanel brief={brief} onSourceSelect={openSourceReader} />
+              </div>
             </TabsContent>
             <TabsContent value="ai">
-              <ChatPanel session={result} />
+              <div className="mt-4 space-y-4">
+                {brief.followup_prompts.length ? (
+                  <section className="rounded-lg border border-border/50 bg-surface p-4">
+                    <h2 className="text-sm font-semibold text-foreground">
+                      {locale === "zh" ? "可以继续问" : "Suggested follow-ups"}
+                    </h2>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {brief.followup_prompts.map((prompt) => (
+                        <Button key={prompt} type="button" variant="outline" size="sm" onClick={() => setPendingChatPrompt(prompt)}>
+                          {prompt}
+                        </Button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+                <ChatPanel session={result} />
+              </div>
             </TabsContent>
           </Tabs>
           <details className="mt-4 rounded-lg border border-border/50 bg-surface px-4 py-3">
@@ -141,13 +153,13 @@ export function ResultsPanel() {
 }
 
 function resolveReadingBrief(result: SessionPayload, locale: "en" | "zh"): ReadingBrief {
-  const fallbackSourcePassages = sourcePassagesFromSections(result.hex_sections || [])
+  const fallbackSourcePassages = sourcePassagesFromSections(result.hex_sections || [], locale)
   if (result.reading_brief?.headline) {
     const sourcePassages = result.reading_brief.source_passages?.length
-      ? withResolvedSourceIds(result.reading_brief.source_passages)
+      ? withResolvedSourceIds(result.reading_brief.source_passages, locale)
       : fallbackSourcePassages
     const keyPassages = result.reading_brief.key_passages?.length
-      ? withResolvedSourceIds(result.reading_brief.key_passages)
+      ? withResolvedSourceIds(result.reading_brief.key_passages, locale)
       : keyPassagesFromResult(result, locale)
     return {
       ...result.reading_brief,
@@ -225,11 +237,19 @@ function sourceIdForPassage(passage: Pick<ReadingBriefSourcePassage, "source_id"
   return `${passage.slot_key || passage.title}::${passage.source || "unknown"}`
 }
 
-function withResolvedSourceIds<T extends ReadingBriefSourcePassage>(passages: T[]): T[] {
-  return passages.map((passage) => ({
-    ...passage,
-    source_id: sourceIdForPassage(passage),
-  }))
+function withResolvedSourceIds<T extends ReadingBriefSourcePassage>(passages: T[], locale: "en" | "zh"): T[] {
+  return passages.map((passage) => {
+    const sourceLabel = sourceDisplayLabel(passage.source, locale)
+    const unverified = sourceLabel === "来源待核" || sourceLabel === "Source unverified"
+    return {
+      ...passage,
+      source_id: sourceIdForPassage(passage),
+      source_label: sourceLabel,
+      citation: unverified
+        ? [sourceLabel, passage.hexagram_name, passage.title].filter(Boolean).join("｜")
+        : passage.citation,
+    }
+  })
 }
 
 function sectionSourceIdForDrawer(section: HexSection) {
@@ -239,21 +259,13 @@ function sectionSourceIdForDrawer(section: HexSection) {
   return `${section.slot_key || section.title}::${section.source || "unknown"}`
 }
 
-function sourcePassagesFromSections(sections: HexSection[]): ReadingBriefSourcePassage[] {
+function sourcePassagesFromSections(sections: HexSection[], locale: "en" | "zh"): ReadingBriefSourcePassage[] {
   return sections
     .filter((section) => section.content)
     .map((section) => {
       const source = section.source || "unknown"
       const slotKey = section.slot_key || `${section.hexagram_name}:${section.section_kind}`
-      const sourceLabel =
-        section.source_label ||
-        (source === "takashima"
-          ? "高岛易断"
-          : source === "english_commentary"
-            ? "English Commentary"
-            : source === "symbolic"
-              ? "卦象"
-              : "卦辞库")
+      const sourceLabel = sourceDisplayLabel(source, locale)
       return {
         source_id: section.source_id || `${slotKey}::${source}`,
         slot_key: slotKey,
@@ -325,7 +337,7 @@ function decisiveSectionsFromResult(result: SessionPayload): HexSection[] {
 }
 
 function keyPassagesFromResult(result: SessionPayload, locale: "en" | "zh"): ReadingBriefKeyPassage[] {
-  return sourcePassagesFromSections(decisiveSectionsFromResult(result))
+  return sourcePassagesFromSections(decisiveSectionsFromResult(result), locale)
     .slice(0, 4)
     .map((passage) => {
       const excerpt = compactText(passage.content, 360)
@@ -412,7 +424,7 @@ function sourceLayerLabel(passage: ReadingBriefSourcePassage, locale: "en" | "zh
   if (source.includes("english")) return locale === "zh" ? "英文评注层" : "English commentary layer"
   if (source.includes("symbolic")) return locale === "zh" ? "卦象结构层" : "Structural inference layer"
   if (source.includes("guaci")) return locale === "zh" ? "经典原文层" : "Classical text layer"
-  return locale === "zh" ? "来源层" : "Source layer"
+  return locale === "zh" ? "来源待核" : "Source unverified"
 }
 
 function whySelectedForSource(passage: ReadingBriefSourcePassage, locale: "en" | "zh") {
@@ -432,8 +444,8 @@ function whySelectedForSource(passage: ReadingBriefSourcePassage, locale: "en" |
       : "This passage belongs to whole-hexagram material and frames the primary or changed context."
   }
   return locale === "zh"
-    ? "这段与当前槽位或来源组相关，用作补充校验。"
-    : "This passage is related to the selected slot or source group and is used as supporting evidence."
+    ? "这段补充了当前判断，可与关键原文交叉核对。"
+    : "This passage supports the current judgment and can be checked against the decisive text."
 }
 
 function archiveCoverageFromPassages(passages: ReadingBriefSourcePassage[]) {
@@ -450,12 +462,12 @@ function archiveCoverageFromPassages(passages: ReadingBriefSourcePassage[]) {
 
 function stanceCopy(stance: string, locale: "en" | "zh") {
   const zh: Record<string, string> = {
-    stable: "格局稳定",
+    stable: "无动爻",
     changing: "变化中",
     transforming: "强变化",
   }
   const en: Record<string, string> = {
-    stable: "Stable pattern",
+    stable: "No moving lines",
     changing: "Changing pattern",
     transforming: "Full transformation",
   }
@@ -465,11 +477,9 @@ function stanceCopy(stance: string, locale: "en" | "zh") {
 function ReadingBriefPanel({
   brief,
   onSourceSelect,
-  onPrompt,
 }: {
   brief: ReadingBrief
   onSourceSelect: (sourceId: string) => void
-  onPrompt: (prompt: string) => void
 }) {
   const { locale } = useI18n()
   const labels =
@@ -481,8 +491,6 @@ function ReadingBriefPanel({
           timing: "应期与条件",
           actions: "行动建议",
           risks: "风险信号",
-          followups: "继续追问",
-          confidence: "置信度",
           condition: "条件",
           cadence: "节奏",
           signal: "观察指标",
@@ -494,8 +502,6 @@ function ReadingBriefPanel({
           timing: "Timing and conditions",
           actions: "Actions",
           risks: "Risk signals",
-          followups: "Continue with",
-          confidence: "Confidence",
           condition: "Condition",
           cadence: "Cadence",
           signal: "Signal",
@@ -519,7 +525,7 @@ function ReadingBriefPanel({
         <div className="rounded-lg border border-border/50 bg-surface p-5">
           <h3 className="text-sm font-semibold text-foreground">{labels.evidence}</h3>
           <div className="mt-4 space-y-3">
-            {brief.evidence.map((item, index) => (
+            {brief.evidence.slice(0, 3).map((item, index) => (
               <article key={`${item.basis}-${index}`} className="rounded-md border border-border/50 bg-surface-elevated/80 p-4">
                 <p className="text-sm font-semibold text-foreground">{item.conclusion}</p>
                 <p className="mt-1 text-xs font-medium text-muted-foreground">{item.basis}</p>
@@ -541,24 +547,19 @@ function ReadingBriefPanel({
         </div>
 
         <div className="space-y-4">
-          <section className="rounded-lg border border-border/50 bg-surface p-5">
+          {brief.timing.length ? <section className="rounded-lg border border-border/50 bg-surface p-5">
             <h3 className="text-sm font-semibold text-foreground">{labels.timing}</h3>
             <div className="mt-4 space-y-3">
               {brief.timing.map((item, index) => (
                 <div key={`${item.window}-${index}`} className="rounded-md bg-surface-elevated/90 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-foreground">{item.window}</p>
-                    <span className="text-xs text-muted-foreground">
-                      {labels.confidence} {item.confidence}%
-                    </span>
-                  </div>
+                  <p className="text-sm font-semibold text-foreground">{item.window}</p>
                   <p className="mt-2 text-xs leading-5 text-muted-foreground">
                     {labels.condition}: {item.condition}
                   </p>
                 </div>
               ))}
             </div>
-          </section>
+          </section> : null}
 
           <section className="rounded-lg border border-border/50 bg-surface p-5">
             <h3 className="text-sm font-semibold text-foreground">{labels.risks}</h3>
@@ -574,23 +575,12 @@ function ReadingBriefPanel({
       <section className="rounded-lg border border-border/50 bg-surface p-5">
         <h3 className="text-sm font-semibold text-foreground">{labels.actions}</h3>
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
-          {brief.actions.map((item, index) => (
+          {brief.actions.slice(0, 3).map((item, index) => (
             <article key={`${item.action}-${index}`} className="rounded-md border border-border/50 bg-surface-elevated/80 p-4">
               <p className="text-sm font-semibold leading-6 text-foreground">{item.action}</p>
               <p className="mt-3 text-xs text-muted-foreground">{labels.cadence}: {item.cadence}</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{labels.signal}: {item.signal}</p>
             </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-border/50 bg-surface p-5">
-        <h3 className="text-sm font-semibold text-foreground">{labels.followups}</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {brief.followup_prompts.map((prompt) => (
-            <Button key={prompt} type="button" variant="outline" size="sm" className="rounded-md" onClick={() => onPrompt(prompt)}>
-              {prompt}
-            </Button>
           ))}
         </div>
       </section>
@@ -617,12 +607,12 @@ function SourceEvidencePanel({
         <section className="imperial-highlight-panel rounded-lg p-5">
           <h2 className="text-base font-semibold text-foreground">{labels.title}</h2>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">{labels.body}</p>
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
-            {brief.key_passages.map((passage, index) => (
-              <article key={`${passage.slot_key}-${passage.source}-${index}`} className="imperial-highlight-card rounded-md p-4">
+	          <div className="mt-4 divide-y divide-primary/20">
+	            {brief.key_passages.map((passage, index) => (
+	              <article key={`${passage.slot_key}-${passage.source}-${index}`} className="py-5 first:pt-0 last:pb-0">
                 <p className="text-sm font-semibold leading-6 text-foreground">{passage.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{labels.source}: {passage.source_label}</p>
-                <div className="mt-3 rounded-md border border-border/40 bg-surface p-3">
+	                <div className="mt-3 border-l-2 border-primary/40 pl-3">
                   <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{labels.excerpt}</p>
                   <p className="mt-2 text-sm leading-6 text-foreground">{passage.excerpt || passage.quote || passage.content}</p>
                 </div>
@@ -920,8 +910,11 @@ function SourceReaderSheet({
     brief.source_passages?.length
       ? brief.source_passages
       : ((brief.key_passages || []) as ReadingBriefSourcePassage[]),
+    locale,
   )
-  const selected = sourcePassages.find((passage) => sourceIdForPassage(passage) === activeSourceId) || sourcePassages[0]
+  const selected = activeSourceId
+    ? sourcePassages.find((passage) => sourceIdForPassage(passage) === activeSourceId)
+    : undefined
   const selectedSlot = selected?.slot_key
   const relatedPassages = selectedSlot
     ? sourcePassages.filter((passage) => passage.slot_key === selectedSlot)
@@ -934,26 +927,24 @@ function SourceReaderSheet({
       ? {
           title: "原文笔记",
           body: "在右侧查看本次取用的具体来源块，保持断卦页简洁。",
-	          sameSlot: "同一槽位",
-	          otherSlots: "其他相关",
+	          sameSlot: "同一爻位依据",
+	          otherSlots: "其他相关依据",
 	          citation: "引用",
-	          slot: "槽位",
 	          layer: "来源分类",
 	          why: "为什么选它",
 	          content: "来源内容",
-	          empty: "当前没有可打开的来源段落。",
+	          empty: "未找到请求的来源段落；请返回依据列表重新选择。",
 	        }
 	      : {
           title: "Source notebook",
           body: "Review the exact source chunks for this reading without expanding the whole result page.",
-	          sameSlot: "Same slot",
-	          otherSlots: "Other relevant",
+	          sameSlot: "Same-line evidence",
+	          otherSlots: "Other relevant evidence",
 	          citation: "Citation",
-	          slot: "Slot",
 	          layer: "Source class",
 	          why: "Why selected",
 	          content: "Source content",
-	          empty: "No source passage is available for this reading.",
+	          empty: "The requested source passage was not found. Return to the evidence list and choose another source.",
 	        }
 
   return (
@@ -996,20 +987,13 @@ function SourceReaderSheet({
                   </p>
                   <h3 className="mt-2 text-xl font-semibold leading-8 text-foreground">{selected.title}</h3>
                 </div>
-                <span className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground">
-                  {selected.slot_key}
-                </span>
-              </div>
-	              <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
-	                <div className="rounded-md border border-border/50 bg-surface px-3 py-2">
-	                  <dt className="text-muted-foreground">{labels.slot}</dt>
-	                  <dd className="mt-1 font-semibold text-foreground">{selected.slot_key}</dd>
-	                </div>
-	                <div className="rounded-md border border-border/50 bg-surface px-3 py-2">
+	              </div>
+	              <dl className="mt-4 grid divide-y divide-border/50 border-y border-border/50 text-xs sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+	                <div className="py-3 sm:px-3 sm:first:pl-0">
 	                  <dt className="text-muted-foreground">{labels.layer}</dt>
 	                  <dd className="mt-1 font-semibold text-foreground">{sourceLayerLabel(selected, locale)}</dd>
 	                </div>
-	                <div className="rounded-md border border-border/50 bg-surface px-3 py-2">
+	                <div className="py-3 sm:px-3">
 	                  <dt className="text-muted-foreground">{labels.citation}</dt>
 	                  <dd className="mt-1 font-semibold text-foreground">{selected.citation || selected.source_label}</dd>
 	                </div>
@@ -1020,7 +1004,7 @@ function SourceReaderSheet({
 	                </p>
 	                <p className="mt-2 text-sm leading-6 text-foreground">{whySelectedForSource(selected, locale)}</p>
 	              </div>
-	              <div className="mt-4 rounded-md border border-border/50 bg-surface p-4">
+	              <div className="mt-4 border-t border-border/50 pt-4">
 	                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18rem] text-muted-foreground">
 	                  {labels.content}
 	                </p>
@@ -1095,7 +1079,11 @@ function MechanicsInsightPanel({
   const changedName = result.hex_overview?.changed_hexagram?.name
   const allMoving = movingLines.length === 6
   const keyPassages = brief.key_passages || []
-  const sourceCounts = Object.entries(brief.archive_sources?.sources || {})
+  const sourceLabels = Array.from(new Set(
+    [...(brief.source_passages || []), ...keyPassages]
+      .map((passage) => passage.source_label)
+      .filter(Boolean),
+  ))
   const supplementSection = secondarySections[0] || primarySections[0]
   const labels =
     locale === "zh"
@@ -1104,9 +1092,8 @@ function MechanicsInsightPanel({
           body: "把起卦结果拆成卦象、动爻、变卦与来源层级，先说明为什么这样断，再进入原文。",
           pattern: "卦象格局",
           movement: "爻变诊断",
-          sourceDepth: "来源覆盖",
-          keyPassages: "重点段落解析",
-          keyBody: "标出本次卦盘判断真正取用的文本节点。",
+	          sourceDepth: "本次依据",
+	          sourceNote: "可打开原文逐段核对来源与取用理由。",
           noMoving: "无动爻，以本卦卦辞为主断。",
           moving: "动爻优先，变卦只作后续背景。",
           allMovingQian: "乾卦六爻全动，以用九统摄。",
@@ -1124,9 +1111,8 @@ function MechanicsInsightPanel({
           body: "Separate the cast into pattern, moving lines, changed hexagram, and source layers before reading the original text.",
           pattern: "Pattern",
           movement: "Line movement",
-          sourceDepth: "Source coverage",
-          keyPassages: "Key passage analysis",
-          keyBody: "This is not another archive dump; it marks the text nodes that actually drive the mechanics of this reading.",
+	          sourceDepth: "Evidence used",
+	          sourceNote: "Open the source notes to verify each passage and why it was selected.",
           noMoving: "No moving lines: the primary hexagram judgment carries the reading.",
           moving: "Moving lines lead; the changed hexagram is secondary context.",
           allMovingQian: "All six Qian lines move: Yong Jiu governs the reading.",
@@ -1152,7 +1138,7 @@ function MechanicsInsightPanel({
     : labels.noLines
 
   return (
-    <section className="rounded-lg border border-border/50 bg-surface p-5">
+    <section className="border-y border-border/60 py-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h3 className="text-sm font-semibold text-foreground">{labels.title}</h3>
@@ -1171,8 +1157,8 @@ function MechanicsInsightPanel({
         ) : null}
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-3">
-        <div className="rounded-md border border-border/50 bg-surface-elevated/80 p-4">
+	      <div className="mt-4 grid divide-y divide-border/50 border-y border-border/50 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+	        <div className="py-4 lg:px-4 lg:first:pl-0">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{labels.pattern}</p>
           <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
             {mainName}
@@ -1182,60 +1168,22 @@ function MechanicsInsightPanel({
             {changedName ? `${labels.changed}: ${changedName}` : labels.stable}
           </p>
         </div>
-        <div className="rounded-md border border-border/50 bg-surface-elevated/80 p-4">
+	        <div className="py-4 lg:px-4">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{labels.movement}</p>
           <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
             {labels.lines}: {movingLabel}
           </p>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">{decisionRule}</p>
         </div>
-        <div className="rounded-md border border-border/50 bg-surface-elevated/80 p-4">
+	        <div className="py-4 lg:px-4 lg:last:pr-0">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18rem] text-muted-foreground">{labels.sourceDepth}</p>
           <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
-            {brief.archive_sources?.total_passages ?? brief.source_passages?.length ?? 0} {labels.sources}
-          </p>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            {sourceCounts.length
-              ? sourceCounts.map(([source, count]) => `${source}: ${count}`).join(" · ")
-              : keyPassages.map((passage) => passage.source_label).filter(Boolean).join(" · ")}
-          </p>
+	            {sourceLabels.join(" · ") || labels.sources}
+	          </p>
+	          <p className="mt-2 text-xs leading-5 text-muted-foreground">{labels.sourceNote}</p>
         </div>
       </div>
 
-      {keyPassages.length ? (
-        <div className="imperial-highlight-panel mt-4 rounded-md p-4">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="imperial-text text-[0.65rem] font-semibold uppercase tracking-[0.18rem]">
-                {locale === "zh" ? "卦辞解析" : "Textual mechanics"}
-              </p>
-              <h4 className="mt-1 text-sm font-semibold text-foreground">{labels.keyPassages}</h4>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{labels.keyBody}</p>
-            </div>
-          </div>
-          <div className="mt-3 grid gap-3 lg:grid-cols-2">
-            {keyPassages.map((passage) => (
-              <article key={sourceIdForPassage(passage)} className="rounded-md border border-border/50 bg-surface/90 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-foreground">{passage.title}</p>
-                  <span className="text-xs text-muted-foreground">{passage.source_label || passage.source}</span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-foreground">{passage.plain_language || compactText(passage.excerpt, 180)}</p>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">{passage.why_it_matters}</p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 h-auto rounded-md px-0 text-xs font-semibold text-primary hover:bg-transparent hover:text-primary"
-                  onClick={() => onSourceSelect(sourceIdForPassage(passage))}
-                >
-                  {labels.openSource}
-                </Button>
-              </article>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </section>
   )
 }
@@ -1322,7 +1270,7 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
           <NajiaTableView table={result.najia_table} />
         </div>
       ) : null}
-      <div className="surface-soft rounded-lg p-4 text-sm leading-relaxed text-foreground">
+      <div className="border-t border-border/60 pt-4 text-sm leading-relaxed text-foreground">
         <div className="mb-2 flex items-center justify-between">
           <p className="kicker">{messages.workspace.results.hexLabel}</p>
           {(hasHiddenSections || drawerSourceSection) && (
@@ -1363,7 +1311,7 @@ function HexSectionGroup({
   sections: HexSection[]
   variant: "primary" | "secondary"
 }) {
-  const { messages } = useI18n()
+  const { messages, locale } = useI18n()
 
   if (!sections.length) {
     return null
@@ -1377,9 +1325,9 @@ function HexSectionGroup({
   return (
     <div className={`rounded-lg border ${accentClasses} p-4`}>
       <p className="mb-3 text-xs uppercase tracking-[0.28rem] text-muted-foreground">{title}</p>
-      <div className="space-y-3">
-        {sections.map((section) => (
-          <div key={section.id} className="rounded-md border border-border/40 bg-surface/90 p-3 text-foreground shadow-sm">
+	      <div className="divide-y divide-border/50">
+	        {sections.map((section) => (
+	          <div key={section.id} className="py-4 text-foreground first:pt-0 last:pb-0">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-muted-foreground">
               <span>{section.title}</span>
               <span className="text-[0.65rem] uppercase tracking-widest">
@@ -1388,12 +1336,7 @@ function HexSectionGroup({
                   ? messages.workspace.results.lineMetaMain
                   : messages.workspace.results.lineMetaChanged}{" "}
                 ·{" "}
-                {section.source_label ??
-                  (section.source === "takashima"
-                    ? "高岛易断"
-                    : section.source === "english_commentary"
-                      ? "English Commentary"
-                      : "卦辞库")}
+                {sourceDisplayLabel(section.source, locale)}
               </span>
             </div>
             <div className="mt-1 text-[0.65rem] uppercase tracking-widest text-muted-foreground/80">

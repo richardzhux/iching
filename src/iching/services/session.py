@@ -738,24 +738,12 @@ def _build_reading_brief(
     )
     archive_sources = _build_archive_sources(source_passages)
 
-    timing_basis = "先观察当前阶段是否出现动爻对应的人事变化。" if moving else "先观察当前格局是否保持稳定。"
-    fallback_timing = [
-        {
-            "window": "近期",
-            "condition": timing_basis,
-            "confidence": 62 if moving else 58,
-        },
-        {
-            "window": "下一阶段",
-            "condition": "当外部条件、关系位置或资源约束明显改变时重新复盘。",
-            "confidence": 48,
-        },
-    ]
+    fallback_timing: List[Dict[str, object]] = []
     fallback_actions = [
         {
             "action": "先做一个低成本验证，不要一次性押上全部资源。",
-            "cadence": "未来一到两周",
-            "signal": "对方反馈、资源到位程度、阻力是否下降。",
+            "cadence": "下一步",
+            "signal": "记录实际反馈、资源是否到位，以及前提条件是否成立。",
         },
         {
             "action": "把关键风险写成可观察条件，再决定是否推进。",

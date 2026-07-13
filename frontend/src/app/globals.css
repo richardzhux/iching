@@ -75,6 +75,10 @@
     min-height: 100%;
   }
 
+  html {
+    scroll-padding-top: 9rem;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-geist-sans), "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -97,6 +101,11 @@
 
 .locale-zh {
   font-family: var(--font-geist-sans), "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.locale-zh .kicker {
+  letter-spacing: 0.12rem;
+  text-transform: none;
 }
 
 .shell-header {
@@ -213,4 +222,69 @@
   border: 1px solid hsl(var(--primary) / 0.22);
   background: hsl(var(--surface) / 0.94);
   box-shadow: var(--surface-shadow-soft);
+}
+
+.chart-share-canvas {
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+  padding: clamp(1.25rem, 4vw, 3rem);
+  border: 1px solid hsl(var(--imperial-metal) / 0.35);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 8% 0%, hsl(var(--primary) / 0.16), transparent 32%),
+    hsl(var(--surface));
+  color: hsl(var(--foreground));
+  box-shadow: var(--surface-shadow);
+}
+
+.chart-export-stage {
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: -12000px;
+  width: 1080px;
+  pointer-events: none;
+  contain: layout style;
+}
+
+.chart-export-canvas {
+  width: 1080px;
+  max-width: none;
+  margin: 0;
+}
+
+.chart-pillar {
+  --element-accent: hsl(var(--primary));
+  box-shadow: inset 0 3px 0 var(--element-accent);
+}
+
+.chart-element-bar {
+  background: var(--element-accent, hsl(var(--primary)));
+}
+
+[data-element="木"] { --element-accent: hsl(143 44% 42%); }
+[data-element="火"] { --element-accent: hsl(8 65% 52%); }
+[data-element="土"] { --element-accent: hsl(var(--imperial-metal)); }
+[data-element="金"] { --element-accent: hsl(42 36% 58%); }
+[data-element="水"] { --element-accent: hsl(213 50% 52%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-report *,
+  .chart-report *::before,
+  .chart-report *::after {
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (min-width: 768px) {
+  html {
+    scroll-padding-top: 6rem;
+  }
+}
+
+@media (max-width: 767px) {
+  body {
+    background-attachment: scroll;
+  }
 }

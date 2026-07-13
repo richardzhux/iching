@@ -90,6 +90,14 @@ class CoinMethod:
         if interactive:
             print("\n您选择了三枚铜钱法占卜。")
             sleep_func(1)
+        if manual_lines is not None:
+            values = list(manual_lines)
+            if len(values) != 6 or any(
+                type(value) is not int or value not in {6, 7, 8, 9}
+                for value in values
+            ):
+                raise ValueError("manual_lines 必须是六个介于 6-9 之间的整数")
+            return values
         return [self._throw_coins() for _ in range(6)]
 
     @staticmethod

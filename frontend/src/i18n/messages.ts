@@ -13,7 +13,6 @@ export type Messages = {
     library: string
     method: string
     profile: string
-    github: string
     mobileMenuAria: string
   }
   language: {
@@ -49,14 +48,23 @@ export type Messages = {
     badge: string
     title: string
     subtitle: string
+    promise: string
     primaryCta: string
     secondaryCta: string
-    features: string[]
-    studioLabel: string
-    studioTitle: string
-    studioBody: string
-    researchLabel: string
-    researchBody: string
+    intentLabel: string
+    intents: Array<{ label: string; href: string; hint: string }>
+    proofTitle: string
+    proofBody: string
+    safety: string
+    sampleLabel: string
+    questionLabel: string
+    castLabel: string
+    passageLabel: string
+    interpretationLabel: string
+    sampleQuestion: string
+    sampleCast: string
+    samplePassage: string
+    sampleInterpretation: string
   }
   workspace: {
     headerKicker: string
@@ -72,11 +80,22 @@ export type Messages = {
     configRetryCta: string
     viewLastResult: string
     cast: {
+      stepQuestion: string
+      stepQuestionBody: string
+      stepCast: string
+      stepCastBody: string
+      stepInterpret: string
+      stepInterpretBody: string
       topicSection: string
       topicLabel: string
       questionLabel: string
       questionPlaceholder: string
       methodLabel: string
+      methodCoinDescription: string
+      methodYarrowDescription: string
+      methodMeihuaDescription: string
+      methodManualDescription: string
+      methodUnknownDescription: string
       manualLinesLabel: string
       manualLinesPlaceholder: string
       manualLinesCountError: string
@@ -224,6 +243,9 @@ export type Messages = {
     authCardSignIn: string
     authCardSignUp: string
     authCardDescription: string
+    authBenefits: string[]
+    privacyCopy: string
+    authError: string
     switchToSignUp: string
     switchToSignIn: string
     submitBusy: string
@@ -241,5 +263,6 @@ export type Messages = {
     signInRegister: string
     checkingAuth: string
     signedOutToast: string
+    signOutFailed: string
   }
 }
