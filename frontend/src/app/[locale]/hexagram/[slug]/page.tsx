@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { HexagramGlyph } from "@/components/hexagram/hexagram-glyph"
+import { HexagramQuickNav } from "@/components/hexagram/hexagram-quick-nav"
 import { defaultLocale, isLocale, locales, type Locale } from "@/i18n/config"
 import { withLocale } from "@/i18n/path"
 import { PUBLIC_SITE_URL } from "@/lib/env"
@@ -189,7 +191,9 @@ export default async function HexagramDetailPage({ params }: Props) {
       }
 
   return (
-    <article className="mx-auto max-w-6xl space-y-8">
+    <div className="mx-auto grid max-w-[90rem] items-start gap-7 lg:grid-cols-[11rem_minmax(0,1fr)]">
+      <HexagramQuickNav locale={locale} mode="routes" activeSlug={entry.slug} />
+      <article className="min-w-0 space-y-8">
       <nav className="flex flex-wrap gap-4 text-sm">
         <Link href={withLocale(locale, "/library")} className="min-h-11 rounded-md py-3 text-primary outline-none underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring">{copy.back}</Link>
         <Link href={withLocale(locale, "/app")} className="min-h-11 rounded-md py-3 text-primary outline-none underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring">{copy.desk}</Link>
@@ -206,11 +210,7 @@ export default async function HexagramDetailPage({ params }: Props) {
           </div>
         </div>
         <div className="grid place-items-center rounded-lg bg-surface-elevated p-5">
-          <div className="grid w-28 gap-3" aria-hidden="true">
-            {hexagramLines(entry.binary).map((line, index) => (
-              <span key={`${entry.slug}-line-${index}`} className={line === "1" ? "h-2 rounded bg-foreground" : "h-2 rounded bg-gradient-to-r from-foreground from-40% via-transparent via-40% to-foreground to-60%"} />
-            ))}
-          </div>
+          <HexagramGlyph lines={hexagramLines(entry.binary)} className="w-28 gap-3" lineClassName="h-2" />
         </div>
       </header>
 
@@ -258,6 +258,7 @@ export default async function HexagramDetailPage({ params }: Props) {
         <h2 className="text-base font-semibold text-foreground">{copy.noteTitle}</h2>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{copy.noteBody}</p>
       </section>
-    </article>
+      </article>
+    </div>
   )
 }
