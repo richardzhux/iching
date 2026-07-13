@@ -948,8 +948,8 @@ def test_p0_result_page_is_one_continuous_trustworthy_reading_flow():
     assert 'reading: "解卦"' in chinese
     assert 'reading: "Read"' in english
     assert "{labels.confidence} {item.confidence}%" not in results
-    assert 'stable: "无动爻"' in results
-    assert 'stable: "No moving lines"' in results
+    assert 'noMoving: "无动爻，以本卦卦辞为主断。"' in results
+    assert 'noMoving: "No moving lines: the primary hexagram judgment carries the reading."' in results
     assert "格局稳定" not in results
     assert "Stable pattern" not in results
     assert "SourceReaderSheet" in results
@@ -1002,13 +1002,15 @@ def test_mechanics_source_review_no_long_inline_archive_expansion():
     assert "onSourceSelect(sectionSourceIdForDrawer" in results
 
 
-def test_guidance_key_passages_are_highlighted_as_decisive_interpretation():
+def test_guidance_sources_live_in_the_on_demand_notebook_without_a_duplicate_panel():
     results = read("frontend/src/components/workspace/results-panel.tsx")
 
-    assert "SourceEvidencePanel" in results
-    assert "imperial-highlight-panel" in results
-    assert "本次取用的关键原文" in results
-    assert "Decisive source passages" in results
+    assert "SourceEvidencePanel" not in results
+    assert "SourceReaderSheet" in results
+    assert "查看原文笔记" in results
+    assert "Review source notebook" in results
+    assert "为什么选它" in results
+    assert "Why selected" in results
     assert "imperial-highlight-card" in results
 
 

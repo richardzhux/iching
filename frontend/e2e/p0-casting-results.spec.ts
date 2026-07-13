@@ -124,7 +124,7 @@ async function mockConfig(page: Page) {
   )
 }
 
-test("migrates stale source tab and renders unknown and missing sources honestly", async ({ page }) => {
+test("migrates stale source-tab state into the unified reading and labels unknown sources honestly", async ({ page }) => {
   await mockConfig(page)
   const result = sessionPayload()
   await page.addInitScript((payload) => {
@@ -159,19 +159,16 @@ test("migrates stale source tab and renders unknown and missing sources honestly
     )
   }, result)
 
-  await page.goto("/en/app")
+  await page.goto("/en/reading")
 
-  await expect(page.getByRole("tab", { name: "Chart & Evidence" })).toHaveAttribute("data-state", "active")
+  await expect(page).toHaveURL(/\/en\/reading/)
+  await expect(page.getByText("Hexagram mechanics, Najia, source evidence, and AI follow-up stay on this page.")).toBeVisible()
   await expect(page.getByText("Source unverified").first()).toBeVisible()
   await expect(page.getByText("卦辞库")).toHaveCount(0)
 
-  await page.getByRole("button", { name: "Open full source" }).first().click()
+  await page.getByRole("button", { name: "Review source notebook" }).click()
   await expect(page.getByRole("dialog")).toContainText("Source unverified")
   await page.keyboard.press("Escape")
-
-  await page.getByRole("tab", { name: "Interpretation" }).click()
-  await page.getByRole("button", { name: "Open source" }).click()
-  await expect(page.getByRole("dialog")).toContainText("The requested source passage was not found")
 })
 
 test("coin builder submits and stores the exact six lines as the coin method", async ({ page }) => {
@@ -198,7 +195,8 @@ test("coin builder submits and stores the exact six lines as the coin method", a
   const displayed = (await page.getByRole("list", { name: "Manual six lines (bottom to top)" }).getByRole("listitem").allTextContents())
     .map((value) => Number(value.trim()))
   await page.getByRole("button", { name: "Cast", exact: true }).click()
-  await expect(page.getByRole("tab", { name: "Interpretation" })).toBeVisible()
+  await expect(page).toHaveURL(/\/en\/reading/)
+  await expect(page.getByText("Hexagram mechanics, Najia, source evidence, and AI follow-up stay on this page.")).toBeVisible()
 
   expect(submitted?.method_key).toBe("c")
   expect(submitted?.manual_lines).toEqual(displayed)

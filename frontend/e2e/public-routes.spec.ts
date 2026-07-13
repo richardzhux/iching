@@ -32,10 +32,10 @@ const mockedMetaphysicsChart = {
   day_boundary: "forward",
   lunar_date: "己巳年 腊月初五 午时",
   pillars: [
-    { label: "年", stem: "己", branch: "巳", text: "己巳", stem_element: "土", branch_element: "火", polarity: "阴", ten_god: "伤官", hidden_stems: [{ stem: "丙", element: "火", ten_god: "偏印" }], nayin: "大林木" },
-    { label: "月", stem: "丙", branch: "子", text: "丙子", stem_element: "火", branch_element: "水", polarity: "阳", ten_god: "偏印", hidden_stems: [{ stem: "癸", element: "水", ten_god: "正财" }], nayin: "涧下水" },
-    { label: "日", stem: "戊", branch: "辰", text: "戊辰", stem_element: "土", branch_element: "土", polarity: "阳", ten_god: "日主", hidden_stems: [{ stem: "戊", element: "土", ten_god: "比肩" }], nayin: "大林木" },
-    { label: "时", stem: "戊", branch: "午", text: "戊午", stem_element: "土", branch_element: "火", polarity: "阳", ten_god: "比肩", hidden_stems: [{ stem: "丁", element: "火", ten_god: "正印" }], nayin: "天上火" },
+    { label: "年", stem: "己", branch: "巳", text: "己巳", stem_element: "土", branch_element: "火", polarity: "阴", ten_god: "伤官", hidden_stems: [{ stem: "丙", element: "火", ten_god: "偏印" }], nayin: "大林木", xunkong: "戌亥", di_shi: "临官", self_seat: "帝旺" },
+    { label: "月", stem: "丙", branch: "子", text: "丙子", stem_element: "火", branch_element: "水", polarity: "阳", ten_god: "偏印", hidden_stems: [{ stem: "癸", element: "水", ten_god: "正财" }], nayin: "涧下水", xunkong: "申酉", di_shi: "胎", self_seat: "胎" },
+    { label: "日", stem: "戊", branch: "辰", text: "戊辰", stem_element: "土", branch_element: "土", polarity: "阳", ten_god: "日主", hidden_stems: [{ stem: "戊", element: "土", ten_god: "比肩" }], nayin: "大林木", xunkong: "戌亥", di_shi: "冠带", self_seat: "冠带" },
+    { label: "时", stem: "戊", branch: "午", text: "戊午", stem_element: "土", branch_element: "火", polarity: "阳", ten_god: "比肩", hidden_stems: [{ stem: "丁", element: "火", ten_god: "正印" }], nayin: "天上火", xunkong: "子丑", di_shi: "帝旺", self_seat: "帝旺" },
   ],
   bazi: "己巳 丙子 戊辰 戊午",
   day_master: "戊土",
@@ -53,6 +53,9 @@ const mockedMetaphysicsChart = {
     six_spirits: ["青龙", "朱雀", "勾陈", "腾蛇", "白虎", "玄武"],
   },
   element_counts: { 木: 0, 火: 3, 土: 4, 金: 0, 水: 1 },
+  stem_relations: ["丙戊相生"],
+  branch_relations: ["子午相冲"],
+  element_season_status: { 木: "休", 火: "囚", 土: "死", 金: "相", 水: "旺" },
   previous_solar_term: null,
   next_solar_term: null,
   birth_profile: {
@@ -199,9 +202,11 @@ test("public tools, library search, and hexagram sources expose consumer control
   await expect(page.getByRole("link", { name: "Study", exact: true }).first()).toHaveAttribute("aria-current", "page")
   await expect(page.getByText(/Qián/).first()).toBeVisible()
   await expect(page.locator("body")).not.toContainText("1.gua")
-  const firstDisclosure = page.locator("details summary").first()
-  await firstDisclosure.press("Enter")
-  await expect(page.locator('pre[tabindex="0"]').first()).toBeVisible()
+  const firstSlot = page.locator("details").first()
+  await firstSlot.locator("summary").first().press("Enter")
+  const firstSource = firstSlot.locator("details").first()
+  await firstSource.locator("summary").press("Enter")
+  await expect(firstSource.locator('pre[tabindex="0"]')).toBeVisible()
 
   await page.goto("/zh/hexagram/qian")
   await expect(page.locator("body")).not.toContainText("1.gua")
