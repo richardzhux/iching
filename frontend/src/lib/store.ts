@@ -10,7 +10,9 @@ const formatDateInput = (date: Date) =>
     date.getMinutes()
   )}`
 const isResultsTab = (value: unknown): value is ResultsTab =>
-  value === "summary" || value === "hex" || value === "sources" || value === "ai"
+  value === "summary" || value === "hex" || value === "ai"
+const resolveResultsTab = (value: unknown): ResultsTab =>
+  value === "sources" ? "hex" : isResultsTab(value) ? value : "summary"
 const LOCAL_HISTORY_LIMIT = 10
 const serverStorage: StateStorage = {
   getItem: () => null,
@@ -35,7 +37,7 @@ export type WorkspaceForm = {
 }
 
 export type WorkspaceView = "form" | "results"
-export type ResultsTab = "summary" | "hex" | "sources" | "ai"
+export type ResultsTab = "summary" | "hex" | "ai"
 export type JournalStatus = "open" | "watching" | "resolved"
 
 export type ReadingJournalEntry = {
@@ -71,7 +73,7 @@ const defaultForm: WorkspaceForm = {
   topic: "事业",
   userQuestion: "",
   userContext: "",
-  methodKey: "s",
+  methodKey: "c",
   manualLines: "",
   useCurrentTime: true,
   customTimestamp: formatDateInput(new Date()),
@@ -201,8 +203,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         if (state && !state.journal) {
           state.journal = {}
         }
-        if (state && !isResultsTab(state.resultsTab)) {
-          state.resultsTab = "summary"
+        if (state) {
+          state.resultsTab = resolveResultsTab(state.resultsTab)
         }
       },
     },

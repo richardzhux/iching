@@ -3,10 +3,10 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import { I18nProvider } from "@/components/providers/i18n-provider"
+import { PrimaryNavigation } from "@/components/navigation/primary-navigation"
 import { ProfileMenu } from "@/components/profile/profile-menu"
 import { LanguageToggle } from "@/components/theme/language-toggle"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
-import { buttonVariants } from "@/components/ui/button"
 import { defaultLocale, isLocale, locales, type Locale } from "@/i18n/config"
 import { getMessages } from "@/i18n/get-messages"
 import { withLocale } from "@/i18n/path"
@@ -60,55 +60,7 @@ export default async function LocaleLayout({ children, params }: Props) {
               <Link href={withLocale(locale, "/")} className="text-sm font-semibold tracking-wide text-foreground">
                 {messages.nav.brand}
               </Link>
-              <nav className="hidden items-center gap-2 md:flex">
-                <Link
-                  href={withLocale(locale, "/app")}
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "sm" }),
-                    "rounded-full text-xs font-medium",
-                  )}
-                >
-                  {messages.nav.workspace}
-                </Link>
-                <Link
-                  href={withLocale(locale, "/library")}
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "sm" }),
-                    "rounded-full text-xs font-medium",
-                  )}
-                >
-                  {messages.nav.library}
-                </Link>
-                <Link
-                  href={withLocale(locale, "/tools")}
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "sm" }),
-                    "rounded-full text-xs font-medium",
-                  )}
-                >
-                  {messages.nav.method}
-                </Link>
-                <Link
-                  href={withLocale(locale, "/profile")}
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "sm" }),
-                    "rounded-full text-xs font-medium",
-                  )}
-                >
-                  {messages.nav.profile}
-                </Link>
-                <a
-                  href="https://github.com/richardzhux/iching"
-                  target="_blank"
-                  rel="noreferrer"
-                  className={cn(
-                    buttonVariants({ variant: "ghost", size: "sm" }),
-                    "rounded-full text-xs font-medium",
-                  )}
-                >
-                  {messages.nav.github}
-                </a>
-              </nav>
+              <PrimaryNavigation className="hidden md:flex" />
             </div>
             <div className="flex items-center gap-2">
               <Suspense fallback={null}>
@@ -118,25 +70,9 @@ export default async function LocaleLayout({ children, params }: Props) {
               <ProfileMenu />
             </div>
           </div>
-          <nav className="mx-auto flex w-full max-w-7xl gap-2 overflow-x-auto border-t border-border/40 px-4 py-2 sm:px-6 md:hidden">
-            {[
-              ["/app", messages.nav.workspace],
-              ["/library", messages.nav.library],
-              ["/tools", messages.nav.method],
-              ["/profile", messages.nav.profile],
-            ].map(([href, label]) => (
-              <Link
-                key={href}
-                href={withLocale(locale, href)}
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "sm" }),
-                  "shrink-0 rounded-full text-xs font-medium",
-                )}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
+          <div className="mx-auto w-full max-w-7xl border-t border-border/40 md:hidden">
+            <PrimaryNavigation mobile />
+          </div>
         </header>
         <main className="relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
           {children}

@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react"
 
 import { useI18n } from "@/components/providers/i18n-provider"
 import { Card, CardContent } from "@/components/ui/card"
+import { sourceDisplayLabel } from "@/lib/source-labels"
 import { cn } from "@/lib/utils"
 import type { BaziPillar, HexLineInfo, HexOverview, HexSection } from "@/types/api"
 
@@ -267,7 +268,7 @@ function HexagramSourcePreview({ section }: { section?: HexSection }) {
   return (
     <div className={sourcePreviewSection}>
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16rem] text-muted-foreground">
-        {section.source_label || section.source || (locale === "zh" ? "来源" : "Source")}
+        {sourceDisplayLabel(section.source, locale)}
       </p>
       <p className="mt-1 text-sm font-semibold leading-6 text-foreground">{section.title}</p>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{compactSnippet(section.content, 220)}</p>

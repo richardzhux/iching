@@ -190,7 +190,7 @@ export type ReadingBriefEvidence = {
 export type ReadingBriefTiming = {
   window: string
   condition: string
-  confidence: number
+  confidence?: number | null
 }
 
 export type ReadingBriefAction = {

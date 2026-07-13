@@ -10,6 +10,10 @@ import { useAuthContext } from "@/components/providers/auth-provider"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
+function safeAuthError(fallback: string) {
+  return fallback
+}
+
 export function ProfileMenu() {
   const auth = useAuthContext()
   const { messages, toLocalePath } = useI18n()
@@ -22,8 +26,8 @@ export function ProfileMenu() {
       await auth.signOut()
       toast.success(messages.profileMenu.signedOutToast)
       setOpen(false)
-    } catch (error) {
-      toast.error((error as Error).message)
+    } catch {
+      toast.error(safeAuthError(messages.profileMenu.signOutFailed))
     }
   }
 

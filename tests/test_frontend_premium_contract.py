@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -9,8 +10,10 @@ def read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_homepage_uses_divination_identity_and_sample_case():
+def test_homepage_leads_with_decision_outcomes_and_four_intent_paths():
     source = read("frontend/src/components/home/home-page.tsx")
+    english = read("frontend/src/i18n/catalog/en.ts")
+    chinese = read("frontend/src/i18n/catalog/zh.ts")
     banned_phrases = [
         "From yarrow stalks to AI",
         "从蓍草到AI",
@@ -23,13 +26,98 @@ def test_homepage_uses_divination_identity_and_sample_case():
     for phrase in banned_phrases:
         assert phrase not in source
 
-    assert "Professional Yi divination" in source
-    assert "source-grounded divination environment" in source
+    assert "messages.home" in source
+    assert "方向、时机、下一步" in chinese
+    assert "direction, timing, and next action" in english
+    for topic in ("事业", "感情", "选择", "近况"):
+        assert topic in chinese
+    assert source.count("intent.href") == 1
+    assert "?topic=" in english
     assert "sampleReading" in source
-    assert "Hexagram 3" in source
-    assert "Hexagram 8" in source
+    assert "Hexagram 3" in english
+    assert "Hexagram 8" in english
     assert "/library" in source
-    assert "not medical, legal, financial" in source
+    assert "pillars" not in source
+    assert "min-h-[calc" not in source
+    assert "not medical, legal, financial" in english
+
+
+def test_primary_navigation_is_task_oriented_active_and_profile_is_not_duplicated():
+    layout = read("frontend/src/app/[locale]/layout.tsx")
+    navigation_path = ROOT / "frontend/src/components/navigation/primary-navigation.tsx"
+    assert navigation_path.exists(), "primary navigation should be a pathname-aware client component"
+    navigation = navigation_path.read_text(encoding="utf-8")
+    english = read("frontend/src/i18n/catalog/en.ts")
+    chinese = read("frontend/src/i18n/catalog/zh.ts")
+
+    assert 'workspace: "Cast"' in english
+    assert 'library: "Study"' in english
+    assert 'method: "Charts"' in english
+    assert 'profile: "My"' in english
+    assert 'workspace: "起卦"' in chinese
+    assert 'library: "查卦"' in chinese
+    assert 'method: "排盘"' in chinese
+    assert 'profile: "我的"' in chinese
+    assert "PrimaryNavigation" in layout
+    assert "github.com" not in layout
+    assert "messages.nav.profile" not in layout
+    assert "usePathname" in navigation
+    assert 'aria-current={active ? "page" : undefined}' in navigation
+    assert "focus-visible:" in navigation
+    assert "overflow-x-auto" in navigation
+
+
+def test_i18n_provider_sets_the_document_language_after_hydration():
+    provider = read("frontend/src/components/providers/i18n-provider.tsx")
+
+    assert "document.documentElement.lang" in provider
+    assert 'locale === "zh" ? "zh-CN" : "en"' in provider
+
+
+def test_task4_review_intents_map_to_backend_topics_and_hydrate_cast_form_safely():
+    intent_path = ROOT / "frontend/src/lib/reading-intents.ts"
+    assert intent_path.exists(), "home intents need one stable mapping shared with CastForm"
+    intents = intent_path.read_text(encoding="utf-8")
+    cast_form = read("frontend/src/components/workspace/cast-form.tsx")
+    e2e = read("frontend/e2e/public-routes.spec.ts")
+
+    for intent_id, topic_label in (
+        ("career", "事业"),
+        ("relationship", "感情"),
+        ("choice", "其他/跳过"),
+        ("current", "整体运势"),
+    ):
+        assert intent_id in intents
+        assert topic_label in intents
+    assert "questionHint" in intents
+    assert 'searchParams.get("topic")' in cast_form
+    assert 'searchParams.get("question")' in cast_form
+    assert "resolveReadingIntent" in cast_form
+    assert "current.userQuestion" in cast_form
+    assert "explicitQuestion" in cast_form
+    assert "home intent hydrates a real topic and localized question hint" in e2e
+    assert "explicit intent overrides stale topic without replacing a draft question" in e2e
+
+
+def test_task4_review_navigation_search_and_home_hierarchy_are_unambiguous():
+    navigation = read("frontend/src/components/navigation/primary-navigation.tsx")
+    search = read("frontend/src/components/library/library-search.tsx")
+    home = read("frontend/src/components/home/home-page.tsx")
+
+    assert 'matches: ["/library", "/hexagram"]' in navigation
+    assert "matchedResults" in search
+    assert "displayedResults" in search
+    assert "showing" in search
+    assert "takashima" not in search.lower()
+    assert "copy.viewFull" not in home
+
+
+def test_task4_rereview_english_search_examples_and_live_count_are_truthful():
+    search = read("frontend/src/components/library/library-search.tsx")
+
+    assert 'placeholder: "qian, difficulty, waiting, relationships..."' in search
+    assert 'matched === 1 ? "result" : "results"' in search
+    assert 'placeholder: "qian, 屯, difficulty, 利贞, timing..."' not in search
 
 
 def test_workspace_has_graceful_backend_fallback_and_library_escape():
@@ -130,6 +218,7 @@ def test_tools_page_replaces_method_page_and_stays_in_navigation():
     tools_page = read("frontend/src/app/[locale]/tools/page.tsx")
     tools_ui = read("frontend/src/components/tools/metaphysics-tools.tsx")
     layout = read("frontend/src/app/[locale]/layout.tsx")
+    navigation = read("frontend/src/components/navigation/primary-navigation.tsx")
     en = read("frontend/src/i18n/catalog/en.ts")
     zh = read("frontend/src/i18n/catalog/zh.ts")
 
@@ -137,11 +226,626 @@ def test_tools_page_replaces_method_page_and_stays_in_navigation():
     assert "MetaphysicsTools" in tools_page
     assert "build_metaphysics" not in tools_ui
     assert 'import("iztro")' in tools_ui
-    assert "/tools" in layout
-    assert "/method" not in layout
+    assert "PrimaryNavigation" in layout
+    assert "/tools" in navigation
+    assert "/method" not in navigation
     assert "md:hidden" in layout
-    assert 'method: "Metaphysics Tools"' in en
-    assert 'method: "术数工具"' in zh
+    assert 'method: "Charts"' in en
+    assert 'method: "排盘"' in zh
+
+
+def test_p1_bazi_controls_separate_basic_and_professional_accessibly():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    controls = read("frontend/src/components/tools/metaphysics-controls.tsx")
+
+    assert 'value="current"' in tools
+    assert 'value="bazi"' in tools
+    assert 'value="ziwei"' in tools
+    assert "专业排盘设置" in tools
+    assert "Professional chart settings" in tools
+    assert "<details" in controls
+    assert "<details open" not in controls
+    for field_id in (
+        "bazi-calendar",
+        "bazi-birth-time",
+        "bazi-lunar-date",
+        "bazi-lunar-time",
+        "bazi-gender",
+        "bazi-hour-uncertain",
+        "bazi-timezone",
+        "bazi-true-solar",
+        "bazi-longitude",
+        "bazi-day-boundary",
+        "bazi-leap-month",
+        "bazi-dayun-algorithm",
+    ):
+        assert field_id in controls
+    assert 'aria-labelledby="bazi-calendar-label"' in controls
+    assert 'aria-labelledby="bazi-gender-label"' in controls
+    assert 'aria-labelledby="bazi-timezone-label"' in controls
+    assert "BirthPlaceField" in controls
+    assert 'htmlFor="bazi-hour-uncertain"' in controls
+    assert 'htmlFor="bazi-true-solar"' in controls
+    assert "trueSolar ?" in controls
+    assert 'calendar === "lunar"' in controls
+    assert "男 / Male" not in controls
+    assert "分钟精算（sect2）" not in tools
+    assert "传统折算法（sect1）" not in tools
+    assert "Minute-based calculation (sect2)" not in tools
+    assert "Traditional conversion (sect1)" not in tools
+    assert "选择城市后自动填写时区和经度" in tools
+    assert "Selecting a city fills its time zone and longitude" in tools
+    assert 'role="status"' in tools
+    assert "正在读取当前时令" in tools
+    assert "Loading current calendar" in tools
+
+
+def test_p1_bazi_results_lead_with_factual_digest_and_split_solar_term_modes():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+
+    assert '<BaziChartView chart={currentChart} locale={locale} mode="current"' in tools
+    assert '<BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt} locale={locale} mode="birth"' in tools
+    assert "日主" in chart
+    assert "Day master" in chart
+    assert "四柱" in chart
+    assert "Four pillars" in chart
+    assert "排盘规则" in chart
+    assert "Calculation rule" in chart
+    assert "当前大运" in chart
+    assert "Current Da Yun" in chart
+    assert "当前（按年份）" in chart
+    assert "Current by year" in chart
+    assert "start_year <= currentYear" in chart
+    assert "currentYear <= cycle.end_year" in chart
+    assert "精确交接以所选起运规则为准" in chart
+    assert "Exact handoff follows the configured start rule" in chart
+    assert 'role="meter"' in chart
+    assert "element_counts" in chart
+    assert "专业命盘数据" in chart
+    assert "Professional chart data" in chart
+    assert "<details" in chart
+    assert "LiveSolarTermCountdown" in chart
+    assert "HistoricalSolarTerm" in chart
+    historical = chart[chart.index("function HistoricalSolarTerm") :]
+    assert "term.seconds_away" in historical
+    assert "term.timestamp" in historical
+    assert "Date.now()" not in historical
+    assert "0 天 0 时 0 分 0 秒" not in chart
+    assert "0d 0h 0m 0s" not in chart
+
+
+def test_p1_bazi_uses_chart_timezone_and_non_overlapping_current_refresh():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+
+    assert "formatChartTimestamp(facts.gregorian, locale, chart.timezone)" in chart
+    assert "formatChartTimestamp(calculationTimestamp, locale, timeZone)" in chart
+    assert "formatChartTimestamp(term.timestamp, locale, timeZone)" in chart
+    assert "timeZone={chart.timezone}" in chart
+    assert "timeZone," in chart
+    assert "currentYearInTimeZone(chart.timezone)" in chart
+    assert "getFullYear()" not in chart
+
+    assert "window.setInterval(load, 60_000)" not in tools
+    assert "timer = window.setTimeout(() => { void load() }, 60_000)" in tools
+    assert "window.clearTimeout(timer)" in tools
+
+
+def test_task6_location_lookup_is_pinned_local_guarded_and_capped():
+    package = json.loads(read("frontend/package.json"))
+    route_path = ROOT / "frontend/src/app/api/locations/route.ts"
+    search_path = ROOT / "frontend/src/lib/location-search.ts"
+
+    assert package["dependencies"].get("city-timezones") == "1.3.4"
+    assert route_path.exists(), "location search needs a local App Router endpoint"
+    assert search_path.exists(), "location search needs a server-only lookup module"
+
+    route = route_path.read_text()
+    search = search_path.read_text()
+    combined = f"{route}\n{search}"
+    assert 'export const runtime = "nodejs"' in route
+    assert "query.trim().length < 2" in route
+    assert 'localeParam === "zh" ? "zh" : "en"' in route
+    assert "searchLocations(query, locale).slice(0, 8)" in route
+    assert "try {" in route and "catch" in route
+    assert "Unable to search locations" in route
+    assert "city-timezones" in search
+    for remote_geocoder in ("open-meteo", "nominatim", "googleapis", "mapbox", "fetch("):
+        assert remote_geocoder not in combined.lower()
+
+
+def test_task6_location_search_has_explicit_chinese_aliases_and_safe_results():
+    search_path = ROOT / "frontend/src/lib/location-search.ts"
+    assert search_path.exists(), "Chinese aliases and city dataset search should share one module"
+    search = search_path.read_text()
+
+    assert "export type LocationResult" in search
+    assert "CHINESE_CITY_ALIASES" in search
+    for city in ("北京", "上海", "广州", "深圳", "成都", "西安", "乌鲁木齐", "香港", "澳门", "台北"):
+        assert city in search
+    for field in ("id", "name", "region", "country", "latitude", "longitude", "timezone"):
+        assert f"{field}:" in search
+    assert "cityMapping" in search
+    assert "dedupe" in search.lower()
+    assert ".slice(0, 8)" in search
+
+
+def test_task6_birth_place_combobox_requires_selection_and_applies_exact_location():
+    field_path = ROOT / "frontend/src/components/tools/birth-place-field.tsx"
+    assert field_path.exists(), "BaZi needs an accessible birthplace resolver"
+
+    field = field_path.read_text()
+    controls = read("frontend/src/components/tools/metaphysics-controls.tsx")
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+
+    assert 'role="combobox"' in field
+    assert 'role="listbox"' in field
+    assert 'role="option"' in field
+    assert 'aria-autocomplete="list"' in field
+    assert "aria-activedescendant" in field
+    assert "onSelect(result)" in field
+    assert "selectResult" in field
+    assert "selectedLocation" in field
+    assert "clear" in field.lower()
+    assert "replace" in field.lower()
+    assert 'role="status"' in field
+    assert 'role="alert"' in field
+    assert "BirthPlaceField" in controls
+    assert "onBirthPlaceSelect" in controls
+    assert "handleBirthPlaceSelect" in tools
+    selection_handler = tools[
+        tools.index("function handleBirthPlaceSelect") : tools.index("\n  }", tools.index("function handleBirthPlaceSelect"))
+    ]
+    assert "setBirthPlace(" in selection_handler
+    assert "setTimezone(location.timezone)" in selection_handler
+    assert "setLongitude(String(location.longitude))" in selection_handler
+    assert 'id="bazi-timezone"' in controls
+    assert 'id="bazi-longitude"' in controls
+
+
+def test_task6_curated_aliases_are_explicit_and_use_official_civil_timezones():
+    search = read("frontend/src/lib/location-search.ts")
+
+    assert "CURATED_LOCATIONS" in search
+    assert "lookupViaCity" not in search
+    assert 'name: "石家庄"' in search
+    assert "latitude: 38.05001467" in search
+    assert 'name: "沈阳"' in search
+    assert "latitude: 41.80497927" in search
+    assert 'name: "苏州"' in search
+    assert 'region: "江苏省"' in search
+    assert search.count('timezone: "Asia/Shanghai"') >= 37
+    assert 'timezone: "Asia/Hong_Kong"' in search
+    assert 'timezone: "Asia/Macau"' in search
+    assert 'timezone: "Asia/Taipei"' in search
+
+
+def test_task6_search_is_indexed_bounded_and_supports_local_nearest_matching():
+    route = read("frontend/src/app/api/locations/route.ts")
+    search = read("frontend/src/lib/location-search.ts")
+
+    assert "MAX_QUERY_LENGTH" in search
+    assert "NORMALIZED_LOCATION_INDEX" in search
+    assert "normalizeLocationQuery" in search
+    assert "MAX_NEAREST_DISTANCE_KM" in search
+    assert "haversineDistanceKm" in search
+    assert "findNearestLocation" in search
+    assert "Number.isFinite(latitude)" in search
+    assert "latitude >= -90" in search
+    assert "latitude <= 90" in search
+    assert "longitude >= -180" in search
+    assert "longitude <= 180" in search
+    assert "distanceKm > MAX_NEAREST_DISTANCE_KM" in search
+    assert "export async function POST" in route
+    assert "await request.json()" in route
+    assert "isValidCoordinates" in route
+    assert "findNearestLocation" in route
+    assert "distanceKm" in route
+    assert "{ result: null }" in route
+
+
+def test_task6_combobox_prevents_stale_results_and_uses_one_input_focus_model():
+    field = read("frontend/src/components/tools/birth-place-field.tsx")
+
+    assert "requestSequenceRef" in field
+    assert "controller.abort()" in field
+    assert "requestId === requestSequenceRef.current" in field
+    assert "handleQueryChange" in field
+    query_handler = field[field.index("function handleQueryChange") : field.index("\n  }", field.index("function handleQueryChange"))]
+    assert "setResults([])" in query_handler
+    assert "setActiveIndex(-1)" in query_handler
+    assert 'tabIndex={-1}' in field
+    assert "scrollIntoView({ block: \"nearest\" })" in field
+    assert "aria-expanded={listboxOpen}" in field
+    assert "aria-controls={listboxOpen ? listboxId : undefined}" in field
+    listbox = field[field.index('role="listbox"') : field.index("</ul>", field.index('role="listbox"'))]
+    assert 'role="status"' not in listbox
+    assert 'role="alert"' not in listbox
+
+
+def test_task6_current_location_is_gesture_triggered_local_and_confirmed_before_apply():
+    field = read("frontend/src/components/tools/birth-place-field.tsx")
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+
+    assert "Intl.DateTimeFormat().resolvedOptions().timeZone" in tools
+    assert "useCurrentLocation" in field
+    assert "navigator.geolocation.getCurrentPosition" in field
+    assert 'onClick={useCurrentLocation}' in field
+    assert 'method: "POST"' in field
+    assert "latitude: position.coords.latitude" in field
+    assert "longitude: position.coords.longitude" in field
+    assert "currentLocationCandidate" in field
+    assert "distanceKm" in field
+    assert "confirmCurrentLocation" in field
+    assert "cancelCurrentLocation" in field
+    assert "onSelect(currentLocationCandidate.result)" in field
+    assert "当前位置可能不是出生地" in field
+    assert "Your current location may not be your birth place" in field
+    assert "使用当前位置" in field
+    assert "Use current location" in field
+    assert "timeout: 8_000" in field
+    assert "localStorage" not in field
+
+
+def test_task6_current_location_invalidates_stale_permission_and_nearest_city_requests():
+    field = read("frontend/src/components/tools/birth-place-field.tsx")
+
+    assert "geolocationSequenceRef" in field
+    assert "geolocationControllerRef" in field
+    assert "invalidateGeolocation" in field
+    assert "geolocationControllerRef.current?.abort()" in field
+    assert "signal: controller.signal" in field
+    assert "requestId !== geolocationSequenceRef.current" in field
+    assert "!query.trim() ? currentLocationCandidate : null" in field
+    query_handler = field[field.index("function handleQueryChange") : field.index("\n  }", field.index("function handleQueryChange"))]
+    assert "invalidateGeolocation()" in query_handler
+
+
+def test_task6_manual_overrides_are_visible_and_preserved_when_city_is_cleared():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    field = read("frontend/src/components/tools/birth-place-field.tsx")
+
+    assert "type LocationAutofillState" in tools
+    assert "previousTimezone" in tools
+    assert "previousLongitude" in tools
+    assert "appliedTimezone" in tools
+    assert "appliedLongitude" in tools
+    assert "locationOverrideActive" in tools
+    assert "timezone === locationAutofill.appliedTimezone" in tools
+    assert "longitude === locationAutofill.appliedLongitude" in tools
+    assert "setTimezone(locationAutofill.previousTimezone)" in tools
+    assert "setLongitude(locationAutofill.previousLongitude)" in tools
+    assert "overrideActive" in field
+    assert "effectiveTimezone" in field
+    assert "effectiveLongitude" in field
+    assert "专业设置覆盖已生效" in field
+    assert "Professional override active" in field
+
+
+def test_task7_export_dependency_and_utility_are_lazy_safe_and_bounded():
+    package = json.loads(read("frontend/package.json"))
+    export_path = ROOT / "frontend/src/lib/chart-export.ts"
+
+    assert package["dependencies"].get("html-to-image") == "1.11.13"
+    assert export_path.exists(), "chart export needs one shared safe utility"
+    export = export_path.read_text()
+    assert 'await import("html-to-image")' in export
+    assert 'from "html-to-image"' not in export
+    assert "sanitizeExportFilename" in export
+    assert "MAX_EXPORT_DIMENSION" in export
+    assert "MAX_EXPORT_PIXEL_AREA" in export
+    assert "MAX_PIXEL_RATIO" in export
+    assert "Math.min(" in export
+    assert "Math.sqrt(MAX_EXPORT_PIXEL_AREA / logicalPixelArea)" in export
+    assert "pixelRatio" in export
+    assert 'data-export-exclude' in export
+    assert "link.click()" in export
+    assert export.count("link.click()") == 1
+
+
+def test_task7_export_button_restores_idle_and_surfaces_localized_failure():
+    button_path = ROOT / "frontend/src/components/tools/chart-export-button.tsx"
+    assert button_path.exists(), "results need one reusable export action"
+    button = button_path.read_text()
+
+    assert "export function ChartExportButton" in button
+    assert "targetId" in button
+    assert "safeBaseFilename" in button
+    assert "exportChartPng" in button
+    assert "toast.error(errorLabel)" in button
+    assert "finally" in button
+    assert "setExporting(false)" in button
+    assert "data-export-exclude" in button
+    assert 'role="status"' in button
+
+
+def test_task7_bazi_is_summary_first_share_ready_and_keeps_raw_facts_collapsed():
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    css = read("frontend/src/app/globals.css")
+
+    assert chart.count("<ChartExportButton") == 1
+    assert "useId" in chart
+    assert 'id={exportTargetId}' in chart
+    assert 'aria-hidden="true"' in chart
+    assert "data-chart-export-root" in chart
+    assert "chart-export-canvas" in chart
+    assert chart.index("<ChartExportButton") < chart.index('id={exportTargetId}')
+    assert 'generatedAt: new Date().toISOString()' in tools
+    assert 'generatedAt={birthResult.generatedAt}' in tools
+    assert "chart.calculation_timestamp, locale" not in chart[chart.index("function BaziExportCanvas") :]
+    assert "chart.birth_profile.birth_place" in chart
+    assert "chart.birth_profile.input_date" in chart
+    assert "chart.day_master" in chart
+    assert "calculationRule" in chart
+    assert "currentCycle" in chart
+    assert "确定性历法事实" in chart
+    assert "Deterministic calendar facts" in chart
+    assert "data-element={pillar.stem_element}" in chart
+    assert "grid-cols-4" in chart
+    assert "divide-x" in chart
+    assert "Five-element distribution" in chart
+    assert "DayunTimeline" in chart
+    assert "overflow-x-auto" in chart
+    assert 'aria-current={isCurrent ? "step" : undefined}' in chart
+    assert "Professional chart data" in chart
+    professional = chart[chart.index("Professional chart data") :]
+    for raw_fact in ("hidden_stems", "ten_god", "nayin", "xunkong", "engines", "dayun.cycles"):
+        assert raw_fact in professional
+    assert ".chart-share-canvas" in css
+    assert ".chart-export-canvas" in css
+    assert "position: fixed" in css
+    assert "width: 1080px" in css
+    assert '[data-element="木"]' in css
+
+
+def test_task7_ziwei_has_one_share_canvas_and_preserves_palace_interaction():
+    chart = read("frontend/src/components/tools/ziwei-chart-view.tsx")
+
+    assert chart.count("<ChartExportButton") == 1
+    assert "useId" in chart
+    assert 'id={exportTargetId}' in chart
+    assert 'aria-hidden="true"' in chart
+    assert "data-chart-export-root" in chart
+    assert chart.index("<ChartExportButton") < chart.index('id={exportTargetId}')
+    assert "generatedAt" in chart
+    assert "chart.fiveElementsClass" in chart
+    assert "chart.soul" in chart and "chart.body" in chart
+    assert "horoscopeDate" in chart
+    assert "horoscope.decadal" in chart
+    assert "horoscope.yearly" in chart
+    assert "horoscope.yearly.mutagen" in chart
+    assert "chart.chineseDate" in chart
+    assert "chart.lunarDate" in chart
+    assert "chart.time" in chart
+    assert "chart.gender" in chart
+    assert "ZiweiPalaceChart" in chart
+    export_canvas = chart[chart.index("function ZiweiExportCanvas") : chart.index("function ZiweiIdentitySummary")]
+    assert "<ZiweiPalaceChart" in export_canvas
+    palace_chart = chart[chart.index("function ZiweiPalaceChart") : chart.index("function PalaceButton")]
+    assert "palace.name" in palace_chart
+    assert "palace.heavenlyStem" in palace_chart
+    assert "palace.earthlyBranch" in palace_chart
+    assert "palace.majorStars" in palace_chart
+    assert "star.mutagen" in palace_chart
+    assert "确定性星盘事实" in chart
+    assert "Deterministic chart facts" in chart
+    assert 'type="button"' in chart
+    assert "aria-pressed={isSelected}" in chart
+    assert "horoscope?.decadal.index === palace.index" in chart
+    assert "horoscope?.yearly.index === palace.index" in chart
+    assert "overflow-x-auto" in chart
+    assert "Professional chart data and provenance" in chart
+
+
+def test_task7_visible_summary_is_not_immediately_duplicated_and_details_are_flat():
+    bazi = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    ziwei = read("frontend/src/components/tools/ziwei-chart-view.tsx")
+
+    assert bazi.count("<PillarComposition chart={chart} locale={locale} />") == 1
+    assert "ZiweiDigest" not in ziwei
+    assert ziwei.count("<ZiweiIdentitySummary") == 2  # visible once, export-only once
+    assert 'className="chart-share-canvas chart-export-canvas"' in ziwei
+    assert "rounded-lg border" not in ziwei[ziwei.index("function SelectedPalaceDetail") :]
+    assert "rounded-md border" not in ziwei[ziwei.index("function StarGroup") :]
+
+
+def test_task7_reduced_motion_is_checked_before_imperative_dayun_scroll():
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+
+    assert 'window.matchMedia("(prefers-reduced-motion: reduce)").matches' in chart
+    assert 'behavior: reduceMotion ? "auto" : "smooth"' in chart
+
+
+def test_task7_playwright_covers_single_safe_png_download_and_failure_recovery():
+    e2e = read("frontend/e2e/public-routes.spec.ts")
+
+    assert "exports one mocked BaZi PNG with a safe filename" in e2e
+    assert 'page.waitForEvent("download")' in e2e
+    assert 'toHaveAttribute("aria-hidden", "true")' in e2e
+    assert 'locator("button, input, select, textarea")' in e2e
+    assert "downloads).toBe(1)" in e2e
+    assert "recovers when the export target is unavailable" in e2e
+
+
+def test_task7_export_target_is_unpositioned_inside_hidden_staging_wrapper():
+    bazi = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    ziwei = read("frontend/src/components/tools/ziwei-chart-view.tsx")
+    css = read("frontend/src/app/globals.css")
+
+    stage_rule = css[css.index(".chart-export-stage") : css.index("}", css.index(".chart-export-stage"))]
+    target_rule = css[css.index(".chart-export-canvas") : css.index("}", css.index(".chart-export-canvas"))]
+    for positioning in ("position: fixed", "left: -12000px", "z-index: -1"):
+        assert positioning in stage_rule
+        assert positioning not in target_rule
+    for chart in (bazi, ziwei):
+        assert 'aria-hidden="true" className="chart-export-stage"' in chart
+        assert chart.index('className="chart-export-stage"') < chart.index("data-chart-export-root")
+        assert 'data-chart-export-root className="chart-share-canvas chart-export-canvas"' in chart
+
+
+def test_task7_playwright_decodes_png_and_checks_dimensions_and_pixels():
+    e2e = read("frontend/e2e/public-routes.spec.ts")
+
+    assert 'from "node:fs/promises"' in e2e
+    assert "await download.path()" in e2e
+    assert 'data:image/png;base64,' in e2e
+    assert "image.naturalWidth" in e2e
+    assert "image.naturalHeight" in e2e
+    assert "getImageData" in e2e
+    assert "opaqueSamples" in e2e
+    assert "uniqueColors" in e2e
+
+
+def test_task7_ziwei_result_precedes_one_closed_edit_details_disclosure():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+
+    assert "ziweiEditorOpen" in tools
+    assert "setZiweiEditorOpen(false)" in tools
+    assert 'id="ziwei-edit-details"' in tools
+    assert "修改资料" in tools
+    assert "Edit details" in tools
+    assert tools.index("ziweiResult ? <ZiweiChartView") < tools.index('id="ziwei-edit-details"')
+    assert tools.count('id="ziwei-basic-title"') == 1
+    assert "generatedAt: new Date().toISOString()" in tools
+    assert "generatedAt={ziweiResult.generatedAt}" in tools
+
+
+def test_p1_ziwei_controls_keep_basic_inputs_visible_and_name_every_control():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+
+    assert 'id="ziwei-basic-title"' in tools
+    assert "紫微基础信息" in tools
+    assert "Zi Wei basic details" in tools
+    assert "<details" in tools
+    assert "紫微专业设置" in tools
+    assert "Zi Wei professional settings" in tools
+    for field_id in (
+        "ziwei-calendar",
+        "ziwei-birth-time",
+        "ziwei-lunar-date",
+        "ziwei-lunar-time",
+        "ziwei-gender",
+        "ziwei-horoscope-date",
+        "ziwei-school",
+        "ziwei-astro-type",
+        "ziwei-year-boundary",
+        "ziwei-fix-leap",
+        "ziwei-leap-month",
+        "ziwei-day-boundary",
+    ):
+        assert field_id in tools
+    assert 'aria-labelledby="ziwei-calendar-label"' in tools
+    assert 'aria-labelledby="ziwei-gender-label"' in tools
+    assert 'aria-labelledby="ziwei-school-label"' in tools
+    assert 'htmlFor="ziwei-birth-time"' in tools
+    assert 'htmlFor="ziwei-horoscope-date"' in tools
+    assert 'ziweiAlgorithm === "zhongzhou" ?' in tools
+    assert 'role="status"' in tools
+    assert "正在生成紫微星盘" in tools
+    assert "Generating Zi Wei chart" in tools
+
+
+def test_p1_ziwei_chart_is_interactive_readable_and_period_aware():
+    chart_path = ROOT / "frontend/src/components/tools/ziwei-chart-view.tsx"
+    assert chart_path.exists(), "Zi Wei chart view should be extracted into its own component"
+
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    chart = chart_path.read_text()
+
+    assert "ZiweiChartView" in tools
+    assert "function ZiweiChart(" not in tools
+    assert 'type="button"' in chart
+    assert "aria-pressed={isSelected}" in chart
+    assert "aria-label={palaceLabel}" in chart
+    assert "focus-visible:" in chart
+    assert "setSelectedPalaceIndex" in chart
+    assert "selectedPalace.majorStars" in chart
+    assert "selectedPalace.minorStars" in chart
+    assert "selectedPalace.adjectiveStars" in chart
+    assert "star.mutagen" in chart
+    assert "star.brightness" in chart
+    assert "selectedPalace.changsheng12" in chart
+    assert "selectedPalace.decadal.range" in chart
+    assert "horoscope?.decadal.index === palace.index" in chart
+    assert "horoscope?.yearly.index === palace.index" in chart
+    assert "大限" in chart
+    assert "流年" in chart
+    assert "horoscope.yearly.mutagen" in chart
+    assert "四化" in chart
+    assert "空宫" in chart
+    assert "Empty palace" in chart
+    assert "overflow-x-auto" in chart
+    assert "min-w-[64rem]" in chart
+    assert "grid-cols-4" in chart
+    assert "<details" in chart
+    professional = chart[chart.index("<details") :]
+    assert "iztro 2.5.8 · MIT" in professional
+    assert "provenance.algorithm" in professional
+    assert "解释层不混入排盘事实" in professional
+    assert "Interpretation remains separate from chart facts" in professional
+
+
+def test_p1_ziwei_digest_uses_selected_date_and_localized_provenance_values():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    chart = read("frontend/src/components/tools/ziwei-chart-view.tsx")
+
+    assert "horoscopeDate={ziweiResult.horoscopeDate}" in tools
+    assert "horoscope.solarDate" in chart
+    assert "horoscope.lunarDate" in chart
+    assert "horoscopeDate" in chart
+    assert "所选日期大限" in chart
+    assert "Selected-date decadal period" in chart
+    assert "所选日期流年" in chart
+    assert "Selected-date annual period" in chart
+    assert "当前大限" not in chart
+    assert "Current decadal period" not in chart
+    for localized_value in (
+        "公历",
+        "农历",
+        "通行法",
+        "中州派",
+        "天盘",
+        "地盘",
+        "人盘",
+        "立春",
+        "农历正月初一",
+        "晚子时换日",
+        "晚子时不换日",
+        "修正闰月",
+        "不修正闰月",
+        "闰月",
+        "非闰月",
+    ):
+        assert localized_value in chart
+
+
+def test_p1_ziwei_validates_target_date_and_commits_one_immutable_snapshot():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    generate = tools[
+        tools.index("async function generateZiwei") : tools.index("\n\n  return (", tools.index("async function generateZiwei"))
+    ]
+
+    assert "type ZiweiResultSnapshot" in tools
+    assert "const [ziweiResult, setZiweiResult]" in tools
+    assert "isSupportedHoroscopeDate(horoscopeDate)" in generate
+    assert '"1900-01-31"' in tools
+    assert '"2100-12-31"' in tools
+    assert "请输入 1900-01-31 至 2100-12-31 之间的有效运限日期" in tools
+    assert "Enter a valid horoscope date from 1900-01-31 through 2100-12-31" in tools
+    assert "const horoscope = chart.horoscope(horoscopeDate)" in generate
+    assert generate.index("const horoscope = chart.horoscope(horoscopeDate)") < generate.index("setZiweiResult({")
+    assert "setZiwei(" not in generate
+    assert "setZiweiHoroscope(" not in generate
+    assert generate.count("setZiweiResult(") == 1
+    assert "chart," in generate
+    assert "horoscope," in generate
+    assert "horoscopeDate," in generate
+    assert "provenance," in generate
+    assert "chart={ziweiResult.chart}" in tools
+    assert "horoscope={ziweiResult.horoscope}" in tools
+    assert "provenance={ziweiResult.provenance}" in tools
 
 
 def test_library_has_pinyin_search_and_public_metadata():
@@ -155,7 +859,7 @@ def test_library_has_pinyin_search_and_public_metadata():
     assert "LibrarySearch" in library_page
     assert library_page.index("<LibrarySearch") < library_page.index("HEXAGRAM_LIBRARY.map")
     assert "sourceSnippet" in library_page
-    assert "Received text" in library_page
+    assert "Received text" in detail_page
     assert "Judgment · Takashima" not in library_page
     assert "Search the Yi" in search
     assert "getHexagramPinyin" in detail_page
@@ -174,7 +878,7 @@ def test_public_hexagram_library_routes_and_data_exist():
     assert "qian" in library_data
     assert "kun" in library_data
     assert "difficulty-at-the-beginning" in library_data
-    assert "Source Library" in read("frontend/src/app/[locale]/library/page.tsx")
+    assert "Explore the 64 hexagrams" in read("frontend/src/app/[locale]/library/page.tsx")
     assert "generateStaticParams" in read("frontend/src/app/[locale]/hexagram/[slug]/page.tsx")
 
 
@@ -219,7 +923,58 @@ def test_results_source_review_uses_drawer_not_archive_tab_or_inline_expansion()
     assert "onSourceSelect={openSourceReader}" in results
     assert "function ArchiveComparisonPanel" not in results
     assert 'value === "archive"' not in store
-    assert 'export type ResultsTab = "summary" | "hex" | "sources" | "ai"' in store
+    assert 'export type ResultsTab = "summary" | "hex" | "ai"' in store
+    assert 'value === "sources" ? "hex"' in store
+
+
+def test_p0_result_page_has_three_trustworthy_tabs_and_safe_source_fallbacks():
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+    chinese = read("frontend/src/i18n/catalog/zh.ts")
+    english = read("frontend/src/i18n/catalog/en.ts")
+
+    assert results.count("<TabsTrigger") == 3
+    assert '<TabsTrigger value="summary">' in results
+    assert '<TabsTrigger value="hex">' in results
+    assert '<TabsTrigger value="ai">' in results
+    assert '<TabsTrigger value="sources">' not in results
+    assert 'tabSummary: "断卦"' in chinese
+    assert 'tabHex: "卦盘与依据"' in chinese
+    assert 'tabAi: "继续追问"' in chinese
+    assert 'tabSummary: "Interpretation"' in english
+    assert 'tabHex: "Chart & Evidence"' in english
+    assert 'tabAi: "Continue"' in english
+    assert "{labels.confidence} {item.confidence}%" not in results
+    assert 'stable: "无动爻"' in results
+    assert 'stable: "No moving lines"' in results
+    assert "格局稳定" not in results
+    assert "Stable pattern" not in results
+    assert "SourceReaderSheet" in results
+    assert "sourcePassages[0]" not in results
+    assert "来源待核" in results
+    assert "Source unverified" in results
+    mechanics = results[
+        results.index("function MechanicsInsightPanel") : results.index("function HexResultBlock")
+    ]
+    assert "labels.keyPassages" not in mechanics
+
+
+def test_p0_casting_surface_has_three_visible_steps_coin_default_and_no_latency_guesses():
+    cast_form = read("frontend/src/components/workspace/cast-form.tsx")
+    chinese = read("frontend/src/i18n/catalog/zh.ts")
+    english = read("frontend/src/i18n/catalog/en.ts")
+
+    for label in ("1 问什么", "2 怎么起", "3 怎么解", "1 What to ask", "2 How to cast", "3 How to interpret"):
+        assert label in cast_form or label in chinese or label in english
+    assert 'method.label === "三枚铜钱法"' in cast_form
+    assert "appendManualLine(result.value, COIN_METHOD_KEY)" in cast_form
+    assert "≈" not in cast_form
+    assert "≈" not in chinese
+    assert "≈" not in english
+    assert 'submitIdle: "起卦"' in chinese
+    assert 'submitIdle: "Cast"' in english
+    assert "methodUnknownDescription" in cast_form
+    assert 'methodUnknownDescription: "其他起卦方法；请按当前方法说明操作。"' in chinese
+    assert 'methodUnknownDescription: "Another configured casting method; follow its supplied instructions."' in english
 
 
 def test_source_drawer_has_classification_and_why_selected():
@@ -262,10 +1017,10 @@ def test_mechanics_page_has_professional_cast_logic_not_archive_replica():
     assert "Cast logic" in results
     assert "爻变诊断" in results
     assert "Line movement" in results
-    assert "重点段落解析" in results
     assert "显示补充" in results
     assert "sectionSourceIdForDrawer" in results
     assert results.index("<MechanicsInsightPanel") < results.index("<HexSectionGroup")
+    assert results.index("<HexResultBlock") < results.index("<SourceEvidencePanel")
 
 
 def test_hexagram_archive_data_organizes_all_sources_by_hexagram():
@@ -295,38 +1050,57 @@ def test_hexagram_archive_data_organizes_all_sources_by_hexagram():
     assert "content" in qian_archive
 
 
-def test_library_page_is_a_precise_study_index_not_only_cards():
+def test_library_page_is_a_consumer_browse_index_without_database_metrics():
     library_page = read("frontend/src/app/[locale]/library/page.tsx")
+    search = read("frontend/src/components/library/library-search.tsx")
+    copy_path = ROOT / "frontend/src/lib/hexagram-copy.ts"
+    assert copy_path.exists(), "localized hexagram copy should be shared by list and detail routes"
+    copy_helpers = copy_path.read_text(encoding="utf-8")
 
-    assert "HEXAGRAM_ARCHIVE_SUMMARY" in library_page
-    assert "getHexagramArchiveSummary" in library_page
-    assert "450 canonical slots" in library_page
-    assert "1,356 source entries" in library_page
-    assert "学习库" in library_page
-    assert "资料完整度" in library_page
-    assert "sourceCounts" in library_page
-    assert "canonicalSlotCount" in library_page
+    for phrase in ("Source Library", "canonical slots", "source entries", "资料完整度"):
+        assert phrase not in library_page
+    assert "HEXAGRAM_ARCHIVE_SUMMARY" not in library_page
+    assert "getHexagramArchiveSummary" not in library_page
+    assert "localizedHexagramMeaning" in library_page
+    assert "localizedHexagramThemes" in library_page
+    assert "localizedHexagramMeaning" in copy_helpers
+    assert "localizedHexagramThemes" in copy_helpers
+    assert "themeFilters" in search
+    assert 'role="status"' in search
+    assert 'aria-live="polite"' in search
+    assert "focus-visible:" in search
 
 
-def test_hexagram_detail_page_renders_a_library_study_page_by_slot():
+def test_hexagram_detail_prioritizes_meaning_progression_and_collapsed_sources():
     detail_page = read("frontend/src/app/[locale]/hexagram/[slug]/page.tsx")
 
     assert "getHexagramArchive" in detail_page
     assert "await getHexagramArchive" in detail_page
     assert "ArchiveSlotSection" in detail_page
     assert "SourceEntryCard" in detail_page
-    assert "Study table" in detail_page
-    assert "学习目录" in detail_page
+    assert "sixLineProgression" in detail_page
+    assert "六爻进程" in detail_page
+    assert "Six-line progression" in detail_page
     assert "groupArchiveEntriesBySlot" in detail_page
     assert "本卦卦辞" in detail_page
     assert "爻位资料" in detail_page
     assert "用九 / 用六" in detail_page
     assert "whitespace-pre-wrap" in detail_page
-    assert "sourceCounts" in detail_page
+    assert "tabIndex={0}" in detail_page
+    assert "scroll-mt-[9rem]" in detail_page
+    assert "sourcePreview" in detail_page
+    assert "<details open=" not in detail_page
+    assert "entry.slotKey" not in detail_page
+    assert "sourceCounts" not in detail_page
+    assert "Cast with this context" not in detail_page
+    assert "用此卦起一条阅读" not in detail_page
 
 
-def test_profile_page_matches_premium_study_surface():
+def test_my_page_has_focused_signed_out_auth_and_preserves_signed_in_reading_actions():
     profile = read("frontend/src/components/profile/profile-page.tsx")
+    menu = read("frontend/src/components/profile/profile-menu.tsx")
+    english = read("frontend/src/i18n/catalog/en.ts")
+    chinese = read("frontend/src/i18n/catalog/zh.ts")
 
     assert "AccountSummaryPanel" in profile
     assert "CloudHistoryPanel" in profile
@@ -337,9 +1111,24 @@ def test_profile_page_matches_premium_study_surface():
     assert "<Card" not in profile
     assert "Textarea" not in profile
     assert "max-w-7xl" in profile
-    assert "grid gap-6 lg:grid-cols-[18rem_1fr]" in profile
-    assert "Reading archive" in profile
-    assert "卦例档案" in profile
+    assert "auth.user ?" in profile
+    assert "auth.user ? (" in profile
+    assert 'autoComplete="email"' in profile
+    assert 'autoComplete={authMode === "signIn" ? "current-password" : "new-password"}' in profile
+    assert 'htmlFor="profile-email"' in profile
+    assert 'htmlFor="profile-password"' in profile
+    assert profile.index("messages.common.continueWithGoogle") < profile.index("<form")
+    assert "messages.profile.authBenefits" in profile
+    assert "messages.profile.privacyCopy" in profile
+    assert "safeAuthError" in profile
+    assert "safeAuthError" in menu
+    assert "(error as Error).message" not in profile
+    assert "(error as Error).message" not in menu
+    assert 'locale === "zh" ? "zh-CN" : "en"' in profile
+    assert 'kicker: "My"' in english
+    assert 'kicker: "我的"' in chinese
+    assert 'cloudHistoryTitle: "Saved readings"' in english
+    assert 'cloudHistoryTitle: "已保存卦例"' in chinese
     assert "border border-border/60 bg-surface" in profile
     assert "bg-surface-elevated" in profile
     assert "LogOut" in profile
@@ -349,6 +1138,123 @@ def test_profile_page_matches_premium_study_surface():
     assert "365 天" in profile
     assert "up to 500" in profile
     assert "最多 500" in profile
+
+
+def test_task8_primary_paths_use_consumer_copy_without_duplicate_or_internal_chrome():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    bazi = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    ziwei = read("frontend/src/components/tools/ziwei-chart-view.tsx")
+    search = read("frontend/src/components/library/library-search.tsx")
+    profile = read("frontend/src/components/profile/profile-page.tsx")
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+
+    assert 'title: "八字与紫微排盘"' in tools
+    assert 'title: "BaZi & Zi Wei Charts"' in tools
+    assert 'calculate: "生成我的命盘"' in tools
+    assert 'calculate: "Generate my chart"' in tools
+    assert "出生地文本不会自动生成此数值" not in tools
+    assert "the birth-place text does not generate this value" not in tools
+    assert 'className="rounded-lg border border-border/60 bg-surface p-4 text-xs' not in tools
+
+    assert bazi.count('locale === "zh" ? "八字命盘" : "BaZi chart"') == 0
+    assert ziwei.count('locale === "zh" ? "紫微斗数命盘" : "Zi Wei Dou Shu chart"') == 0
+    assert 'className="flex justify-end"' in bazi
+    assert 'className="flex justify-end"' in ziwei
+
+    assert "检索经典档案" not in search
+    assert "Search the archive" not in search
+    for phrase in ("私人卦例档案", "已登录档案", "游客档案", "卦例档案", "Reading archive", "Private divination archive"):
+        assert phrase not in profile
+
+    assert 'sameSlot: "同一爻位依据"' in results
+    assert 'sameSlot: "Same-line evidence"' in results
+    assert 'slot: "槽位"' not in results
+    assert 'slot: "Slot"' not in results
+    assert 'sourceDepth: "来源覆盖"' not in results
+    assert 'sourceDepth: "Source coverage"' not in results
+
+
+def test_task8_review_uses_bilingual_saved_reading_copy_once_and_no_internal_fallbacks():
+    profile = read("frontend/src/components/profile/profile-page.tsx")
+    english = read("frontend/src/i18n/catalog/en.ts")
+    chinese = read("frontend/src/i18n/catalog/zh.ts")
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+    search = read("frontend/src/components/library/library-search.tsx")
+    e2e = read("frontend/e2e/public-routes.spec.ts")
+
+    assert 'cloudHistoryTitle: "Saved readings"' in english
+    assert 'cloudHistoryTitle: "已保存卦例"' in chinese
+    assert 'authCardSignUp: "Create your account"' in english
+    assert 'authCardSignUp: "创建账户"' in chinese
+    assert "reading archive" not in english.lower()
+    assert "卦例档案" not in chinese
+    assert "经典档案" not in chinese
+    assert "Cloud Session History" not in english
+    assert "云端历史记录" not in chinese
+    assert profile.count("{copy.readingArchiveBody}") == 1
+    assert "isSignedIn" not in profile
+    assert "copy.signedOut" not in profile
+    for obsolete in ("identity:", "signedOut:", "authRequired:", "accountAccess:", "emailAccount:", "googleAccount:", "useEmail:"):
+        assert obsolete not in profile
+
+    assert "slot or source group" not in results
+    assert "槽位或来源组" not in results
+    assert 'empty: "No matching hexagram. Try a name, situation, or theme."' in search
+    assert "source snippet" not in search.lower()
+
+    assert "signed-in My shows saved readings and safe record controls" in e2e
+    assert 'route("**/auth/v1/token**"' in e2e
+    assert 'name: "Saved readings"' in e2e
+    for control in ("Download", "Open session", "Delete"):
+        assert f'name: "{control}"' in e2e
+
+
+def test_e2e_review_uses_one_source_trust_resolver_in_passages_and_chart_preview():
+    resolver_path = ROOT / "frontend/src/lib/source-labels.ts"
+    assert resolver_path.exists(), "source labels need one shared trust boundary"
+    resolver = resolver_path.read_text(encoding="utf-8")
+    results = read("frontend/src/components/workspace/results-panel.tsx")
+    visual = read("frontend/src/components/workspace/hexagram-visual.tsx")
+
+    assert "export function sourceDisplayLabel" in resolver
+    assert 'return locale === "zh" ? "来源待核" : "Source unverified"' in resolver
+    for known_source in ("takashima", "english_commentary", "symbolic", "guaci"):
+        assert known_source in resolver
+    assert 'from "@/lib/source-labels"' in results
+    assert 'from "@/lib/source-labels"' in visual
+    assert "function sourceDisplayLabel" not in results
+    assert "sourceDisplayLabel(section.source, locale)" in visual
+    assert "section.source_label || section.source" not in visual
+
+
+def test_e2e_review_waits_for_persisted_form_before_applying_url_precedence():
+    cast_form = read("frontend/src/components/workspace/cast-form.tsx")
+
+    assert "useWorkspaceStore.persist.hasHydrated()" in cast_form
+    assert "useWorkspaceStore.persist.onFinishHydration" in cast_form
+    assert "useSyncExternalStore" in cast_form
+    assert "storeHydrated" in cast_form
+    hydration_effect = cast_form[cast_form.index("const storeHydrated") : cast_form.index("const mutation = useSessionMutation")]
+    assert "setStoreHydrated" not in hydration_effect
+    assert "if (!storeHydrated) return" in hydration_effect
+    assert "unsubscribeFromStart()" in cast_form
+    assert "unsubscribeFromFinish()" in cast_form
+    assert 'const persistedTopic = config.topics.some((topic) => topic.label === current.topic) ? current.topic : ""' in hydration_effect
+    assert "requestedIntent?.topic || persistedTopic || preferredTopic" in hydration_effect
+    assert "explicitQuestion || draftedQuestion || requestedIntent?.questionHint" in hydration_effect
+    assert "if (!value || !config.topics.some((topic) => topic.label === value)) return" in cast_form
+    assert 'updateForm("topic", value)' in cast_form
+
+
+def test_e2e_review_export_button_has_parent_name_and_separate_live_status():
+    button = read("frontend/src/components/tools/chart-export-button.tsx")
+
+    assert "aria-label={exporting ? loadingLabel : label}" in button
+    assert '<span role="status">' not in button
+    assert 'role="status"' in button
+    assert 'aria-live="polite"' in button
+    assert 'className="sr-only"' in button
+    assert button.index("</Button>") < button.index('role="status"')
 
 
 def test_najia_table_uses_compact_rows_without_duplicate_line_preview():

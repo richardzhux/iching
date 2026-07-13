@@ -6,16 +6,13 @@ import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   BookOpen,
-  Cloud,
   Download,
-  History,
   Loader2,
   LogOut,
   MessageSquare,
   RefreshCw,
   ShieldCheck,
   Trash2,
-  UserRound,
 } from "lucide-react"
 import { toast } from "sonner"
 import { useI18n } from "@/components/providers/i18n-provider"
@@ -31,54 +28,38 @@ import type { SessionPayload, SessionSummary } from "@/types/api"
 
 const PROFILE_COPY = {
   en: {
-    identity: "Private divination archive",
-    signedIn: "Signed in record",
-    signedOut: "Guest record",
+    signedIn: "Signed in",
     accountLabel: "Account",
-    readingArchive: "Reading archive",
-    readingArchiveBody: "Saved casts, exports, and follow-up sessions are kept as a private working record.",
+    readingArchiveBody: "Revisit saved readings, export a copy, or continue a follow-up conversation.",
     retentionNote: "A 365-day cloud retention limit applies to reading records, with up to 500 saved readings per account; deleting a reading also removes its follow-up transcript.",
     secureRecord: "Secure record",
-    secureRecordBody: "Cloud history stays tied to your authenticated account and can be reopened from the divination desk.",
+    secureRecordBody: "Saved readings stay tied to your account and can be reopened from the casting desk.",
     savedReadings: "Saved readings",
     followups: "Follow-up ready",
-    authRequired: "Sign in required",
-    library: "Source library",
-    workspace: "Divination desk",
+    library: "Explore the 64 hexagrams",
+    workspace: "Cast a reading",
     summaryLabel: "Reading brief",
-    accountAccess: "Account access",
-    emailAccount: "Email account",
-    googleAccount: "Google account",
-    useEmail: "Use email credentials",
-    noRecordsTitle: "No readings synced yet",
-    noRecordsBody: "Create a reading from the workspace and it will appear here as a structured record.",
-    historyErrorTitle: "Cloud history could not load",
-    historyErrorBody: "Your archive may still be intact. Retry the sync before treating this as an empty history.",
+    noRecordsTitle: "No saved readings yet",
+    noRecordsBody: "Complete a reading and it will be saved here for review and follow-up.",
+    historyErrorTitle: "Saved readings could not load",
+    historyErrorBody: "Your saved readings may still be intact. Retry before treating this as an empty history.",
   },
   zh: {
-    identity: "私人卦例档案",
-    signedIn: "已登录档案",
-    signedOut: "游客档案",
+    signedIn: "已登录",
     accountLabel: "账户",
-    readingArchive: "卦例档案",
-    readingArchiveBody: "这里保存已同步的起卦、导出记录与可继续追问的会话，形成长期占断档案。",
+    readingArchiveBody: "回看已保存的卦例、导出副本，或继续上次的追问。",
     retentionNote: "云端卦例最长保留 365 天，每个账户最多 500 条；删除卦例也会同步删除其追问文本。",
     secureRecord: "安全记录",
-    secureRecordBody: "云端历史绑定当前登录账户，可从占卜台重新打开并继续追问。",
-    savedReadings: "已存卦例",
+    secureRecordBody: "已保存卦例仅绑定当前账户，可从起卦页面重新打开并继续追问。",
+    savedReadings: "已保存",
     followups: "可追问",
-    authRequired: "需要登录",
-    library: "经典学习库",
-    workspace: "占卜台",
+    library: "查阅六十四卦",
+    workspace: "去起一卦",
     summaryLabel: "卦例概要",
-    accountAccess: "账户入口",
-    emailAccount: "邮箱账户",
-    googleAccount: "Google 账户",
-    useEmail: "使用邮箱密码",
-    noRecordsTitle: "暂无同步记录",
-    noRecordsBody: "在占卜台完成一次起卦后，会以结构化卦例出现在这里。",
-    historyErrorTitle: "云端历史暂时无法读取",
-    historyErrorBody: "这不代表档案为空。请先重试同步，再判断是否没有历史记录。",
+    noRecordsTitle: "暂无已保存卦例",
+    noRecordsBody: "完成一次起卦后，会保存在这里，方便日后回看与追问。",
+    historyErrorTitle: "已保存卦例暂时无法读取",
+    historyErrorBody: "这不代表记录为空。请先重试同步，再判断是否没有历史记录。",
   },
 } as const satisfies Record<Locale, Record<string, string>>
 
@@ -89,7 +70,6 @@ type AccountSummaryPanelProps = {
   copy: ProfileCopy
   displayName: string
   email?: string | null
-  isSignedIn: boolean
   messages: Messages
   followupCount: number
   sessionCount: number
@@ -104,6 +84,7 @@ type CloudHistoryPanelProps = {
   isFetching: boolean
   isLoading: boolean
   historyError: Error | null
+  locale: Locale
   messages: Messages
   onContinue: (session: SessionSummary) => void
   onDelete: (session: SessionSummary) => void
@@ -117,7 +98,6 @@ type CloudHistoryPanelProps = {
 type AuthPanelProps = {
   authMode: "signIn" | "signUp"
   busy: boolean
-  copy: ProfileCopy
   email: string
   messages: Messages
   password: string
@@ -133,6 +113,7 @@ type SessionRecordCardProps = {
   deletingId: string | null
   exportingId: string | null
   copy: ProfileCopy
+  locale: Locale
   messages: Messages
   onContinue: (session: SessionSummary) => void
   onDelete: (session: SessionSummary) => void
@@ -140,13 +121,17 @@ type SessionRecordCardProps = {
   session: SessionSummary
 }
 
-function formatTimestamp(value?: string | null) {
+function formatTimestamp(value: string | null | undefined, locale: Locale) {
   if (!value) return "-"
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
     return value
   }
-  return date.toLocaleString()
+  return date.toLocaleString(locale === "zh" ? "zh-CN" : "en")
+}
+
+function safeAuthError(_error: unknown, messages: Messages) {
+  return messages.profile.authError
 }
 
 function AccountSummaryPanel({
@@ -155,7 +140,6 @@ function AccountSummaryPanel({
   displayName,
   email,
   followupCount,
-  isSignedIn,
   messages,
   sessionCount,
   toLocalePath,
@@ -170,23 +154,23 @@ function AccountSummaryPanel({
             <img src={avatarUrl} alt={displayName} className="size-12 rounded-md object-cover ring-1 ring-border/70" />
           ) : (
             <div className="flex size-12 items-center justify-center rounded-md border border-border/60 bg-surface-elevated text-base font-semibold text-primary">
-              {isSignedIn ? displayName?.[0]?.toUpperCase() : <UserRound className="size-5" />}
+              {displayName?.[0]?.toUpperCase()}
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">{isSignedIn ? copy.signedIn : copy.signedOut}</p>
+            <p className="text-sm font-semibold text-foreground">{copy.signedIn}</p>
             <p className="mt-1 truncate text-sm text-muted-foreground">{displayName}</p>
             {email && <p className="mt-1 truncate text-xs text-muted-foreground">{email}</p>}
           </div>
         </div>
       </section>
 
-      <section className="grid gap-2">
-        <ProfileStatCard label={copy.savedReadings} value={isSignedIn ? String(sessionCount) : "-"} />
-        <ProfileStatCard label={copy.followups} value={isSignedIn ? String(followupCount) : "-"} />
+      <section className="grid grid-cols-2 divide-x divide-border/60 border-y border-border/60">
+        <ProfileStatCard label={copy.savedReadings} value={String(sessionCount)} />
+        <ProfileStatCard label={copy.followups} value={String(followupCount)} />
       </section>
 
-      <section className="rounded-lg border border-border/60 bg-surface p-4">
+      <section className="border-l-2 border-primary/40 pl-4">
         <p className="kicker">{copy.secureRecord}</p>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{copy.secureRecordBody}</p>
       </section>
@@ -217,7 +201,7 @@ function AccountSummaryPanel({
 
 function ProfileStatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-surface p-4">
+    <div className="px-4 py-3">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
     </div>
@@ -232,6 +216,7 @@ function CloudHistoryPanel({
   isFetching,
   isLoading,
   historyError,
+  locale,
   messages,
   onContinue,
   onDelete,
@@ -244,12 +229,10 @@ function CloudHistoryPanel({
   const hasSessions = sessions.length > 0
 
   return (
-    <section className="rounded-lg border border-border/60 bg-surface p-5">
+    <section>
       <div className="flex flex-col gap-4 border-b border-border/60 pb-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="kicker">{copy.readingArchive}</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">{messages.profile.cloudHistoryTitle}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{copy.readingArchiveBody}</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">{messages.profile.cloudHistoryTitle}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" disabled={isFetching} onClick={onRefresh}>
@@ -299,6 +282,7 @@ function CloudHistoryPanel({
               copy={copy}
               deletingId={deletingId}
               exportingId={exportingId}
+              locale={locale}
               messages={messages}
               onContinue={onContinue}
               onDelete={onDelete}
@@ -318,6 +302,7 @@ function SessionRecordCard({
   copy,
   deletingId,
   exportingId,
+  locale,
   messages,
   onContinue,
   onDelete,
@@ -337,7 +322,7 @@ function SessionRecordCard({
               {messages.profile.sessionLabel}
             </span>
             <span className="rounded-md border border-border/60 bg-surface px-2 py-1 text-[11px] text-muted-foreground">
-              {formatTimestamp(session.created_at)}
+              {formatTimestamp(session.created_at, locale)}
             </span>
             {session.followup_available && (
               <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
@@ -375,7 +360,7 @@ function SessionRecordCard({
         </div>
       </div>
 
-      <div className="mt-4 rounded-md border border-border/50 bg-surface p-3">
+      <div className="mt-4 border-t border-border/50 pt-3">
         <p className="kicker">{copy.summaryLabel}</p>
         <p className="mt-3 max-h-28 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-foreground/90">
           {session.summary_text ?? messages.profile.noSummary}
@@ -395,7 +380,6 @@ function SessionRecordCard({
 function AuthPanel({
   authMode,
   busy,
-  copy,
   email,
   messages,
   onEmailSubmit,
@@ -406,62 +390,69 @@ function AuthPanel({
   setPassword,
 }: AuthPanelProps) {
   return (
-    <section className="rounded-lg border border-border/60 bg-surface p-5">
-      <div className="border-b border-border/60 pb-5">
-        <p className="kicker">{copy.accountAccess}</p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
+    <section className="mx-auto w-full max-w-3xl rounded-lg border border-border/60 bg-surface p-6 sm:p-8">
+      <div className="text-center">
+        <p className="kicker">{messages.profile.kicker}</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           {authMode === "signIn" ? messages.profile.authCardSignIn : messages.profile.authCardSignUp}
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{messages.profile.authCardDescription}</p>
+        </h1>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{messages.profile.authCardDescription}</p>
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_16rem]">
-        <form onSubmit={onEmailSubmit} className="space-y-3">
-          <p className="text-sm font-semibold text-foreground">{copy.emailAccount}</p>
-          <label htmlFor="profile-email" className="sr-only">
-            {messages.common.email}
-          </label>
-          <Input
-            id="profile-email"
-            type="email"
-            placeholder={messages.common.email}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-          <label htmlFor="profile-password" className="sr-only">
-            {messages.common.password}
-          </label>
-          <Input
-            id="profile-password"
-            type="password"
-            placeholder={messages.common.password}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-          <Button type="submit" className="w-full justify-between" disabled={busy}>
+      <ul className="mx-auto mt-6 grid max-w-2xl gap-3 border-y border-border/60 py-5 text-sm text-foreground sm:grid-cols-3">
+        {messages.profile.authBenefits.map((benefit) => (
+          <li key={benefit} className="flex items-start gap-2 px-2">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+            <span>{benefit}</span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mx-auto mt-6 max-w-md">
+        <Button type="button" className="min-h-11 w-full" disabled={busy} onClick={onGoogleSignIn}>
+          {messages.common.continueWithGoogle}
+        </Button>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true">
+          <span className="h-px flex-1 bg-border" />
+          <span>{authMode === "signIn" ? messages.common.signIn : messages.common.signUp}</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
+        <form onSubmit={onEmailSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="profile-email" className="mb-2 block text-sm font-medium text-foreground">
+              {messages.common.email}
+            </label>
+            <Input id="profile-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="profile-password" className="mb-2 block text-sm font-medium text-foreground">
+              {messages.common.password}
+            </label>
+            <Input
+              id="profile-password"
+              type="password"
+              autoComplete={authMode === "signIn" ? "current-password" : "new-password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </div>
+          <Button type="submit" className="min-h-11 w-full justify-between" disabled={busy}>
             {busy ? messages.profile.submitBusy : authMode === "signIn" ? messages.common.signIn : messages.common.signUp}
             <ArrowRight className="size-4" />
           </Button>
-          <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={onGoogleSignIn}>
-            {messages.common.continueWithGoogle}
-          </Button>
         </form>
 
-        <aside className="rounded-lg border border-border/60 bg-surface-elevated p-4">
-          <div className="flex size-10 items-center justify-center rounded-md border border-border/60 bg-surface text-primary">
-            <ShieldCheck className="size-5" />
-          </div>
-          <p className="mt-4 text-sm font-semibold text-foreground">{copy.googleAccount}</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{messages.profile.subtitleSignedOut}</p>
-          <button
-            type="button"
-            className="mt-4 text-sm font-semibold text-primary underline-offset-4 hover:underline"
-            onClick={() => setAuthMode((mode) => (mode === "signIn" ? "signUp" : "signIn"))}
-          >
-            {authMode === "signIn" ? messages.profile.switchToSignUp : messages.profile.switchToSignIn}
-          </button>
-        </aside>
+        <button
+          type="button"
+          className="mt-4 min-h-11 w-full rounded-md px-3 text-sm font-semibold text-primary outline-none underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setAuthMode((mode) => (mode === "signIn" ? "signUp" : "signIn"))}
+        >
+          {authMode === "signIn" ? messages.profile.switchToSignUp : messages.profile.switchToSignIn}
+        </button>
       </div>
+      <p className="mx-auto mt-5 max-w-xl text-center text-xs leading-5 text-muted-foreground">{messages.profile.privacyCopy}</p>
     </section>
   )
 }
@@ -495,7 +486,7 @@ export default function ProfilePage() {
       const transcript = await fetchChatTranscript(summary.session_id, auth.accessToken)
       const snapshot = transcript.payload_snapshot
       const lines: string[] = []
-      lines.push(`${messages.workspace.results.baziTimeLabel}: ${formatTimestamp(snapshot?.session_dict?.["current_time_str"] as string)}`)
+      lines.push(`${messages.workspace.results.baziTimeLabel}: ${formatTimestamp(snapshot?.session_dict?.["current_time_str"] as string, locale)}`)
       lines.push("")
       if (snapshot?.summary_text) {
         lines.push(messages.workspace.results.summaryLabel)
@@ -519,7 +510,7 @@ export default function ProfilePage() {
       if (transcript.messages.length) {
         lines.push(messages.workspace.chat.title)
         transcript.messages.forEach((message, index) => {
-          const created = message.created_at ? ` @ ${formatTimestamp(message.created_at)}` : ""
+          const created = message.created_at ? ` @ ${formatTimestamp(message.created_at, locale)}` : ""
           lines.push(`${index + 1}. ${message.role === "assistant" ? "AI" : messages.profile.userLabel}${created}`)
           lines.push(message.content.trim())
           lines.push("")
@@ -605,7 +596,7 @@ export default function ProfilePage() {
       setEmail("")
       setPassword("")
     } catch (error) {
-      toast.error((error as Error).message || messages.common.unknownError)
+      toast.error(safeAuthError(error, messages))
     } finally {
       setBusy(false)
     }
@@ -616,7 +607,7 @@ export default function ProfilePage() {
     try {
       await auth.signInWithProvider("google")
     } catch (error) {
-      toast.error((error as Error).message || messages.common.unknownError)
+      toast.error(safeAuthError(error, messages))
     } finally {
       setBusy(false)
     }
@@ -626,87 +617,73 @@ export default function ProfilePage() {
     try {
       await auth.signOut()
       toast.success(messages.profileMenu.signedOutToast)
-    } catch (error) {
-      toast.error((error as Error).message || messages.common.unknownError)
+    } catch {
+      toast.error(messages.profileMenu.signOutFailed)
     }
   }
 
-  return (
+  if (auth.loading) {
+    return (
+      <div className="mx-auto flex min-h-[28vh] w-full max-w-3xl items-center justify-center gap-3 p-8 text-sm text-muted-foreground" role="status">
+        <Loader2 className="size-4 animate-spin" />
+        {messages.profile.authLoading}
+      </div>
+    )
+  }
+
+  return auth.user ? (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <header className="grid gap-6 rounded-lg border border-border/60 bg-surface p-6 lg:grid-cols-[1fr_18rem] lg:items-end">
+      <header className="border-b border-border/60 pb-6">
         <div>
           <p className="kicker">{messages.profile.kicker}</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">{messages.profile.title}</h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">
-            {auth.user ? copy.readingArchiveBody : messages.profile.subtitleSignedOut}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border/60 bg-surface-elevated p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-md border border-border/60 bg-surface text-primary">
-              {auth.user ? <Cloud className="size-5" /> : <History className="size-5" />}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">{copy.identity}</p>
-              <p className="text-xs text-muted-foreground">{auth.user ? profileName : copy.authRequired}</p>
-            </div>
-          </div>
+          <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">{copy.readingArchiveBody}</p>
         </div>
       </header>
 
-      {auth.loading ? (
-        <div className="flex min-h-[28vh] items-center justify-center gap-3 rounded-lg border border-border/60 bg-surface p-8 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          {messages.profile.authLoading}
-        </div>
-      ) : (
-        <section className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-          <AccountSummaryPanel
-            avatarUrl={profileAvatar}
-            copy={copy}
-            displayName={profileName}
-            email={auth.user?.email}
-            followupCount={followupCount}
-            isSignedIn={Boolean(auth.user)}
-            messages={messages}
-            sessionCount={sessions.length}
-            toLocalePath={toLocalePath}
-          />
-          {auth.user ? (
-            <CloudHistoryPanel
-              continuingId={continuingId}
-              copy={copy}
-              deletingId={deletingId}
-              exportingId={exportingId}
-              isFetching={historyQuery.isFetching}
-              isLoading={historyQuery.isLoading}
-              historyError={historyQuery.error instanceof Error ? historyQuery.error : null}
-              messages={messages}
-              onContinue={handleContinue}
-              onDelete={handleDelete}
-              onDownload={handleDownload}
-              onRefresh={() => historyQuery.refetch()}
-              onSignOut={handleSignOut}
-              sessions={sessions}
-              toLocalePath={toLocalePath}
-            />
-          ) : (
-            <AuthPanel
-              authMode={authMode}
-              busy={busy}
-              copy={copy}
-              email={email}
-              messages={messages}
-              onEmailSubmit={handleAuthSubmit}
-              onGoogleSignIn={handleGoogleSignIn}
-              password={password}
-              setAuthMode={setAuthMode}
-              setEmail={setEmail}
-              setPassword={setPassword}
-            />
-          )}
-        </section>
-      )}
+      <section className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+        <AccountSummaryPanel
+          avatarUrl={profileAvatar}
+          copy={copy}
+          displayName={profileName}
+          email={auth.user.email}
+          followupCount={followupCount}
+          messages={messages}
+          sessionCount={sessions.length}
+          toLocalePath={toLocalePath}
+        />
+        <CloudHistoryPanel
+          continuingId={continuingId}
+          copy={copy}
+          deletingId={deletingId}
+          exportingId={exportingId}
+          isFetching={historyQuery.isFetching}
+          isLoading={historyQuery.isLoading}
+          historyError={historyQuery.error instanceof Error ? historyQuery.error : null}
+          locale={locale}
+          messages={messages}
+          onContinue={handleContinue}
+          onDelete={handleDelete}
+          onDownload={handleDownload}
+          onRefresh={() => historyQuery.refetch()}
+          onSignOut={handleSignOut}
+          sessions={sessions}
+          toLocalePath={toLocalePath}
+        />
+      </section>
     </div>
+  ) : (
+    <AuthPanel
+      authMode={authMode}
+      busy={busy}
+      email={email}
+      messages={messages}
+      onEmailSubmit={handleAuthSubmit}
+      onGoogleSignIn={handleGoogleSignIn}
+      password={password}
+      setAuthMode={setAuthMode}
+      setEmail={setEmail}
+      setPassword={setPassword}
+    />
   )
 }

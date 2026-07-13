@@ -10,16 +10,50 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BaziChartView } from "@/components/tools/bazi-chart-view"
+import { BaziControls } from "@/components/tools/metaphysics-controls"
+import { ZiweiChartView, type ZiweiProvenance } from "@/components/tools/ziwei-chart-view"
 import { calculateMetaphysicsChart } from "@/lib/api"
+import type { LocationResult } from "@/lib/location-search"
 import type { MetaphysicsChart } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
-import type { IFunctionalPalace } from "iztro/lib/astro/FunctionalPalace"
 
 const pad = (value: number) => String(value).padStart(2, "0")
 const localDateTimeValue = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 const TIMEZONES = ["Asia/Shanghai", "Asia/Hong_Kong", "Asia/Taipei", "Asia/Singapore", "Asia/Tokyo", "America/Los_Angeles", "America/New_York", "Europe/London"]
-const PALACE_POSITIONS = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [1, 3], [0, 3], [0, 2], [0, 1]] as const
+const IZTRO_MIN_DATE = "1900-01-31"
+const IZTRO_MAX_DATE = "2100-12-31"
+
+type ZiweiResultSnapshot = {
+  chart: IFunctionalAstrolabe
+  horoscope: IFunctionalHoroscope
+  horoscopeDate: string
+  generatedAt: string
+  provenance: ZiweiProvenance
+}
+
+type BaziResultSnapshot = {
+  chart: MetaphysicsChart
+  generatedAt: string
+}
+
+type LocationAutofillState = {
+  previousTimezone: string
+  previousLongitude: string
+  appliedTimezone: string
+  appliedLongitude: string
+}
+
+function isSupportedHoroscopeDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match || value < IZTRO_MIN_DATE || value > IZTRO_MAX_DATE) return false
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
 
 export function MetaphysicsTools() {
   const { locale, toLocalePath } = useI18n()
@@ -32,13 +66,15 @@ export function MetaphysicsTools() {
   const [lunarBirthTime, setLunarBirthTime] = useState("12:00")
   const [baziGender, setBaziGender] = useState<"male" | "female">("male")
   const [birthPlace, setBirthPlace] = useState("")
+  const [selectedBirthPlace, setSelectedBirthPlace] = useState<LocationResult | null>(null)
+  const [locationAutofill, setLocationAutofill] = useState<LocationAutofillState | null>(null)
   const [isLeapMonth, setIsLeapMonth] = useState(false)
   const [hourUncertain, setHourUncertain] = useState(false)
   const [dayunAlgorithm, setDayunAlgorithm] = useState<"sect1" | "sect2">("sect2")
   const [longitude, setLongitude] = useState("")
   const [trueSolar, setTrueSolar] = useState(false)
   const [dayBoundary, setDayBoundary] = useState<"current" | "forward">("forward")
-  const [birthChart, setBirthChart] = useState<MetaphysicsChart | null>(null)
+  const [birthResult, setBirthResult] = useState<BaziResultSnapshot | null>(null)
   const [birthLoading, setBirthLoading] = useState(false)
   const [gender, setGender] = useState<"男" | "女">("男")
   const [fixLeap, setFixLeap] = useState(true)
@@ -48,17 +84,23 @@ export function MetaphysicsTools() {
   const [ziweiAstroType, setZiweiAstroType] = useState<"heaven" | "earth" | "human">("heaven")
   const [ziweiYearDivide, setZiweiYearDivide] = useState<"normal" | "exact">("exact")
   const [horoscopeDate, setHoroscopeDate] = useState(() => localDateTimeValue(new Date()).slice(0, 10))
-  const [ziwei, setZiwei] = useState<IFunctionalAstrolabe | null>(null)
-  const [ziweiHoroscope, setZiweiHoroscope] = useState<IFunctionalHoroscope | null>(null)
+  const [ziweiResult, setZiweiResult] = useState<ZiweiResultSnapshot | null>(null)
   const [ziweiLoading, setZiweiLoading] = useState(false)
+  const [ziweiEditorOpen, setZiweiEditorOpen] = useState(true)
   const timezoneOptions = useMemo(() => TIMEZONES.includes(timezone) ? TIMEZONES : [timezone, ...TIMEZONES], [timezone])
+  const locationOverrideActive = Boolean(locationAutofill && (
+    timezone !== locationAutofill.appliedTimezone || longitude !== locationAutofill.appliedLongitude
+  ))
 
   const copy = locale === "zh" ? {
-    title: "术数工具",
-    subtitle: "查看当前时令、排出生八字，并生成明确标注历法规则的紫微斗数星盘。",
+    title: "八字与紫微排盘",
+    subtitle: "输入出生信息生成个人命盘，也可随时查看当前时令。",
     current: "当前时令",
     bazi: "八字排盘",
     ziwei: "紫微斗数",
+    basicSettings: "基础出生信息",
+    professionalSettings: "专业排盘设置",
+    professionalSettingsHint: "这些设置用于明确历法与起运规则；不改变排盘事实与解释层的边界。",
     timezone: "时区",
     birth: "出生时间",
     calendar: "历法",
@@ -67,16 +109,28 @@ export function MetaphysicsTools() {
     lunarDateFormat: "农历日期（YYYY-MM-DD）",
     leapMonth: "农历闰月",
     birthPlace: "出生地",
+    birthPlaceHint: "选择城市后自动填写时区和经度；专业设置中的手动修改仍然优先。",
     hourUncertain: "出生时辰不确定",
     dayunRule: "起运算法",
-    dayunSect1: "传统折算法（sect1）",
-    dayunSect2: "分钟精算法（sect2）",
+    dayunRuleHint: "分钟精算按分钟确定起运；传统折算按日数与时辰换算。",
+    dayunSect1: "传统折算",
+    dayunSect2: "分钟精算",
     longitude: "出生地经度",
+    longitudeHint: "选择城市后会自动填写；如需校准，可在这里手动调整。",
     trueSolar: "真太阳时校正（经度与均时差）",
     boundary: "晚子时换日",
-    calculate: "开始排盘",
+    calculate: "生成我的命盘",
     useToCast: "用这个时间起卦",
     gender: "性别",
+    male: "男",
+    female: "女",
+    loadingCurrent: "正在读取当前时令…",
+    loadingResult: "正在生成命盘…",
+    loadingZiwei: "正在生成紫微星盘…",
+    invalidHoroscopeDate: "请输入 1900-01-31 至 2100-12-31 之间的有效运限日期。",
+    ziweiBasicSettings: "紫微基础信息",
+    ziweiProfessionalSettings: "紫微专业设置",
+    editDetails: "修改资料",
     fixLeap: "闰月按前后半月调整",
     school: "安星方法",
     standardSchool: "通行法",
@@ -91,11 +145,14 @@ export function MetaphysicsTools() {
     horoscopeDate: "运限日期",
     chartNote: "历法与星盘数据由确定性算法生成；旺衰、格局与断语因流派而异，应与所采用的规则体系一并核对。",
   } : {
-    title: "Metaphysics Tools",
-    subtitle: "Inspect the current Chinese calendar, generate a BaZi chart, and build a Zi Wei Dou Shu chart with explicit calendar rules.",
+    title: "BaZi & Zi Wei Charts",
+    subtitle: "Enter birth details to generate a personal chart, or check the current calendar at a glance.",
     current: "Current Time",
     bazi: "BaZi",
     ziwei: "Zi Wei Dou Shu",
+    basicSettings: "Basic birth details",
+    professionalSettings: "Professional chart settings",
+    professionalSettingsHint: "These settings make calendar and cycle rules explicit without mixing deterministic facts with interpretation.",
     timezone: "Time zone",
     birth: "Birth time",
     calendar: "Calendar",
@@ -104,16 +161,28 @@ export function MetaphysicsTools() {
     lunarDateFormat: "Lunar date (YYYY-MM-DD)",
     leapMonth: "Leap lunar month",
     birthPlace: "Birth place",
+    birthPlaceHint: "Selecting a city fills its time zone and longitude; manual professional settings remain authoritative.",
     hourUncertain: "Birth hour uncertain",
     dayunRule: "Da Yun start rule",
-    dayunSect1: "Traditional conversion (sect1)",
-    dayunSect2: "Minute-based calculation (sect2)",
+    dayunRuleHint: "Minute-based calculation locates the start by minute; traditional conversion uses day and hour intervals.",
+    dayunSect1: "Traditional conversion",
+    dayunSect2: "Minute-based calculation",
     longitude: "Birth longitude",
+    longitudeHint: "Selecting a city fills this automatically; adjust it here only when needed.",
     trueSolar: "True-solar correction (longitude and equation of time)",
     boundary: "Advance day at late Zi hour",
-    calculate: "Generate chart",
+    calculate: "Generate my chart",
     useToCast: "Use this time to cast",
     gender: "Gender",
+    male: "Male",
+    female: "Female",
+    loadingCurrent: "Loading current calendar…",
+    loadingResult: "Generating chart…",
+    loadingZiwei: "Generating Zi Wei chart…",
+    invalidHoroscopeDate: "Enter a valid horoscope date from 1900-01-31 through 2100-12-31.",
+    ziweiBasicSettings: "Zi Wei basic details",
+    ziweiProfessionalSettings: "Zi Wei professional settings",
+    editDetails: "Edit details",
     fixLeap: "Adjust the two halves of a leap month",
     school: "Star-placement school",
     standardSchool: "Standard",
@@ -131,6 +200,7 @@ export function MetaphysicsTools() {
 
   useEffect(() => {
     let cancelled = false
+    let timer: number | undefined
     const load = async () => {
       setCurrentLoading(true)
       try {
@@ -139,18 +209,47 @@ export function MetaphysicsTools() {
       } catch (error) {
         if (!cancelled) toast.error((error as Error).message)
       } finally {
-        if (!cancelled) setCurrentLoading(false)
+        if (!cancelled) {
+          setCurrentLoading(false)
+          timer = window.setTimeout(() => { void load() }, 60_000)
+        }
       }
     }
     void load()
-    const timer = window.setInterval(load, 60_000)
-    return () => { cancelled = true; window.clearInterval(timer) }
+    return () => {
+      cancelled = true
+      if (timer !== undefined) window.clearTimeout(timer)
+    }
   }, [timezone])
 
   const castHref = useMemo(() => {
     if (!currentChart?.calculation_timestamp) return toLocalePath("/app")
     return `${toLocalePath("/app")}?timestamp=${encodeURIComponent(currentChart.calculation_timestamp)}`
   }, [currentChart?.calculation_timestamp, toLocalePath])
+
+  function handleBirthPlaceSelect(location: LocationResult) {
+    const appliedLongitude = String(location.longitude)
+    setLocationAutofill({
+      previousTimezone: timezone,
+      previousLongitude: longitude,
+      appliedTimezone: location.timezone,
+      appliedLongitude,
+    })
+    setBirthPlace([location.name, location.region, location.country].filter(Boolean).join(", "))
+    setTimezone(location.timezone)
+    setLongitude(String(location.longitude))
+    setSelectedBirthPlace(location)
+  }
+
+  function handleBirthPlaceClear() {
+    if (locationAutofill) {
+      if (timezone === locationAutofill.appliedTimezone) setTimezone(locationAutofill.previousTimezone)
+      if (longitude === locationAutofill.appliedLongitude) setLongitude(locationAutofill.previousLongitude)
+    }
+    setBirthPlace("")
+    setSelectedBirthPlace(null)
+    setLocationAutofill(null)
+  }
 
   async function generateBazi() {
     if (baziCalendar === "solar" && (!birthTime || Number.isNaN(new Date(birthTime).getTime()))) {
@@ -187,7 +286,7 @@ export function MetaphysicsTools() {
         lunar_hour: lunarTimeMatch ? (hourUncertain ? 12 : Number(lunarTimeMatch[1])) : null,
         lunar_minute: lunarTimeMatch ? (hourUncertain ? 0 : Number(lunarTimeMatch[2])) : null,
       })
-      setBirthChart(chart)
+      setBirthResult({ chart, generatedAt: new Date().toISOString() })
     } catch (error) {
       toast.error((error as Error).message)
     } finally {
@@ -200,12 +299,25 @@ export function MetaphysicsTools() {
       toast.error(locale === "zh" ? "请输入有效出生时间。" : "Enter a valid birth time.")
       return
     }
+    if (!isSupportedHoroscopeDate(horoscopeDate)) {
+      toast.error(copy.invalidHoroscopeDate)
+      return
+    }
     const lunarDateMatch = lunarBirthDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
     const selectedTime = ziweiCalendar === "lunar" ? lunarBirthTime : birthTime.slice(11, 16)
     const timeMatch = selectedTime.match(/^(\d{1,2}):(\d{2})$/)
     if (ziweiCalendar === "lunar" && (!lunarDateMatch || !timeMatch)) {
       toast.error(locale === "zh" ? "农历日期请使用 YYYY-MM-DD，时间请使用 HH:mm。" : "Use YYYY-MM-DD for the lunar date and HH:mm for time.")
       return
+    }
+    const provenance: ZiweiProvenance = {
+      algorithm: ziweiAlgorithm,
+      astroType: ziweiAlgorithm === "zhongzhou" ? ziweiAstroType : "heaven",
+      yearDivide: ziweiYearDivide,
+      dayBoundary,
+      calendar: ziweiCalendar,
+      fixLeap,
+      isLeapMonth: ziweiCalendar === "lunar" && ziweiLeapMonth,
     }
     setZiweiLoading(true)
     try {
@@ -226,10 +338,17 @@ export function MetaphysicsTools() {
           yearDivide: ziweiYearDivide,
           horoscopeDivide: ziweiYearDivide,
         },
-        astroType: ziweiAlgorithm === "zhongzhou" ? ziweiAstroType : "heaven",
+        astroType: provenance.astroType,
       })
-      setZiwei(chart)
-      setZiweiHoroscope(chart.horoscope(horoscopeDate))
+      const horoscope = chart.horoscope(horoscopeDate)
+      setZiweiResult({
+        chart,
+        horoscope,
+        horoscopeDate,
+        generatedAt: new Date().toISOString(),
+        provenance,
+      })
+      setZiweiEditorOpen(false)
     } catch (error) {
       toast.error((error as Error).message || (locale === "zh" ? "紫微排盘内核加载失败。" : "Zi Wei engine failed to load."))
     } finally {
@@ -240,142 +359,103 @@ export function MetaphysicsTools() {
   return (
     <main className="mx-auto max-w-[92rem] space-y-6">
       <header className="border-b border-border/60 pb-5">
-        <p className="kicker">Tools</p>
+        <p className="kicker">{locale === "zh" ? "命理排盘" : "Personal charts"}</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{copy.title}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">{copy.subtitle}</p>
+        <p className="mt-3 max-w-3xl text-xs leading-5 text-muted-foreground">{copy.chartNote}</p>
       </header>
-
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border/60 bg-surface p-4">
-        <div className="min-w-64 space-y-2"><label className="text-sm font-medium">{copy.timezone}</label><Select value={timezone} onValueChange={setTimezone}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{timezoneOptions.map((zone) => <SelectItem key={zone} value={zone}>{zone}</SelectItem>)}</SelectContent></Select></div>
-        <p className="max-w-2xl text-xs leading-5 text-muted-foreground">{copy.chartNote}</p>
-      </div>
 
       <Tabs defaultValue="current">
         <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="current"><CalendarClock className="mr-2 size-4" />{copy.current}</TabsTrigger><TabsTrigger value="bazi"><Compass className="mr-2 size-4" />{copy.bazi}</TabsTrigger><TabsTrigger value="ziwei"><Sparkles className="mr-2 size-4" />{copy.ziwei}</TabsTrigger></TabsList>
         <TabsContent value="current" className="mt-4 space-y-4">
-          {currentLoading && !currentChart ? <Loading /> : currentChart ? <BaziChartView chart={currentChart} locale={locale} /> : null}
+          <div aria-live="polite" aria-busy={currentLoading}>
+            {currentLoading && !currentChart ? <Loading locale={locale} label={copy.loadingCurrent} /> : currentChart ? <BaziChartView chart={currentChart} locale={locale} mode="current" /> : null}
+          </div>
           <Button asChild><Link href={castHref}>{copy.useToCast}</Link></Button>
         </TabsContent>
         <TabsContent value="bazi" className="mt-4 space-y-4">
-          <ChartControls copy={copy} birthTime={birthTime} setBirthTime={setBirthTime} lunarBirthDate={lunarBirthDate} setLunarBirthDate={setLunarBirthDate} lunarBirthTime={lunarBirthTime} setLunarBirthTime={setLunarBirthTime} longitude={longitude} setLongitude={setLongitude} trueSolar={trueSolar} setTrueSolar={setTrueSolar} dayBoundary={dayBoundary} setDayBoundary={setDayBoundary} calendar={baziCalendar} setCalendar={setBaziCalendar} gender={baziGender} setGender={setBaziGender} birthPlace={birthPlace} setBirthPlace={setBirthPlace} isLeapMonth={isLeapMonth} setIsLeapMonth={setIsLeapMonth} hourUncertain={hourUncertain} setHourUncertain={setHourUncertain} dayunAlgorithm={dayunAlgorithm} setDayunAlgorithm={setDayunAlgorithm} />
-          <Button onClick={generateBazi} disabled={birthLoading}>{birthLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
-          {birthChart ? <BaziChartView chart={birthChart} locale={locale} /> : null}
+          <BaziControls copy={copy} locale={locale} birthTime={birthTime} setBirthTime={setBirthTime} lunarBirthDate={lunarBirthDate} setLunarBirthDate={setLunarBirthDate} lunarBirthTime={lunarBirthTime} setLunarBirthTime={setLunarBirthTime} timezone={timezone} setTimezone={setTimezone} timezoneOptions={timezoneOptions} longitude={longitude} setLongitude={setLongitude} trueSolar={trueSolar} setTrueSolar={setTrueSolar} dayBoundary={dayBoundary} setDayBoundary={setDayBoundary} calendar={baziCalendar} setCalendar={setBaziCalendar} gender={baziGender} setGender={setBaziGender} selectedLocation={selectedBirthPlace} birthPlaceOverrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onBirthPlaceSelect={handleBirthPlaceSelect} onBirthPlaceClear={handleBirthPlaceClear} isLeapMonth={isLeapMonth} setIsLeapMonth={setIsLeapMonth} hourUncertain={hourUncertain} setHourUncertain={setHourUncertain} dayunAlgorithm={dayunAlgorithm} setDayunAlgorithm={setDayunAlgorithm} />
+          <Button onClick={generateBazi} disabled={birthLoading}>{birthLoading ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
+          <div aria-live="polite" aria-busy={birthLoading}>
+            {birthLoading && !birthResult ? <Loading locale={locale} label={copy.loadingResult} /> : birthResult ? <BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt} locale={locale} mode="birth" /> : null}
+          </div>
         </TabsContent>
         <TabsContent value="ziwei" className="mt-4 space-y-4">
-          <section className="grid gap-4 rounded-lg border border-border/60 bg-surface p-4 md:grid-cols-3">
-            <div className="space-y-2"><label className="text-sm font-medium">{copy.calendar}</label><Select value={ziweiCalendar} onValueChange={(value) => setZiweiCalendar(value as "solar" | "lunar")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="solar">{copy.solar}</SelectItem><SelectItem value="lunar">{copy.lunar}</SelectItem></SelectContent></Select></div>
-            {ziweiCalendar === "solar" ? <div className="space-y-2"><label className="text-sm font-medium">{copy.birth}</label><Input type="datetime-local" value={birthTime} onChange={(event) => setBirthTime(event.target.value)} /></div> : <div className="grid gap-2 sm:grid-cols-[1fr_8rem]"><div className="space-y-2"><label className="text-sm font-medium">{copy.lunarDateFormat}</label><Input value={lunarBirthDate} inputMode="numeric" placeholder="1990-01-01" onChange={(event) => setLunarBirthDate(event.target.value)} /></div><div className="space-y-2"><label className="text-sm font-medium">{copy.birth}</label><Input type="time" value={lunarBirthTime} onChange={(event) => setLunarBirthTime(event.target.value)} /></div></div>}
-            <div className="space-y-2"><label className="text-sm font-medium">{copy.gender}</label><Select value={gender} onValueChange={(value) => setGender(value as "男" | "女")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="男">{locale === "zh" ? "男" : "Male"}</SelectItem><SelectItem value="女">{locale === "zh" ? "女" : "Female"}</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><label className="text-sm font-medium">{copy.school}</label><Select value={ziweiAlgorithm} onValueChange={(value) => setZiweiAlgorithm(value as "default" | "zhongzhou")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default">{copy.standardSchool}</SelectItem><SelectItem value="zhongzhou">{copy.zhongzhouSchool}</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><label className="text-sm font-medium">{copy.astroType}</label><Select value={ziweiAstroType} onValueChange={(value) => setZiweiAstroType(value as "heaven" | "earth" | "human")} disabled={ziweiAlgorithm !== "zhongzhou"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="heaven">{copy.heaven}</SelectItem><SelectItem value="earth">{copy.earth}</SelectItem><SelectItem value="human">{copy.human}</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><label className="text-sm font-medium">{copy.yearDivide}</label><Select value={ziweiYearDivide} onValueChange={(value) => setZiweiYearDivide(value as "normal" | "exact")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="exact">{copy.exactYear}</SelectItem><SelectItem value="normal">{copy.lunarYear}</SelectItem></SelectContent></Select></div>
-            <div className="space-y-2"><label className="text-sm font-medium">{copy.horoscopeDate}</label><Input type="date" value={horoscopeDate} onChange={(event) => setHoroscopeDate(event.target.value)} /></div>
-            <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><span className="text-sm">{copy.fixLeap}</span><Switch checked={fixLeap} onCheckedChange={setFixLeap} /></div>
-            {ziweiCalendar === "lunar" ? <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><span className="text-sm">{copy.leapMonth}</span><Switch checked={ziweiLeapMonth} onCheckedChange={setZiweiLeapMonth} /></div> : null}
-            <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><span className="text-sm">{copy.boundary}</span><Switch checked={dayBoundary === "forward"} onCheckedChange={(checked) => setDayBoundary(checked ? "forward" : "current")} /></div>
+          {ziweiResult ? <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} /> : null}
+          <details id="ziwei-edit-details" data-export-exclude open={ziweiEditorOpen} onToggle={(event) => setZiweiEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
+            <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{ziweiResult ? copy.editDetails : copy.ziweiBasicSettings}</summary>
+            <div className="mt-4 space-y-4">
+          <section aria-labelledby="ziwei-basic-title">
+            <h2 id="ziwei-basic-title" className="text-sm font-semibold">{copy.ziweiBasicSettings}</h2>
+            <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <label id="ziwei-calendar-label" className="text-sm font-medium">{copy.calendar}</label>
+                <Select value={ziweiCalendar} onValueChange={(value) => setZiweiCalendar(value as "solar" | "lunar")}>
+                  <SelectTrigger id="ziwei-calendar" aria-labelledby="ziwei-calendar-label"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="solar">{copy.solar}</SelectItem><SelectItem value="lunar">{copy.lunar}</SelectItem></SelectContent>
+                </Select>
+              </div>
+              {ziweiCalendar === "solar" ? (
+                <div className="space-y-2"><label htmlFor="ziwei-birth-time" className="text-sm font-medium">{copy.birth}</label><Input id="ziwei-birth-time" type="datetime-local" value={birthTime} onChange={(event) => setBirthTime(event.target.value)} /></div>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-[1fr_8rem] lg:col-span-2">
+                  <div className="space-y-2"><label htmlFor="ziwei-lunar-date" className="text-sm font-medium">{copy.lunarDateFormat}</label><Input id="ziwei-lunar-date" value={lunarBirthDate} inputMode="numeric" placeholder="1990-01-01" onChange={(event) => setLunarBirthDate(event.target.value)} /></div>
+                  <div className="space-y-2"><label htmlFor="ziwei-lunar-time" className="text-sm font-medium">{copy.birth}</label><Input id="ziwei-lunar-time" type="time" value={lunarBirthTime} onChange={(event) => setLunarBirthTime(event.target.value)} /></div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <label id="ziwei-gender-label" className="text-sm font-medium">{copy.gender}</label>
+                <Select value={gender} onValueChange={(value) => setGender(value as "男" | "女")}>
+                  <SelectTrigger id="ziwei-gender" aria-labelledby="ziwei-gender-label"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="男">{locale === "zh" ? "男" : "Male"}</SelectItem><SelectItem value="女">{locale === "zh" ? "女" : "Female"}</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><label htmlFor="ziwei-horoscope-date" className="text-sm font-medium">{copy.horoscopeDate}</label><Input id="ziwei-horoscope-date" type="date" value={horoscopeDate} onChange={(event) => setHoroscopeDate(event.target.value)} /></div>
+            </div>
           </section>
-          <Button onClick={generateZiwei} disabled={ziweiLoading}>{ziweiLoading ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
-          {ziwei ? <ZiweiChart chart={ziwei} horoscope={ziweiHoroscope} locale={locale} /> : null}
+
+          <details className="rounded-lg border border-border/60 bg-surface px-4 py-3">
+            <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{copy.ziweiProfessionalSettings}</summary>
+            <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-2">
+                <label id="ziwei-school-label" className="text-sm font-medium">{copy.school}</label>
+                <Select value={ziweiAlgorithm} onValueChange={(value) => setZiweiAlgorithm(value as "default" | "zhongzhou")}>
+                  <SelectTrigger id="ziwei-school" aria-labelledby="ziwei-school-label"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="default">{copy.standardSchool}</SelectItem><SelectItem value="zhongzhou">{copy.zhongzhouSchool}</SelectItem></SelectContent>
+                </Select>
+              </div>
+              {ziweiAlgorithm === "zhongzhou" ? (
+                <div className="space-y-2">
+                  <label id="ziwei-astro-type-label" className="text-sm font-medium">{copy.astroType}</label>
+                  <Select value={ziweiAstroType} onValueChange={(value) => setZiweiAstroType(value as "heaven" | "earth" | "human")}>
+                    <SelectTrigger id="ziwei-astro-type" aria-labelledby="ziwei-astro-type-label"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="heaven">{copy.heaven}</SelectItem><SelectItem value="earth">{copy.earth}</SelectItem><SelectItem value="human">{copy.human}</SelectItem></SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+              <div className="space-y-2">
+                <label id="ziwei-year-boundary-label" className="text-sm font-medium">{copy.yearDivide}</label>
+                <Select value={ziweiYearDivide} onValueChange={(value) => setZiweiYearDivide(value as "normal" | "exact")}>
+                  <SelectTrigger id="ziwei-year-boundary" aria-labelledby="ziwei-year-boundary-label"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="exact">{copy.exactYear}</SelectItem><SelectItem value="normal">{copy.lunarYear}</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><label id="ziwei-fix-leap-label" htmlFor="ziwei-fix-leap" className="text-sm">{copy.fixLeap}</label><Switch id="ziwei-fix-leap" aria-labelledby="ziwei-fix-leap-label" checked={fixLeap} onCheckedChange={setFixLeap} /></div>
+              {ziweiCalendar === "lunar" ? <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><label id="ziwei-leap-month-label" htmlFor="ziwei-leap-month" className="text-sm">{copy.leapMonth}</label><Switch id="ziwei-leap-month" aria-labelledby="ziwei-leap-month-label" checked={ziweiLeapMonth} onCheckedChange={setZiweiLeapMonth} /></div> : null}
+              <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><label id="ziwei-day-boundary-label" htmlFor="ziwei-day-boundary" className="text-sm">{copy.boundary}</label><Switch id="ziwei-day-boundary" aria-labelledby="ziwei-day-boundary-label" checked={dayBoundary === "forward"} onCheckedChange={(checked) => setDayBoundary(checked ? "forward" : "current")} /></div>
+            </div>
+          </details>
+
+          <Button onClick={generateZiwei} disabled={ziweiLoading}>{ziweiLoading ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
+            </div>
+          </details>
+          <div aria-live="polite" aria-busy={ziweiLoading}>
+            {ziweiLoading ? <Loading locale={locale} label={copy.loadingZiwei} /> : null}
+          </div>
         </TabsContent>
       </Tabs>
     </main>
   )
 }
 
-function ChartControls({ copy, birthTime, setBirthTime, lunarBirthDate, setLunarBirthDate, lunarBirthTime, setLunarBirthTime, longitude, setLongitude, trueSolar, setTrueSolar, dayBoundary, setDayBoundary, calendar, setCalendar, gender, setGender, birthPlace, setBirthPlace, isLeapMonth, setIsLeapMonth, hourUncertain, setHourUncertain, dayunAlgorithm, setDayunAlgorithm }: { copy: Record<string, string>; birthTime: string; setBirthTime: (value: string) => void; lunarBirthDate: string; setLunarBirthDate: (value: string) => void; lunarBirthTime: string; setLunarBirthTime: (value: string) => void; longitude: string; setLongitude: (value: string) => void; trueSolar: boolean; setTrueSolar: (value: boolean) => void; dayBoundary: "current" | "forward"; setDayBoundary: (value: "current" | "forward") => void; calendar: "solar" | "lunar"; setCalendar: (value: "solar" | "lunar") => void; gender: "male" | "female"; setGender: (value: "male" | "female") => void; birthPlace: string; setBirthPlace: (value: string) => void; isLeapMonth: boolean; setIsLeapMonth: (value: boolean) => void; hourUncertain: boolean; setHourUncertain: (value: boolean) => void; dayunAlgorithm: "sect1" | "sect2"; setDayunAlgorithm: (value: "sect1" | "sect2") => void }) {
-  return (
-    <section className="grid gap-4 rounded-lg border border-border/60 bg-surface p-4 md:grid-cols-2">
-      <div className="space-y-2"><label className="text-sm font-medium">{copy.calendar}</label><Select value={calendar} onValueChange={(value) => setCalendar(value as "solar" | "lunar")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="solar">{copy.solar}</SelectItem><SelectItem value="lunar">{copy.lunar}</SelectItem></SelectContent></Select></div>
-      {calendar === "solar" ? <div className="space-y-2"><label className="text-sm font-medium">{copy.birth}</label><Input type={hourUncertain ? "date" : "datetime-local"} value={hourUncertain ? birthTime.slice(0, 10) : birthTime} onChange={(event) => setBirthTime(hourUncertain ? `${event.target.value}T12:00` : event.target.value)} /></div> : <div className="grid gap-2 sm:grid-cols-[1fr_8rem]"><div className="space-y-2"><label className="text-sm font-medium">{copy.lunarDateFormat}</label><Input value={lunarBirthDate} inputMode="numeric" placeholder="1990-01-01" onChange={(event) => setLunarBirthDate(event.target.value)} /></div><div className="space-y-2"><label className="text-sm font-medium">{copy.birth}</label><Input type="time" value={hourUncertain ? "12:00" : lunarBirthTime} disabled={hourUncertain} onChange={(event) => setLunarBirthTime(event.target.value)} /></div></div>}
-      <div className="space-y-2"><label className="text-sm font-medium">{copy.gender}</label><Select value={gender} onValueChange={(value) => setGender(value as "male" | "female")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="male">男 / Male</SelectItem><SelectItem value="female">女 / Female</SelectItem></SelectContent></Select></div>
-      <div className="space-y-2"><label className="text-sm font-medium">{copy.birthPlace}</label><Input value={birthPlace} maxLength={120} placeholder="Shanghai / 上海" onChange={(event) => setBirthPlace(event.target.value)} /></div>
-      <div className="space-y-2"><label className="text-sm font-medium">{copy.longitude}</label><Input type="number" min={-180} max={180} step="0.0001" placeholder="121.4737" value={longitude} onChange={(event) => setLongitude(event.target.value)} /></div>
-      <div className="space-y-2"><label className="text-sm font-medium">{copy.dayunRule}</label><Select value={dayunAlgorithm} onValueChange={(value) => setDayunAlgorithm(value as "sect1" | "sect2")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sect2">{copy.dayunSect2}</SelectItem><SelectItem value="sect1">{copy.dayunSect1}</SelectItem></SelectContent></Select></div>
-      <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><span className="text-sm">{copy.trueSolar}</span><Switch checked={trueSolar} onCheckedChange={setTrueSolar} /></div>
-      <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><span className="text-sm">{copy.boundary}</span><Switch checked={dayBoundary === "forward"} onCheckedChange={(checked) => setDayBoundary(checked ? "forward" : "current")} /></div>
-      {calendar === "lunar" ? <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><span className="text-sm">{copy.leapMonth}</span><Switch checked={isLeapMonth} onCheckedChange={setIsLeapMonth} /></div> : null}
-      <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><span className="text-sm">{copy.hourUncertain}</span><Switch checked={hourUncertain} onCheckedChange={setHourUncertain} /></div>
-    </section>
-  )
-}
-
-function BaziChartView({ chart, locale }: { chart: MetaphysicsChart; locale: "en" | "zh" }) {
-  const facts = chart.calendar_facts
-  return (
-    <section className="space-y-4 rounded-lg border border-border/60 bg-surface p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="kicker">{chart.lunar_date}</p>
-          <h2 className="mt-2 text-2xl font-semibold">{chart.bazi}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{new Date(facts.gregorian).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")} · {chart.timezone}</p>
-        </div>
-        <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm"><span className="text-muted-foreground">{locale === "zh" ? "旬空" : "Void"}</span> <strong>{chart.xunkong}</strong></div>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <Fact label={locale === "zh" ? "月建" : "Month command"} value={`${facts.month_command} · ${locale === "zh" ? "冲" : "clash"}${facts.month_clash} · ${locale === "zh" ? "合" : "combine"}${facts.month_combine}`} />
-        <Fact label={locale === "zh" ? "日辰" : "Day branch"} value={`${facts.day_pillar} · ${locale === "zh" ? "冲" : "clash"}${facts.day_clash} · ${locale === "zh" ? "合" : "combine"}${facts.day_combine}`} />
-        <Fact label={locale === "zh" ? "六神起点" : "Six-spirit start"} value={facts.six_spirit_start} />
-        <Fact label={locale === "zh" ? "六神顺序" : "Six spirits"} value={facts.six_spirits.join(" · ")} />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {chart.pillars.map((pillar) => <article key={pillar.label} className="rounded-lg border border-border/50 bg-surface-elevated p-4 text-center"><p className="text-xs text-muted-foreground">{pillar.label}{locale === "zh" ? "柱" : " Pillar"} · {pillar.ten_god}</p><p className="mt-2 text-3xl font-semibold tracking-widest">{pillar.text}</p><p className="mt-2 text-xs text-muted-foreground">{pillar.stem_element} / {pillar.branch_element} · {pillar.nayin}</p><div className="mt-3 flex flex-wrap justify-center gap-1">{pillar.hidden_stems.map((item) => <span key={item.stem} className="rounded border border-border/50 px-2 py-1 text-[0.65rem]">{item.stem} {item.ten_god}</span>)}</div></article>)}
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-md border border-border/50 p-4"><p className="text-sm font-semibold">{locale === "zh" ? "五行计数" : "Five elements"}</p><div className="mt-3 grid grid-cols-5 gap-2 text-center">{Object.entries(chart.element_counts).map(([element, count]) => <div key={element}><p className="text-lg font-semibold">{count}</p><p className="text-xs text-muted-foreground">{element}</p></div>)}</div></div>
-        <div className="rounded-md border border-border/50 p-4"><p className="text-sm font-semibold">{locale === "zh" ? "节气" : "Solar terms"}</p><p className="mt-2 text-sm">{chart.previous_solar_term?.name} → {chart.next_solar_term?.name}</p>{chart.next_solar_term ? <SolarTermCountdown key={chart.next_solar_term.timestamp} timestamp={chart.next_solar_term.timestamp} locale={locale} /> : <p className="mt-1 text-xs text-muted-foreground">—</p>}</div>
-      </div>
-      {chart.birth_profile.hour_uncertain ? <HourCandidates candidates={chart.birth_profile.hour_candidates} locale={locale} /> : null}
-      <DayunPanel chart={chart} locale={locale} />
-      <p className="text-[0.65rem] leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {locale === "zh" ? "历法事实与大运算法分层展示；格局、旺衰与断语不在此工具中自动定论。" : "Calendar facts and Da Yun rules are shown separately; this tool does not declare a single strength or pattern interpretation."}</p>
-    </section>
-  )
-}
-
-function HourCandidates({ candidates, locale }: { candidates: MetaphysicsChart["birth_profile"]["hour_candidates"]; locale: "en" | "zh" }) {
-  return <section className="rounded-md border border-border/50 p-4"><h3 className="text-sm font-semibold">{locale === "zh" ? "可能时柱" : "Possible hour pillars"}</h3><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "时辰未定，因此不输出伪精确大运；晚子时单列以保留换日差异。" : "Da Yun is withheld while the birth hour is unknown; late Zi is listed separately because it can change the day pillar."}</p><div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7">{candidates.map((candidate) => <div key={candidate.label} className="rounded border border-border/50 px-2 py-2 text-center"><p className="text-xs text-muted-foreground">{candidate.label}</p><p className="mt-1 font-semibold">{candidate.pillar}</p></div>)}</div></section>
-}
-
-function DayunPanel({ chart, locale }: { chart: MetaphysicsChart; locale: "en" | "zh" }) {
-  const dayun = chart.birth_profile.dayun
-  if (dayun.status === "not_requested") return null
-  if (dayun.status === "requires_hour") return <section className="rounded-md border border-border/50 p-4"><h3 className="text-sm font-semibold">{locale === "zh" ? "大运" : "Da Yun"}</h3><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? dayun.note : "The birth hour is uncertain, so the app withholds a falsely precise Da Yun start time and cycle schedule."}</p></section>
-  return <section className="rounded-md border border-border/50 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">{locale === "zh" ? "大运" : "Da Yun"}</h3><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? `${dayun.direction === "forward" ? "顺排" : "逆排"} · ${dayun.algorithm_note}` : `${dayun.direction === "forward" ? "Forward" : "Reverse"} · ${dayun.algorithm_note}`}</p></div>{dayun.start ? <p className="text-xs text-muted-foreground">{locale === "zh" ? "起运" : "Starts"}: {dayun.start.years}{locale === "zh" ? "年" : "y"} {dayun.start.months}{locale === "zh" ? "月" : "m"} {dayun.start.days}{locale === "zh" ? "日" : "d"} · {dayun.start.solar_date}</p> : null}</div>{dayun.crosscheck_matches === false ? <p className="mt-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">{locale === "zh" ? "两套历法引擎的四柱未完全一致，请先核对时区、真太阳时和换日规则。" : "The two calendar engines do not fully agree. Verify timezone, true-solar correction, and day-boundary rules."}</p> : null}<div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-5">{dayun.cycles.map((cycle) => <article key={`${cycle.index}-${cycle.start_year}`} className="rounded border border-border/50 bg-surface-elevated px-3 py-3"><p className="font-semibold">{cycle.label}</p><p className="mt-1 text-xs text-muted-foreground">{cycle.start_age}–{cycle.end_age} {locale === "zh" ? "岁" : "years"}</p><p className="text-xs text-muted-foreground">{cycle.start_year}–{cycle.end_year}</p></article>)}</div></section>
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-md border border-border/50 bg-surface-elevated px-3 py-2"><p className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 text-sm font-medium">{value}</p></div>
-}
-
-function SolarTermCountdown({ timestamp, locale }: { timestamp: string; locale: "en" | "zh" }) {
-  const [remaining, setRemaining] = useState(() => Math.max(0, new Date(timestamp).getTime() - Date.now()))
-  useEffect(() => {
-    const timer = window.setInterval(() => setRemaining(Math.max(0, new Date(timestamp).getTime() - Date.now())), 1000)
-    return () => window.clearInterval(timer)
-  }, [timestamp])
-  const seconds = Math.floor(remaining / 1000)
-  const days = Math.floor(seconds / 86400)
-  const hours = Math.floor((seconds % 86400) / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const rest = seconds % 60
-  return <p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? `还有 ${days} 天 ${hours} 时 ${minutes} 分 ${rest} 秒` : `${days}d ${hours}h ${minutes}m ${rest}s remaining`}</p>
-}
-
-function ZiweiChart({ chart, horoscope, locale }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope | null; locale: "en" | "zh" }) {
-  return <section className="space-y-4 rounded-lg border border-border/60 bg-surface p-3 sm:p-5">{horoscope ? <HoroscopeSummary horoscope={horoscope} locale={locale} /> : null}<div className="grid min-h-[52rem] grid-cols-4 grid-rows-4 gap-1 sm:gap-2">{chart.palaces.slice(0, 12).map((palace, index) => <PalaceCell key={`${palace.name}-${palace.earthlyBranch}`} palace={palace} position={PALACE_POSITIONS[index]} />)}<div className="col-start-2 col-end-4 row-start-2 row-end-4 flex flex-col items-center justify-center rounded-md border border-primary/30 bg-primary/8 p-4 text-center"><p className="text-2xl font-semibold">{chart.fiveElementsClass}</p><p className="mt-2 text-sm">{chart.chineseDate}</p><p className="mt-1 text-xs text-muted-foreground">{chart.lunarDate} · {chart.time} {chart.timeRange}</p><div className="mt-4 grid grid-cols-2 gap-4 text-sm"><div><p className="text-xs text-muted-foreground">{locale === "zh" ? "命主" : "Soul"}</p><p className="font-semibold">{chart.soul}</p></div><div><p className="text-xs text-muted-foreground">{locale === "zh" ? "身主" : "Body"}</p><p className="font-semibold">{chart.body}</p></div></div><p className="mt-4 text-[0.65rem] text-muted-foreground">iztro 2.5.8 · MIT</p></div></div><p className="text-[0.65rem] leading-5 text-muted-foreground">{locale === "zh" ? "星曜、四化与运限由 iztro 确定性排盘；流派设置已显式列出，解释层不混入排盘事实。" : "Stars, mutagens, and horoscope periods are deterministically generated by iztro; school settings remain explicit and separate from interpretation."}</p></section>
-}
-
-function HoroscopeSummary({ horoscope, locale }: { horoscope: IFunctionalHoroscope; locale: "en" | "zh" }) {
-  const mutagenLabels = locale === "zh" ? ["禄", "权", "科", "忌"] : ["Prosperity", "Power", "Merit", "Obstacle"]
-  return <section className="grid gap-3 rounded-md border border-border/50 bg-surface-elevated p-4 md:grid-cols-2"><div><p className="text-xs font-semibold text-muted-foreground">{locale === "zh" ? "大限" : "Decadal period"}</p><p className="mt-1 font-semibold">{horoscope.decadal.name} · {horoscope.decadal.heavenlyStem}{horoscope.decadal.earthlyBranch}</p><p className="mt-1 text-xs text-muted-foreground">{horoscope.solarDate} · {horoscope.lunarDate}</p></div><div><p className="text-xs font-semibold text-muted-foreground">{locale === "zh" ? "流年" : "Annual period"}</p><p className="mt-1 font-semibold">{horoscope.yearly.name} · {horoscope.yearly.heavenlyStem}{horoscope.yearly.earthlyBranch}</p><div className="mt-2 flex flex-wrap gap-1">{horoscope.yearly.mutagen.map((star, index) => <span key={`${star}-${index}`} className="rounded border border-primary/30 bg-primary/10 px-2 py-1 text-xs">{mutagenLabels[index]} · {star}</span>)}</div></div></section>
-}
-
-function PalaceCell({ palace, position }: { palace: IFunctionalPalace; position: readonly [number, number] }) {
-  const stars = [...palace.majorStars, ...palace.minorStars]
-  return <article style={{ gridColumnStart: position[0] + 1, gridRowStart: position[1] + 1 }} className="min-w-0 rounded-md border border-border/60 bg-surface-elevated p-2 sm:p-3"><div className="flex items-start justify-between gap-1"><p className="text-sm font-semibold">{palace.name}{palace.isBodyPalace ? " · 身" : ""}</p><span className="text-xs text-muted-foreground">{palace.heavenlyStem}{palace.earthlyBranch}</span></div><div className="mt-2 flex flex-wrap gap-1">{stars.length ? stars.map((star, index) => <span key={`${star.name}-${index}`} className={cnStar(star.type)}>{star.name}{star.mutagen ? ` · 化${star.mutagen}` : ""}{star.brightness ? ` · ${star.brightness}` : ""}</span>) : <span className="text-xs text-muted-foreground">空宫</span>}</div>{palace.adjectiveStars.length ? <p className="mt-2 line-clamp-2 text-[0.65rem] leading-4 text-muted-foreground">{palace.adjectiveStars.map((star) => star.name).join(" · ")}</p> : null}<p className="mt-2 text-[0.65rem] text-muted-foreground">{palace.changsheng12}{palace.decadal?.range ? ` · ${palace.decadal.range[0]}–${palace.decadal.range[1]}` : ""}</p></article>
-}
-
-function cnStar(type?: string) { return `rounded px-1.5 py-0.5 text-[0.65rem] ${type === "major" ? "bg-primary/15 font-semibold text-primary" : "border border-border/50 text-foreground"}` }
-function Loading() { return <div className="flex items-center justify-center gap-2 rounded-lg border border-border/60 bg-surface p-10 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Loading…</div> }
+function Loading({ locale, label }: { locale: "en" | "zh"; label: string }) { return <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 rounded-lg border border-border/60 bg-surface p-10 text-sm text-muted-foreground"><Loader2 aria-hidden="true" className="size-4 animate-spin" />{label || (locale === "zh" ? "正在加载…" : "Loading…")}</div> }
