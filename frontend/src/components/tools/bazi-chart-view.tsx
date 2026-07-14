@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { ChevronRight } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
@@ -363,18 +363,6 @@ function RawNumber({ label, value }: { label: string; value: number }) {
 
 function formatCounts(counts: Map<string, number>) {
   return Array.from(counts.entries()).map(([label, count]) => `${label} ${count}`).join(" · ") || "—"
-}
-
-function DayunTimeline({ chart, locale, currentYear }: { chart: MetaphysicsChart; locale: Locale; currentYear: number }) {
-  const dayun = chart.birth_profile.dayun
-  const currentRef = useRef<HTMLElement>(null)
-  useEffect(() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    currentRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest", inline: "center" })
-  }, [currentYear])
-  if (dayun.status === "not_requested") return <p className="text-sm text-muted-foreground">—</p>
-  if (dayun.status === "requires_hour") return <p className="text-sm leading-6 text-muted-foreground">{locale === "zh" ? dayun.note : "The birth hour is uncertain, so a falsely precise Da Yun cycle is withheld."}</p>
-  return <div className="overflow-x-auto pb-3 custom-scrollbar"><div className="flex min-w-max gap-3">{dayun.cycles.map((cycle) => { const isCurrent = cycle.start_year <= currentYear && currentYear <= cycle.end_year; return <article ref={isCurrent ? currentRef : undefined} key={`${cycle.index}-${cycle.start_year}`} aria-current={isCurrent ? "step" : undefined} className={`w-40 shrink-0 border-t-2 px-2 py-3 ${isCurrent ? "border-primary bg-primary/8" : "border-border/60"}`}><div className="flex items-center justify-between gap-2"><strong>{cycle.label}</strong>{isCurrent ? <span className="text-[0.65rem] font-semibold text-primary">{locale === "zh" ? "当前（按年份）" : "Current by year"}</span> : null}</div><p className="mt-2 text-xs text-muted-foreground">{cycle.start_age}–{cycle.end_age} {locale === "zh" ? "岁" : "years"}</p><p className="text-xs text-muted-foreground">{cycle.start_year}–{cycle.end_year}</p></article>})}</div></div>
 }
 
 function HourCandidates({ candidates, locale }: { candidates: MetaphysicsChart["birth_profile"]["hour_candidates"]; locale: Locale }) {
