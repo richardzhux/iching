@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from bisect import bisect_right
 from collections import Counter
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -10,23 +11,33 @@ from zoneinfo import ZoneInfo
 
 import sxtwl
 
-from iching.core.bazi_structure import THEME_ORDER, build_structure_profile
+from iching.core.bazi_structure import METRIC_DEFINITIONS, THEME_ORDER, build_structure_profile
+from iching.core.calendar_engine import (
+    BRANCHES,
+    JIE_MONTH_BRANCH,
+    GanZhiIndex,
+    calculate_calendar_facts,
+    solar_term_datetime,
+    solar_terms_for_years,
+)
 from iching.core.metaphysics import JIE_QI_NAMES, STEMS, _pillar, _seasonal_status
 from iching.core.metaphysics_statistics import (
     BASELINE_SCHEMA_VERSION,
     bazi_rules_registry_hash,
     feature_catalog_hash,
+    metric_catalog_hash,
     payload_hash,
 )
 from iching.core.shensha import RULE_BY_ID, RULES_VERSION, evaluate_shensha
 
 
 DEFAULT_OUTPUT = Path(__file__).parents[1] / "src" / "iching" / "core" / "data"
-BASELINE_VERSION = "calendar-1924-2044-v2"
+BASELINE_VERSION = "calendar-1924-2044-g3"
+BASELINE_GENERATION_VERSION = 3
 
 
 def _config_id(day_boundary: str) -> str:
-    return f"bazi-sxtwl-2.0.7-asia-shanghai-{day_boundary}-v1"
+    return f"bazi-canonical-calendar-1-asia-shanghai-{day_boundary}"
 
 
 def _feature_catalog() -> list[str]:
@@ -39,10 +50,13 @@ def _feature_catalog() -> list[str]:
 
 def generator_metadata() -> dict[str, object]:
     catalog = _feature_catalog()
+    metric_catalog = [METRIC_DEFINITIONS[key] for key in sorted(METRIC_DEFINITIONS)]
     return {
         "schema_version": BASELINE_SCHEMA_VERSION,
+        "baseline_generation_version": BASELINE_GENERATION_VERSION,
         "config_ids": {mode: _config_id(mode) for mode in ("current", "forward")},
         "feature_catalog_hash": feature_catalog_hash(catalog),
+        "metric_catalog_hash": metric_catalog_hash(metric_catalog),
         "rules_registry_hash": bazi_rules_registry_hash(),
         "weighted_unit": "minute",
         "theme_comparison_method": "transparent_metric_distributions",
@@ -50,8 +64,7 @@ def generator_metadata() -> dict[str, object]:
 
 
 def _jieqi_datetime(item, zone: ZoneInfo) -> datetime:
-    value = sxtwl.JD2DD(item.jd)
-    return datetime(int(value.Y), int(value.M), int(value.D), int(value.h), int(value.m), int(value.s), tzinfo=zone)
+    return solar_term_datetime(item, zone)
 
 
 def _lichun(year: int, zone: ZoneInfo) -> datetime:
@@ -82,13 +95,47 @@ def _events(start: datetime, end: datetime, zone: ZoneInfo, day_boundary: str) -
 
 
 def _pillars(value: datetime, day_boundary: str) -> list[dict[str, Any]]:
-    pillar_date = value + timedelta(days=1) if day_boundary == "forward" and value.hour >= 23 else value
-    day = sxtwl.fromSolar(pillar_date.year, pillar_date.month, pillar_date.day)
-    hour = 0 if day_boundary == "forward" and value.hour >= 23 else value.hour
-    gz_values = (day.getYearGZ(), day.getMonthGZ(), day.getDayGZ(), day.getHourGZ(hour))
+    facts = calculate_calendar_facts(
+        value,
+        timezone_name="Asia/Shanghai",
+        day_boundary=day_boundary,
+        crosscheck=False,
+    )
+    gz_values = (facts.year_gz, facts.month_gz, facts.day_gz, facts.hour_gz)
     labels = ("年", "月", "日", "时")
     day_stem = STEMS[gz_values[2].tg]
     return [_pillar(label, gz, day_stem) for label, gz in zip(labels, gz_values)]
+
+
+def _baseline_pillars(
+    value: datetime,
+    day_boundary: str,
+    *,
+    jie_terms: list[Any],
+    jie_timestamps: list[float],
+    lichun_terms: list[Any],
+    lichun_timestamps: list[float],
+) -> list[dict[str, Any]]:
+    """Fast canonical path for the already segmented baseline loop."""
+    stamp = value.timestamp()
+    previous_jie = jie_terms[bisect_right(jie_timestamps, stamp) - 1]
+    previous_lichun = lichun_terms[bisect_right(lichun_timestamps, stamp) - 1]
+    year_number = previous_lichun.local_datetime.year
+    year_gz = GanZhiIndex((year_number - 4) % 10, (year_number - 4) % 12)
+    month_branch = JIE_MONTH_BRANCH[previous_jie.index]
+    month_offset = (BRANCHES.index(month_branch) - BRANCHES.index("寅")) % 12
+    yin_month_stem = ((year_gz.tg % 5) * 2 + 2) % 10
+    month_gz = GanZhiIndex((yin_month_stem + month_offset) % 10, BRANCHES.index(month_branch))
+    pillar_date = value + timedelta(days=1) if day_boundary == "forward" and value.hour >= 23 else value
+    solar_day = sxtwl.fromSolar(pillar_date.year, pillar_date.month, pillar_date.day)
+    raw_day = solar_day.getDayGZ()
+    hour = 0 if day_boundary == "forward" and value.hour >= 23 else value.hour
+    raw_hour = solar_day.getHourGZ(hour)
+    day_gz = GanZhiIndex(int(raw_day.tg), int(raw_day.dz))
+    hour_gz = GanZhiIndex(int(raw_hour.tg), int(raw_hour.dz))
+    gz_values = (year_gz, month_gz, day_gz, hour_gz)
+    day_stem = STEMS[day_gz.tg]
+    return [_pillar(label, gz, day_stem) for label, gz in zip(("年", "月", "日", "时"), gz_values)]
 
 
 def generate(day_boundary: str) -> dict:
@@ -96,6 +143,11 @@ def generate(day_boundary: str) -> dict:
     start = _lichun(1924, zone)
     end = _lichun(2044, zone)
     events = _events(start, end, zone, day_boundary)
+    all_terms = solar_terms_for_years(range(start.year - 2, end.year + 2), zone)
+    jie_terms = [item for item in all_terms if item.index in JIE_MONTH_BRANCH]
+    jie_timestamps = [item.instant_utc.timestamp() for item in jie_terms]
+    lichun_terms = [item for item in all_terms if item.index == 3]
+    lichun_timestamps = [item.instant_utc.timestamp() for item in lichun_terms]
     feature_weights: Counter[str] = Counter()
     profile_genders = {"male": "male", "female": "female", "neutral": None}
     theme_metric_weights_by_gender = {
@@ -110,7 +162,14 @@ def generate(day_boundary: str) -> dict:
         if seconds <= 0:
             continue
         midpoint = datetime.fromtimestamp((left.timestamp() + right.timestamp()) / 2, zone)
-        pillars = _pillars(midpoint, day_boundary)
+        pillars = _baseline_pillars(
+            midpoint,
+            day_boundary,
+            jie_terms=jie_terms,
+            jie_timestamps=jie_timestamps,
+            lichun_terms=lichun_terms,
+            lichun_timestamps=lichun_timestamps,
+        )
         state_key = tuple(pillar["text"] for pillar in pillars)
         unique_states.add(state_key)
         cached = state_cache.get(state_key)
@@ -154,8 +213,10 @@ def generate(day_boundary: str) -> dict:
 
     sample_weight = round(total_seconds / 60, 6)
     catalog = _feature_catalog()
+    metric_catalog = [METRIC_DEFINITIONS[key] for key in sorted(METRIC_DEFINITIONS)]
     payload = {
         "schema_version": BASELINE_SCHEMA_VERSION,
+        "baseline_generation_version": BASELINE_GENERATION_VERSION,
         "id": f"bazi-{BASELINE_VERSION}-{day_boundary}",
         "chart_type": "bazi",
         "kind": "calendar_sample_frequency",
@@ -165,11 +226,13 @@ def generate(day_boundary: str) -> dict:
         "timezone": "Asia/Shanghai",
         "day_boundary": day_boundary,
         "config_id": _config_id(day_boundary),
-        "engine": "sxtwl 2.0.7",
+        "engine": "canonical-calendar-1 (sxtwl 2.0.7 ephemeris)",
         "rules_version": RULES_VERSION,
         "rules_registry_hash": bazi_rules_registry_hash(),
         "feature_catalog": catalog,
         "feature_catalog_hash": feature_catalog_hash(catalog),
+        "metric_catalog": metric_catalog,
+        "metric_catalog_hash": metric_catalog_hash(metric_catalog),
         "unique_state_count": len(unique_states),
         "sample_unit": "minute",
         "weighted_unit": "minute",

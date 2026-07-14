@@ -57,6 +57,8 @@ type Props = {
   setCalendar: (value: "solar" | "lunar") => void
   gender: "male" | "female"
   setGender: (value: "male" | "female") => void
+  hourUncertain: boolean
+  setHourUncertain: (value: boolean) => void
   selectedLocation: LocationResult | null
   birthPlaceOverrideActive: boolean
   effectiveTimezone: string
@@ -93,6 +95,8 @@ export function BaziControls({
   setCalendar,
   gender,
   setGender,
+  hourUncertain,
+  setHourUncertain,
   selectedLocation,
   birthPlaceOverrideActive,
   effectiveTimezone,
@@ -123,19 +127,19 @@ export function BaziControls({
 
           {calendar === "solar" ? (
             <div className="space-y-2">
-              <label htmlFor="bazi-birth-time" className="text-sm font-medium">{copy.birth}</label>
-              <Input id="bazi-birth-time" type="datetime-local" value={birthTime} required onChange={(event) => setBirthTime(event.target.value)} />
+              <label htmlFor="bazi-birth-time" className="text-sm font-medium">{hourUncertain ? (locale === "zh" ? "出生日期" : "Birth date") : copy.birth}</label>
+              <Input id="bazi-birth-time" type={hourUncertain ? "date" : "datetime-local"} value={hourUncertain ? birthTime.slice(0, 10) : birthTime} required onChange={(event) => setBirthTime(hourUncertain ? `${event.target.value}T12:00` : event.target.value)} />
             </div>
           ) : (
-            <div className="grid gap-2 sm:grid-cols-[1fr_8rem]">
+            <div className={`grid gap-2 ${hourUncertain ? "" : "sm:grid-cols-[1fr_8rem]"}`}>
               <div className="space-y-2">
                 <label htmlFor="bazi-lunar-date" className="text-sm font-medium">{copy.lunarDateFormat}</label>
                 <Input id="bazi-lunar-date" value={lunarBirthDate} inputMode="numeric" placeholder="1990-01-01" onChange={(event) => setLunarBirthDate(event.target.value)} />
               </div>
-              <div className="space-y-2">
+              {!hourUncertain ? <div className="space-y-2">
                 <label htmlFor="bazi-lunar-time" className="text-sm font-medium">{copy.birth}</label>
                 <Input id="bazi-lunar-time" type="time" value={lunarBirthTime} required onChange={(event) => setLunarBirthTime(event.target.value)} />
-              </div>
+              </div> : null}
             </div>
           )}
 
@@ -145,6 +149,11 @@ export function BaziControls({
               <SelectTrigger id="bazi-gender" aria-labelledby="bazi-gender-label"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="male">{copy.male}</SelectItem><SelectItem value="female">{copy.female}</SelectItem></SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
+            <div><label htmlFor="bazi-hour-uncertain" className="text-sm font-medium">{locale === "zh" ? "出生时辰不确定" : "Birth hour uncertain"}</label><p className="mt-0.5 text-xs text-muted-foreground">{locale === "zh" ? "先看不受时辰影响的部分" : "Show the parts that stay stable across possible hours"}</p></div>
+            <Switch id="bazi-hour-uncertain" checked={hourUncertain} onCheckedChange={setHourUncertain} />
           </div>
 
           <BirthPlaceField locale={locale} selectedLocation={selectedLocation} overrideActive={birthPlaceOverrideActive} effectiveTimezone={effectiveTimezone} effectiveLongitude={effectiveLongitude} onSelect={onBirthPlaceSelect} onClear={onBirthPlaceClear} />

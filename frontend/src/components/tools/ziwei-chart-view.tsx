@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { Maximize2 } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
@@ -14,6 +14,7 @@ import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 import type { IFunctionalPalace } from "iztro/lib/astro/FunctionalPalace"
 
 type Locale = "en" | "zh"
+type DisplayMode = "simple" | "study" | "professional"
 
 const PALACE_POSITIONS = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [1, 3], [0, 3], [0, 2], [0, 1]] as const
 
@@ -79,12 +80,23 @@ export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, l
   const exportTargetId = `ziwei-export-${useId().replaceAll(":", "")}`
   const palaceExportTargetId = `ziwei-palace-${useId().replaceAll(":", "")}`
   const [selectedPalaceIndex, setSelectedPalaceIndex] = useState(() => chart.palaces[0]?.index ?? 0)
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("simple")
+  useEffect(() => {
+    const saved = window.localStorage.getItem("iching:ziwei-display-mode")
+    if (saved !== "simple" && saved !== "study" && saved !== "professional") return
+    const frame = window.requestAnimationFrame(() => setDisplayMode(saved))
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+  function changeDisplayMode(nextMode: DisplayMode) {
+    setDisplayMode(nextMode)
+    window.localStorage.setItem("iching:ziwei-display-mode", nextMode)
+  }
   const selectedPalace = chart.palaces.find((palace) => palace.index === selectedPalaceIndex) ?? chart.palaces[0]
   const provenanceLabels = getProvenanceLabels(provenance, locale)
   const markdown = buildZiweiMarkdown(chart, horoscope, subjectName, locale, statistics ?? undefined, { archiveMode, provenance })
   const trustNote = locale === "zh"
-    ? "确定性星盘事实；不自动生成性格、吉凶、运势或命运断语。"
-    : "Deterministic chart facts; no personality, auspiciousness, forecast, or fate claim is generated."
+    ? "按统一通行法排盘，并结合十二宫、星曜与历法统计整理重点。"
+    : "Calculated with one standard method, then organized through palaces, stars, and calendar statistics."
 
   return (
     <section className="chart-report min-w-0 space-y-8" aria-label={locale === "zh" ? "紫微斗数星盘结果" : "Zi Wei Dou Shu chart result"}>
@@ -96,7 +108,9 @@ export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, l
 
       <ZiweiArchiveBanner archiveMode={archiveMode} locale={locale} onCreateStandardCopy={onCreateStandardCopy} />
 
-      <ZiweiSectionNav locale={locale} />
+      <ZiweiDisplayModeControl mode={displayMode} locale={locale} onChange={changeDisplayMode} />
+
+      <ZiweiSectionNav locale={locale} mode={displayMode} />
 
       <section id="ziwei-chart" className="chart-report-chapter min-w-0 scroll-mt-28 border-t border-border/60 pt-6">
         <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-semibold">{locale === "zh" ? "命盘" : "Chart"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "手机先看精简宫位卡；桌面与全盘模式保留完整专业密度。" : "Mobile starts with readable palace cards; desktop and full-chart mode retain professional density."}</p></div><div data-export-exclude className="flex flex-wrap gap-2"><ChartAssetExportButton targetId={palaceExportTargetId} label={locale === "zh" ? "单独导出十二宫" : "Export palace chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "十二宫导出失败。" : "Palace chart export failed."} safeBaseFilename={`ziwei-palaces-${horoscopeDate}`} /><FullChartDialog chart={chart} horoscope={horoscope} locale={locale} /></div></div>
@@ -111,11 +125,11 @@ export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, l
 
       <section id="ziwei-periods" className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{locale === "zh" ? "运限" : "Periods"}</h2><p className="mt-2 text-sm text-muted-foreground">{archiveMode === "standard" ? (locale === "zh" ? "选择日期后同步查看本命、大限、流年、流月、流日与流时。" : "Choose a date to inspect natal, decadal, yearly, monthly, daily, and hourly layers together.") : (locale === "zh" ? "旧档案保留保存时的运限快照；日期已锁定。" : "Legacy archives retain the saved period snapshot; the date is locked.")}</p><ZiweiPeriodPanel horoscope={horoscope} selectedDate={horoscopeDate} onSelectedDateChange={onHoroscopeDateChange} locked={archiveMode !== "standard"} locale={locale} /></section>
 
-      <section id="ziwei-stars" className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{locale === "zh" ? "星曜" : "Stars"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "按主星、辅星、杂曜与四化反查落宫。" : "Browse major, supporting, adjective, and transformed stars by palace."}</p><StarBrowser chart={chart} locale={locale} /></section>
+      {displayMode !== "simple" ? <section id="ziwei-stars" className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{locale === "zh" ? "星曜" : "Stars"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "按主星、辅星、杂曜与四化反查落宫。" : "Browse major, supporting, adjective, and transformed stars by palace."}</p><StarBrowser chart={chart} locale={locale} /></section> : null}
 
-      <section id="ziwei-statistics" className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{locale === "zh" ? "统计" : "Statistics"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "结构计数与 120 年历法样本频率；不换算为吉凶分数。" : "Structural counts and 120-year calendar-sample frequency; no fortune score."}</p><div className="mt-5 space-y-7"><ZiweiStatistics chart={chart} horoscope={horoscope} locale={locale} /><ZiweiRarityPanel chart={chart} statistics={statistics} status={statisticsStatus} error={statisticsError} locale={locale} /></div></section>
+      {displayMode !== "simple" ? <section id="ziwei-statistics" className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{locale === "zh" ? "统计" : "Statistics"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "查看关键结构在 120 年历法样本中的出现频率与辨识度。" : "Explore the frequency and distinctiveness of key structures across the 120-year calendar sample."}</p><div className="mt-5 space-y-7"><ZiweiStatistics chart={chart} horoscope={horoscope} locale={locale} /><ZiweiRarityPanel chart={chart} statistics={statistics} status={statisticsStatus} error={statisticsError} locale={locale} /></div></section> : null}
 
-      <details data-export-exclude className="border-t border-border/60 pt-5">
+      {displayMode === "professional" ? <details data-export-exclude className="border-t border-border/60 pt-5">
         <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "专业排盘数据与来源" : "Professional chart data and provenance"}</summary>
         <div className="mt-4 space-y-2 text-xs leading-5 text-muted-foreground">
           <p><strong className="text-foreground">{locale === "zh" ? "排盘引擎" : "Engine"}:</strong> iztro 2.5.8 · MIT</p>
@@ -126,7 +140,7 @@ export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, l
           <p>{locale === "zh" ? "星曜、四化与运限为确定性排盘数据；解释层不混入排盘事实，也不自动生成预测断语。" : "Stars, transformations, and periods are deterministic chart data. Interpretation remains separate from chart facts, and no predictive prose is generated."}</p>
           {statistics ? <><p>{statistics.baseline.id} · {statistics.baseline.hash}</p><p>{statistics.disclaimer}</p></> : <p>{statisticsError ?? (locale === "zh" ? "频率样本未载入。" : "Frequency samples were not loaded.")}</p>}
         </div>
-      </details>
+      </details> : null}
 
       <ZiweiExportCanvas exportTargetId={exportTargetId} chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={`${trustNote}${statistics ? ` ${statistics.disclaimer}` : ""}`} subjectName={subjectName} statistics={statistics} statisticsStatus={statisticsStatus} statisticsError={statisticsError} archiveMode={archiveMode} provenance={provenance} />
       <div aria-hidden="true" className="chart-export-stage"><article id={palaceExportTargetId} className="chart-share-canvas chart-export-canvas"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} /></article></div>
@@ -150,8 +164,19 @@ function ZiweiArchiveBanner({ archiveMode, locale, onCreateStandardCopy }: { arc
   )
 }
 
-function ZiweiSectionNav({ locale }: { locale: Locale }) {
-  const items = locale === "zh" ? [["#ziwei-chart", "命盘"], ["#ziwei-themes", "主题"], ["#ziwei-periods", "运限"], ["#ziwei-stars", "星曜"], ["#ziwei-statistics", "统计"]] : [["#ziwei-chart", "Chart"], ["#ziwei-themes", "Themes"], ["#ziwei-periods", "Periods"], ["#ziwei-stars", "Stars"], ["#ziwei-statistics", "Statistics"]]
+function ZiweiDisplayModeControl({ mode, locale, onChange }: { mode: DisplayMode; locale: Locale; onChange: (mode: DisplayMode) => void }) {
+  const options: Array<{ value: DisplayMode; zh: string; en: string }> = [
+    { value: "simple", zh: "简明", en: "Simple" },
+    { value: "study", zh: "研习", en: "Study" },
+    { value: "professional", zh: "专业", en: "Professional" },
+  ]
+  return <div data-export-exclude className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/55 bg-surface px-4 py-3"><div><p className="text-sm font-semibold">{locale === "zh" ? "查看深度" : "Detail level"}</p><p className="mt-0.5 text-xs text-muted-foreground">{locale === "zh" ? "先看命盘、重点与运限，需要时再展开星曜和统计。" : "Start with the chart, themes, and periods; expand stars and statistics when needed."}</p></div><div className="inline-flex rounded-xl bg-muted/60 p-1" role="group" aria-label={locale === "zh" ? "紫微查看深度" : "Zi Wei detail level"}>{options.map((option) => <button key={option.value} type="button" aria-pressed={mode === option.value} onClick={() => onChange(option.value)} className={`min-w-16 rounded-lg px-3 py-2 text-sm font-semibold transition ${mode === option.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{locale === "zh" ? option.zh : option.en}</button>)}</div></div>
+}
+
+function ZiweiSectionNav({ locale, mode }: { locale: Locale; mode: DisplayMode }) {
+  const coreItems = locale === "zh" ? [["#ziwei-chart", "命盘"], ["#ziwei-themes", "重点"], ["#ziwei-periods", "运限"]] : [["#ziwei-chart", "Chart"], ["#ziwei-themes", "Themes"], ["#ziwei-periods", "Periods"]]
+  const studyItems = locale === "zh" ? [["#ziwei-stars", "星曜"], ["#ziwei-statistics", "统计"]] : [["#ziwei-stars", "Stars"], ["#ziwei-statistics", "Statistics"]]
+  const items = mode === "simple" ? coreItems : [...coreItems, ...studyItems]
   return <nav aria-label={locale === "zh" ? "紫微命盘章节" : "Zi Wei chart sections"} className="sticky top-20 z-20 -mx-2 flex gap-1 overflow-x-auto rounded-2xl border border-border/60 bg-background/90 p-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/75">{items.map(([href, label]) => <a key={href} href={href} className="min-w-20 flex-1 whitespace-nowrap rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-muted-foreground transition hover:bg-primary/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{label}</a>)}</nav>
 }
 
@@ -166,16 +191,16 @@ function MobilePalaceRail({ chart, horoscope, locale, selectedPalaceIndex, onSel
 function ZiweiThemeSections({ chart, horoscope, statistics, locale, sectionId }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; statistics: MetaphysicsStatistics | null; locale: Locale; sectionId?: string }) {
   const themes = locale === "zh"
     ? [
-        { key: "career", title: "事业", palaceAliases: [["命"], ["官禄", "事业"], ["财帛"], ["迁移"]], note: "命宫、官禄、财帛与迁移宫并看；不推断职业成败。" },
-        { key: "wealth", title: "财富", palaceAliases: [["命"], ["财帛"], ["田宅"], ["福德"]], note: "命宫、财帛、田宅与福德宫并看；不构成收益或投资判断。" },
-        { key: "relationship", title: "感情", palaceAliases: [["命"], ["夫妻"], ["福德"], ["迁移"]], note: "命宫、夫妻、福德与迁移宫并看；不判断关系质量或结果。" },
-        { key: "health", title: "健康结构", palaceAliases: [["命"], ["疾厄"], ["福德"]], note: "只展示传统宫位结构，不作健康预测、诊断或医疗建议。" },
+        { key: "career", title: "事业", palaceAliases: [["命"], ["官禄", "事业"], ["财帛"], ["迁移"]], note: "从命宫、官禄、财帛与迁移宫看事业结构如何展开。" },
+        { key: "wealth", title: "财富", palaceAliases: [["命"], ["财帛"], ["田宅"], ["福德"]], note: "从命宫、财帛、田宅与福德宫看资源与积累结构。" },
+        { key: "relationship", title: "感情", palaceAliases: [["命"], ["夫妻"], ["福德"], ["迁移"]], note: "从命宫、夫妻、福德与迁移宫看关系互动结构。" },
+        { key: "health", title: "身心结构", palaceAliases: [["命"], ["疾厄"], ["福德"]], note: "从命宫、疾厄与福德宫看传统身心承压结构。" },
       ]
     : [
-        { key: "career", title: "Career", palaceAliases: [["soul", "life"], ["career", "official"], ["wealth", "finance"], ["surface", "travel"]], note: "Reads life, career, wealth, and travel palaces together without predicting career outcomes." },
-        { key: "wealth", title: "Wealth", palaceAliases: [["soul", "life"], ["wealth", "finance"], ["property"], ["spirit", "fortune"]], note: "Reads life, wealth, property, and spirit palaces together; this is not an investment judgment." },
-        { key: "relationship", title: "Relationships", palaceAliases: [["soul", "life"], ["spouse", "marriage"], ["spirit", "fortune"], ["surface", "travel"]], note: "Reads life, spouse, spirit, and travel palaces together without judging relationship outcomes." },
-        { key: "health", title: "Health structure", palaceAliases: [["soul", "life"], ["health", "illness"], ["spirit", "fortune"]], note: "Traditional structural data only; not a forecast, diagnosis, or medical advice." },
+        { key: "career", title: "Career", palaceAliases: [["soul", "life"], ["career", "official"], ["wealth", "finance"], ["surface", "travel"]], note: "Connects the life, career, wealth, and travel palaces into one career structure." },
+        { key: "wealth", title: "Wealth", palaceAliases: [["soul", "life"], ["wealth", "finance"], ["property"], ["spirit", "fortune"]], note: "Connects the life, wealth, property, and spirit palaces into one resource structure." },
+        { key: "relationship", title: "Relationships", palaceAliases: [["soul", "life"], ["spouse", "marriage"], ["spirit", "fortune"], ["surface", "travel"]], note: "Connects the life, spouse, spirit, and travel palaces into one relationship structure." },
+        { key: "health", title: "Mind-body structure", palaceAliases: [["soul", "life"], ["health", "illness"], ["spirit", "fortune"]], note: "Connects the life, health, and spirit palaces into a traditional pressure structure." },
       ]
   const allStars = (palace: IFunctionalPalace) => [...palace.majorStars, ...palace.minorStars, ...palace.adjectiveStars]
   const sixAuspicious = new Set(locale === "zh" ? ["左辅", "右弼", "文昌", "文曲", "天魁", "天钺"] : ["officer", "helper", "scholar", "artist", "assistant", "aide"])
@@ -183,7 +208,7 @@ function ZiweiThemeSections({ chart, horoscope, statistics, locale, sectionId }:
   return (
     <section id={sectionId} className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6">
       <h2 className="text-xl font-semibold">{locale === "zh" ? "四类主题结构" : "Four structural themes"}</h2>
-      <p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "从十二宫、星曜、四化和样本频率整理结构事实；不生成命运分数或断语。" : "Structural facts from palaces, stars, transformations, and sample frequency—without fate scores or predictive claims."}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "把十二宫、星曜、四化与样本频率连成四条最值得先看的主题主线。" : "Connects palaces, stars, transformations, and sample frequency into four themes worth seeing first."}</p>
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         {themes.map((theme) => {
           const palaces = theme.palaceAliases.flatMap((aliases) => {

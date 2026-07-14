@@ -34,8 +34,56 @@ BRANCH_BREAKS = {frozenset(pair) for pair in (("子", "酉"), ("丑", "辰"), ("
 TRINES = (("申子辰", "水"), ("亥卯未", "木"), ("寅午戌", "火"), ("巳酉丑", "金"))
 MEETINGS = (("亥子丑", "水"), ("寅卯辰", "木"), ("巳午未", "火"), ("申酉戌", "金"))
 
-THEME_ORDER = ("事业", "财富", "感情", "健康")
-TOPIC_TO_THEME = {"career": "事业", "wealth": "财富", "relationship": "感情", "health": "健康"}
+THEME_ORDER = ("事业", "财富", "感情", "五行与承压结构")
+TOPIC_TO_THEME = {"career": "事业", "wealth": "财富", "relationship": "感情", "health": "五行与承压结构"}
+METRIC_REGISTRY_VERSION = "bazi-core-metrics-2026.07-v1"
+_THEME_METRICS = {
+    "事业": (
+        ("officer_count", "官杀出现", "ordinal", "日主中心十神"),
+        ("resource_count", "印星出现", "ordinal", "日主中心十神"),
+        ("output_count", "食伤出现", "ordinal", "日主中心十神"),
+        ("relation_count", "事业相关关系", "ordinal", "结构化干支关系"),
+        ("mobility_count", "迁动信号", "ordinal", "驿马与地支冲"),
+        ("shensha_count", "事业辅助神煞", "binary", "版本化神煞注册表"),
+    ),
+    "财富": (
+        ("visible_wealth_count", "财星明透", "ordinal", "日主中心十神"),
+        ("hidden_wealth_count", "财星藏见", "ordinal", "日主中心十神"),
+        ("output_count", "食伤出现", "ordinal", "日主中心十神"),
+        ("peer_count", "比劫出现", "ordinal", "日主中心十神"),
+        ("relation_count", "财富相关关系", "ordinal", "结构化干支关系"),
+        ("shensha_count", "财富辅助神煞", "binary", "版本化神煞注册表"),
+    ),
+    "感情": (
+        ("visible_spouse_count", "配偶星明透", "ordinal", "传统配偶星取法"),
+        ("hidden_spouse_count", "配偶星藏见", "ordinal", "传统配偶星取法"),
+        ("spouse_palace_relation_count", "夫妻宫关系", "ordinal", "日支夫妻宫与干支关系"),
+        ("day_stem_combine_count", "日干合", "ordinal", "天干五合"),
+        ("relation_count", "感情相关关系", "ordinal", "结构化干支关系"),
+        ("shensha_count", "感情辅助神煞", "binary", "版本化神煞注册表"),
+    ),
+    "五行与承压结构": (
+        ("missing_element_count", "未见五行", "ordinal", "明干、主气、藏干分层"),
+        ("concentrated_element_count", "集中五行", "ordinal", "明干、主气、藏干分层"),
+        ("root_pillar_count", "通根柱位", "ordinal", "藏干同五行检查"),
+        ("pressure_relation_count", "冲刑害破克", "ordinal", "结构化干支关系"),
+        ("repeated_branch_count", "重复地支", "ordinal", "四支重复检查"),
+        ("shensha_count", "承压辅助神煞", "binary", "版本化神煞注册表"),
+    ),
+}
+METRIC_DEFINITIONS = {
+    f"{theme}.{metric_id}": {
+        "id": f"{theme}.{metric_id}",
+        "theme": theme,
+        "metric_id": metric_id,
+        "label": label,
+        "metric_type": metric_type,
+        "source": source,
+        "version": METRIC_REGISTRY_VERSION,
+    }
+    for theme, metrics in _THEME_METRICS.items()
+    for metric_id, label, metric_type, source in metrics
+}
 
 
 def element_relation(day_element: str, other_element: str) -> str:
@@ -195,7 +243,7 @@ def _relation_topics(participants: Iterable[Mapping[str, str]]) -> list[str]:
     if "日" in pillars or gods & {"正财", "偏财", "正官", "七杀"}:
         topics.append("感情")
     if any(item.get("day_master_relation") in {"生我", "克我", "同我"} for item in participants):
-        topics.append("健康")
+        topics.append("五行与承压结构")
     return [topic for topic in THEME_ORDER if topic in topics]
 
 
@@ -230,6 +278,7 @@ def build_structure_profile(
         roots=roots,
         element_layers=distributions["elements"],
     )
+    synthesis = build_consumer_synthesis(theme_profiles)
     return {
         "day_master": {
             "stem": day_stem,
@@ -242,6 +291,100 @@ def build_structure_profile(
         "layered_distribution": distributions,
         "structural_relations": relations,
         "theme_profiles": theme_profiles,
+        "synthesis": synthesis,
+    }
+
+
+def build_consumer_synthesis(profiles: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    profile_list = list(profiles)
+    conclusions: list[dict[str, Any]] = []
+    for priority, profile in enumerate(profile_list, start=1):
+        theme = str(profile.get("theme", ""))
+        evidence = list(profile.get("evidence", ()))
+        families = {str(item.get("family", "")) for item in evidence}
+        if theme == "事业":
+            if {"官杀", "印星"} <= families:
+                headline = "事业更重专业可信度与责任承担"
+                body = "官杀与印星同时参与，职业发展更容易围绕规则、资质、责任与专业判断展开。"
+            elif "食伤" in families:
+                headline = "事业推进更依赖表达与成果输出"
+                body = "食伤结构较明确，解决问题、表达观点和把能力变成可见成果，是重要的职业抓手。"
+            else:
+                headline = "事业结构更重长期定位"
+                body = "月令与原局关系是主要背景，适合通过持续积累形成稳定的专业位置。"
+        elif theme == "财富":
+            if "财星明透" in families:
+                headline = "资源与现实结果是较外显的人生主题"
+                body = "财星见于明干，金钱、资源配置和结果意识更容易直接进入选择与行动。"
+            elif "财星藏根" in families:
+                headline = "财富结构更偏积累与兑现"
+                body = "财星主要藏于地支，资源主题存在，但更依赖时间、场景和持续经营逐步显现。"
+            else:
+                headline = "财富更依赖能力转化与节奏管理"
+                body = "原局财星并不外显，财富线索更多来自能力输出、关系结构与长期配置。"
+        elif theme == "感情":
+            if "夫妻宫关系" in families or "日干合" in families:
+                headline = "关系互动与选择变化感较强"
+                body = "夫妻宫或日干直接参与关系，亲密关系往往不是背景议题，而会真实影响阶段性选择。"
+            elif "配偶星明透" in families:
+                headline = "感情主题表达得更直接"
+                body = "传统配偶星见于明干，对关系对象、承诺方式和相处边界的感受通常更明确。"
+            else:
+                headline = "感情更看重实际相处与长期确认"
+                body = "关系信号主要藏于原局内部，重要关系通常需要在真实互动中逐渐确认。"
+        else:
+            if "冲刑害破" in families:
+                headline = "五行结构中的推动与牵制都较明显"
+                body = "原局存在多组生克或冲合变化，面对压力时往往会通过调整环境、节奏和行动方式重新取得平衡。"
+            elif "通根" in families:
+                headline = "日主拥有可调用的根气支持"
+                body = "同类根气在地支出现，遇到变化时通常仍有可依靠的基础与恢复空间。"
+            else:
+                headline = "五行结构更依赖环境与阶段配合"
+                body = "原局的支持与制约较分散，外部环境和阶段节奏会明显影响结构如何发挥。"
+        supporting = [str(item.get("id", "")) for item in evidence if item.get("evidence_type") != "制约"][:4]
+        counter = [str(item.get("id", "")) for item in evidence if item.get("evidence_type") == "制约"][:2]
+        conclusions.append({
+            "id": f"bazi.conclusion.{priority}",
+            "theme": theme,
+            "headline": headline,
+            "body": body,
+            "supporting_evidence_ids": [item for item in supporting if item],
+            "counter_evidence_ids": [item for item in counter if item],
+            "school_scope": "现代子平通行分析",
+            "priority": priority,
+        })
+    all_evidence = [item for profile in profile_list for item in profile.get("evidence", ())]
+    relational = [
+        item for item in all_evidence
+        if item.get("family") in {"干支关系", "夫妻宫关系", "日干合", "冲刑害破", "迁动"}
+    ]
+    if relational:
+        conclusions.append({
+            "id": "bazi.conclusion.overall.relations",
+            "theme": "整体",
+            "headline": "命局变化会通过关系与环境被实际触发",
+            "body": "原局有多处干支联动，重要阶段往往不是单一因素起作用，而是关系、位置与行动节奏共同推动变化。",
+            "supporting_evidence_ids": [str(item.get("id", "")) for item in relational[:4] if item.get("id")],
+            "counter_evidence_ids": [],
+            "school_scope": "现代子平通行分析",
+            "priority": len(conclusions) + 1,
+        })
+    foundations = [item for item in all_evidence if item.get("family") in {"月令", "通根", "五行分布"}]
+    if foundations:
+        conclusions.append({
+            "id": "bazi.conclusion.overall.foundation",
+            "theme": "整体",
+            "headline": "月令与根气构成这张命盘的长期底色",
+            "body": "季节位置与日主根气决定了许多结构以怎样的节奏发挥，也是理解事业、财富和关系主题时最稳定的背景。",
+            "supporting_evidence_ids": [str(item.get("id", "")) for item in foundations[:4] if item.get("id")],
+            "counter_evidence_ids": [],
+            "school_scope": "现代子平通行分析",
+            "priority": len(conclusions) + 1,
+        })
+    return {
+        "method": "modern-ziping-common-v1",
+        "conclusions": conclusions,
     }
 
 
@@ -290,7 +433,14 @@ def _theme_profiles(
 
         def add(family: str, evidence_type: str, title: str, detail: str, source: str) -> None:
             families.add(family)
-            evidence.append({"family": family, "evidence_type": evidence_type, "title": title, "detail": detail, "source": source})
+            evidence.append({
+                "id": f"bazi.evidence.{THEME_ORDER.index(theme) + 1}.{len(evidence) + 1}",
+                "family": family,
+                "evidence_type": evidence_type,
+                "title": title,
+                "detail": detail,
+                "source": source,
+            })
 
         if theme == "事业":
             _add_god_evidence(add, all_gods, visible_gods, {"正官", "七杀"}, "官杀", "事业")
@@ -400,16 +550,26 @@ def _theme_profiles(
                 ("root_pillar_count", "通根柱位", len(roots)),
                 ("pressure_relation_count", "冲刑害破克", sum(1 for relation in relations if relation.get("relation_type") in {"天干克", "天干冲", "地支冲", "地支害", "地支破", "地支刑", "地支自刑"})),
                 ("repeated_branch_count", "重复地支", sum(1 for count in branch_counts.values() if count > 1)),
-                ("shensha_count", "健康主题神煞", len(topic_hits)),
+                ("shensha_count", "承压主题神煞", len(topic_hits)),
             ]
+        metric_payloads = []
+        for metric_id, label, value in metrics:
+            definition = METRIC_DEFINITIONS[f"{theme}.{metric_id}"]
+            metric_value = int(bool(value)) if definition["metric_type"] == "binary" else int(value)
+            metric_payloads.append({
+                "definition_id": definition["id"],
+                "metric_id": metric_id,
+                "label": label,
+                "value": metric_value,
+                "unit": "是否命中" if definition["metric_type"] == "binary" else "项",
+                "metric_type": definition["metric_type"],
+                "source": definition["source"],
+            })
         profiles.append({
             "theme": theme,
             "evidence": evidence,
             "active_families": sorted(families),
-            "structure_metrics": [
-                {"metric_id": metric_id, "label": label, "value": int(value), "unit": "项"}
-                for metric_id, label, value in metrics
-            ],
+            "structure_metrics": metric_payloads,
             "comparisons": [],
         })
     return profiles

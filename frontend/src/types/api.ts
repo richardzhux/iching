@@ -75,6 +75,7 @@ export type RarityMetric = {
 }
 
 export type ThemeEvidence = {
+  id: string
   family: string
   evidence_type: "支持" | "制约" | "活动" | "背景"
   title: string
@@ -83,10 +84,13 @@ export type ThemeEvidence = {
 }
 
 export type ThemeStructureMetric = {
+  definition_id?: string
   metric_id: string
   label: string
   value: number
   unit: string
+  metric_type?: "ordinal" | "binary" | "categorical"
+  source?: string
 }
 
 export type ThemeComparison = ThemeStructureMetric & {
@@ -95,15 +99,24 @@ export type ThemeComparison = ThemeStructureMetric & {
   total_weight?: number
   exact_percentage?: number
   display_percentage: string
-  lower_percentage: number
-  same_percentage: number
-  higher_percentage: number
+  comparison_mode?: "rank_interval" | "incidence" | "category_share"
+  lower_percentage?: number
+  same_percentage?: number
+  higher_percentage?: number
+  hit_percentage?: number
+  rank_interval?: { lower: number; upper: number }
+  same_mass?: number
+  support_size?: number
+  normalized_entropy?: number
+  effective_support?: number
+  resolution?: "high" | "medium" | "low"
+  histogram?: Array<{ value: number | string; weight: number; percentage: number }>
   baseline_id: string
   method: "weighted_empirical_metric_distribution"
 }
 
 export type ThemeProfile = {
-  theme: "事业" | "财富" | "感情" | "健康"
+  theme: "事业" | "财富" | "感情" | "五行与承压结构"
   evidence: ThemeEvidence[]
   active_families?: string[]
   structure_metrics?: ThemeStructureMetric[]
@@ -123,7 +136,7 @@ export type StructuralRelation = {
   relation_type: string
   participants: StructuralParticipant[]
   result_element?: string | null
-  theme_tags: Array<"事业" | "财富" | "感情" | "健康">
+  theme_tags: Array<"事业" | "财富" | "感情" | "五行与承压结构">
   source_rule: string
   label: string
 }
@@ -170,6 +183,9 @@ export type PeriodMonth = {
   shen_sha: string[]
   relations: string[]
   theme_activations: PeriodThemeActivations
+  start_timestamp?: string
+  end_timestamp?: string
+  is_current?: boolean
 }
 
 export type PeriodThemeActivation = {
@@ -179,7 +195,7 @@ export type PeriodThemeActivation = {
   source: string
 }
 
-export type PeriodThemeActivations = Record<"事业" | "财富" | "感情" | "健康", PeriodThemeActivation[]>
+export type PeriodThemeActivations = Record<"事业" | "财富" | "感情" | "五行与承压结构", PeriodThemeActivation[]>
 
 export type PeriodYear = {
   layer: "liunian"
@@ -194,6 +210,9 @@ export type PeriodYear = {
   relations: string[]
   theme_activations: PeriodThemeActivations
   months: PeriodMonth[]
+  start_timestamp?: string
+  end_timestamp?: string
+  is_current?: boolean
 }
 
 export type DayunCycle = {
@@ -209,6 +228,9 @@ export type DayunCycle = {
   relations: string[]
   theme_activations: PeriodThemeActivations
   years: PeriodYear[]
+  start_timestamp?: string
+  end_timestamp?: string
+  is_current?: boolean
 }
 
 export type MetaphysicsChart = {
@@ -239,6 +261,8 @@ export type MetaphysicsChart = {
     six_spirits: string[]
   }
   element_counts: Record<string, number>
+  calculation_quality: { status: "verified" | "verified_canonical" | "conflict" | "uncertain"; label: string; crosscheck?: string }
+  boundary_flags: { near_solar_term?: boolean; nearest_solar_term_seconds?: number }
   derived_schema_version: number
   rules_version: string
   shen_sha: ShenShaHit[]
@@ -251,8 +275,10 @@ export type MetaphysicsChart = {
     }
     structural_relations: StructuralRelation[]
     theme_profiles: ThemeProfile[]
+    synthesis?: BaziSynthesis
   }
   theme_profiles: ThemeProfile[]
+  synthesis: BaziSynthesis
   statistics: MetaphysicsStatistics
   period_layers: {
     dayun: DayunCycle[]
@@ -273,7 +299,14 @@ export type MetaphysicsChart = {
     birth_place: string
     gender?: "male" | "female" | null
     hour_uncertain: boolean
-    hour_candidates: Array<{ label: string; time_range: string; pillar: string }>
+    hour_candidates: Array<{ label: string; time_range: string; pillar: string; day_master?: string; pillars?: string[] }>
+    stability?: {
+      stable_pillars: Array<{ label: string; text: string; pillar: MetaphysicsPillar }>
+      stable_shensha: string[]
+      sensitive_items: Array<{ label: string; detail: string }>
+      candidate_count: number
+    }
+    period_query?: MetaphysicsChartRequest
     dayun: {
       status: "not_requested" | "requires_hour" | "available"
       algorithm?: "sect1" | "sect2"
@@ -311,6 +344,27 @@ export type MetaphysicsChartRequest = {
   lunar_day?: number | null
   lunar_hour?: number | null
   lunar_minute?: number | null
+  fold_choice?: "first" | "second" | null
+  reference_timestamp?: string | null
+  include_period_details?: boolean
+  period_cycle_index?: number | null
+}
+
+export type BaziConclusion = {
+  id: string
+  theme: string
+  headline: string
+  body: string
+  supporting_evidence_ids: string[]
+  counter_evidence_ids: string[]
+  school_scope: string
+  priority: number
+  distribution_context?: string
+}
+
+export type BaziSynthesis = {
+  method: string
+  conclusions: BaziConclusion[]
 }
 
 export type ChartSubjectPayload = {

@@ -4,26 +4,28 @@ import hashlib
 import json
 import re
 from functools import lru_cache
+from math import exp, log
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from iching.core.bazi_structure import METRIC_DEFINITIONS, METRIC_REGISTRY_VERSION
 from iching.core.shensha import REGISTRY_DIGEST
 
 
 DATA_DIR = Path(__file__).with_name("data")
-BASELINE_ID = "bazi-calendar-1924-2044-v2-forward"
+BASELINE_ID = "bazi-calendar-1924-2044-g3-forward"
 BASELINE_IDS = {
     "bazi": {
         "forward": BASELINE_ID,
-        "current": "bazi-calendar-1924-2044-v2-current",
+        "current": "bazi-calendar-1924-2044-g3-current",
     },
     "ziwei": {"default": "ziwei-calendar-1924-2044-v1"},
 }
 FEATURE_ID_RE = re.compile(r"^(bazi|ziwei)\.[a-z0-9_.-]{1,96}$")
-BASELINE_SCHEMA_VERSION = 4
+BASELINE_SCHEMA_VERSION = 5
 ZIWEI_RULES_VERSION = "ziwei-structural-2026.07-v2.1"
 ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"
-THEME_IDS = ("事业", "财富", "感情", "健康")
+THEME_IDS = ("事业", "财富", "感情", "五行与承压结构")
 ZIWEI_REGISTRY_DESCRIPTOR = {
     "rules_version": ZIWEI_RULES_VERSION,
     "encoding_version": 1,
@@ -72,7 +74,15 @@ def feature_catalog_hash(feature_ids: Iterable[str]) -> str:
 
 
 def bazi_rules_registry_hash() -> str:
-    return REGISTRY_DIGEST
+    return _sha256_json({
+        "shensha_registry_digest": REGISTRY_DIGEST,
+        "metric_registry_version": METRIC_REGISTRY_VERSION,
+        "metric_definitions": METRIC_DEFINITIONS,
+    })
+
+
+def metric_catalog_hash(catalog: Iterable[Mapping[str, Any]]) -> str:
+    return _sha256_json(sorted((dict(item) for item in catalog), key=lambda item: str(item.get("id", ""))))
 
 
 def ziwei_rules_registry_hash() -> str:
@@ -82,7 +92,7 @@ def ziwei_rules_registry_hash() -> str:
 def _expected_config_id(baseline: Mapping[str, Any]) -> str:
     if baseline.get("chart_type") == "bazi":
         boundary = baseline.get("day_boundary")
-        return f"bazi-sxtwl-2.0.7-asia-shanghai-{boundary}-v1"
+        return f"bazi-canonical-calendar-1-asia-shanghai-{boundary}"
     return ZIWEI_STANDARD_CONFIG_ID
 
 
@@ -100,6 +110,8 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
         "weighted_unit",
         "hash",
     }
+    if baseline.get("chart_type") == "bazi":
+        required.update({"baseline_generation_version", "metric_catalog", "metric_catalog_hash"})
     missing = sorted(required - baseline.keys())
     if missing:
         raise BaselineCompatibilityError(f"统计基线缺少 schema v3 字段: {', '.join(missing)}")
@@ -110,6 +122,12 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
         raise BaselineCompatibilityError("统计基线特征目录无效，请重新生成基线。")
     if baseline["feature_catalog_hash"] != feature_catalog_hash(catalog):
         raise BaselineCompatibilityError("统计基线特征目录完整性校验失败，请重新生成基线。")
+    if baseline.get("chart_type") == "bazi":
+        metric_catalog = baseline.get("metric_catalog")
+        if not isinstance(metric_catalog, list) or any(not isinstance(item, dict) for item in metric_catalog):
+            raise BaselineCompatibilityError("统计基线指标目录无效，请重新生成基线。")
+        if baseline.get("metric_catalog_hash") != metric_catalog_hash(metric_catalog):
+            raise BaselineCompatibilityError("统计基线指标目录完整性校验失败，请重新生成基线。")
     expected_registry = (
         bazi_rules_registry_hash()
         if baseline.get("chart_type") == "bazi"
@@ -194,7 +212,7 @@ def frequency_label(percentage: float) -> str:
 
 def _baseline_public(baseline: dict[str, Any]) -> dict[str, Any]:
     public = {key: baseline[key] for key in (
-        "schema_version", "config_id", "feature_catalog_hash", "rules_registry_hash",
+        "schema_version", "baseline_generation_version", "config_id", "feature_catalog_hash", "metric_catalog_hash", "rules_registry_hash",
         "unique_state_count", "weighted_unit", "time_index_weights", "gender_scope", "interval_semantics",
         "id", "chart_type", "kind", "label", "start", "end", "timezone", "day_boundary",
         "engine", "rules_version", "sample_unit", "sample_weight", "method", "hash",
@@ -231,18 +249,64 @@ def apply_theme_comparisons(
                 lower = sum(float(weight) for key, weight in histogram.items() if int(key) < value)
                 higher = sum(float(weight) for key, weight in histogram.items() if int(key) > value)
                 exact_percentage = exact_weight / total * 100
-                comparisons.append({
+                ordered_histogram = [
+                    {
+                        "value": int(key),
+                        "weight": float(weight),
+                        "percentage": round(float(weight) / total * 100, 4),
+                    }
+                    for key, weight in sorted(histogram.items(), key=lambda pair: int(pair[0]))
+                    if float(weight) > 0
+                ]
+                probabilities = [entry["weight"] / total for entry in ordered_histogram]
+                entropy = -sum(probability * log(probability) for probability in probabilities if probability > 0)
+                support_size = len(probabilities)
+                normalized_entropy = entropy / log(support_size) if support_size > 1 else 0.0
+                effective_support = exp(entropy) if probabilities else 0.0
+                if exact_percentage <= 10 and normalized_entropy >= 0.70 and effective_support >= 6:
+                    resolution = "high"
+                elif exact_percentage <= 25 and normalized_entropy >= 0.45 and effective_support >= 3:
+                    resolution = "medium"
+                else:
+                    resolution = "low"
+                lower_percentage = lower / total * 100
+                higher_percentage = higher / total * 100
+                metric_type = str(metric.get("metric_type", "ordinal"))
+                common_distribution = {
                     **dict(metric),
+                    "metric_type": metric_type,
                     "status": "observed" if exact_weight > 0 else "zero",
                     "exact_weight": round(exact_weight, 6),
                     "total_weight": total,
                     "exact_percentage": round(exact_percentage, 6),
                     "display_percentage": frequency_label(exact_percentage),
-                    "lower_percentage": round(lower / total * 100, 4),
-                    "same_percentage": round(exact_percentage, 4),
-                    "higher_percentage": round(higher / total * 100, 4),
+                    "same_mass": round(exact_percentage, 4),
+                    "support_size": support_size,
+                    "normalized_entropy": round(normalized_entropy, 6),
+                    "effective_support": round(effective_support, 6),
+                    "resolution": resolution,
+                    "histogram": ordered_histogram,
                     "baseline_id": baseline.get("id"),
                     "method": "weighted_empirical_metric_distribution",
+                }
+                if metric_type == "binary":
+                    hit_weight = float(histogram.get("1", 0))
+                    comparisons.append({
+                        **common_distribution,
+                        "comparison_mode": "incidence",
+                        "hit_percentage": round(hit_weight / total * 100, 4),
+                    })
+                    continue
+                comparisons.append({
+                    **common_distribution,
+                    "comparison_mode": "rank_interval",
+                    "lower_percentage": round(lower_percentage, 4),
+                    "same_percentage": round(exact_percentage, 4),
+                    "higher_percentage": round(higher_percentage, 4),
+                    "rank_interval": {
+                        "lower": round(lower_percentage, 4),
+                        "upper": round(lower_percentage + exact_percentage, 4),
+                    },
                 })
             else:
                 comparisons.append({**dict(metric), "status": "unsupported", "display_percentage": "—", "lower_percentage": 0.0, "same_percentage": 0.0, "higher_percentage": 0.0, "baseline_id": baseline.get("id"), "method": "weighted_empirical_metric_distribution"})

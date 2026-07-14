@@ -116,14 +116,24 @@ class MetaphysicsChartRequest(BaseModel):
     lunar_day: Optional[int] = Field(default=None, ge=1, le=30)
     lunar_hour: Optional[int] = Field(default=None, ge=0, le=23)
     lunar_minute: Optional[int] = Field(default=None, ge=0, le=59)
+    fold_choice: Optional[Literal["first", "second"]] = None
+    reference_timestamp: Optional[datetime] = None
+    include_period_details: bool = False
+    period_cycle_index: Optional[int] = Field(default=None, ge=0, le=8)
 
     @model_validator(mode="after")
     def _validate_lunar_input(self) -> "MetaphysicsChartRequest":
         if self.calendar_type == "lunar" and None in (self.lunar_year, self.lunar_month, self.lunar_day):
             raise ValueError("lunar_year, lunar_month, and lunar_day are required for lunar input")
-        if self.hour_uncertain:
-            raise ValueError("an exact birth hour is required for a full metaphysics chart")
         return self
+
+
+class MetaphysicsPeriodRequest(MetaphysicsChartRequest):
+    cycle_index: int = Field(ge=0, le=8)
+
+
+class MetaphysicsPeriodResponse(BaseModel):
+    cycle: Dict[str, object]
 
 
 class MetaphysicsChartResponse(BaseModel):
@@ -143,14 +153,17 @@ class MetaphysicsChartResponse(BaseModel):
     element_season_status: Dict[str, str] = Field(default_factory=dict)
     calendar_facts: Dict[str, object]
     element_counts: Dict[str, int]
+    calculation_quality: Dict[str, object] = Field(default_factory=dict)
+    boundary_flags: Dict[str, object] = Field(default_factory=dict)
     previous_solar_term: Optional[Dict[str, object]] = None
     next_solar_term: Optional[Dict[str, object]] = None
     birth_profile: Dict[str, object]
-    derived_schema_version: int = 4
+    derived_schema_version: int = 5
     rules_version: str
     shen_sha: List[Dict[str, object]] = Field(default_factory=list)
     structure: Dict[str, object] = Field(default_factory=dict)
     theme_profiles: List[Dict[str, object]] = Field(default_factory=list)
+    synthesis: Dict[str, object] = Field(default_factory=dict)
     statistics: Dict[str, object]
     period_layers: Dict[str, object]
 
