@@ -85,6 +85,8 @@ type PersistedChartForm = {
   longitude: string
   baziTrueSolar: boolean
   baziDayBoundary: "current" | "forward"
+  baziHourUncertain: boolean
+  baziFoldChoice: "first" | "second" | null
   dayunAlgorithm: "sect1" | "sect2"
   horoscopeDate: string
 }
@@ -260,6 +262,9 @@ export function MetaphysicsTools() {
   const [longitude, setLongitude] = useState("")
   const [baziTrueSolar, setBaziTrueSolar] = useState(false)
   const [baziDayBoundary, setBaziDayBoundary] = useState<"current" | "forward">("forward")
+  const [baziHourUncertain, setBaziHourUncertain] = useState(false)
+  const [baziFoldChoice, setBaziFoldChoice] = useState<"first" | "second" | null>(null)
+  const [baziAmbiguousTime, setBaziAmbiguousTime] = useState(false)
   const [dayunAlgorithm, setDayunAlgorithm] = useState<"sect1" | "sect2">("sect2")
   const [birthResult, setBirthResult] = useState<BaziResultSnapshot | null>(null)
   const [incompleteBaziRecord, setIncompleteBaziRecord] = useState<{ subjectName: string; birthTimestamp: string } | null>(null)
@@ -338,14 +343,14 @@ export function MetaphysicsTools() {
     lunarYear: "农历正月初一",
     exactYear: "立春",
     horoscopeDate: "运限日期",
-    chartNote: "历法与星盘数据由确定性算法生成；旺衰、格局与断语因流派而异，应与所采用的规则体系一并核对。",
+    chartNote: "按出生地时间与精确节气排盘，并结合传统命理规则与历法统计进行分析。",
     newChart: "新建命盘",
     savedCloud: "已自动保存到我的档案",
     savingCloud: "正在保存…",
     loginToSave: "登录后自动保存并可随时打开",
     saveFailed: "命盘已生成，但云端保存失败，请稍后重试。",
     loadedChart: "已打开私人命盘档案。",
-    exactTimeRequired: "两种命盘都需要准确到分钟的出生时间。",
+    exactTimeRequired: "准确时间可看到完整四柱与运限；时间不确定时也可先查看稳定结构。",
     standardRules: "统一排盘规则",
     standardRulesBody: "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启",
   } : {
@@ -400,14 +405,14 @@ export function MetaphysicsTools() {
     lunarYear: "Lunar New Year",
     exactYear: "Start of Spring",
     horoscopeDate: "Horoscope date",
-    chartNote: "Calendar and chart facts are deterministic; strength, pattern, and interpretation rules vary by school and should be reviewed with the selected method.",
+    chartNote: "Calculated from local birth time and exact solar terms, then interpreted with traditional rules and calendar statistics.",
     newChart: "New chart",
     savedCloud: "Automatically saved to My Charts",
     savingCloud: "Saving…",
     loginToSave: "Sign in to save and reopen this chart",
     saveFailed: "The chart was generated, but cloud saving failed. Try again later.",
     loadedChart: "Private chart opened.",
-    exactTimeRequired: "Both charts require an exact birth time to the minute.",
+    exactTimeRequired: "An exact time unlocks the full chart and periods; uncertain times can still show stable structures.",
     standardRules: "Standard chart rules",
     standardRulesBody: "Standard algorithm · Heaven chart · Start-of-Spring year and horoscope boundaries · late Zi advances the day · leap-month adjustment on",
   }
@@ -430,6 +435,8 @@ export function MetaphysicsTools() {
       longitude,
       baziTrueSolar,
       baziDayBoundary,
+      baziHourUncertain,
+      baziFoldChoice,
       dayunAlgorithm,
       horoscopeDate,
     }
@@ -452,6 +459,8 @@ export function MetaphysicsTools() {
     setLongitude(form.longitude)
     setBaziTrueSolar(form.baziTrueSolar)
     setBaziDayBoundary(form.baziDayBoundary)
+    setBaziHourUncertain(form.baziHourUncertain ?? false)
+    setBaziFoldChoice(form.baziFoldChoice ?? null)
     setDayunAlgorithm(form.dayunAlgorithm)
     setHoroscopeDate(form.horoscopeDate)
     setLocationAutofill(null)
@@ -615,6 +624,8 @@ export function MetaphysicsTools() {
     if (typeof form.lunar_birth_date === "string") setLunarBirthDate(form.lunar_birth_date)
     if (typeof form.lunar_birth_time === "string") setLunarBirthTime(form.lunar_birth_time)
     if (typeof form.true_solar === "boolean") setBaziTrueSolar(form.true_solar)
+    if (typeof form.hour_uncertain === "boolean") setBaziHourUncertain(form.hour_uncertain)
+    if (form.fold_choice === "first" || form.fold_choice === "second") setBaziFoldChoice(form.fold_choice)
     if (form.day_boundary === "current" || form.day_boundary === "forward") setBaziDayBoundary(form.day_boundary)
     if (form.dayun_algorithm === "sect1" || form.dayun_algorithm === "sect2") setDayunAlgorithm(form.dayun_algorithm)
     if (typeof form.is_leap_month === "boolean") setIsLeapMonth(form.is_leap_month)
@@ -638,6 +649,8 @@ export function MetaphysicsTools() {
       longitude: record.subject.longitude == null ? "" : String(record.subject.longitude),
       baziTrueSolar: form.true_solar === true,
       baziDayBoundary: form.day_boundary === "current" ? "current" : "forward",
+      baziHourUncertain: form.hour_uncertain === true,
+      baziFoldChoice: form.fold_choice === "second" ? "second" : form.fold_choice === "first" ? "first" : null,
       dayunAlgorithm: form.dayun_algorithm === "sect1" ? "sect1" : "sect2",
       horoscopeDate: typeof form.horoscope_date === "string" ? form.horoscope_date : horoscopeDate,
     }
@@ -659,21 +672,23 @@ export function MetaphysicsTools() {
     if (record.chart_type === "bazi") {
       const snapshot = record.result_snapshot as { chart?: MetaphysicsChart; generated_at?: string; subject_name?: string }
       if (!snapshot.chart) throw new Error(locale === "zh" ? "八字命盘快照不完整。" : "The BaZi snapshot is incomplete.")
-      if (form.hour_uncertain === true || snapshot.chart.birth_profile?.hour_uncertain) {
-        setBirthResult(null)
-        setIncompleteBaziRecord({ subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
-        setActiveBaziSubjectId(record.subject_id)
-        setActiveBaziChartId(record.id)
-        setBaziEditorOpen(true)
-        setActiveTab("bazi")
-        return
-      }
       let chart = snapshot.chart
-      if ((chart.derived_schema_version ?? 0) < 4 || !chart.shen_sha || !chart.statistics || !chart.period_layers || !chart.structure || !chart.theme_profiles) {
-        const request = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
-        if (!request) throw new Error(locale === "zh" ? "旧命盘缺少可重算的原始参数。" : "This legacy chart lacks the original calculation inputs.")
-        chart = await calculateMetaphysicsChart(request)
+      const calculationRequest = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
+      if ((chart.derived_schema_version ?? 0) < 4 || !chart.shen_sha || !chart.statistics || !chart.period_layers || !chart.structure || !chart.theme_profiles || (chart.birth_profile?.hour_uncertain && !chart.birth_profile?.stability)) {
+        if (!calculationRequest && chart.birth_profile?.hour_uncertain) {
+          setBirthResult(null)
+          setIncompleteBaziRecord({ subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
+          setActiveBaziSubjectId(record.subject_id)
+          setActiveBaziChartId(record.id)
+          setBaziEditorOpen(true)
+          setActiveTab("bazi")
+          return
+        }
+        if (!calculationRequest) throw new Error(locale === "zh" ? "旧命盘缺少可重算的原始参数。" : "This legacy chart lacks the original calculation inputs.")
+        chart = await calculateMetaphysicsChart({ ...calculationRequest, reference_timestamp: new Date().toISOString(), include_period_details: false })
         toast.info(locale === "zh" ? "已按新版规则临时补算；原档案仍保留旧结果，重新保存后升级。" : "Recomputed with the new rules for this view. The stored legacy result remains unchanged until you save again.")
+      } else if (calculationRequest) {
+        chart = await calculateMetaphysicsChart({ ...calculationRequest, reference_timestamp: new Date().toISOString(), include_period_details: false })
       }
       setBirthResult({ chart, generatedAt: snapshot.generated_at ?? record.updated_at, subjectName: snapshot.subject_name ?? subjectName })
       setIncompleteBaziRecord(null)
@@ -784,7 +799,8 @@ export function MetaphysicsTools() {
       true_solar: baziTrueSolar,
       day_boundary: baziDayBoundary,
       is_leap_month: isLeapMonth,
-      hour_uncertain: false,
+      hour_uncertain: baziHourUncertain,
+      fold_choice: baziFoldChoice,
       dayun_algorithm: dayunAlgorithm,
       selected_location: selectedBirthPlace,
       fix_leap: STANDARD_ZIWEI_RULES.fixLeap,
@@ -862,6 +878,9 @@ export function MetaphysicsTools() {
     setBirthTime(localDateTimeValue(new Date(1990, 0, 1, 12, 0)))
     setLunarBirthDate("1990-01-01")
     setLunarBirthTime("12:00")
+    setBaziHourUncertain(false)
+    setBaziFoldChoice(null)
+    setBaziAmbiguousTime(false)
     setBirthPlace("")
     setSelectedBirthPlace(null)
     setLocationAutofill(null)
@@ -894,20 +913,21 @@ export function MetaphysicsTools() {
     setLocationAutofill(null)
   }
 
-  async function generateBazi() {
+  async function generateBazi(foldOverride?: "first" | "second") {
     const solarDate = normalizeCalendarDate(birthTime.slice(0, 10))
-    const solarTime = normalizeExactTime(birthTime.slice(11, 16))
+    const solarTime = baziHourUncertain ? "12:00" : normalizeExactTime(birthTime.slice(11, 16))
     if (baziCalendar === "solar" && (!solarDate || !solarTime)) {
-      toast.error(locale === "zh" ? "请输入准确到分钟的有效出生时间。" : "Enter a valid birth time to the minute.")
+      toast.error(locale === "zh" ? "请输入有效出生日期。" : "Enter a valid birth date.")
       return
     }
     const lunarMatch = lunarBirthDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
-    const lunarExactTime = normalizeExactTime(lunarBirthTime)
+    const lunarExactTime = baziHourUncertain ? "12:00" : normalizeExactTime(lunarBirthTime)
     const lunarTimeMatch = lunarExactTime?.match(/^(\d{2}):(\d{2})$/)
     if (baziCalendar === "lunar" && (!lunarMatch || !lunarTimeMatch)) {
       toast.error(locale === "zh" ? "农历日期请使用 YYYY-MM-DD，并填写准确到分钟的出生时间。" : "Use YYYY-MM-DD for the lunar date and provide an exact birth time to the minute.")
       return
     }
+    setBaziAmbiguousTime(false)
     setBirthLoading(true)
     try {
       const calculationRequest = {
@@ -920,13 +940,14 @@ export function MetaphysicsTools() {
         is_leap_month: baziCalendar === "lunar" && isLeapMonth,
         gender: baziGender,
         birth_place: birthPlace || null,
-        hour_uncertain: false,
+        hour_uncertain: baziHourUncertain,
         dayun_algorithm: dayunAlgorithm,
         lunar_year: lunarMatch ? Number(lunarMatch[1]) : null,
         lunar_month: lunarMatch ? Number(lunarMatch[2]) : null,
         lunar_day: lunarMatch ? Number(lunarMatch[3]) : null,
         lunar_hour: lunarTimeMatch ? Number(lunarTimeMatch[1]) : null,
         lunar_minute: lunarTimeMatch ? Number(lunarTimeMatch[2]) : null,
+        fold_choice: foldOverride ?? baziFoldChoice,
       } as const
       const chart = await calculateMetaphysicsChart(calculationRequest)
       const subjectName = baziSubjectName.trim()
@@ -944,15 +965,21 @@ export function MetaphysicsTools() {
         birth_date: (chart.birth_profile.converted_solar_date ?? chart.calculation_timestamp).slice(0, 10),
         day_pillar: chart.calendar_facts.day_pillar,
         input_snapshot: { form: formSnapshot(), calculation_request: calculationRequest },
-        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 4, baseline_id: chart.statistics.baseline.id },
-        engine_name: "sxtwl+lunar-python",
-        engine_version: "2.0.7+1.4.8",
+        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 5, baseline_id: chart.statistics.baseline.id },
+        engine_name: "canonical-calendar",
+        engine_version: "1+sxtwl-2.0.7+lunar-python-1.4.8",
         rules_version: `${chart.rules_version}:${baziDayBoundary}:${dayunAlgorithm}`,
-        schema_version: 4,
+        schema_version: 5,
       })
       if (saved) persistBaziWorkspace(nextBirthResult, saved.id, saved.subject_id)
     } catch (error) {
-      toast.error((error as Error).message)
+      const message = (error as Error).message
+      if (message.includes("出现了两次") || message.toLowerCase().includes("appears twice")) {
+        setBaziAmbiguousTime(true)
+        toast.info(locale === "zh" ? "这个当地时间出现过两次，请确认是哪一次。" : "This local time occurred twice. Choose which occurrence applies.")
+      } else {
+        toast.error(message)
+      }
     } finally {
       setBirthLoading(false)
     }
@@ -1134,8 +1161,9 @@ export function MetaphysicsTools() {
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{birthResult ? copy.editDetails : copy.basicSettings}</summary>
             <div className="mt-4 space-y-4">
               <p className="text-xs leading-5 text-muted-foreground">{copy.exactTimeRequired}</p>
-              <BaziControls copy={copy} locale={locale} subjectName={baziSubjectName} setSubjectName={setBaziSubjectName} birthTime={birthTime} setBirthTime={setBirthTime} lunarBirthDate={lunarBirthDate} setLunarBirthDate={setLunarBirthDate} lunarBirthTime={lunarBirthTime} setLunarBirthTime={setLunarBirthTime} timezone={timezone} setTimezone={setTimezone} timezoneOptions={timezoneOptions} longitude={longitude} setLongitude={setLongitude} trueSolar={baziTrueSolar} setTrueSolar={setBaziTrueSolar} dayBoundary={baziDayBoundary} setDayBoundary={setBaziDayBoundary} calendar={baziCalendar} setCalendar={setBaziCalendar} gender={baziGender} setGender={setBaziGender} selectedLocation={selectedBirthPlace} birthPlaceOverrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onBirthPlaceSelect={handleBirthPlaceSelect} onBirthPlaceClear={handleBirthPlaceClear} isLeapMonth={isLeapMonth} setIsLeapMonth={setIsLeapMonth} dayunAlgorithm={dayunAlgorithm} setDayunAlgorithm={setDayunAlgorithm} />
-              <Button onClick={generateBazi} disabled={birthLoading}>{birthLoading ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
+              <BaziControls copy={copy} locale={locale} subjectName={baziSubjectName} setSubjectName={setBaziSubjectName} birthTime={birthTime} setBirthTime={setBirthTime} lunarBirthDate={lunarBirthDate} setLunarBirthDate={setLunarBirthDate} lunarBirthTime={lunarBirthTime} setLunarBirthTime={setLunarBirthTime} timezone={timezone} setTimezone={setTimezone} timezoneOptions={timezoneOptions} longitude={longitude} setLongitude={setLongitude} trueSolar={baziTrueSolar} setTrueSolar={setBaziTrueSolar} dayBoundary={baziDayBoundary} setDayBoundary={setBaziDayBoundary} calendar={baziCalendar} setCalendar={setBaziCalendar} gender={baziGender} setGender={setBaziGender} hourUncertain={baziHourUncertain} setHourUncertain={setBaziHourUncertain} selectedLocation={selectedBirthPlace} birthPlaceOverrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onBirthPlaceSelect={handleBirthPlaceSelect} onBirthPlaceClear={handleBirthPlaceClear} isLeapMonth={isLeapMonth} setIsLeapMonth={setIsLeapMonth} dayunAlgorithm={dayunAlgorithm} setDayunAlgorithm={setDayunAlgorithm} />
+              {baziAmbiguousTime ? <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4"><p className="text-sm font-semibold">{locale === "zh" ? "这个当地时间因夏令时出现过两次" : "This local time occurred twice during daylight-saving time"}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "请按出生记录选择第一次或第二次出现的时间。" : "Choose the first or second occurrence shown on the birth record."}</p><div className="mt-3 flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => { setBaziFoldChoice("first"); setBaziAmbiguousTime(false); void generateBazi("first") }}>{locale === "zh" ? "第一个时间" : "First occurrence"}</Button><Button type="button" variant="outline" onClick={() => { setBaziFoldChoice("second"); setBaziAmbiguousTime(false); void generateBazi("second") }}>{locale === "zh" ? "第二个时间" : "Second occurrence"}</Button></div></div> : null}
+              <Button onClick={() => void generateBazi()} disabled={birthLoading}>{birthLoading ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
             </div>
           </details>
           <div aria-live="polite" aria-busy={birthLoading}>
@@ -1149,7 +1177,7 @@ export function MetaphysicsTools() {
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{ziweiResult ? copy.editDetails : copy.ziweiBasicSettings}</summary>
             <div className="mt-4 space-y-4">
           <section aria-labelledby="ziwei-basic-title">
-            <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 id="ziwei-basic-title" className="text-sm font-semibold">{copy.ziweiBasicSettings}</h2><p className="mt-1 text-xs text-muted-foreground">{copy.exactTimeRequired}</p></div><p className="max-w-2xl text-xs leading-5 text-muted-foreground"><strong className="text-foreground">{copy.standardRules}:</strong> {copy.standardRulesBody}</p></div>
+            <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 id="ziwei-basic-title" className="text-sm font-semibold">{copy.ziweiBasicSettings}</h2><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "准确出生时辰用于安定十二宫与完整运限。" : "An exact birth hour places the twelve palaces and unlocks full period layers."}</p></div><p className="max-w-2xl text-xs leading-5 text-muted-foreground"><strong className="text-foreground">{copy.standardRules}:</strong> {copy.standardRulesBody}</p></div>
             <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <label htmlFor="ziwei-subject-name" className="text-sm font-medium">{copy.subjectName}</label>

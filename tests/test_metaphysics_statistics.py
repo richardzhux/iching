@@ -4,7 +4,9 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,6 +18,8 @@ from iching.web.api.main import app
 
 client = TestClient(app)
 ROOT = Path(__file__).parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+from generate_bazi_baseline import _pillars as baseline_pillars  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -30,6 +34,15 @@ def test_frequency_labels_do_not_render_false_zeroes() -> None:
     assert frequency_label(0.009) == "<0.01%"
     assert frequency_label(0.5) == "0.50%"
     assert frequency_label(12.345) == "12.35%"
+
+
+def test_baseline_generator_uses_the_live_exact_lichun_boundary() -> None:
+    zone = ZoneInfo("Asia/Shanghai")
+    before = baseline_pillars(datetime(2024, 2, 4, 10, tzinfo=zone), "forward")
+    after = baseline_pillars(datetime(2024, 2, 4, 17, tzinfo=zone), "forward")
+
+    assert [item["text"] for item in before[:2]] == ["癸卯", "乙丑"]
+    assert [item["text"] for item in after[:2]] == ["甲辰", "丙寅"]
 
 
 def test_baseline_lookup_returns_denominator_and_version() -> None:
@@ -49,10 +62,10 @@ def test_baseline_lookup_returns_denominator_and_version() -> None:
     assert all(metric["level"] in {"common", "less_common", "rare", "very_rare"} for metric in result["rarity_metrics"])
 
 
-def _write_v4_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
+def _write_v5_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
     catalog = ["bazi.shensha.wenchang", "bazi.shensha.yima"]
     payload = {
-        "schema_version": 4,
+        "schema_version": 5,
         "id": BASELINE_ID,
         "chart_type": "bazi",
         "kind": "calendar_sample_frequency",
@@ -61,12 +74,17 @@ def _write_v4_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
         "end": "2000-01-01T00:10:00+08:00",
         "timezone": "Asia/Shanghai",
         "day_boundary": "forward",
-        "config_id": "bazi-sxtwl-2.0.7-asia-shanghai-forward-v1",
-        "engine": "sxtwl 2.0.7",
+        "config_id": "bazi-canonical-calendar-1-asia-shanghai-forward",
+        "engine": "canonical-calendar-1",
+        "baseline_generation_version": 3,
         "rules_version": "shensha-2026.07-v2",
         "rules_registry_hash": registry_hash or statistics.bazi_rules_registry_hash(),
         "feature_catalog": catalog,
         "feature_catalog_hash": statistics.feature_catalog_hash(catalog),
+        "metric_catalog": [statistics.METRIC_DEFINITIONS[key] for key in sorted(statistics.METRIC_DEFINITIONS)],
+        "metric_catalog_hash": statistics.metric_catalog_hash(
+            [statistics.METRIC_DEFINITIONS[key] for key in sorted(statistics.METRIC_DEFINITIONS)]
+        ),
         "unique_state_count": 2,
         "sample_unit": "minute",
         "weighted_unit": "minute",
@@ -83,7 +101,7 @@ def _write_v4_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
 
 
 def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch) -> None:
-    _write_v4_baseline(tmp_path)
+    _write_v5_baseline(tmp_path)
     monkeypatch.setattr(statistics, "DATA_DIR", tmp_path)
     statistics.load_baseline.cache_clear()
 
@@ -111,7 +129,7 @@ def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch
 
 
 def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypatch) -> None:
-    _write_v4_baseline(tmp_path)
+    _write_v5_baseline(tmp_path)
     monkeypatch.setattr(statistics, "DATA_DIR", tmp_path)
     statistics.load_baseline.cache_clear()
 
@@ -132,10 +150,28 @@ def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypa
     assert comparison["lower_percentage"] == 40
     assert comparison["higher_percentage"] == 0
     assert "percentile" not in comparison
+    assert comparison["rank_interval"] == {"lower": 40.0, "upper": 100.0}
+    assert comparison["same_mass"] == 60.0
+    assert comparison["support_size"] == 2
+    assert comparison["histogram"] == [
+        {"value": 0, "weight": 4.0, "percentage": 40.0},
+        {"value": 1, "weight": 6.0, "percentage": 60.0},
+    ]
+    assert comparison["resolution"] == "low"
+
+    binary = statistics.apply_theme_comparisons(
+        [{"theme": "事业", "structure_metrics": [{"metric_id": "metric", "label": "是否命中", "value": 1, "unit": "是否命中", "metric_type": "binary"}]}],
+        statistics.load_baseline(BASELINE_ID),
+        gender="male",
+    )[0]["comparisons"][0]
+    assert binary["comparison_mode"] == "incidence"
+    assert binary["hit_percentage"] == 60.0
+    assert "rank_interval" not in binary
+    assert "lower_percentage" not in binary
 
 
-def test_v4_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path, monkeypatch) -> None:
-    _write_v4_baseline(tmp_path)
+def test_v5_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path, monkeypatch) -> None:
+    _write_v5_baseline(tmp_path)
     path = tmp_path / f"{BASELINE_ID}.json"
     payload = json.loads(path.read_text())
     payload["sample_weight"] = 11
@@ -155,7 +191,7 @@ def test_v4_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path,
     assert "完整性校验失败" in unavailable["unavailable_reason"]
     assert "完整性校验失败" in unavailable["disclaimer"]
 
-    _write_v4_baseline(tmp_path, registry_hash="sha256:" + "0" * 64)
+    _write_v5_baseline(tmp_path, registry_hash="sha256:" + "0" * 64)
     statistics.load_baseline.cache_clear()
     with pytest.raises(statistics.BaselineCompatibilityError, match="规则注册表不兼容"):
         statistics.load_baseline(BASELINE_ID)
@@ -177,11 +213,12 @@ def test_generator_metadata_declares_current_grain_without_full_regeneration() -
         text=True,
     )
     bazi_metadata = json.loads(bazi.stdout)
-    assert bazi_metadata["schema_version"] == 4
+    assert bazi_metadata["schema_version"] == 5
+    assert bazi_metadata["baseline_generation_version"] == 3
     assert bazi_metadata["weighted_unit"] == "minute"
     assert bazi_metadata["config_ids"] == {
-        "current": "bazi-sxtwl-2.0.7-asia-shanghai-current-v1",
-        "forward": "bazi-sxtwl-2.0.7-asia-shanghai-forward-v1",
+        "current": "bazi-canonical-calendar-1-asia-shanghai-current",
+        "forward": "bazi-canonical-calendar-1-asia-shanghai-forward",
     }
     assert bazi_metadata["feature_catalog_hash"]
     assert bazi_metadata["rules_registry_hash"] == statistics.bazi_rules_registry_hash()

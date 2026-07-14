@@ -21,6 +21,8 @@ from iching.web.models import (
     ConfigResponse,
     MetaphysicsChartRequest,
     MetaphysicsChartResponse,
+    MetaphysicsPeriodRequest,
+    MetaphysicsPeriodResponse,
     MetaphysicsStatisticsRequest,
     MetaphysicsStatisticsResponse,
     MetaphysicsChartSaveRequest,
@@ -83,10 +85,51 @@ def calculate_metaphysics_chart(payload: MetaphysicsChartRequest) -> Metaphysics
             lunar_day=payload.lunar_day,
             lunar_hour=payload.lunar_hour,
             lunar_minute=payload.lunar_minute,
+            fold_choice=payload.fold_choice,
+            reference_timestamp=payload.reference_timestamp,
+            include_period_details=payload.include_period_details,
+            period_cycle_index=payload.period_cycle_index,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return MetaphysicsChartResponse(**result)
+
+
+@router.post("/tools/metaphysics/periods", response_model=MetaphysicsPeriodResponse)
+def calculate_metaphysics_period(payload: MetaphysicsPeriodRequest) -> MetaphysicsPeriodResponse:
+    try:
+        request = payload.model_copy(update={
+            "include_period_details": False,
+            "period_cycle_index": payload.cycle_index,
+        })
+        result = build_metaphysics_chart(
+            request.timestamp,
+            timezone_name=request.timezone,
+            longitude=request.longitude,
+            use_true_solar_time=request.use_true_solar_time,
+            day_boundary=request.day_boundary,
+            calendar_type=request.calendar_type,
+            is_leap_month=request.is_leap_month,
+            gender=request.gender,
+            birth_place=request.birth_place,
+            hour_uncertain=request.hour_uncertain,
+            dayun_algorithm=request.dayun_algorithm,
+            lunar_year=request.lunar_year,
+            lunar_month=request.lunar_month,
+            lunar_day=request.lunar_day,
+            lunar_hour=request.lunar_hour,
+            lunar_minute=request.lunar_minute,
+            fold_choice=request.fold_choice,
+            reference_timestamp=request.reference_timestamp,
+            include_period_details=False,
+            period_cycle_index=request.cycle_index,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    cycle = next((item for item in result.get("period_layers", {}).get("dayun", []) if item.get("index") == request.cycle_index), None)
+    if not cycle:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未找到所选大运周期。")
+    return MetaphysicsPeriodResponse(cycle=cycle)
 
 
 @router.post("/tools/metaphysics/statistics", response_model=MetaphysicsStatisticsResponse)

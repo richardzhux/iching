@@ -8,6 +8,7 @@ import type {
   MetaphysicsChartListResponse,
   MetaphysicsChartRecord,
   MetaphysicsChartRequest,
+  DayunCycle,
   MetaphysicsChartSavePayload,
   MetaphysicsStatistics,
   SessionHistoryResponse,
@@ -85,6 +86,16 @@ export async function calculateMetaphysicsChart(payload: MetaphysicsChartRequest
     body: JSON.stringify(payload),
   })
   return handleResponse<MetaphysicsChart>(response)
+}
+
+export async function fetchMetaphysicsPeriod(payload: MetaphysicsChartRequest & { cycle_index: number }): Promise<DayunCycle> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/tools/metaphysics/periods`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+  const result = await handleResponse<{ cycle: DayunCycle }>(response)
+  return result.cycle
 }
 
 export async function fetchMetaphysicsStatistics(payload: { chart_type: "bazi" | "ziwei"; baseline_id: string; feature_ids: string[] }): Promise<MetaphysicsStatistics> {

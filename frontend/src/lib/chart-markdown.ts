@@ -36,6 +36,28 @@ function ziweiMetricMarkdownLabel(featureId: string, chart: IFunctionalAstrolabe
 export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, locale: Locale) {
   const zh = locale === "zh"
   const title = subjectName.trim() || (zh ? "未命名命盘" : "Personal chart")
+  if (chart.birth_profile.hour_uncertain) {
+    const stability = chart.birth_profile.stability
+    return [
+      `## ${zh ? "命主" : "Chart"}：${title}`,
+      "",
+      `## ${zh ? "不受时辰影响的部分" : "Stable across possible birth hours"}`,
+      "",
+      ...(stability?.stable_pillars ?? []).map((item) => `- ${item.label}${zh ? "柱" : " pillar"}：${item.text}`),
+      "",
+      ...(chart.synthesis?.conclusions ?? []).map((item) => `- **${item.headline}**：${item.body}`),
+      "",
+      `## ${zh ? "稳定命中的核心线索" : "Stable supporting markers"}`,
+      "",
+      ...(stability?.stable_shensha ?? []).map((name) => `- ${name}`),
+      "",
+      `## ${zh ? "确认时辰后会进一步明确" : "What the exact hour will clarify"}`,
+      "",
+      ...(stability?.sensitive_items ?? []).map((item) => `- ${item.label}：${item.detail}`),
+      "",
+      `> ${zh ? `已对照 ${stability?.candidate_count ?? 13} 个可能时辰；这里仅保留全部候选中都成立的内容。` : `Compared ${stability?.candidate_count ?? 13} possible hours; only stable findings are included here.`}`,
+    ].join("\n")
+  }
   const labels = zh
     ? ["干神", "天干", "地支", "藏干", "支神", "纳音", "空亡", "地势", "自坐", "神煞"]
     : ["Stem relation", "Stem", "Branch", "Hidden stems", "Hidden relations", "Na Yin", "Void", "Life stage", "Self seat", "Shen Sha"]
@@ -86,15 +108,18 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
   ] : []
   const themes = (chart.theme_profiles ?? chart.structure?.theme_profiles ?? []).flatMap((profile) => [
     `### ${profile.theme}`,
-    ...(profile.comparisons ?? []).map((item) => `- ${item.label} ${item.value}：${zh ? "低于" : "lower"} ${item.lower_percentage.toFixed(1)}% · ${zh ? "相同" : "same"} ${item.same_percentage.toFixed(1)}% · ${zh ? "高于" : "higher"} ${item.higher_percentage.toFixed(1)}%`),
+    ...(profile.comparisons ?? []).map((item) => item.comparison_mode === "incidence"
+      ? `- ${item.label} ${item.value ? (zh ? "命中" : "present") : (zh ? "未命中" : "absent")}：${zh ? "出现率" : "incidence"} ${(item.hit_percentage ?? 0).toFixed(1)}%`
+      : `- ${item.label} ${item.value}：${zh ? "低于" : "lower"} ${(item.lower_percentage ?? 0).toFixed(1)}% · ${zh ? "相同" : "same"} ${(item.same_percentage ?? 0).toFixed(1)}% · ${zh ? "高于" : "higher"} ${(item.higher_percentage ?? 0).toFixed(1)}%`),
     ...profile.evidence.map((item) => `- ${item.evidence_type}｜${item.title}：${item.detail}（${item.source}）`),
   ])
   return [
     `## ${zh ? "命主" : "Chart"}：${title}`, "", `## ${zh ? "生辰八字" : "BaZi"}`, "", ...table, "", ...facts,
     "", ...dayun,
     "", `## ${zh ? "神煞与历法样本频率" : "Shen Sha and calendar-sample frequency"}`, "", ...shensha,
+    "", `## ${zh ? "核心判断" : "Key findings"}`, "", ...(chart.synthesis?.conclusions ?? []).map((item) => `- **${item.headline}**：${item.body}${item.distribution_context ? `（${item.distribution_context}）` : ""}`),
     "", `## ${zh ? "四主题结构画像" : "Four-theme structure profile"}`, "", ...themes,
-    "", `> ${zh ? "每个结构指标单独比较历法样本分布，不合成为吉凶、能力、财富或健康排名。" : "Each structural metric is compared separately against the calendar-sample distribution; no luck, ability, wealth, or health ranking is produced."}`,
+    "", `> ${zh ? "结构分布用于说明辨识度；不合成为吉凶或命运总分。" : "Structure distributions describe distinctiveness and are not combined into a fate score."}`,
     `> ${chart.statistics.disclaimer}`, `> ${zh ? "规则版本" : "Rules"}: ${chart.rules_version} · ${zh ? "统计基线" : "Baseline"}: ${chart.statistics.baseline.id} · ${chart.statistics.baseline.hash}`,
   ].join("\n")
 }
