@@ -83,7 +83,9 @@ export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, l
   const [displayMode, setDisplayMode] = useState<DisplayMode>("simple")
   useEffect(() => {
     const saved = window.localStorage.getItem("iching:ziwei-display-mode")
-    if (saved === "simple" || saved === "study" || saved === "professional") setDisplayMode(saved)
+    if (saved !== "simple" && saved !== "study" && saved !== "professional") return
+    const frame = window.requestAnimationFrame(() => setDisplayMode(saved))
+    return () => window.cancelAnimationFrame(frame)
   }, [])
   function changeDisplayMode(nextMode: DisplayMode) {
     setDisplayMode(nextMode)

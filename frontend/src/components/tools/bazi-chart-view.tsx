@@ -42,7 +42,9 @@ export function BaziChartView(props: BaziChartViewProps) {
   const [displayMode, setDisplayMode] = useState<DisplayMode>("simple")
   useEffect(() => {
     const saved = window.localStorage.getItem("iching:bazi-display-mode")
-    if (saved === "simple" || saved === "study" || saved === "professional") setDisplayMode(saved)
+    if (saved !== "simple" && saved !== "study" && saved !== "professional") return
+    const frame = window.requestAnimationFrame(() => setDisplayMode(saved))
+    return () => window.cancelAnimationFrame(frame)
   }, [])
   useEffect(() => {
     const nextCurrent = dayun.cycles.find((cycle) => cycle.is_current) ?? dayun.cycles[0]
@@ -51,7 +53,7 @@ export function BaziChartView(props: BaziChartViewProps) {
     setSelectedYear(dayun.current?.year?.year ?? nextCurrent?.years[0]?.year ?? currentYear)
     setSelectedMonthIndex(dayun.current?.month?.index ?? 0)
     setPeriodError(null)
-  }, [chart.input_timestamp])
+  }, [chart.input_timestamp, currentYear, dayun])
   function changeDisplayMode(nextMode: DisplayMode) {
     setDisplayMode(nextMode)
     window.localStorage.setItem("iching:bazi-display-mode", nextMode)
