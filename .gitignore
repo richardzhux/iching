@@ -1,5 +1,6 @@
 # OS / editor
 .DS_Store
+data/research-baselines/
 .superpowers/
 
 # Python

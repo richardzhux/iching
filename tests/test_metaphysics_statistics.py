@@ -49,10 +49,10 @@ def test_baseline_lookup_returns_denominator_and_version() -> None:
     assert all(metric["level"] in {"common", "less_common", "rare", "very_rare"} for metric in result["rarity_metrics"])
 
 
-def _write_v3_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
+def _write_v4_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
     catalog = ["bazi.shensha.wenchang", "bazi.shensha.yima"]
     payload = {
-        "schema_version": 3,
+        "schema_version": 4,
         "id": BASELINE_ID,
         "chart_type": "bazi",
         "kind": "calendar_sample_frequency",
@@ -73,20 +73,17 @@ def _write_v3_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
         "sample_weight": 10,
         "method": "test",
         "features": {"bazi.shensha.wenchang": {"hit_weight": 5}},
-        "theme_families": {
-            "mobility": {
-                "label": "迁动",
-                "feature_ids": ["bazi.shensha.yima"],
-            }
+        "theme_metric_weights_by_gender": {
+            gender: {theme: {"metric": {"0": 4, "1": 6}} for theme in statistics.THEME_IDS}
+            for gender in ("male", "female", "neutral")
         },
-        "theme_histograms": {"mobility": {"0": 4, "1": 6}},
     }
     payload["hash"] = statistics.payload_hash(payload)
     (tmp_path / f"{BASELINE_ID}.json").write_text(json.dumps(payload, ensure_ascii=False))
 
 
 def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch) -> None:
-    _write_v3_baseline(tmp_path)
+    _write_v4_baseline(tmp_path)
     monkeypatch.setattr(statistics, "DATA_DIR", tmp_path)
     statistics.load_baseline.cache_clear()
 
@@ -113,8 +110,8 @@ def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch
     assert unsupported["level"] == "unavailable"
 
 
-def test_v3_theme_profile_replaces_rule_indices(tmp_path, monkeypatch) -> None:
-    _write_v3_baseline(tmp_path)
+def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypatch) -> None:
+    _write_v4_baseline(tmp_path)
     monkeypatch.setattr(statistics, "DATA_DIR", tmp_path)
     statistics.load_baseline.cache_clear()
 
@@ -124,22 +121,21 @@ def test_v3_theme_profile_replaces_rule_indices(tmp_path, monkeypatch) -> None:
         feature_ids=["bazi.shensha.yima"],
     )
 
-    assert result["rule_indices"] == []
-    assert result["rule_indices_deprecated"] is True
-    assert result["theme_profile"] == [{
-        "theme_id": "mobility",
-        "label": "迁动",
-        "raw_count": 1,
-        "percentile": 70.0,
-        "contribution_feature_ids": ["bazi.shensha.yima"],
-        "reference_weight": 10.0,
-        "percentile_method": "weighted_midrank",
-        "baseline_id": BASELINE_ID,
-    }]
+    assert "rule_indices" not in result
+    assert result["theme_profile"] == []
+    comparison = statistics.apply_theme_comparisons(
+        [{"theme": "事业", "structure_metrics": [{"metric_id": "metric", "label": "指标", "value": 1, "unit": "项"}]}],
+        statistics.load_baseline(BASELINE_ID),
+        gender="male",
+    )[0]["comparisons"][0]
+    assert comparison["same_percentage"] == 60
+    assert comparison["lower_percentage"] == 40
+    assert comparison["higher_percentage"] == 0
+    assert "percentile" not in comparison
 
 
-def test_v3_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path, monkeypatch) -> None:
-    _write_v3_baseline(tmp_path)
+def test_v4_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path, monkeypatch) -> None:
+    _write_v4_baseline(tmp_path)
     path = tmp_path / f"{BASELINE_ID}.json"
     payload = json.loads(path.read_text())
     payload["sample_weight"] = 11
@@ -159,7 +155,7 @@ def test_v3_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path,
     assert "完整性校验失败" in unavailable["unavailable_reason"]
     assert "完整性校验失败" in unavailable["disclaimer"]
 
-    _write_v3_baseline(tmp_path, registry_hash="sha256:" + "0" * 64)
+    _write_v4_baseline(tmp_path, registry_hash="sha256:" + "0" * 64)
     statistics.load_baseline.cache_clear()
     with pytest.raises(statistics.BaselineCompatibilityError, match="规则注册表不兼容"):
         statistics.load_baseline(BASELINE_ID)
@@ -171,7 +167,7 @@ def test_v3_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path,
     assert mismatch["status"] == "version_mismatch"
 
 
-def test_generator_metadata_declares_v3_grain_without_full_regeneration() -> None:
+def test_generator_metadata_declares_current_grain_without_full_regeneration() -> None:
     bazi = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "generate_bazi_baseline.py"), "--metadata"],
         cwd=ROOT,
@@ -181,7 +177,7 @@ def test_generator_metadata_declares_v3_grain_without_full_regeneration() -> Non
         text=True,
     )
     bazi_metadata = json.loads(bazi.stdout)
-    assert bazi_metadata["schema_version"] == 3
+    assert bazi_metadata["schema_version"] == 4
     assert bazi_metadata["weighted_unit"] == "minute"
     assert bazi_metadata["config_ids"] == {
         "current": "bazi-sxtwl-2.0.7-asia-shanghai-current-v1",
@@ -189,7 +185,7 @@ def test_generator_metadata_declares_v3_grain_without_full_regeneration() -> Non
     }
     assert bazi_metadata["feature_catalog_hash"]
     assert bazi_metadata["rules_registry_hash"] == statistics.bazi_rules_registry_hash()
-    assert set(bazi_metadata["theme_families"]) == set(statistics.THEME_IDS)
+    assert bazi_metadata["theme_comparison_method"] == "transparent_metric_distributions"
 
     ziwei = subprocess.run(
         ["node", str(ROOT / "scripts" / "generate_ziwei_baseline.mjs"), "--metadata"],

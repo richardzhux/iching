@@ -474,10 +474,11 @@ export function MetaphysicsTools() {
   useEffect(() => {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).has("chart")) return
     const workspace = readPersistedWorkspace()
-    if (workspace.bazi?.result?.chart?.derived_schema_version === 3) {
-      setBirthResult(workspace.bazi.result)
-      setActiveBaziChartId(workspace.bazi.chartId)
-      setActiveBaziSubjectId(workspace.bazi.subjectId)
+    const savedBazi = workspace.bazi
+    if (savedBazi && (savedBazi.result?.chart?.derived_schema_version ?? 0) >= 3) {
+      setBirthResult(savedBazi.result)
+      setActiveBaziChartId(savedBazi.chartId)
+      setActiveBaziSubjectId(savedBazi.subjectId)
       setBaziEditorOpen(false)
     }
     if (workspace.ziwei?.normalizedInput) {
@@ -668,7 +669,7 @@ export function MetaphysicsTools() {
         return
       }
       let chart = snapshot.chart
-      if ((chart.derived_schema_version ?? 0) < 3 || !chart.shen_sha || !chart.statistics || !chart.period_layers || !chart.structure || !chart.theme_profiles) {
+      if ((chart.derived_schema_version ?? 0) < 4 || !chart.shen_sha || !chart.statistics || !chart.period_layers || !chart.structure || !chart.theme_profiles) {
         const request = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
         if (!request) throw new Error(locale === "zh" ? "旧命盘缺少可重算的原始参数。" : "This legacy chart lacks the original calculation inputs.")
         chart = await calculateMetaphysicsChart(request)
@@ -943,11 +944,11 @@ export function MetaphysicsTools() {
         birth_date: (chart.birth_profile.converted_solar_date ?? chart.calculation_timestamp).slice(0, 10),
         day_pillar: chart.calendar_facts.day_pillar,
         input_snapshot: { form: formSnapshot(), calculation_request: calculationRequest },
-        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 3, baseline_id: chart.statistics.baseline.id },
+        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 4, baseline_id: chart.statistics.baseline.id },
         engine_name: "sxtwl+lunar-python",
         engine_version: "2.0.7+1.4.8",
         rules_version: `${chart.rules_version}:${baziDayBoundary}:${dayunAlgorithm}`,
-        schema_version: 3,
+        schema_version: 4,
       })
       if (saved) persistBaziWorkspace(nextBirthResult, saved.id, saved.subject_id)
     } catch (error) {

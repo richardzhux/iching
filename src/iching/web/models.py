@@ -146,7 +146,7 @@ class MetaphysicsChartResponse(BaseModel):
     previous_solar_term: Optional[Dict[str, object]] = None
     next_solar_term: Optional[Dict[str, object]] = None
     birth_profile: Dict[str, object]
-    derived_schema_version: int = 3
+    derived_schema_version: int = 4
     rules_version: str
     shen_sha: List[Dict[str, object]] = Field(default_factory=list)
     structure: Dict[str, object] = Field(default_factory=dict)
@@ -173,10 +173,8 @@ class MetaphysicsStatisticsRequest(BaseModel):
 class MetaphysicsStatisticsResponse(BaseModel):
     baseline: Dict[str, object]
     rarity_metrics: List[Dict[str, object]] = Field(default_factory=list)
-    rule_indices: List[Dict[str, object]] = Field(default_factory=list)
     theme_profile: List[Dict[str, object]] = Field(default_factory=list)
     theme_profiles: List[Dict[str, object]] = Field(default_factory=list)
-    rule_indices_deprecated: bool = True
     status: Literal["available", "unavailable", "version_mismatch"] = "available"
     unavailable_reason: Optional[str] = None
     disclaimer: str

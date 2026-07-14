@@ -85,7 +85,8 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
     "",
   ] : []
   const themes = (chart.theme_profiles ?? chart.structure?.theme_profiles ?? []).flatMap((profile) => [
-    `### ${profile.theme}${typeof profile.activity_percentile === "number" ? ` · ${profile.activity_percentile.toFixed(0)} ${zh ? "结构活跃度百分位" : "structure-activity percentile"}` : ""}`,
+    `### ${profile.theme}`,
+    ...(profile.comparisons ?? []).map((item) => `- ${item.label} ${item.value}：${zh ? "低于" : "lower"} ${item.lower_percentage.toFixed(1)}% · ${zh ? "相同" : "same"} ${item.same_percentage.toFixed(1)}% · ${zh ? "高于" : "higher"} ${item.higher_percentage.toFixed(1)}%`),
     ...profile.evidence.map((item) => `- ${item.evidence_type}｜${item.title}：${item.detail}（${item.source}）`),
   ])
   return [
@@ -93,7 +94,7 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
     "", ...dayun,
     "", `## ${zh ? "神煞与历法样本频率" : "Shen Sha and calendar-sample frequency"}`, "", ...shensha,
     "", `## ${zh ? "四主题结构画像" : "Four-theme structure profile"}`, "", ...themes,
-    "", `> ${zh ? "结构活跃度只比较同一规则下证据家族的集中程度，不代表吉凶、能力、财富或健康结果。" : "Structure activity compares evidence-family concentration under one rule set; it is not luck, ability, wealth, or a health outcome."}`,
+    "", `> ${zh ? "每个结构指标单独比较历法样本分布，不合成为吉凶、能力、财富或健康排名。" : "Each structural metric is compared separately against the calendar-sample distribution; no luck, ability, wealth, or health ranking is produced."}`,
     `> ${chart.statistics.disclaimer}`, `> ${zh ? "规则版本" : "Rules"}: ${chart.rules_version} · ${zh ? "统计基线" : "Baseline"}: ${chart.statistics.baseline.id} · ${chart.statistics.baseline.hash}`,
   ].join("\n")
 }

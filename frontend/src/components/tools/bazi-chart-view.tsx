@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
 import { buildBaziMarkdown } from "@/lib/chart-markdown"
-import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeProfile } from "@/types/api"
+import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodThemeActivation, PeriodThemeActivations, PeriodYear, RarityMetric, ShenShaHit, ThemeProfile } from "@/types/api"
 
 type Locale = "en" | "zh"
 type SolarTerm = NonNullable<MetaphysicsChart["next_solar_term"]>
@@ -92,7 +92,7 @@ export function BaziChartView(props: BaziChartViewProps) {
         <ShenShaPanel chart={chart} locale={locale} />
       </ReportChapter>
 
-      <ReportChapter id="bazi-statistics" title={locale === "zh" ? "统计" : "Statistics"} intro={locale === "zh" ? "只展示透明计数与同规则基线百分位；不是命运分数，也不代表吉凶。" : "Transparent counts and within-rule-set percentiles only; these are not fate or luck scores."}>
+      <ReportChapter id="bazi-statistics" title={locale === "zh" ? "统计" : "Statistics"} intro={locale === "zh" ? "比较完整结构的历法样本频率，并将原局计数分层可视化；不是人口排名、命运分数或吉凶判断。" : "Compare exact calendar-sample structure frequencies and visualize natal counts by layer; these are not population rankings, fate scores, or luck judgments."}>
         <div className="space-y-8">
           <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} />
           <BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />
@@ -240,10 +240,11 @@ function BaziPeriodNavigator({ cycles, locale, currentYear, selectedCycleIndex, 
         <PeriodSummary label={locale === "zh" ? "所选流年" : "Selected year"} value={year ? `${year.ganzhi} · ${year.ten_god}` : "—"} detail={year ? `${year.year} · ${locale === "zh" ? "旬空" : "Void"} ${year.xunkong}` : "—"} />
         <PeriodSummary label={locale === "zh" ? "所选流月" : "Selected month"} value={month ? `${month.ganzhi} · ${month.ten_god}` : "—"} detail={month ? `${locale === "zh" ? "旬空" : "Void"} ${month.xunkong}` : "—"} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <PeriodActivations title={locale === "zh" ? "流年新增命中与关系" : "Year activations and relations"} values={[...(year?.shen_sha ?? []), ...(year?.relations ?? [])]} locale={locale} />
-        <PeriodActivations title={locale === "zh" ? "流月新增命中与关系" : "Month activations and relations"} values={[...(month?.shen_sha ?? []), ...(month?.relations ?? [])]} locale={locale} />
-      </div>
+      <section className="space-y-5 border-t border-border/55 pt-6" aria-labelledby="future-activation-title"><div><h3 id="future-activation-title" className="text-xl font-semibold">{locale === "zh" ? "未来哪些阶段会激活什么" : "What future periods activate"}</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{locale === "zh" ? "颜色深浅只表示该层新增的十神、神煞与干支关系数量；不代表吉凶。大运为持续背景，流年与流月只记录本层新增变化。" : "Color intensity counts newly activated Ten-God, Shen Sha, and stem-branch relationships at that layer. It is not good or bad. Da Yun is the persistent background; years and months show new changes."}</p></div>
+        <ThemeActivationGrid items={selectedCycle.years} selectedId={year?.year ?? -1} locale={locale} layer="year" onSelect={(item) => onYearChange(item as PeriodYear)} />
+        {year ? <ThemeActivationGrid items={year.months} selectedId={month?.index ?? -1} locale={locale} layer="month" onSelect={(item) => onMonthChange(item as PeriodMonth)} /> : null}
+        <PeriodThemeDetails cycle={selectedCycle} year={year} month={month} locale={locale} />
+      </section>
     </div>
   )
 }
@@ -260,8 +261,24 @@ function PeriodSummary({ label, value, detail }: { label: string; value: string;
   return <div><p className="text-xs font-semibold text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>
 }
 
-function PeriodActivations({ title, values, locale }: { title: string; values: string[]; locale: Locale }) {
-  return <section className="border-t border-border/55 pt-3"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{values.join(" · ") || (locale === "zh" ? "没有新增命中；这不等于无事发生。" : "No newly matched rule; this does not mean nothing happens.")}</p></section>
+const PERIOD_THEMES = ["事业", "财富", "感情", "健康"] as const
+const EMPTY_THEME_ACTIVATIONS: PeriodThemeActivations = { 事业: [], 财富: [], 感情: [], 健康: [] }
+const THEME_CELL_COLORS: Record<(typeof PERIOD_THEMES)[number], string> = {
+  事业: "bg-indigo-500",
+  财富: "bg-amber-500",
+  感情: "bg-fuchsia-500",
+  健康: "bg-cyan-600",
+}
+
+function ThemeActivationGrid({ items, selectedId, locale, layer, onSelect }: { items: Array<PeriodYear | PeriodMonth>; selectedId: number; locale: Locale; layer: "year" | "month"; onSelect: (item: PeriodYear | PeriodMonth) => void }) {
+  const gridTemplateColumns = `4.5rem repeat(${items.length}, minmax(3.5rem, 1fr))`
+  const itemId = (item: PeriodYear | PeriodMonth) => "year" in item ? item.year : item.index
+  const itemLabel = (item: PeriodYear | PeriodMonth) => layer === "year" && "year" in item ? String(item.year) : item.label
+  return <div><h4 className="mb-2 text-sm font-semibold">{layer === "year" ? (locale === "zh" ? "流年激活图" : "Annual activation map") : (locale === "zh" ? "流月激活图" : "Monthly activation map")}</h4><div className="overflow-x-auto rounded-xl border border-border/50 custom-scrollbar"><div className="min-w-max" style={{ minWidth: `${4.5 + items.length * 3.5}rem` }}><div className="grid border-b border-border/40 bg-muted/35" style={{ gridTemplateColumns }}><span className="px-3 py-2 text-xs text-muted-foreground">{locale === "zh" ? "主题" : "Theme"}</span>{items.map((item) => <button type="button" key={itemId(item)} onClick={() => onSelect(item)} className={`min-h-11 border-l border-border/30 px-1 text-xs font-medium ${itemId(item) === selectedId ? "bg-primary/10 text-primary" : "hover:bg-muted/60"}`}>{itemLabel(item)}</button>)}</div>{PERIOD_THEMES.map((theme) => <div key={theme} className="grid border-b border-border/30 last:border-b-0" style={{ gridTemplateColumns }}><span className="sticky left-0 z-10 flex items-center bg-background px-3 py-2 text-sm font-semibold">{theme}</span>{items.map((item) => { const events = item.theme_activations?.[theme] ?? []; const intensity = Math.min(0.2 + events.length * 0.18, 0.9); return <button type="button" key={`${theme}-${itemId(item)}`} onClick={() => onSelect(item)} aria-label={`${itemLabel(item)} ${theme} ${events.length} ${locale === "zh" ? "项新增结构" : "new structures"}`} className={`relative min-h-12 border-l border-border/30 p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${itemId(item) === selectedId ? "ring-2 ring-inset ring-primary/55" : ""}`}><span aria-hidden="true" className={`absolute inset-1 rounded-md ${THEME_CELL_COLORS[theme]}`} style={{ opacity: events.length ? intensity : 0.05 }} /><strong className="relative text-xs">{events.length}</strong></button>})}</div>)}</div></div></div>
+}
+
+function PeriodThemeDetails({ cycle, year, month, locale }: { cycle: DayunCycle; year?: PeriodYear; month?: PeriodMonth; locale: Locale }) {
+  return <div className="grid gap-4 lg:grid-cols-2">{PERIOD_THEMES.map((theme) => { const layers: Array<{ label: string; events: PeriodThemeActivation[] }> = [{ label: locale === "zh" ? "大运持续" : "Da Yun background", events: cycle.theme_activations?.[theme] ?? EMPTY_THEME_ACTIVATIONS[theme] }, { label: locale === "zh" ? "流年新增" : "Year additions", events: year?.theme_activations?.[theme] ?? EMPTY_THEME_ACTIVATIONS[theme] }, { label: locale === "zh" ? "流月新增" : "Month additions", events: month?.theme_activations?.[theme] ?? EMPTY_THEME_ACTIVATIONS[theme] }]; const total = layers.reduce((sum, item) => sum + item.events.length, 0); return <section key={theme} className="rounded-2xl border border-border/55 bg-surface p-5"><div className="flex items-center justify-between gap-3"><h4 className="text-lg font-semibold">{theme}</h4><span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">{total} {locale === "zh" ? "项结构信号" : "signals"}</span></div><div className="mt-4 space-y-4">{layers.map((layerItem) => <div key={layerItem.label}><p className="text-xs font-semibold text-muted-foreground">{layerItem.label}</p><div className="mt-2 space-y-2">{layerItem.events.length ? layerItem.events.map((event, index) => <details key={`${event.label}-${index}`} className="rounded-xl bg-muted/35 px-3 py-2"><summary className="cursor-pointer list-none text-sm font-medium"><span className="mr-2 rounded-full bg-background px-2 py-0.5 text-xs text-primary">{event.kind}</span>{event.label}</summary><p className="mt-2 text-sm leading-6 text-muted-foreground">{event.detail}</p><p className="mt-1 text-xs text-muted-foreground">{event.source}</p></details>) : <p className="text-sm text-muted-foreground">{locale === "zh" ? "本层无新增信号" : "No new signal at this layer"}</p>}</div></div>)}</div></section>})}</div>
 }
 
 function ShenShaPanel({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
@@ -298,13 +315,13 @@ function ShenShaRow({ hit, metric, locale }: { hit: ShenShaHit; metric?: RarityM
 function ThemeProfilePanel({ profiles, baselineLabel, locale }: { profiles: ThemeProfile[]; baselineLabel: string; locale: Locale }) {
   const english: Record<string, string> = { 事业: "Career", 财富: "Wealth", 感情: "Relationship", 健康: "Health structure" }
   if (!profiles.length) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "旧版命盘尚无四主题结构数据；按新版重新排盘后可查看。" : "This legacy chart has no four-theme structure data. Recalculate with the current version."}</p>
-  return <section aria-labelledby="theme-profile-title"><div className="flex flex-wrap items-end justify-between gap-2"><div><h3 id="theme-profile-title" className="text-base font-semibold">{locale === "zh" ? "四主题结构画像" : "Four-theme structure profile"}</h3><p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">{locale === "zh" ? "百分位只比较同一规则下相关证据家族的集中程度；高低均不代表吉凶、能力、财富或健康结果。" : "Percentiles compare concentration of evidence families under the same rules. They are not luck, ability, wealth, or health outcomes."}</p></div><p className="text-xs text-muted-foreground">{baselineLabel}</p></div><div className="mt-4 grid gap-3 lg:grid-cols-2">{profiles.map((profile) => <ThemeProfileCard key={profile.theme} profile={profile} label={locale === "zh" ? profile.theme : english[profile.theme]} locale={locale} />)}</div></section>
+  return <section aria-labelledby="theme-profile-title"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 id="theme-profile-title" className="text-xl font-semibold">{locale === "zh" ? "我的结构哪里与多数样本不同" : "Where this structure differs from most samples"}</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{locale === "zh" ? "官杀、财星、夫妻宫关系、冲刑害破等指标分别比较低于／相同／高于当前值的历法样本；不再把不同结构压成 7/7 或单一总分。" : "Officer, wealth, spouse-palace, and clash metrics are compared separately against lower, equal, and higher calendar-sample values—never collapsed into a 7/7 or single score."}</p></div><p className="text-xs text-muted-foreground">{baselineLabel}</p></div><div className="mt-5 grid gap-4 lg:grid-cols-2">{profiles.map((profile) => <ThemeProfileCard key={profile.theme} profile={profile} label={locale === "zh" ? profile.theme : english[profile.theme]} locale={locale} />)}</div></section>
 }
 
 function ThemeProfileCard({ profile, label, locale }: { profile: ThemeProfile; label: string; locale: Locale }) {
-  const hasPercentile = typeof profile.activity_percentile === "number"
-  const percentile = hasPercentile ? Math.max(0, Math.min(100, profile.activity_percentile as number)) : 0
-  return <details className="rounded-2xl border border-border/55 bg-surface px-4 py-4 open:border-primary/35"><summary className="cursor-pointer list-none"><div className="flex items-end justify-between gap-4"><div><h4 className="font-semibold">{label}</h4><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? `${profile.raw_family_count} / ${profile.possible_family_count} 个证据家族活跃` : `${profile.raw_family_count} / ${profile.possible_family_count} evidence families active`}</p></div><p className="text-right"><strong className="text-2xl text-primary">{hasPercentile ? percentile.toFixed(0) : "—"}</strong>{hasPercentile ? <span className="ml-1 text-xs text-muted-foreground">{locale === "zh" ? "百分位" : "percentile"}</span> : null}</p></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-primary/10" aria-hidden="true"><div className="h-full rounded-full bg-primary/65" style={{ width: `${percentile}%` }} /></div></summary><div className="mt-4 space-y-3 border-t border-border/45 pt-4">{profile.evidence.map((item, index) => <div key={`${item.family}-${index}`} className="grid gap-1 sm:grid-cols-[5rem_1fr]"><span className="w-fit rounded-full bg-primary/8 px-2 py-0.5 text-[0.68rem] font-semibold text-primary">{item.evidence_type}</span><div><p className="text-sm font-medium">{item.title}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p><p className="mt-1 text-[0.68rem] text-muted-foreground">{item.source}</p></div></div>)}</div></details>
+  const comparisons = profile.comparisons ?? []
+  const families = profile.active_families ?? Array.from(new Set(profile.evidence.map((item) => item.family)))
+  return <details className="group rounded-2xl border border-border/55 bg-surface px-5 py-5 open:border-primary/35"><summary className="cursor-pointer list-none"><div className="flex items-start justify-between gap-5"><div><h4 className="text-xl font-semibold">{label}</h4><p className="mt-2 text-sm text-muted-foreground">{comparisons.length ? (locale === "zh" ? `${comparisons.length} 个独立结构指标` : `${comparisons.length} independent metrics`) : (locale === "zh" ? "旧版命盘 · 重新排盘后显示分布" : "Legacy chart · recalculate for distributions")}</p></div><div className="flex flex-wrap justify-end gap-1.5">{families.slice(0, 4).map((family) => <span key={family} className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">{family}</span>)}</div></div><div className="mt-5 space-y-4">{comparisons.map((item) => <div key={item.metric_id}><div className="flex items-end justify-between gap-3"><p className="text-sm font-semibold">{item.label} <strong className="ml-1 text-xl text-primary">{item.value}</strong></p><p className="text-xs text-muted-foreground">{locale === "zh" ? `相同值 ${item.display_percentage}` : `Same value ${item.display_percentage}`}</p></div><div className="mt-2 flex h-3 overflow-hidden rounded-full bg-muted" role="img" aria-label={locale === "zh" ? `低于 ${item.lower_percentage.toFixed(1)}%，相同 ${item.same_percentage.toFixed(1)}%，高于 ${item.higher_percentage.toFixed(1)}%` : `Lower ${item.lower_percentage.toFixed(1)}%, same ${item.same_percentage.toFixed(1)}%, higher ${item.higher_percentage.toFixed(1)}%`}><span className="bg-muted-foreground/25" style={{ width: `${item.lower_percentage}%` }} /><span className="bg-primary/80" style={{ width: `${item.same_percentage}%` }} /><span className="bg-primary/25" style={{ width: `${item.higher_percentage}%` }} /></div><div className="mt-1.5 grid grid-cols-3 text-[0.68rem] text-muted-foreground"><span>{locale === "zh" ? "低于" : "Lower"} {item.lower_percentage.toFixed(1)}%</span><span className="text-center">{locale === "zh" ? "相同" : "Same"} {item.same_percentage.toFixed(1)}%</span><span className="text-right">{locale === "zh" ? "高于" : "Higher"} {item.higher_percentage.toFixed(1)}%</span></div></div>)}</div></summary><div className="mt-5 space-y-4 border-t border-border/45 pt-5">{profile.evidence.map((item, index) => <div key={`${item.family}-${index}`} className="grid gap-2 sm:grid-cols-[5rem_1fr]"><span className="w-fit rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">{item.evidence_type}</span><div><p className="text-base font-medium">{item.title}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p><p className="mt-1 text-xs text-muted-foreground">{item.source}</p></div></div>)}</div></details>
 }
 
 function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChart; locale: Locale; currentYear: number }) {
@@ -334,43 +351,59 @@ function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChar
     { key: "破", label: locale === "zh" ? "破" : "Break" },
   ]
   const allRelations = chart.structure?.structural_relations.map((item) => item.label) ?? [...chart.stem_relations, ...chart.branch_relations]
+  const tenGodLabels = Array.from(new Set([...visibleGods.keys(), ...hiddenGods.keys()])).filter((item) => item !== "日主" && item !== "—").sort()
+  const dayMasterRelations = chart.structure?.day_master_relations ?? []
+  const relationLabels = ["同我", "生我", "我生", "我克", "克我"]
+  const relationCounts = relationLabels.map((label) => ({ label, value: dayMasterRelations.filter((item) => item.day_master_relation === label).length }))
+  const visibleGodTotal = Array.from(visibleGods.values()).reduce((sum, value) => sum + value, 0)
+  const hiddenGodTotal = Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)
+  const yinYangTotal = Math.max(1, yangCount + yinCount)
   return (
-    <div className="grid border-y border-border/60 md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-border/50">
-      <StatisticBlock title={locale === "zh" ? "五行数量" : "Five elements"} description={locale === "zh" ? "明字与藏干分列" : "Visible and hidden separated"}>
-        <CountRows values={elements.map((element) => ({ label: element, primary: visibleElements[element] ?? 0, secondary: hiddenElements[element] ?? 0, element }))} primaryLabel={locale === "zh" ? "干" : "S"} secondaryLabel={locale === "zh" ? "藏" : "H"} />
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "地支主气" : "Branch main qi"}：{elements.map((element) => `${element}${mainQiElements[element] ?? 0}`).join(" · ")}</p>
+    <div className="grid gap-5 lg:grid-cols-2">
+      <StatisticBlock title={locale === "zh" ? "五行分层" : "Five-element layers"} description={locale === "zh" ? "明干、地支主气与全部藏干分开计数，不混成能量分数。" : "Visible stems, branch main qi, and all hidden stems remain separate counts."}>
+        <LayeredCountChart
+          rows={elements.map((element) => ({ label: element, element, values: [visibleElements[element] ?? 0, mainQiElements[element] ?? 0, hiddenElements[element] ?? 0] }))}
+          legends={locale === "zh" ? ["明干", "地支主气", "藏干"] : ["Visible", "Main qi", "Hidden"]}
+        />
       </StatisticBlock>
-      <StatisticBlock title={locale === "zh" ? "阴阳结构" : "Yin / Yang"} description={unknownCount ? (locale === "zh" ? `${unknownCount} 个待定明字未计入` : `${unknownCount} uncertain characters excluded`) : (locale === "zh" ? "只计算八个明字" : "Eight visible characters")}>
-        <div className="mt-4 grid grid-cols-2 divide-x divide-border/50 text-center"><RawNumber label={locale === "zh" ? "阳" : "Yang"} value={yangCount} /><RawNumber label={locale === "zh" ? "阴" : "Yin"} value={yinCount} /></div>
+      <StatisticBlock title={locale === "zh" ? "日主关系分布" : "Day-master relations"} description={locale === "zh" ? `分母 ${dayMasterRelations.length}：四柱明干、地支主气与藏干逐项标注。` : `Denominator ${dayMasterRelations.length}: visible stems, branch main qi, and hidden stems.`}>
+        <HorizontalCountChart rows={relationCounts} denominator={Math.max(1, dayMasterRelations.length)} />
       </StatisticBlock>
-      <StatisticBlock title={locale === "zh" ? "十神频次" : "Ten Gods"} description={locale === "zh" ? `分母：明干 ${Array.from(visibleGods.values()).reduce((sum, value) => sum + value, 0)} 项 · 藏干 ${Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)} 项` : `Denominators: ${Array.from(visibleGods.values()).reduce((sum, value) => sum + value, 0)} visible stems · ${Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)} hidden stems`}>
-        <div className="mt-3 space-y-2 text-xs leading-5"><p><strong>{locale === "zh" ? "明干" : "Visible stems"}：</strong>{formatCounts(visibleGods)}</p><p><strong>{locale === "zh" ? "藏干" : "Hidden stems"}：</strong>{formatCounts(hiddenGods)}</p></div>
+      <StatisticBlock title={locale === "zh" ? "十神分层" : "Ten-God layers"} description={locale === "zh" ? `明干分母 ${visibleGodTotal} · 藏干分母 ${hiddenGodTotal}；两层不可直接相加为强弱。` : `Visible denominator ${visibleGodTotal}; hidden denominator ${hiddenGodTotal}. Layers are not a strength score.`}>
+        <LayeredCountChart rows={tenGodLabels.map((label) => ({ label, values: [visibleGods.get(label) ?? 0, hiddenGods.get(label) ?? 0] }))} legends={locale === "zh" ? ["明干", "藏干"] : ["Visible", "Hidden"]} />
       </StatisticBlock>
-      <StatisticBlock title={locale === "zh" ? "干支关系" : "Relationships"} description={locale === "zh" ? "按已识别规则计数" : "Exact recognized rules"}>
-        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs">{relationshipGroups.map((group) => <span key={group.key}><strong>{group.label}</strong> {allRelations.filter((item) => item.includes(group.key)).length}</span>)}</div>
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">{allRelations.join(" / ") || "—"}</p>
+      <StatisticBlock title={locale === "zh" ? "干支关系图" : "Stem-branch relations"} description={locale === "zh" ? `共识别 ${allRelations.length} 条结构关系；同一组干支可能同时命中不同规则。` : `${allRelations.length} recognized relationships; one pair may match multiple rules.`}>
+        <HorizontalCountChart rows={relationshipGroups.map((group) => ({ label: group.label, value: allRelations.filter((item) => item.includes(group.key)).length }))} denominator={Math.max(1, allRelations.length)} />
+        <details className="mt-4 border-t border-border/45 pt-3"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看全部关系" : "View every relationship"}</summary><p className="mt-2 text-sm leading-6 text-muted-foreground">{allRelations.join(" / ") || "—"}</p></details>
       </StatisticBlock>
-      <StatisticBlock title={locale === "zh" ? "当前大运" : "Current Da Yun"} description={locale === "zh" ? "按公历年份定位" : "Located by calendar year"}>
-        {currentCycle ? <div className="mt-3"><p className="text-2xl font-semibold text-primary">{currentCycle.ganzhi}</p><p className="mt-1 text-xs text-muted-foreground">{currentCycle.start_year}–{currentCycle.end_year} · {locale === "zh" ? `距周期末 ${Math.max(0, currentCycle.end_year - currentYear)} 年` : `${Math.max(0, currentCycle.end_year - currentYear)} years to cycle end`}</p></div> : <p className="mt-3 text-sm text-muted-foreground">—</p>}
+      <StatisticBlock title={locale === "zh" ? "阴阳明字" : "Visible Yin / Yang"} description={unknownCount ? (locale === "zh" ? `${unknownCount} 个待定明字未计入` : `${unknownCount} uncertain characters excluded`) : (locale === "zh" ? "只计算四柱八个明字。" : "Only the eight visible characters are counted.")}>
+        <div className="mt-5 flex h-5 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${locale === "zh" ? "阳" : "Yang"} ${yangCount}, ${locale === "zh" ? "阴" : "Yin"} ${yinCount}`}><span className="bg-primary" style={{ width: `${yangCount / yinYangTotal * 100}%` }} /><span className="bg-primary/35" style={{ width: `${yinCount / yinYangTotal * 100}%` }} /></div>
+        <div className="mt-3 grid grid-cols-2 gap-3"><RawNumber label={locale === "zh" ? "阳" : "Yang"} value={yangCount} /><RawNumber label={locale === "zh" ? "阴" : "Yin"} value={yinCount} /></div>
+      </StatisticBlock>
+      <StatisticBlock title={locale === "zh" ? "当前大运定位" : "Current Da Yun"} description={locale === "zh" ? "按公历年份定位；交接日以起运算法为准。" : "Located by calendar year; the start algorithm determines the exact handoff."}>
+        {currentCycle ? <div className="mt-5 flex items-end justify-between gap-4"><div><p className="text-4xl font-semibold text-primary">{currentCycle.ganzhi}</p><p className="mt-2 text-sm text-muted-foreground">{currentCycle.start_year}–{currentCycle.end_year}</p></div><div className="text-right"><p className="text-2xl font-semibold">{Math.max(0, currentCycle.end_year - currentYear)}</p><p className="text-xs text-muted-foreground">{locale === "zh" ? "距周期末（年）" : "years remaining"}</p></div></div> : <p className="mt-3 text-sm text-muted-foreground">—</p>}
       </StatisticBlock>
     </div>
   )
 }
 
 function StatisticBlock({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
-  return <section className="min-w-0 px-4 py-4"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-xs text-muted-foreground">{description}</p>{children}</section>
+  return <section className="min-w-0 rounded-2xl border border-border/55 bg-surface px-5 py-5"><h3 className="text-lg font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>{children}</section>
 }
 
-function CountRows({ values, primaryLabel, secondaryLabel }: { values: Array<{ label: string; primary: number; secondary: number; element: string }>; primaryLabel: string; secondaryLabel: string }) {
-  return <div className="mt-3 space-y-1.5">{values.map((item) => <div key={item.label} className="grid grid-cols-[1rem_1fr] items-center gap-2 text-xs"><span data-element={item.element} className="chart-element-text font-semibold">{item.label}</span><span className="text-muted-foreground">{primaryLabel} {item.primary} · {secondaryLabel} {item.secondary}</span></div>)}</div>
+function LayeredCountChart({ rows, legends }: { rows: Array<{ label: string; element?: string; values: number[] }>; legends: string[] }) {
+  const max = Math.max(1, ...rows.flatMap((row) => row.values))
+  const colors = ["bg-primary", "bg-amber-500/80", "bg-cyan-600/75"]
+  return <div className="mt-5"><div className="mb-4 flex flex-wrap gap-4 text-xs text-muted-foreground">{legends.map((legend, index) => <span key={legend}><span className={`mr-1.5 inline-block size-2.5 rounded-sm ${colors[index]}`} />{legend}</span>)}</div><div className="space-y-3">{rows.map((row) => <div key={row.label} className="grid grid-cols-[3.5rem_1fr] items-center gap-3"><span data-element={row.element} className="chart-element-text text-sm font-semibold">{row.label}</span><div className="space-y-1.5">{row.values.map((value, index) => <div key={`${row.label}-${legends[index]}`} className="flex items-center gap-2"><div className="h-2.5 flex-1 rounded-full bg-muted"><div className={`h-full rounded-full ${colors[index]}`} style={{ width: `${value / max * 100}%` }} /></div><span className="w-5 text-right text-xs font-semibold tabular-nums">{value}</span></div>)}</div></div>)}</div></div>
+}
+
+function HorizontalCountChart({ rows, denominator }: { rows: Array<{ label: string; value: number }>; denominator: number }) {
+  const max = Math.max(1, ...rows.map((row) => row.value))
+  return <div className="mt-5 space-y-3">{rows.map((row) => <div key={row.label} className="grid grid-cols-[3.5rem_1fr_4rem] items-center gap-3"><span className="text-sm font-medium">{row.label}</span><div className="h-3 rounded-full bg-muted"><div className="h-full rounded-full bg-primary/75" style={{ width: `${row.value / max * 100}%` }} /></div><span className="text-right text-xs tabular-nums text-muted-foreground"><strong className="text-sm text-foreground">{row.value}</strong> / {denominator}</span></div>)}</div>
 }
 
 function RawNumber({ label, value }: { label: string; value: number }) {
-  return <div className="px-2"><p className="text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{label}</p></div>
-}
-
-function formatCounts(counts: Map<string, number>) {
-  return Array.from(counts.entries()).map(([label, count]) => `${label} ${count}`).join(" · ") || "—"
+  return <div className="rounded-xl bg-muted/35 px-4 py-3"><p className="text-3xl font-semibold">{value}</p><p className="mt-1 text-sm text-muted-foreground">{label}</p></div>
 }
 
 function HourCandidates({ candidates, locale }: { candidates: MetaphysicsChart["birth_profile"]["hour_candidates"]; locale: Locale }) {

@@ -82,13 +82,32 @@ export type ThemeEvidence = {
   source: string
 }
 
+export type ThemeStructureMetric = {
+  metric_id: string
+  label: string
+  value: number
+  unit: string
+}
+
+export type ThemeComparison = ThemeStructureMetric & {
+  status: "observed" | "zero" | "unsupported"
+  exact_weight?: number
+  total_weight?: number
+  exact_percentage?: number
+  display_percentage: string
+  lower_percentage: number
+  same_percentage: number
+  higher_percentage: number
+  baseline_id: string
+  method: "weighted_empirical_metric_distribution"
+}
+
 export type ThemeProfile = {
   theme: "事业" | "财富" | "感情" | "健康"
   evidence: ThemeEvidence[]
-  raw_family_count: number
-  possible_family_count: number
-  activity_percentile: number | null
-  percentile_label: string
+  active_families?: string[]
+  structure_metrics?: ThemeStructureMetric[]
+  comparisons?: ThemeComparison[]
 }
 
 export type StructuralParticipant = {
@@ -107,16 +126,6 @@ export type StructuralRelation = {
   theme_tags: Array<"事业" | "财富" | "感情" | "健康">
   source_rule: string
   label: string
-}
-
-export type RuleIndex = {
-  dimension: "助力" | "才学" | "情缘" | "执行" | "迁动" | "考验"
-  raw_count: number
-  percentile: number
-  contribution_rule_ids: string[]
-  contribution_rules: string[]
-  denominator: string
-  baseline_id: string
 }
 
 export type MetaphysicsStatistics = {
@@ -146,7 +155,6 @@ export type MetaphysicsStatistics = {
     hash: string
   }
   rarity_metrics: RarityMetric[]
-  rule_indices?: RuleIndex[]
   disclaimer: string
   status?: "available" | "unavailable" | "version_mismatch"
   unavailable_reason?: string
@@ -161,7 +169,17 @@ export type PeriodMonth = {
   xunkong: string
   shen_sha: string[]
   relations: string[]
+  theme_activations: PeriodThemeActivations
 }
+
+export type PeriodThemeActivation = {
+  kind: "新增" | "联动" | "冲突" | "变化"
+  label: string
+  detail: string
+  source: string
+}
+
+export type PeriodThemeActivations = Record<"事业" | "财富" | "感情" | "健康", PeriodThemeActivation[]>
 
 export type PeriodYear = {
   layer: "liunian"
@@ -174,6 +192,7 @@ export type PeriodYear = {
   xunkong: string
   shen_sha: string[]
   relations: string[]
+  theme_activations: PeriodThemeActivations
   months: PeriodMonth[]
 }
 
@@ -186,6 +205,9 @@ export type DayunCycle = {
   start_age: number
   end_age: number
   ten_god?: string
+  shen_sha: string[]
+  relations: string[]
+  theme_activations: PeriodThemeActivations
   years: PeriodYear[]
 }
 

@@ -7,20 +7,20 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from iching.core.shensha import AXES, REGISTRY_DIGEST, RULE_BY_ID
+from iching.core.shensha import REGISTRY_DIGEST
 
 
 DATA_DIR = Path(__file__).with_name("data")
-BASELINE_ID = "bazi-calendar-1924-2044-v1-forward"
+BASELINE_ID = "bazi-calendar-1924-2044-v2-forward"
 BASELINE_IDS = {
     "bazi": {
         "forward": BASELINE_ID,
-        "current": "bazi-calendar-1924-2044-v1-current",
+        "current": "bazi-calendar-1924-2044-v2-current",
     },
     "ziwei": {"default": "ziwei-calendar-1924-2044-v1"},
 }
 FEATURE_ID_RE = re.compile(r"^(bazi|ziwei)\.[a-z0-9_.-]{1,96}$")
-BASELINE_SCHEMA_VERSION = 3
+BASELINE_SCHEMA_VERSION = 4
 ZIWEI_RULES_VERSION = "ziwei-structural-2026.07-v2.1"
 ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"
 THEME_IDS = ("事业", "财富", "感情", "健康")
@@ -87,7 +87,8 @@ def _expected_config_id(baseline: Mapping[str, Any]) -> str:
 
 
 def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
-    if int(baseline.get("schema_version", 1)) < BASELINE_SCHEMA_VERSION:
+    required_schema = BASELINE_SCHEMA_VERSION if baseline.get("chart_type") == "bazi" else 3
+    if int(baseline.get("schema_version", 1)) < required_schema:
         raise BaselineVersionMismatchError("统计基线为旧版 schema，请重新生成后再启用统计。")
     required = {
         "config_id",
@@ -139,15 +140,21 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
         ):
             raise BaselineCompatibilityError(f"统计基线特征权重无效: {feature_id}")
     tolerance = max(0.001, float(sample_weight) * 1e-9)
-    for histograms in baseline.get("theme_histograms_by_gender", {}).values():
-        if not isinstance(histograms, dict):
-            raise BaselineCompatibilityError("统计基线主题直方图无效，请重新生成基线。")
-        for histogram in histograms.values():
-            if not isinstance(histogram, dict):
-                raise BaselineCompatibilityError("统计基线主题直方图无效，请重新生成基线。")
-            total = sum(float(weight) for weight in histogram.values())
-            if abs(total - float(sample_weight)) > tolerance:
-                raise BaselineCompatibilityError("统计基线主题直方图分母与样本权重不一致。")
+    metric_groups = baseline.get("theme_metric_weights_by_gender", {})
+    if baseline.get("chart_type") == "bazi" and not metric_groups:
+        raise BaselineCompatibilityError("统计基线缺少主题结构指标分布，请重新生成基线。")
+    for themes in metric_groups.values():
+        if not isinstance(themes, dict):
+            raise BaselineCompatibilityError("统计基线主题结构分布无效，请重新生成基线。")
+        for metrics in themes.values():
+            if not isinstance(metrics, dict):
+                raise BaselineCompatibilityError("统计基线主题结构分布无效，请重新生成基线。")
+            for histogram in metrics.values():
+                if not isinstance(histogram, dict):
+                    raise BaselineCompatibilityError("统计基线主题结构分布无效，请重新生成基线。")
+                total = sum(float(weight) for weight in histogram.values())
+                if abs(total - float(sample_weight)) > tolerance:
+                    raise BaselineCompatibilityError("统计基线主题结构分布分母与样本权重不一致。")
 
 
 @lru_cache(maxsize=8)
@@ -199,98 +206,47 @@ def _baseline_public(baseline: dict[str, Any]) -> dict[str, Any]:
     return public
 
 
-def _percentile(histogram: dict[str, float], raw_count: int) -> float:
-    total = sum(histogram.values())
-    if total <= 0:
-        return 0.0
-    below = sum(weight for count, weight in histogram.items() if int(count) < raw_count)
-    equal = histogram.get(str(raw_count), 0.0)
-    return round((below + equal / 2) / total * 100, 2)
-
-
-def rule_indices(feature_ids: Iterable[str], baseline: dict[str, Any]) -> list[dict[str, Any]]:
-    rule_ids = {feature_id.rsplit(".", 1)[-1] for feature_id in feature_ids}
-    result = []
-    for axis in AXES:
-        contributors = [rule_id for rule_id in rule_ids if rule_id in RULE_BY_ID and RULE_BY_ID[rule_id].level == "core" and RULE_BY_ID[rule_id].axis == axis]
-        count = len(contributors)
-        histogram = baseline.get("axis_histograms", {}).get(axis, {})
-        result.append({
-            "dimension": axis,
-            "raw_count": count,
-            "percentile": _percentile(histogram, count),
-            "contribution_rule_ids": sorted(contributors),
-            "contribution_rules": [RULE_BY_ID[rule_id].name for rule_id in sorted(contributors)],
-            "denominator": "命中的不同核心规则数量",
-            "baseline_id": baseline["id"],
-        })
-    return result
-
-
-def _legacy_theme_families(baseline: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    if baseline.get("chart_type") != "bazi" or not baseline.get("axis_histograms"):
-        return {}
-    return {
-        axis: {
-            "label": axis,
-            "feature_ids": sorted(
-                f"bazi.shensha.{rule.rule_id}"
-                for rule in RULE_BY_ID.values()
-                if rule.level == "core" and rule.axis == axis
-            ),
-        }
-        for axis in AXES
-    }
-
-
-def theme_profile(feature_ids: Iterable[str], baseline: dict[str, Any]) -> list[dict[str, Any]]:
-    families = baseline.get("theme_families") or _legacy_theme_families(baseline)
-    histograms = baseline.get("theme_histograms") or baseline.get("axis_histograms", {})
-    selected = set(feature_ids)
-    result = []
-    for theme_id, definition in families.items():
-        if not definition.get("feature_ids"):
-            continue
-        family_ids = set(definition.get("feature_ids", []))
-        contributors = sorted(selected & family_ids)
-        histogram = histograms.get(theme_id, {})
-        reference_weight = float(sum(histogram.values()))
-        result.append({
-            "theme_id": theme_id,
-            "label": definition.get("label", theme_id),
-            "raw_count": len(contributors),
-            "percentile": _percentile(histogram, len(contributors)),
-            "contribution_feature_ids": contributors,
-            "reference_weight": reference_weight,
-            "percentile_method": "weighted_midrank",
-            "baseline_id": baseline["id"],
-        })
-    return result
-
-
-def apply_theme_percentiles(
+def apply_theme_comparisons(
     profiles: Iterable[Mapping[str, Any]],
     baseline: Mapping[str, Any],
     *,
     gender: str | None,
 ) -> list[dict[str, Any]]:
-    """Attach a density percentile to already-derived structural evidence profiles."""
-    histograms_by_gender = baseline.get("theme_histograms_by_gender", {})
-    histogram_group = histograms_by_gender.get(gender) or histograms_by_gender.get("neutral") or {}
+    """Compare each transparent structural metric; never collapse them into one score."""
+    metrics_by_gender = baseline.get("theme_metric_weights_by_gender", {})
+    metric_group = metrics_by_gender.get(gender) or metrics_by_gender.get("neutral") or {}
+    total = float(baseline.get("sample_weight", 0))
     result: list[dict[str, Any]] = []
     for profile in profiles:
         item = dict(profile)
         theme = str(item.get("theme", ""))
-        histogram = histogram_group.get(theme, {})
-        if histogram:
-            percentile = _percentile(histogram, int(item.get("raw_family_count", 0)))
-            item["activity_percentile"] = percentile
-            item["percentile_label"] = f"第 {percentile:.0f} 百分位"
-            item["baseline_id"] = baseline.get("id")
-            item["percentile_method"] = "weighted_midrank_of_evidence_family_count"
-        else:
-            item["activity_percentile"] = None
-            item["percentile_label"] = "暂无结构基线"
+        theme_histograms = metric_group.get(theme, {})
+        comparisons = []
+        for metric in item.get("structure_metrics", ()):
+            metric_id = str(metric.get("metric_id", ""))
+            value = int(metric.get("value", 0))
+            histogram = theme_histograms.get(metric_id, {}) if isinstance(theme_histograms, Mapping) else {}
+            exact_weight = float(histogram.get(str(value), 0)) if isinstance(histogram, Mapping) else 0.0
+            if histogram and total > 0:
+                lower = sum(float(weight) for key, weight in histogram.items() if int(key) < value)
+                higher = sum(float(weight) for key, weight in histogram.items() if int(key) > value)
+                exact_percentage = exact_weight / total * 100
+                comparisons.append({
+                    **dict(metric),
+                    "status": "observed" if exact_weight > 0 else "zero",
+                    "exact_weight": round(exact_weight, 6),
+                    "total_weight": total,
+                    "exact_percentage": round(exact_percentage, 6),
+                    "display_percentage": frequency_label(exact_percentage),
+                    "lower_percentage": round(lower / total * 100, 4),
+                    "same_percentage": round(exact_percentage, 4),
+                    "higher_percentage": round(higher / total * 100, 4),
+                    "baseline_id": baseline.get("id"),
+                    "method": "weighted_empirical_metric_distribution",
+                })
+            else:
+                comparisons.append({**dict(metric), "status": "unsupported", "display_percentage": "—", "lower_percentage": 0.0, "same_percentage": 0.0, "higher_percentage": 0.0, "baseline_id": baseline.get("id"), "method": "weighted_empirical_metric_distribution"})
+        item["comparisons"] = comparisons
         result.append(item)
     return result
 
@@ -330,8 +286,6 @@ def _unavailable_statistics(
         },
         "rarity_metrics": metrics,
         "theme_profile": [],
-        "rule_indices": [],
-        "rule_indices_deprecated": True,
         "disclaimer": f"统计基线当前不可用：{reason} 未返回任何频率、百分位或吉凶结论。",
     }
 
@@ -356,7 +310,6 @@ def lookup_statistics(*, chart_type: str, baseline_id: str, feature_ids: Iterabl
         raise ValueError("命盘类型与统计基线不匹配。")
     total = float(baseline["sample_weight"])
     catalog = set(baseline.get("feature_catalog", baseline.get("features", {}).keys()))
-    supported_feature_ids = [feature_id for feature_id in normalized if feature_id in catalog]
     metrics = []
     for feature_id in normalized:
         supported = feature_id in catalog
@@ -373,19 +326,12 @@ def lookup_statistics(*, chart_type: str, baseline_id: str, feature_ids: Iterabl
             "status": status,
             "baseline_id": baseline["id"],
         })
-    legacy_indices = (
-        rule_indices(supported_feature_ids, baseline)
-        if chart_type == "bazi" and int(baseline.get("schema_version", 1)) < BASELINE_SCHEMA_VERSION
-        else []
-    )
     return {
         "status": "available",
         "unavailable_reason": None,
         "baseline": _baseline_public(baseline),
         "rarity_metrics": metrics,
-        "theme_profile": theme_profile(supported_feature_ids, baseline),
-        "rule_indices": legacy_indices,
-        "rule_indices_deprecated": True,
+        "theme_profile": [],
         "disclaimer": "此处为指定规则、配置与历法范围内的边际出现频率，并非真实人口比例、联合命盘概率，也不代表吉凶或命运确定性。",
     }
 
@@ -405,10 +351,10 @@ def statistics_for_shensha(
     )
     try:
         baseline = load_baseline(baseline_id)
-        result["theme_profiles"] = apply_theme_percentiles(theme_profiles, baseline, gender=gender)
+        result["theme_profiles"] = apply_theme_comparisons(theme_profiles, baseline, gender=gender)
     except RuntimeError:
         result["theme_profiles"] = [
-            {**dict(profile), "activity_percentile": None, "percentile_label": "统计暂时不可用"}
+            {**dict(profile), "comparisons": []}
             for profile in theme_profiles
         ]
     return result

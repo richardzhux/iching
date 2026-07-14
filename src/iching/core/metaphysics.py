@@ -10,7 +10,7 @@ import sxtwl
 from lunar_python import Lunar as LunarCalendar
 from lunar_python import Solar as SolarCalendar
 
-from iching.core.bazi_structure import build_structure_profile
+from iching.core.bazi_structure import build_structure_profile, structured_relations
 from iching.core.najia import derive_six_gods
 from iching.core.metaphysics_statistics import statistics_for_shensha
 from iching.core.shensha import RULES_VERSION, evaluate_shensha
@@ -354,6 +354,52 @@ def _hour_candidates(value: datetime, day_boundary: str) -> list[Dict[str, str]]
     return candidates
 
 
+PERIOD_THEMES = ("事业", "财富", "感情", "健康")
+PERIOD_TOPIC_THEMES = {"career": "事业", "wealth": "财富", "relationship": "感情", "health": "健康"}
+
+
+def _period_theme_activations(
+    *,
+    period_label: str,
+    ten_god: str,
+    gender: Optional[str],
+    shensha_hits: list[Dict[str, Any]],
+    relations: list[Dict[str, Any]],
+) -> Dict[str, list[Dict[str, str]]]:
+    activations: Dict[str, list[Dict[str, str]]] = {theme: [] for theme in PERIOD_THEMES}
+    seen: set[tuple[str, str, str]] = set()
+
+    def add(theme: str, kind: str, label: str, detail: str, source: str) -> None:
+        key = (theme, kind, label)
+        if theme not in activations or key in seen:
+            return
+        seen.add(key)
+        activations[theme].append({"kind": kind, "label": label, "detail": detail, "source": source})
+
+    if ten_god in {"正官", "七杀", "正印", "偏印", "食神", "伤官"}:
+        add("事业", "新增", f"{period_label}十神·{ten_god}", "该运限天干与日主形成此十神关系。", "日主中心十神")
+    if ten_god in {"正财", "偏财", "食神", "伤官", "比肩", "劫财"}:
+        add("财富", "新增", f"{period_label}十神·{ten_god}", "该运限天干与日主形成此十神关系。", "日主中心十神")
+    spouse_gods = {"正财", "偏财"} if gender == "male" else {"正官", "七杀"}
+    if ten_god in spouse_gods:
+        add("感情", "新增", f"{period_label}配偶星·{ten_god}", "按男命财星、女命官杀的通行取法记录。", "子平配偶星取法")
+    if ten_god in {"正印", "偏印", "比肩", "劫财", "正官", "七杀", "食神", "伤官"}:
+        add("健康", "变化", f"{period_label}日主关系·{ten_god}", "仅表示传统五行支持或制约结构发生变化，非医疗判断。", "日主中心十神")
+
+    for hit in shensha_hits:
+        for topic in hit.get("topic_tags", ()):
+            theme = PERIOD_TOPIC_THEMES.get(str(topic))
+            if theme:
+                add(theme, "新增", f"{period_label}神煞·{hit['name']}", str(hit.get("trigger", "")), "版本化神煞注册表")
+
+    for relation in relations:
+        relation_type = str(relation.get("relation_type", ""))
+        kind = "冲突" if any(token in relation_type for token in ("冲", "刑", "害", "破", "克")) else "联动"
+        for theme in relation.get("theme_tags", ()):
+            add(str(theme), kind, f"{period_label}关系·{relation_type}", str(relation.get("label", "")), "结构化干支关系")
+    return activations
+
+
 def _dayun_payload(
     value: datetime,
     *,
@@ -388,6 +434,24 @@ def _dayun_payload(
     current_year_payload: Optional[Dict[str, Any]] = None
     current_month_payload: Optional[Dict[str, Any]] = None
     for cycle in yun.getDaYun(9):
+        cycle_ganzhi = cycle.getGanZhi()
+        cycle_pillar = {
+            "label": "大运",
+            "stem": cycle_ganzhi[0],
+            "branch": cycle_ganzhi[1],
+            "text": cycle_ganzhi,
+        } if cycle_ganzhi else None
+        cycle_context = [*natal_pillars, *([cycle_pillar] if cycle_pillar else [])]
+        cycle_ten_god = _ten_god(natal_pillars[2]["stem"], cycle_ganzhi[0]) if cycle_ganzhi else "—"
+        cycle_hits = [
+            hit for hit in evaluate_shensha(cycle_context)
+            if "大运" in hit["pillar_labels"]
+        ] if cycle_pillar else []
+        cycle_relations = _stem_relations(cycle_context) + _branch_relations(cycle_context)
+        cycle_structured_relations = [
+            relation for relation in structured_relations(cycle_context)
+            if any(item.get("pillar") == "大运" for item in relation.get("participants", ()))
+        ]
         years = []
         for liu_nian in cycle.getLiuNian():
             year_ganzhi = liu_nian.getGanZhi()
@@ -397,11 +461,17 @@ def _dayun_payload(
                 "branch": year_ganzhi[1],
                 "text": year_ganzhi,
             }
+            year_context = [*cycle_context, year_pillar]
             year_hits = [
-                hit for hit in evaluate_shensha([*natal_pillars, year_pillar])
+                hit for hit in evaluate_shensha(year_context)
                 if "流年" in hit["pillar_labels"]
             ]
-            year_relations = _stem_relations([*natal_pillars, year_pillar]) + _branch_relations([*natal_pillars, year_pillar])
+            year_relations = _stem_relations(year_context) + _branch_relations(year_context)
+            year_structured_relations = [
+                relation for relation in structured_relations(year_context)
+                if any(item.get("pillar") == "流年" for item in relation.get("participants", ()))
+            ]
+            year_ten_god = _ten_god(natal_pillars[2]["stem"], year_ganzhi[0])
             months = []
             for liu_yue in liu_nian.getLiuYue():
                 month_ganzhi = liu_yue.getGanZhi()
@@ -411,24 +481,36 @@ def _dayun_payload(
                     "branch": month_ganzhi[1],
                     "text": month_ganzhi,
                 }
+                month_context = [*year_context, month_pillar]
+                month_hits = [
+                    hit for hit in evaluate_shensha(month_context)
+                    if "流月" in hit["pillar_labels"]
+                ]
+                month_relations = _stem_relations(month_context) + _branch_relations(month_context)
+                month_structured_relations = [
+                    relation for relation in structured_relations(month_context)
+                    if any(item.get("pillar") == "流月" for item in relation.get("participants", ()))
+                ]
+                month_ten_god = _ten_god(natal_pillars[2]["stem"], month_ganzhi[0])
                 month_payload = {
                     "layer": "liuyue",
                     "index": liu_yue.getIndex(),
                     "label": f"{liu_yue.getMonthInChinese()}月",
                     "ganzhi": month_ganzhi,
-                    "ten_god": _ten_god(natal_pillars[2]["stem"], month_ganzhi[0]),
+                    "ten_god": month_ten_god,
                     "xunkong": liu_yue.getXunKong(),
-                    "shen_sha": [
-                        hit["name"] for hit in evaluate_shensha([*natal_pillars, year_pillar, month_pillar])
-                        if "流月" in hit["pillar_labels"]
-                    ],
+                    "shen_sha": [hit["name"] for hit in month_hits],
                     "relations": [
-                        relation for relation in (
-                            _stem_relations([*natal_pillars, year_pillar, month_pillar])
-                            + _branch_relations([*natal_pillars, year_pillar, month_pillar])
-                        )
+                        relation for relation in month_relations
                         if relation not in set(year_relations)
                     ],
+                    "theme_activations": _period_theme_activations(
+                        period_label="流月",
+                        ten_god=month_ten_god,
+                        gender=gender,
+                        shensha_hits=month_hits,
+                        relations=month_structured_relations,
+                    ),
                 }
                 months.append(month_payload)
                 if liu_nian.getYear() == reference.year and liu_yue.getMonthInChinese() == reference_lunar.getMonthInChinese():
@@ -440,10 +522,17 @@ def _dayun_payload(
                 "age": liu_nian.getAge(),
                 "label": str(liu_nian.getYear()),
                 "ganzhi": year_ganzhi,
-                "ten_god": _ten_god(natal_pillars[2]["stem"], year_ganzhi[0]),
+                "ten_god": year_ten_god,
                 "xunkong": liu_nian.getXunKong(),
                 "shen_sha": [hit["name"] for hit in year_hits],
-                "relations": [relation for relation in year_relations if relation not in natal_relations],
+                "relations": [relation for relation in year_relations if relation not in set(cycle_relations)],
+                "theme_activations": _period_theme_activations(
+                    period_label="流年",
+                    ten_god=year_ten_god,
+                    gender=gender,
+                    shensha_hits=year_hits,
+                    relations=year_structured_relations,
+                ),
                 "months": months,
             }
             years.append(year_payload)
@@ -451,13 +540,22 @@ def _dayun_payload(
                 current_year_payload = {key: value for key, value in year_payload.items() if key != "months"}
         cycles.append({
             "index": cycle.getIndex(),
-            "label": "童限" if cycle.getIndex() == 0 else cycle.getGanZhi(),
-            "ganzhi": cycle.getGanZhi(),
+            "label": "童限" if cycle.getIndex() == 0 else cycle_ganzhi,
+            "ganzhi": cycle_ganzhi,
             "start_year": cycle.getStartYear(),
             "end_year": cycle.getEndYear(),
             "start_age": cycle.getStartAge(),
             "end_age": cycle.getEndAge(),
-            "ten_god": _ten_god(natal_pillars[2]["stem"], cycle.getGanZhi()[0]) if cycle.getGanZhi() else "—",
+            "ten_god": cycle_ten_god,
+            "shen_sha": [hit["name"] for hit in cycle_hits],
+            "relations": [relation for relation in cycle_relations if relation not in natal_relations],
+            "theme_activations": _period_theme_activations(
+                period_label="大运",
+                ten_god=cycle_ten_god,
+                gender=gender,
+                shensha_hits=cycle_hits,
+                relations=cycle_structured_relations,
+            ),
             "years": years,
         })
     return {
@@ -604,7 +702,7 @@ def build_metaphysics_chart(
             "six_spirits": six_gods,
         },
         "element_counts": {element: counts.get(element, 0) for element in ELEMENTS},
-        "derived_schema_version": 3,
+        "derived_schema_version": 4,
         "rules_version": RULES_VERSION,
         "shen_sha": shen_sha,
         "structure": structure,

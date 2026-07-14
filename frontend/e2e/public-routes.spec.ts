@@ -79,7 +79,7 @@ const mockedMetaphysicsChart = {
     },
     engines: { calendar: "lunar-python", dayun: "sxtwl" },
   },
-  derived_schema_version: 3,
+  derived_schema_version: 4,
   rules_version: "shensha-2026.07-v2.1",
   shen_sha: [],
   structure: {
@@ -103,8 +103,8 @@ const mockedMetaphysicsChart = {
   statistics: {
     status: "available",
     baseline: {
-      schema_version: 3,
-      id: "bazi-calendar-1924-2044-v1-forward",
+      schema_version: 4,
+      id: "bazi-calendar-1924-2044-v2-forward",
       chart_type: "bazi",
       kind: "calendar_sample_frequency",
       label: "1924–2044 calendar sample",
@@ -120,7 +120,6 @@ const mockedMetaphysicsChart = {
       hash: "sha256:test-fixture",
     },
     rarity_metrics: [],
-    rule_indices: [],
     disclaimer: "Calendar-sample frequency is not a population estimate or fate score.",
   },
   period_layers: {

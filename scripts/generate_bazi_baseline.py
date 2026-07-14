@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 import sxtwl
 
-from iching.core.bazi_structure import THEME_POSSIBLE_FAMILIES, build_structure_profile
+from iching.core.bazi_structure import THEME_ORDER, build_structure_profile
 from iching.core.metaphysics import JIE_QI_NAMES, STEMS, _pillar, _seasonal_status
 from iching.core.metaphysics_statistics import (
     BASELINE_SCHEMA_VERSION,
@@ -22,7 +22,7 @@ from iching.core.shensha import RULE_BY_ID, RULES_VERSION, evaluate_shensha
 
 
 DEFAULT_OUTPUT = Path(__file__).parents[1] / "src" / "iching" / "core" / "data"
-BASELINE_VERSION = "calendar-1924-2044-v1"
+BASELINE_VERSION = "calendar-1924-2044-v2"
 
 
 def _config_id(day_boundary: str) -> str:
@@ -37,17 +37,6 @@ def _feature_catalog() -> list[str]:
     )
 
 
-def _theme_families() -> dict[str, dict[str, object]]:
-    return {
-        theme: {
-            "label": theme,
-            "possible_family_count": possible_count,
-            "measure": "distinct_active_evidence_families",
-        }
-        for theme, possible_count in THEME_POSSIBLE_FAMILIES.items()
-    }
-
-
 def generator_metadata() -> dict[str, object]:
     catalog = _feature_catalog()
     return {
@@ -56,7 +45,7 @@ def generator_metadata() -> dict[str, object]:
         "feature_catalog_hash": feature_catalog_hash(catalog),
         "rules_registry_hash": bazi_rules_registry_hash(),
         "weighted_unit": "minute",
-        "theme_families": _theme_families(),
+        "theme_comparison_method": "transparent_metric_distributions",
     }
 
 
@@ -109,12 +98,12 @@ def generate(day_boundary: str) -> dict:
     events = _events(start, end, zone, day_boundary)
     feature_weights: Counter[str] = Counter()
     profile_genders = {"male": "male", "female": "female", "neutral": None}
-    theme_histograms_by_gender = {
-        gender: {theme: Counter() for theme in THEME_POSSIBLE_FAMILIES}
+    theme_metric_weights_by_gender = {
+        gender: {theme: {} for theme in THEME_ORDER}
         for gender in profile_genders
     }
     unique_states: set[tuple[str, ...]] = set()
-    state_cache: dict[tuple[str, ...], tuple[list[dict[str, Any]], dict[str, dict[str, int]]]] = {}
+    state_cache: dict[tuple[str, ...], tuple[Any, Any]] = {}
     total_seconds = 0.0
     for left, right in zip(events, events[1:]):
         seconds = right.timestamp() - left.timestamp()
@@ -139,9 +128,9 @@ def generate(day_boundary: str) -> dict:
                 for hit in evaluated_hits
             ]
             seasonal_status = _seasonal_status(pillars[1]["branch"])
-            profile_counts = {
+            profile_metrics = {
                 gender: {
-                    item["theme"]: item["raw_family_count"]
+                    item["theme"]: item["structure_metrics"]
                     for item in build_structure_profile(
                         pillars,
                         gender=calculation_gender,
@@ -151,19 +140,20 @@ def generate(day_boundary: str) -> dict:
                 }
                 for gender, calculation_gender in profile_genders.items()
             }
-            state_cache[state_key] = (hits, profile_counts)
+            state_cache[state_key] = (hits, profile_metrics)
         else:
-            hits, profile_counts = cached
+            hits, profile_metrics = cached
         total_seconds += seconds
         for hit in hits:
             feature_weights[hit["feature_id"]] += seconds
         for gender in profile_genders:
-            for theme, count in profile_counts[gender].items():
-                theme_histograms_by_gender[gender][theme][count] += seconds
+            for theme, metrics in profile_metrics[gender].items():
+                for metric in metrics:
+                    histogram = theme_metric_weights_by_gender[gender][theme].setdefault(metric["metric_id"], Counter())
+                    histogram[str(metric["value"])] += seconds
 
     sample_weight = round(total_seconds / 60, 6)
     catalog = _feature_catalog()
-    theme_families = _theme_families()
     payload = {
         "schema_version": BASELINE_SCHEMA_VERSION,
         "id": f"bazi-{BASELINE_VERSION}-{day_boundary}",
@@ -189,13 +179,16 @@ def generate(day_boundary: str) -> dict:
             feature_id: {"hit_weight": round(feature_weights.get(feature_id, 0.0) / 60, 6)}
             for feature_id in catalog
         },
-        "theme_families": theme_families,
-        "theme_histograms_by_gender": {
+        "theme_comparison_method": "transparent_metric_distributions",
+        "theme_metric_weights_by_gender": {
             gender: {
-                theme: {str(count): round(seconds / 60, 6) for count, seconds in sorted(histogram.items())}
-                for theme, histogram in histograms.items()
+                theme: {
+                    metric_id: {value: round(seconds / 60, 6) for value, seconds in sorted(histogram.items(), key=lambda item: int(item[0]))}
+                    for metric_id, histogram in metrics.items()
+                }
+                for theme, metrics in themes.items()
             }
-            for gender, histograms in theme_histograms_by_gender.items()
+            for gender, themes in theme_metric_weights_by_gender.items()
         },
     }
     payload["hash"] = payload_hash(payload)
