@@ -10,6 +10,7 @@ import sxtwl
 from lunar_python import Lunar as LunarCalendar
 from lunar_python import Solar as SolarCalendar
 
+from iching.core.bazi_structure import build_structure_profile
 from iching.core.najia import derive_six_gods
 from iching.core.metaphysics_statistics import statistics_for_shensha
 from iching.core.shensha import RULES_VERSION, evaluate_shensha
@@ -501,6 +502,8 @@ def build_metaphysics_chart(
     lunar_hour: Optional[int] = None,
     lunar_minute: Optional[int] = None,
 ) -> Dict[str, Any]:
+    if hour_uncertain:
+        raise ValueError("完整八字排盘需要准确出生时辰；请补充时辰后再排盘。")
     if dayun_algorithm not in {"sect1", "sect2"}:
         raise ValueError(f"未知大运算法: {dayun_algorithm}")
     local, calendar_input = _calendar_input_to_solar(
@@ -514,7 +517,7 @@ def build_metaphysics_chart(
         lunar_hour=lunar_hour,
         lunar_minute=lunar_minute,
     )
-    effective_local = local.replace(hour=12, minute=0, second=0, microsecond=0) if hour_uncertain else local
+    effective_local = local
     calculation_time, correction_minutes = _true_solar_time(effective_local, longitude) if use_true_solar_time else (effective_local, 0.0)
     pillar_date = calculation_time
     if day_boundary == "forward" and calculation_time.hour >= 23:
@@ -533,23 +536,7 @@ def build_metaphysics_chart(
         _pillar("日", day_gz, day_stem),
         _pillar("时", hour_gz, day_stem),
     ]
-    hour_candidates = _hour_candidates(calculation_time, day_boundary) if hour_uncertain else []
-    if hour_uncertain:
-        pillars[-1] = {
-            "label": "时",
-            "stem": "待定",
-            "branch": "待定",
-            "text": "待定",
-            "stem_element": "—",
-            "branch_element": "—",
-            "polarity": "—",
-            "ten_god": "待定",
-            "hidden_stems": [],
-            "nayin": "—",
-            "xunkong": "—",
-            "di_shi": "—",
-            "self_seat": "—",
-        }
+    hour_candidates: list[Dict[str, str]] = []
     direct_elements: Iterable[str] = (
         value
         for pillar in pillars
@@ -575,7 +562,20 @@ def build_metaphysics_chart(
         natal_pillars=pillars,
     )
     shen_sha = evaluate_shensha(pillars)
-    statistics = statistics_for_shensha(shen_sha, day_boundary)
+    structure = build_structure_profile(
+        pillars,
+        gender=gender,
+        shensha_hits=shen_sha,
+        seasonal_status=_seasonal_status(month_branch),
+    )
+    statistics = statistics_for_shensha(
+        shen_sha,
+        day_boundary,
+        theme_profiles=structure["theme_profiles"],
+        gender=gender,
+    )
+    theme_profiles = statistics.get("theme_profiles", structure["theme_profiles"])
+    structure["theme_profiles"] = theme_profiles
     return {
         "timezone": timezone_name,
         "input_timestamp": local.isoformat(),
@@ -604,9 +604,11 @@ def build_metaphysics_chart(
             "six_spirits": six_gods,
         },
         "element_counts": {element: counts.get(element, 0) for element in ELEMENTS},
-        "derived_schema_version": 2,
+        "derived_schema_version": 3,
         "rules_version": RULES_VERSION,
         "shen_sha": shen_sha,
+        "structure": structure,
+        "theme_profiles": theme_profiles,
         "statistics": statistics,
         "period_layers": {
             "dayun": dayun.get("cycles", []),

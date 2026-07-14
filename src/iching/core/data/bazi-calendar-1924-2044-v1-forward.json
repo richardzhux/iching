@@ -1,4 +1,5 @@
 {
+  "schema_version": 3,
   "id": "bazi-calendar-1924-2044-v1-forward",
   "chart_type": "bazi",
   "kind": "calendar_sample_frequency",
@@ -7,14 +8,54 @@
   "end": "2044-02-04T12:43:35+08:00",
   "timezone": "Asia/Shanghai",
   "day_boundary": "forward",
+  "config_id": "bazi-sxtwl-2.0.7-asia-shanghai-forward-v1",
   "engine": "sxtwl 2.0.7",
-  "rules_version": "shensha-2026.07-v2",
+  "rules_version": "shensha-2026.07-v2.1",
+  "rules_registry_hash": "sha256:3d0f8f85d67e66b40927c19ca3f39b53b7f49aa3eb91121e9dad92c5a0e5b096",
+  "feature_catalog": [
+    "bazi.shensha.ciguan",
+    "bazi.shensha.dexiu",
+    "bazi.shensha.fuxing",
+    "bazi.shensha.guasuo",
+    "bazi.shensha.guchen",
+    "bazi.shensha.guoyin",
+    "bazi.shensha.hongluan",
+    "bazi.shensha.hongyan",
+    "bazi.shensha.huagai",
+    "bazi.shensha.jiangxing",
+    "bazi.shensha.jiesha",
+    "bazi.shensha.jinyu",
+    "bazi.shensha.kuigang",
+    "bazi.shensha.lushen",
+    "bazi.shensha.taiji",
+    "bazi.shensha.taohua",
+    "bazi.shensha.ten_bad_defeats",
+    "bazi.shensha.tiande",
+    "bazi.shensha.tianku",
+    "bazi.shensha.tianxi",
+    "bazi.shensha.tianyi",
+    "bazi.shensha.tianyi_doctor",
+    "bazi.shensha.wangshen",
+    "bazi.shensha.wenchang",
+    "bazi.shensha.xuetang",
+    "bazi.shensha.yangren",
+    "bazi.shensha.yima",
+    "bazi.shensha.yinyang_error",
+    "bazi.shensha.yuede",
+    "bazi.shensha.zaisha"
+  ],
+  "feature_catalog_hash": "sha256:9a0a48fe7b6745c8b33beafa432f466e655059308238667120b34b8c78e025e0",
+  "unique_state_count": 388447,
   "sample_unit": "minute",
+  "weighted_unit": "minute",
   "sample_weight": 63113934.05,
   "method": "按四柱变化边界分段穷举，并按每段实际持续分钟数加权。",
   "features": {
     "bazi.shensha.ciguan": {
-      "hit_weight": 18533520.0
+      "hit_weight": 3611040.0
+    },
+    "bazi.shensha.dexiu": {
+      "hit_weight": 55516614.05
     },
     "bazi.shensha.fuxing": {
       "hit_weight": 29032090.466667
@@ -59,10 +100,13 @@
       "hit_weight": 24291763.583333
     },
     "bazi.shensha.ten_bad_defeats": {
-      "hit_weight": 10519320.0
+      "hit_weight": 10517820.0
     },
     "bazi.shensha.tiande": {
       "hit_weight": 19616040.0
+    },
+    "bazi.shensha.tianku": {
+      "hit_weight": 17765170.466667
     },
     "bazi.shensha.tianxi": {
       "hit_weight": 14500920.0
@@ -80,7 +124,7 @@
       "hit_weight": 19367710.466667
     },
     "bazi.shensha.xuetang": {
-      "hit_weight": 18579600.0
+      "hit_weight": 7690920.0
     },
     "bazi.shensha.yangren": {
       "hit_weight": 19386120.0
@@ -98,45 +142,128 @@
       "hit_weight": 23071614.05
     }
   },
-  "axis_histograms": {
-    "助力": {
-      "0": 3610440.0,
-      "1": 11348743.583333,
-      "2": 19074360.0,
-      "3": 16641070.466667,
-      "4": 8769360.0,
-      "5": 3112620.0,
-      "6": 557340.0
+  "theme_families": {
+    "事业": {
+      "label": "事业",
+      "possible_family_count": 7,
+      "measure": "distinct_active_evidence_families"
     },
-    "才学": {
-      "0": 22902463.583333,
-      "1": 25817410.466667,
-      "2": 12518760.0,
-      "3": 1875300.0
+    "财富": {
+      "label": "财富",
+      "possible_family_count": 6,
+      "measure": "distinct_active_evidence_families"
     },
-    "情缘": {
-      "0": 38822170.466667,
-      "1": 24291763.583333
+    "感情": {
+      "label": "感情",
+      "possible_family_count": 6,
+      "measure": "distinct_active_evidence_families"
     },
-    "执行": {
-      "0": 2396640.0,
-      "1": 25267140.0,
-      "2": 28626130.466667,
-      "3": 6824023.583333
-    },
-    "迁动": {
-      "0": 40039560.0,
-      "1": 23074374.05
-    },
-    "考验": {
-      "0": 7560000.0,
-      "1": 17166660.0,
-      "2": 19698360.0,
-      "3": 12533383.583333,
-      "4": 4986850.466667,
-      "5": 1091760.0,
-      "6": 76920.0
+    "健康": {
+      "label": "健康",
+      "possible_family_count": 6,
+      "measure": "distinct_active_evidence_families"
     }
   },
-  "hash": "sha256:484b5678c9710bb8a51f39c7109b6631349dc46c875682e01120cb32fe4902de"
+  "theme_histograms_by_gender": {
+    "male": {
+      "事业": {
+        "2": 360.0,
+        "3": 29880.0,
+        "4": 345720.0,
+        "5": 5846040.0,
+        "6": 23925163.583333,
+        "7": 32966770.466667
+      },
+      "财富": {
+        "0": 480.0,
+        "1": 18360.0,
+        "2": 318360.0,
+        "3": 3109440.0,
+        "4": 3906120.0,
+        "5": 31785840.0,
+        "6": 23975334.05
+      },
+      "感情": {
+        "1": 10200.0,
+        "2": 456480.0,
+        "3": 5744400.0,
+        "4": 26064300.0,
+        "5": 21233640.0,
+        "6": 9604914.05
+      },
+      "健康": {
+        "3": 25920.0,
+        "4": 2781660.0,
+        "5": 38256043.583333,
+        "6": 22050310.466667
+      }
+    },
+    "female": {
+      "事业": {
+        "2": 360.0,
+        "3": 29880.0,
+        "4": 345720.0,
+        "5": 5846040.0,
+        "6": 23925163.583333,
+        "7": 32966770.466667
+      },
+      "财富": {
+        "0": 480.0,
+        "1": 18360.0,
+        "2": 318360.0,
+        "3": 3109440.0,
+        "4": 3906120.0,
+        "5": 31785840.0,
+        "6": 23975334.05
+      },
+      "感情": {
+        "1": 9240.0,
+        "2": 411480.0,
+        "3": 5639160.0,
+        "4": 26302560.0,
+        "5": 21330190.466667,
+        "6": 9421303.583333
+      },
+      "健康": {
+        "3": 25920.0,
+        "4": 2781660.0,
+        "5": 38256043.583333,
+        "6": 22050310.466667
+      }
+    },
+    "neutral": {
+      "事业": {
+        "2": 360.0,
+        "3": 29880.0,
+        "4": 345720.0,
+        "5": 5846040.0,
+        "6": 23925163.583333,
+        "7": 32966770.466667
+      },
+      "财富": {
+        "0": 480.0,
+        "1": 18360.0,
+        "2": 318360.0,
+        "3": 3109440.0,
+        "4": 3906120.0,
+        "5": 31785840.0,
+        "6": 23975334.05
+      },
+      "感情": {
+        "1": 240.0,
+        "2": 56760.0,
+        "3": 1954920.0,
+        "4": 16450320.0,
+        "5": 29522460.0,
+        "6": 15129234.05
+      },
+      "健康": {
+        "3": 25920.0,
+        "4": 2781660.0,
+        "5": 38256043.583333,
+        "6": 22050310.466667
+      }
+    }
+  },
+  "hash": "sha256:f8d1315120c828b106b091992c1795c27870a62205f54c9e72f963448f643150"
 }

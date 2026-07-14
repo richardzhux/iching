@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
 import { buildBaziMarkdown } from "@/lib/chart-markdown"
-import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit } from "@/types/api"
+import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeProfile } from "@/types/api"
 
 type Locale = "en" | "zh"
 type SolarTerm = NonNullable<MetaphysicsChart["next_solar_term"]>
@@ -94,7 +94,7 @@ export function BaziChartView(props: BaziChartViewProps) {
 
       <ReportChapter id="bazi-statistics" title={locale === "zh" ? "统计" : "Statistics"} intro={locale === "zh" ? "只展示透明计数与同规则基线百分位；不是命运分数，也不代表吉凶。" : "Transparent counts and within-rule-set percentiles only; these are not fate or luck scores."}>
         <div className="space-y-8">
-          <RuleIndexPanel chart={chart} locale={locale} />
+          <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} />
           <BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />
         </div>
       </ReportChapter>
@@ -279,25 +279,34 @@ function ShenShaPanel({ chart, locale }: { chart: MetaphysicsChart; locale: Loca
 
 function ShenShaRow({ hit, metric, locale }: { hit: ShenShaHit; metric?: RarityMetric; locale: Locale }) {
   const rarityLabels = locale === "zh" ? { common: "常见", less_common: "较少", rare: "稀有", very_rare: "罕见" } : { common: "Common", less_common: "Less common", rare: "Rare", very_rare: "Very rare" }
-  return <details className="group rounded-xl border border-border/50 bg-surface px-4 py-3 open:border-primary/35 open:bg-primary/[0.035]"><summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-4"><span><strong>{hit.name}</strong><span className="ml-2 text-xs text-muted-foreground">{hit.pillar_labels.join("、")}{locale === "zh" ? "柱" : " pillar"}</span></span><span className="text-right text-xs"><strong className="text-primary">{metric?.display_percentage ?? "—"}</strong><span className="ml-1 text-muted-foreground">{metric ? rarityLabels[metric.level] : ""}</span></span></span></summary><div className="mt-3 space-y-2 border-t border-border/45 pt-3 text-xs leading-5 text-muted-foreground"><p>{hit.trigger}</p><p><strong className="text-foreground">{locale === "zh" ? "来源" : "Source"}：</strong>{hit.source.title} · {hit.source.note}</p>{hit.school_note ? <p><strong className="text-foreground">{locale === "zh" ? "流派备注" : "School note"}：</strong>{hit.school_note}</p> : null}<p>{locale === "zh" ? "分母" : "Denominator"}：{metric?.total_weight.toLocaleString() ?? "—"} {locale === "zh" ? "历法分钟权重" : "calendar-minute weight"}</p></div></details>
+  const frequency = !metric || metric.status === "unsupported"
+    ? (locale === "zh" ? "暂无基线数据" : "No baseline data")
+    : metric.status === "zero"
+      ? (locale === "zh" ? "0% · 本参考周期未出现" : "0% · not observed in this reference")
+      : `${metric.display_percentage} · ${rarityLabels[metric.level as keyof typeof rarityLabels]}`
+  return <details className="group rounded-xl border border-border/50 bg-surface px-4 py-3 open:border-primary/35 open:bg-primary/[0.035]"><summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-4"><span><strong>{hit.name}</strong><span className="ml-2 text-xs text-muted-foreground">{hit.pillar_labels.join("、")}{locale === "zh" ? "柱" : " pillar"}</span></span><span className="text-right text-xs font-semibold text-primary">{frequency}</span></span></summary><div className="mt-3 space-y-2 border-t border-border/45 pt-3 text-xs leading-5 text-muted-foreground"><p>{hit.trigger}</p><p><strong className="text-foreground">{locale === "zh" ? "来源" : "Source"}：</strong>{hit.source.title} · {hit.source.note}</p>{hit.school_note ? <p><strong className="text-foreground">{locale === "zh" ? "口径备注" : "Convention note"}：</strong>{hit.school_note}</p> : null}{metric && metric.status !== "unsupported" ? <p>{locale === "zh" ? "分母" : "Denominator"}：{metric.total_weight.toLocaleString()} {locale === "zh" ? "历法分钟权重" : "calendar-minute weight"}</p> : null}{hit.formula_digest ? <p className="font-mono text-[0.68rem]">{hit.formula_digest}</p> : null}</div></details>
 }
 
-function RuleIndexPanel({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
-  return <section aria-labelledby="rule-index-title"><div className="flex flex-wrap items-end justify-between gap-2"><div><h3 id="rule-index-title" className="text-base font-semibold">{locale === "zh" ? "六项规则指数" : "Six rule indices"}</h3><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "同一规则集内的百分位；条形长度不是吉凶。" : "Percentiles within the same rule set; bar length is not luck."}</p></div><p className="text-xs text-muted-foreground">{chart.statistics.baseline.label}</p></div><div className="mt-4 grid gap-x-8 gap-y-4 md:grid-cols-2">{chart.statistics.rule_indices.map((item) => <div key={item.dimension}><div className="flex items-end justify-between gap-3 text-sm"><span className="font-semibold">{item.dimension}</span><span><strong>{item.percentile.toFixed(0)}</strong><span className="ml-1 text-xs text-muted-foreground">{locale === "zh" ? "百分位" : "percentile"}</span></span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-primary/10"><div className="h-full rounded-full bg-primary/65" style={{ width: `${Math.max(1, item.percentile)}%` }} /></div><p className="mt-1.5 text-xs text-muted-foreground">{locale === "zh" ? `核心命中 ${item.raw_count} 项` : `${item.raw_count} core hits`} · {item.contribution_rules.join("、") || "—"}</p></div>)}</div></section>
+function ThemeProfilePanel({ profiles, baselineLabel, locale }: { profiles: ThemeProfile[]; baselineLabel: string; locale: Locale }) {
+  const english: Record<string, string> = { 事业: "Career", 财富: "Wealth", 感情: "Relationship", 健康: "Health structure" }
+  if (!profiles.length) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "旧版命盘尚无四主题结构数据；按新版重新排盘后可查看。" : "This legacy chart has no four-theme structure data. Recalculate with the current version."}</p>
+  return <section aria-labelledby="theme-profile-title"><div className="flex flex-wrap items-end justify-between gap-2"><div><h3 id="theme-profile-title" className="text-base font-semibold">{locale === "zh" ? "四主题结构画像" : "Four-theme structure profile"}</h3><p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">{locale === "zh" ? "百分位只比较同一规则下相关证据家族的集中程度；高低均不代表吉凶、能力、财富或健康结果。" : "Percentiles compare concentration of evidence families under the same rules. They are not luck, ability, wealth, or health outcomes."}</p></div><p className="text-xs text-muted-foreground">{baselineLabel}</p></div><div className="mt-4 grid gap-3 lg:grid-cols-2">{profiles.map((profile) => <ThemeProfileCard key={profile.theme} profile={profile} label={locale === "zh" ? profile.theme : english[profile.theme]} locale={locale} />)}</div></section>
+}
+
+function ThemeProfileCard({ profile, label, locale }: { profile: ThemeProfile; label: string; locale: Locale }) {
+  const hasPercentile = typeof profile.activity_percentile === "number"
+  const percentile = hasPercentile ? Math.max(0, Math.min(100, profile.activity_percentile as number)) : 0
+  return <details className="rounded-2xl border border-border/55 bg-surface px-4 py-4 open:border-primary/35"><summary className="cursor-pointer list-none"><div className="flex items-end justify-between gap-4"><div><h4 className="font-semibold">{label}</h4><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? `${profile.raw_family_count} / ${profile.possible_family_count} 个证据家族活跃` : `${profile.raw_family_count} / ${profile.possible_family_count} evidence families active`}</p></div><p className="text-right"><strong className="text-2xl text-primary">{hasPercentile ? percentile.toFixed(0) : "—"}</strong>{hasPercentile ? <span className="ml-1 text-xs text-muted-foreground">{locale === "zh" ? "百分位" : "percentile"}</span> : null}</p></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-primary/10" aria-hidden="true"><div className="h-full rounded-full bg-primary/65" style={{ width: `${percentile}%` }} /></div></summary><div className="mt-4 space-y-3 border-t border-border/45 pt-4">{profile.evidence.map((item, index) => <div key={`${item.family}-${index}`} className="grid gap-1 sm:grid-cols-[5rem_1fr]"><span className="w-fit rounded-full bg-primary/8 px-2 py-0.5 text-[0.68rem] font-semibold text-primary">{item.evidence_type}</span><div><p className="text-sm font-medium">{item.title}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p><p className="mt-1 text-[0.68rem] text-muted-foreground">{item.source}</p></div></div>)}</div></details>
 }
 
 function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChart; locale: Locale; currentYear: number }) {
   const elements = ["木", "火", "土", "金", "水"]
-  const hiddenElements = Object.fromEntries(elements.map((element) => [element, 0])) as Record<string, number>
-  const visibleGods = new Map<string, number>()
-  const hiddenGods = new Map<string, number>()
-  chart.pillars.forEach((pillar) => {
-    visibleGods.set(pillar.ten_god || "—", (visibleGods.get(pillar.ten_god || "—") ?? 0) + 1)
-    pillar.hidden_stems.forEach((stem) => {
-      hiddenElements[stem.element] = (hiddenElements[stem.element] ?? 0) + 1
-      hiddenGods.set(stem.ten_god || "—", (hiddenGods.get(stem.ten_god || "—") ?? 0) + 1)
-    })
-  })
+  const layers = chart.structure?.layered_distribution
+  const visibleElements = layers?.elements.visible_stems ?? chart.element_counts
+  const mainQiElements = layers?.elements.branch_main_qi ?? Object.fromEntries(elements.map((element) => [element, 0]))
+  const hiddenElements = layers?.elements.hidden_stems ?? Object.fromEntries(elements.map((element) => [element, 0]))
+  const visibleGods = new Map(Object.entries(layers?.ten_gods.visible_stems ?? {}))
+  const hiddenGods = new Map(Object.entries(layers?.ten_gods.hidden_stems ?? {}))
   const yangStems = new Set(["甲", "丙", "戊", "庚", "壬"])
   const yinStems = new Set(["乙", "丁", "己", "辛", "癸"])
   const yangBranches = new Set(["子", "寅", "辰", "午", "申", "戌"])
@@ -316,16 +325,17 @@ function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChar
     { key: "害", label: locale === "zh" ? "害" : "Harm" },
     { key: "破", label: locale === "zh" ? "破" : "Break" },
   ]
-  const allRelations = [...chart.stem_relations, ...chart.branch_relations]
+  const allRelations = chart.structure?.structural_relations.map((item) => item.label) ?? [...chart.stem_relations, ...chart.branch_relations]
   return (
     <div className="grid border-y border-border/60 md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-border/50">
       <StatisticBlock title={locale === "zh" ? "五行数量" : "Five elements"} description={locale === "zh" ? "明字与藏干分列" : "Visible and hidden separated"}>
-        <CountRows values={elements.map((element) => ({ label: element, primary: chart.element_counts[element] ?? 0, secondary: hiddenElements[element] ?? 0, element }))} primaryLabel={locale === "zh" ? "明" : "V"} secondaryLabel={locale === "zh" ? "藏" : "H"} />
+        <CountRows values={elements.map((element) => ({ label: element, primary: visibleElements[element] ?? 0, secondary: hiddenElements[element] ?? 0, element }))} primaryLabel={locale === "zh" ? "干" : "S"} secondaryLabel={locale === "zh" ? "藏" : "H"} />
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "地支主气" : "Branch main qi"}：{elements.map((element) => `${element}${mainQiElements[element] ?? 0}`).join(" · ")}</p>
       </StatisticBlock>
       <StatisticBlock title={locale === "zh" ? "阴阳结构" : "Yin / Yang"} description={unknownCount ? (locale === "zh" ? `${unknownCount} 个待定明字未计入` : `${unknownCount} uncertain characters excluded`) : (locale === "zh" ? "只计算八个明字" : "Eight visible characters")}>
         <div className="mt-4 grid grid-cols-2 divide-x divide-border/50 text-center"><RawNumber label={locale === "zh" ? "阳" : "Yang"} value={yangCount} /><RawNumber label={locale === "zh" ? "阴" : "Yin"} value={yinCount} /></div>
       </StatisticBlock>
-      <StatisticBlock title={locale === "zh" ? "十神频次" : "Ten Gods"} description={locale === "zh" ? `分母：明干 ${visibleCharacters.filter((_, index) => index % 2 === 0).length} 项 · 藏干 ${Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)} 项` : `Denominators: ${visibleCharacters.filter((_, index) => index % 2 === 0).length} visible stems · ${Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)} hidden stems`}>
+      <StatisticBlock title={locale === "zh" ? "十神频次" : "Ten Gods"} description={locale === "zh" ? `分母：明干 ${Array.from(visibleGods.values()).reduce((sum, value) => sum + value, 0)} 项 · 藏干 ${Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)} 项` : `Denominators: ${Array.from(visibleGods.values()).reduce((sum, value) => sum + value, 0)} visible stems · ${Array.from(hiddenGods.values()).reduce((sum, value) => sum + value, 0)} hidden stems`}>
         <div className="mt-3 space-y-2 text-xs leading-5"><p><strong>{locale === "zh" ? "明干" : "Visible stems"}：</strong>{formatCounts(visibleGods)}</p><p><strong>{locale === "zh" ? "藏干" : "Hidden stems"}：</strong>{formatCounts(hiddenGods)}</p></div>
       </StatisticBlock>
       <StatisticBlock title={locale === "zh" ? "干支关系" : "Relationships"} description={locale === "zh" ? "按已识别规则计数" : "Exact recognized rules"}>
@@ -402,6 +412,7 @@ function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculat
     <div aria-hidden="true" className="chart-export-stage">
       <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
         <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
+        <div className="mt-8"><ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /></div>
         <div className="mt-8"><BaziStatistics chart={chart} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></div>
         <div className="mt-8"><BaziProfessionalTable chart={chart} locale={locale} /></div>
       </article>

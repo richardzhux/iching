@@ -251,7 +251,6 @@ def test_p1_bazi_controls_separate_basic_and_professional_accessibly():
         "bazi-lunar-date",
         "bazi-lunar-time",
         "bazi-gender",
-        "bazi-hour-uncertain",
         "bazi-timezone",
         "bazi-true-solar",
         "bazi-longitude",
@@ -264,7 +263,8 @@ def test_p1_bazi_controls_separate_basic_and_professional_accessibly():
     assert 'aria-labelledby="bazi-gender-label"' in controls
     assert 'aria-labelledby="bazi-timezone-label"' in controls
     assert "BirthPlaceField" in controls
-    assert 'htmlFor="bazi-hour-uncertain"' in controls
+    assert 'bazi-hour-uncertain' not in controls
+    assert 'required' in controls
     assert 'htmlFor="bazi-true-solar"' in controls
     assert "trueSolar ?" in controls
     assert 'calendar === "lunar"' in controls
@@ -302,8 +302,8 @@ def test_p1_bazi_results_lead_with_factual_digest_and_split_solar_term_modes():
     assert "精确交接以所选起运规则为准" in chart
     assert "Exact handoff follows the configured start rule" in chart
     assert "element_season_status" in chart
-    assert "专业命盘" in chart
-    assert "Professional chart" in chart
+    assert "四主题结构画像" in chart
+    assert "Four-theme structure profile" in chart
     assert "BaziProfessionalTable" in chart
     assert "LiveSolarTermCountdown" in chart
     assert "HistoricalSolarTerm" in chart
@@ -598,7 +598,7 @@ def test_task7_bazi_is_summary_first_share_ready_and_keeps_raw_facts_collapsed()
     assert "DayunTimeline" in chart
     assert "overflow-x-auto" in chart
     assert 'aria-current={isCurrent ? "step" : undefined}' in chart
-    assert "Professional chart" in chart
+    assert "Four-theme structure profile" in chart
     professional = chart[chart.index("function BaziProfessionalTable") :]
     for raw_fact in ("hidden_stems", "ten_god", "nayin", "xunkong", "di_shi", "self_seat"):
         assert raw_fact in professional
@@ -727,9 +727,6 @@ def test_p1_ziwei_controls_keep_basic_inputs_visible_and_name_every_control():
     assert 'id="ziwei-basic-title"' in tools
     assert "紫微基础信息" in tools
     assert "Zi Wei basic details" in tools
-    assert "<details" in tools
-    assert "紫微专业设置" in tools
-    assert "Zi Wei professional settings" in tools
     for field_id in (
         "ziwei-calendar",
         "ziwei-birth-time",
@@ -737,20 +734,23 @@ def test_p1_ziwei_controls_keep_basic_inputs_visible_and_name_every_control():
         "ziwei-lunar-time",
         "ziwei-gender",
         "ziwei-horoscope-date",
+        "ziwei-leap-month",
+    ):
+        assert field_id in tools
+    for removed_field_id in (
         "ziwei-school",
         "ziwei-astro-type",
         "ziwei-year-boundary",
         "ziwei-fix-leap",
-        "ziwei-leap-month",
         "ziwei-day-boundary",
     ):
-        assert field_id in tools
+        assert removed_field_id not in tools
     assert 'aria-labelledby="ziwei-calendar-label"' in tools
     assert 'aria-labelledby="ziwei-gender-label"' in tools
-    assert 'aria-labelledby="ziwei-school-label"' in tools
     assert 'htmlFor="ziwei-birth-time"' in tools
     assert 'htmlFor="ziwei-horoscope-date"' in tools
-    assert 'ziweiAlgorithm === "zhongzhou" ?' in tools
+    assert 'const ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"' in tools
+    assert "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启" in tools
     assert 'role="status"' in tools
     assert "正在生成紫微星盘" in tools
     assert "Generating Zi Wei chart" in tools
@@ -843,11 +843,11 @@ def test_p1_ziwei_validates_target_date_and_commits_one_immutable_snapshot():
     assert '"2100-12-31"' in tools
     assert "请输入 1900-01-31 至 2100-12-31 之间的有效运限日期" in tools
     assert "Enter a valid horoscope date from 1900-01-31 through 2100-12-31" in tools
-    assert "const horoscope = chart.horoscope(horoscopeDate)" in generate
-    assert generate.index("const horoscope = chart.horoscope(horoscopeDate)") < generate.index("setZiweiResult({")
+    assert "instantiateStandardZiwei(normalizedInput, locale)" in generate
+    assert generate.index("instantiateStandardZiwei(normalizedInput, locale)") < generate.index("setZiweiResult({")
     assert "setZiwei(" not in generate
     assert "setZiweiHoroscope(" not in generate
-    assert generate.count("setZiweiResult(") == 1
+    assert generate.index("setZiweiResult({") < generate.index("requestZiweiStatistics(")
     assert "chart," in generate
     assert "horoscope," in generate
     assert "horoscopeDate," in generate
@@ -1319,7 +1319,7 @@ def test_e2e_review_export_button_has_parent_name_and_separate_live_status():
 def test_najia_table_uses_compact_rows_without_duplicate_line_preview():
     najia = read("frontend/src/components/workspace/najia-table.tsx")
 
-    assert 'CardContent className="p-2 sm:p-3"' in najia
+    assert 'overflow-hidden border-y' in najia
     assert "grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)]" in najia
     assert "row.movement_tag" in najia
     assert "×→" not in najia
@@ -1327,8 +1327,8 @@ def test_najia_table_uses_compact_rows_without_duplicate_line_preview():
     assert "row.main_mark" not in najia
     assert "row.changed_mark" not in najia
     assert "row.marker" in najia
-    assert "min-h-9" in najia
-    assert "LineGlyph" not in najia
+    assert "min-h-12" in najia
+    assert "LineSvg" in najia
     assert "imperial-text" in najia
 
 

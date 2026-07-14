@@ -54,17 +54,59 @@ export type ShenShaHit = {
   trigger: string
   source: { title: string; note: string }
   school_note?: string
+  topic_tags: Array<"career" | "wealth" | "relationship" | "health">
+  formula_digest?: string
+  anchors?: Array<{ reference: string; label: string; field: string; value: string; targets: string[]; target_roles?: Record<string, string[]> }>
+  formula?: { method: string; anchor: string; anchor_selector: string; candidate_field: string; candidate_scope: string; mapping: Record<string, unknown> }
+  registry_version?: string
+  registry_digest?: string
   rules_version: string
 }
 
 export type RarityMetric = {
+  status: "observed" | "zero" | "unsupported"
   feature_id: string
   hit_weight: number
   total_weight: number
   percentage: number
   display_percentage: string
-  level: "common" | "less_common" | "rare" | "very_rare"
+  level: "common" | "less_common" | "rare" | "very_rare" | "unavailable"
   baseline_id: string
+}
+
+export type ThemeEvidence = {
+  family: string
+  evidence_type: "支持" | "制约" | "活动" | "背景"
+  title: string
+  detail: string
+  source: string
+}
+
+export type ThemeProfile = {
+  theme: "事业" | "财富" | "感情" | "健康"
+  evidence: ThemeEvidence[]
+  raw_family_count: number
+  possible_family_count: number
+  activity_percentile: number | null
+  percentile_label: string
+}
+
+export type StructuralParticipant = {
+  pillar: string
+  layer: "stem" | "branch" | "hidden_stem"
+  value: string
+  element: string
+  day_master_relation: "同我" | "我生" | "我克" | "克我" | "生我"
+  ten_god: string
+}
+
+export type StructuralRelation = {
+  relation_type: string
+  participants: StructuralParticipant[]
+  result_element?: string | null
+  theme_tags: Array<"事业" | "财富" | "感情" | "健康">
+  source_rule: string
+  label: string
 }
 
 export type RuleIndex = {
@@ -91,12 +133,23 @@ export type MetaphysicsStatistics = {
     rules_version: string
     sample_unit: string
     sample_weight: number
+    unique_state_count?: number
+    config_id?: string
+    schema_version?: number
+    feature_catalog_hash?: string
+    registry_hash?: string
+    weighting?: Record<string, number>
+    time_index_weights?: number[]
+    gender_scope?: string
+    interval_semantics?: string
     method: string
     hash: string
   }
   rarity_metrics: RarityMetric[]
-  rule_indices: RuleIndex[]
+  rule_indices?: RuleIndex[]
   disclaimer: string
+  status?: "available" | "unavailable" | "version_mismatch"
+  unavailable_reason?: string
 }
 
 export type PeriodMonth = {
@@ -167,6 +220,17 @@ export type MetaphysicsChart = {
   derived_schema_version: number
   rules_version: string
   shen_sha: ShenShaHit[]
+  structure: {
+    day_master: { stem: string; element: string; rooted: boolean; root_pillars: string[]; month_status: string }
+    day_master_relations: StructuralParticipant[]
+    layered_distribution: {
+      elements: Record<"visible_stems" | "branch_main_qi" | "hidden_stems", Record<string, number>>
+      ten_gods: Record<"visible_stems" | "hidden_stems", Record<string, number>>
+    }
+    structural_relations: StructuralRelation[]
+    theme_profiles: ThemeProfile[]
+  }
+  theme_profiles: ThemeProfile[]
   statistics: MetaphysicsStatistics
   period_layers: {
     dayun: DayunCycle[]

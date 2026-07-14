@@ -121,6 +121,8 @@ class MetaphysicsChartRequest(BaseModel):
     def _validate_lunar_input(self) -> "MetaphysicsChartRequest":
         if self.calendar_type == "lunar" and None in (self.lunar_year, self.lunar_month, self.lunar_day):
             raise ValueError("lunar_year, lunar_month, and lunar_day are required for lunar input")
+        if self.hour_uncertain:
+            raise ValueError("an exact birth hour is required for a full metaphysics chart")
         return self
 
 
@@ -144,9 +146,11 @@ class MetaphysicsChartResponse(BaseModel):
     previous_solar_term: Optional[Dict[str, object]] = None
     next_solar_term: Optional[Dict[str, object]] = None
     birth_profile: Dict[str, object]
-    derived_schema_version: int = 2
+    derived_schema_version: int = 3
     rules_version: str
     shen_sha: List[Dict[str, object]] = Field(default_factory=list)
+    structure: Dict[str, object] = Field(default_factory=dict)
+    theme_profiles: List[Dict[str, object]] = Field(default_factory=list)
     statistics: Dict[str, object]
     period_layers: Dict[str, object]
 
@@ -170,6 +174,11 @@ class MetaphysicsStatisticsResponse(BaseModel):
     baseline: Dict[str, object]
     rarity_metrics: List[Dict[str, object]] = Field(default_factory=list)
     rule_indices: List[Dict[str, object]] = Field(default_factory=list)
+    theme_profile: List[Dict[str, object]] = Field(default_factory=list)
+    theme_profiles: List[Dict[str, object]] = Field(default_factory=list)
+    rule_indices_deprecated: bool = True
+    status: Literal["available", "unavailable", "version_mismatch"] = "available"
+    unavailable_reason: Optional[str] = None
     disclaimer: str
 
 

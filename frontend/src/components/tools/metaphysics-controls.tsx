@@ -20,7 +20,6 @@ export type BaziControlCopy = {
   leapMonth: string
   birthPlace: string
   birthPlaceHint: string
-  hourUncertain: string
   dayunRule: string
   dayunRuleHint: string
   dayunSect1: string
@@ -66,8 +65,6 @@ type Props = {
   onBirthPlaceClear: () => void
   isLeapMonth: boolean
   setIsLeapMonth: (value: boolean) => void
-  hourUncertain: boolean
-  setHourUncertain: (value: boolean) => void
   dayunAlgorithm: "sect1" | "sect2"
   setDayunAlgorithm: (value: "sect1" | "sect2") => void
 }
@@ -104,8 +101,6 @@ export function BaziControls({
   onBirthPlaceClear,
   isLeapMonth,
   setIsLeapMonth,
-  hourUncertain,
-  setHourUncertain,
   dayunAlgorithm,
   setDayunAlgorithm,
 }: Props) {
@@ -129,7 +124,7 @@ export function BaziControls({
           {calendar === "solar" ? (
             <div className="space-y-2">
               <label htmlFor="bazi-birth-time" className="text-sm font-medium">{copy.birth}</label>
-              <Input id="bazi-birth-time" type={hourUncertain ? "date" : "datetime-local"} value={hourUncertain ? birthTime.slice(0, 10) : birthTime} onChange={(event) => setBirthTime(hourUncertain ? `${event.target.value}T12:00` : event.target.value)} />
+              <Input id="bazi-birth-time" type="datetime-local" value={birthTime} required onChange={(event) => setBirthTime(event.target.value)} />
             </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-[1fr_8rem]">
@@ -139,7 +134,7 @@ export function BaziControls({
               </div>
               <div className="space-y-2">
                 <label htmlFor="bazi-lunar-time" className="text-sm font-medium">{copy.birth}</label>
-                <Input id="bazi-lunar-time" type="time" value={hourUncertain ? "12:00" : lunarBirthTime} disabled={hourUncertain} onChange={(event) => setLunarBirthTime(event.target.value)} />
+                <Input id="bazi-lunar-time" type="time" value={lunarBirthTime} required onChange={(event) => setLunarBirthTime(event.target.value)} />
               </div>
             </div>
           )}
@@ -154,10 +149,6 @@ export function BaziControls({
 
           <BirthPlaceField locale={locale} selectedLocation={selectedLocation} overrideActive={birthPlaceOverrideActive} effectiveTimezone={effectiveTimezone} effectiveLongitude={effectiveLongitude} onSelect={onBirthPlaceSelect} onClear={onBirthPlaceClear} />
 
-          <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-3 md:col-span-2">
-            <label htmlFor="bazi-hour-uncertain" className="text-sm font-medium">{copy.hourUncertain}</label>
-            <Switch id="bazi-hour-uncertain" checked={hourUncertain} onCheckedChange={setHourUncertain} />
-          </div>
         </div>
       </section>
 

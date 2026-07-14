@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BaziChartView } from "@/components/tools/bazi-chart-view"
 import { BaziControls } from "@/components/tools/metaphysics-controls"
-import { ZiweiChartView, type ZiweiProvenance } from "@/components/tools/ziwei-chart-view"
+import { ZiweiChartView, type ZiweiArchiveMode, type ZiweiProvenance, type ZiweiStatisticsStatus } from "@/components/tools/ziwei-chart-view"
 import { calculateMetaphysicsChart, fetchMetaphysicsChart, fetchMetaphysicsStatistics, saveMetaphysicsChart } from "@/lib/api"
 import type { LocationResult } from "@/lib/location-search"
 import { ZIWEI_BASELINE_ID, ziweiFeatureIds } from "@/lib/ziwei-statistics"
@@ -25,9 +25,27 @@ import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 
 const pad = (value: number) => String(value).padStart(2, "0")
 const localDateTimeValue = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-const TIMEZONES = ["Asia/Shanghai", "Asia/Hong_Kong", "Asia/Taipei", "Asia/Singapore", "Asia/Tokyo", "America/Los_Angeles", "America/New_York", "Europe/London"]
 const IZTRO_MIN_DATE = "1900-01-31"
 const IZTRO_MAX_DATE = "2100-12-31"
+const TIMEZONES = ["Asia/Shanghai", "Asia/Hong_Kong", "Asia/Taipei", "Asia/Singapore", "Asia/Tokyo", "America/Los_Angeles", "America/New_York", "Europe/London"]
+const ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"
+
+const STANDARD_ZIWEI_RULES = {
+  algorithm: "default",
+  astroType: "heaven",
+  yearDivide: "exact",
+  dayBoundary: "forward",
+  fixLeap: true,
+} as const
+
+type ZiweiNormalizedInput = {
+  calendar: "solar" | "lunar"
+  date: string
+  time: string
+  gender: "男" | "女"
+  isLeapMonth: boolean
+  horoscopeDate: string
+}
 
 type ZiweiResultSnapshot = {
   chart: IFunctionalAstrolabe
@@ -36,7 +54,11 @@ type ZiweiResultSnapshot = {
   generatedAt: string
   provenance: ZiweiProvenance
   subjectName: string
-  statistics: MetaphysicsStatistics
+  statistics: MetaphysicsStatistics | null
+  statisticsStatus: ZiweiStatisticsStatus
+  statisticsError?: string
+  archiveMode: ZiweiArchiveMode
+  normalizedInput?: ZiweiNormalizedInput
 }
 
 type BaziResultSnapshot = {
@@ -62,6 +84,94 @@ function isSupportedHoroscopeDate(value: string) {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
 }
 
+function normalizeCalendarDate(value: string) {
+  const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(value)
+  if (!match) return null
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  return `${match[1]}-${pad(month)}-${pad(day)}`
+}
+
+function normalizeExactTime(value: string) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value)
+  if (!match) return null
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null
+  return `${pad(hour)}:${pad(minute)}`
+}
+
+function timeIndexFor(time: string) {
+  const hour = Number(time.slice(0, 2))
+  return hour === 23 ? 12 : Math.floor((hour + 1) / 2)
+}
+
+function standardZiweiProvenance(input: Pick<ZiweiNormalizedInput, "calendar" | "isLeapMonth">): ZiweiProvenance {
+  return {
+    configId: ZIWEI_STANDARD_CONFIG_ID,
+    ...STANDARD_ZIWEI_RULES,
+    calendar: input.calendar,
+    isLeapMonth: input.calendar === "lunar" && input.isLeapMonth,
+  }
+}
+
+function isStandardZiweiProvenance(provenance?: ZiweiProvenance) {
+  return Boolean(
+    provenance
+    && provenance.algorithm === STANDARD_ZIWEI_RULES.algorithm
+    && provenance.astroType === STANDARD_ZIWEI_RULES.astroType
+    && provenance.yearDivide === STANDARD_ZIWEI_RULES.yearDivide
+    && provenance.dayBoundary === STANDARD_ZIWEI_RULES.dayBoundary
+    && provenance.fixLeap === STANDARD_ZIWEI_RULES.fixLeap,
+  )
+}
+
+function normalizedZiweiInputFromRecord(record: MetaphysicsChartRecord, form: Record<string, unknown>, fallbackHoroscopeDate: string) {
+  const stored = record.input_snapshot.normalized_ziwei
+  const storedInput = stored && typeof stored === "object" ? stored as Record<string, unknown> : null
+  const calendarValue = storedInput?.calendar ?? form.ziwei_calendar ?? record.subject.calendar_type
+  const calendar = calendarValue === "lunar" ? "lunar" : calendarValue === "solar" ? "solar" : null
+  if (!calendar) return null
+
+  const subjectTimestamp = record.subject.birth_local_timestamp || ""
+  const legacySolarBirth = typeof form.birth_time === "string" ? form.birth_time : subjectTimestamp
+  const rawDate = storedInput?.date ?? (calendar === "lunar" ? form.lunar_birth_date : legacySolarBirth.slice(0, 10)) ?? subjectTimestamp.slice(0, 10)
+  const rawTime = storedInput?.time ?? (calendar === "lunar" ? form.lunar_birth_time : typeof form.birth_time === "string" ? form.birth_time.slice(11, 16) : null) ?? subjectTimestamp.slice(11, 16)
+  const date = typeof rawDate === "string" ? normalizeCalendarDate(rawDate) : null
+  const time = typeof rawTime === "string" ? normalizeExactTime(rawTime) : null
+  const horoscopeDateValue = storedInput?.horoscopeDate ?? form.horoscope_date ?? fallbackHoroscopeDate
+  const normalizedHoroscopeDate = typeof horoscopeDateValue === "string" && isSupportedHoroscopeDate(horoscopeDateValue) ? horoscopeDateValue : null
+  if (!date || !time || !normalizedHoroscopeDate) return null
+
+  const genderValue = storedInput?.gender
+  const gender = genderValue === "女" || record.subject.gender === "female" ? "女" : "男"
+  const isLeapMonth = typeof storedInput?.isLeapMonth === "boolean" ? storedInput.isLeapMonth : form.ziwei_leap_month === true
+  return { calendar, date, time, gender, isLeapMonth, horoscopeDate: normalizedHoroscopeDate } satisfies ZiweiNormalizedInput
+}
+
+async function instantiateStandardZiwei(input: ZiweiNormalizedInput, locale: "en" | "zh") {
+  const { astro } = await import("iztro")
+  const options = {
+    type: input.calendar,
+    dateStr: input.date,
+    timeIndex: timeIndexFor(input.time),
+    gender: input.gender,
+    isLeapMonth: input.calendar === "lunar" && input.isLeapMonth,
+    fixLeap: STANDARD_ZIWEI_RULES.fixLeap,
+    config: {
+      algorithm: STANDARD_ZIWEI_RULES.algorithm,
+      dayDivide: STANDARD_ZIWEI_RULES.dayBoundary,
+      yearDivide: STANDARD_ZIWEI_RULES.yearDivide,
+      horoscopeDivide: STANDARD_ZIWEI_RULES.yearDivide,
+    },
+    astroType: STANDARD_ZIWEI_RULES.astroType,
+  } as const
+  const chart = astro.withOptions({ ...options, language: locale === "zh" ? "zh-CN" : "en-US" })
+  const statisticsChart = locale === "zh" ? chart : astro.withOptions({ ...options, language: "zh-CN" })
+  return { chart, horoscope: chart.horoscope(input.horoscopeDate), statisticsChart }
+}
+
 export function MetaphysicsTools() {
   const { locale, toLocalePath } = useI18n()
   const auth = useAuthContext()
@@ -81,21 +191,17 @@ export function MetaphysicsTools() {
   const [selectedBirthPlace, setSelectedBirthPlace] = useState<LocationResult | null>(null)
   const [locationAutofill, setLocationAutofill] = useState<LocationAutofillState | null>(null)
   const [isLeapMonth, setIsLeapMonth] = useState(false)
-  const [hourUncertain, setHourUncertain] = useState(false)
-  const [dayunAlgorithm, setDayunAlgorithm] = useState<"sect1" | "sect2">("sect2")
   const [longitude, setLongitude] = useState("")
-  const [trueSolar, setTrueSolar] = useState(false)
-  const [dayBoundary, setDayBoundary] = useState<"current" | "forward">("forward")
+  const [baziTrueSolar, setBaziTrueSolar] = useState(false)
+  const [baziDayBoundary, setBaziDayBoundary] = useState<"current" | "forward">("forward")
+  const [dayunAlgorithm, setDayunAlgorithm] = useState<"sect1" | "sect2">("sect2")
   const [birthResult, setBirthResult] = useState<BaziResultSnapshot | null>(null)
+  const [incompleteBaziRecord, setIncompleteBaziRecord] = useState<{ subjectName: string; birthTimestamp: string } | null>(null)
   const [birthLoading, setBirthLoading] = useState(false)
   const [baziEditorOpen, setBaziEditorOpen] = useState(true)
   const [gender, setGender] = useState<"男" | "女">("男")
-  const [fixLeap, setFixLeap] = useState(true)
   const [ziweiCalendar, setZiweiCalendar] = useState<"solar" | "lunar">("solar")
   const [ziweiLeapMonth, setZiweiLeapMonth] = useState(false)
-  const [ziweiAlgorithm, setZiweiAlgorithm] = useState<"default" | "zhongzhou">("default")
-  const [ziweiAstroType, setZiweiAstroType] = useState<"heaven" | "earth" | "human">("heaven")
-  const [ziweiYearDivide, setZiweiYearDivide] = useState<"normal" | "exact">("exact")
   const [horoscopeDate, setHoroscopeDate] = useState(() => localDateTimeValue(new Date()).slice(0, 10))
   const [ziweiResult, setZiweiResult] = useState<ZiweiResultSnapshot | null>(null)
   const [ziweiLoading, setZiweiLoading] = useState(false)
@@ -104,6 +210,10 @@ export function MetaphysicsTools() {
   const [activeBaziChartId, setActiveBaziChartId] = useState<string | null>(null)
   const [activeZiweiChartId, setActiveZiweiChartId] = useState<string | null>(null)
   const [savingType, setSavingType] = useState<"bazi" | "ziwei" | null>(null)
+  const [ziweiPeriodSavePending, setZiweiPeriodSavePending] = useState(false)
+  const [ziweiPeriodSaveError, setZiweiPeriodSaveError] = useState(false)
+  const ziweiPeriodSaveVersionRef = useRef(0)
+  const ziweiPeriodSaveQueueRef = useRef<Promise<void>>(Promise.resolve())
   const timezoneOptions = useMemo(() => TIMEZONES.includes(timezone) ? TIMEZONES : [timezone, ...TIMEZONES], [timezone])
   const locationOverrideActive = Boolean(locationAutofill && (
     timezone !== locationAutofill.appliedTimezone || longitude !== locationAutofill.appliedLongitude
@@ -168,6 +278,9 @@ export function MetaphysicsTools() {
     loginToSave: "登录后自动保存并可随时打开",
     saveFailed: "命盘已生成，但云端保存失败，请稍后重试。",
     loadedChart: "已打开私人命盘档案。",
+    exactTimeRequired: "两种命盘都需要准确到分钟的出生时间。",
+    standardRules: "统一排盘规则",
+    standardRulesBody: "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启",
   } : {
     subjectName: "Chart name",
     title: "BaZi & Zi Wei Charts",
@@ -227,6 +340,9 @@ export function MetaphysicsTools() {
     loginToSave: "Sign in to save and reopen this chart",
     saveFailed: "The chart was generated, but cloud saving failed. Try again later.",
     loadedChart: "Private chart opened.",
+    exactTimeRequired: "Both charts require an exact birth time to the minute.",
+    standardRules: "Standard chart rules",
+    standardRulesBody: "Standard algorithm · Heaven chart · Start-of-Spring year and horoscope boundaries · late Zi advances the day · leap-month adjustment on",
   }
 
   useEffect(() => {
@@ -285,7 +401,41 @@ export function MetaphysicsTools() {
     return `${toLocalePath("/app")}?timestamp=${encodeURIComponent(currentChart.calculation_timestamp)}`
   }, [currentChart?.calculation_timestamp, toLocalePath])
 
+  function requestZiweiStatistics(statisticsChart: IFunctionalAstrolabe, generatedAt: string) {
+    void fetchMetaphysicsStatistics({
+      chart_type: "ziwei",
+      baseline_id: ZIWEI_BASELINE_ID,
+      feature_ids: ziweiFeatureIds(statisticsChart),
+    }).then((statistics) => {
+      if (statistics.status && statistics.status !== "available") {
+        setZiweiResult((current) => current?.generatedAt === generatedAt
+          ? {
+              ...current,
+              statistics: null,
+              statisticsStatus: "unavailable",
+              statisticsError: statistics.unavailable_reason ?? (locale === "zh" ? "当前规则版本没有可用的频率样本。" : "No frequency sample is available for the current rules version."),
+            }
+          : current)
+        return
+      }
+      setZiweiResult((current) => current?.generatedAt === generatedAt
+        ? { ...current, statistics, statisticsStatus: "ready", statisticsError: undefined }
+        : current)
+    }).catch(() => {
+      setZiweiResult((current) => current?.generatedAt === generatedAt
+        ? {
+            ...current,
+            statistics: null,
+            statisticsStatus: "unavailable",
+            statisticsError: locale === "zh" ? "频率样本暂时不可用，命盘与运限仍可正常查看。" : "Frequency samples are temporarily unavailable. The chart and periods remain available.",
+          }
+        : current)
+    })
+  }
+
   async function hydrateSavedChart(record: MetaphysicsChartRecord) {
+    ziweiPeriodSaveVersionRef.current += 1
+    setSavingType(null)
     const form = (record.input_snapshot.form ?? {}) as Record<string, unknown>
     const subjectName = record.subject.display_name ?? ""
     setActiveSubjectId(record.subject_id)
@@ -299,17 +449,12 @@ export function MetaphysicsTools() {
     if (typeof form.birth_time === "string") setBirthTime(form.birth_time)
     if (typeof form.lunar_birth_date === "string") setLunarBirthDate(form.lunar_birth_date)
     if (typeof form.lunar_birth_time === "string") setLunarBirthTime(form.lunar_birth_time)
-    if (typeof form.true_solar === "boolean") setTrueSolar(form.true_solar)
-    if (form.day_boundary === "current" || form.day_boundary === "forward") setDayBoundary(form.day_boundary)
-    if (typeof form.is_leap_month === "boolean") setIsLeapMonth(form.is_leap_month)
-    if (typeof form.hour_uncertain === "boolean") setHourUncertain(form.hour_uncertain)
+    if (typeof form.true_solar === "boolean") setBaziTrueSolar(form.true_solar)
+    if (form.day_boundary === "current" || form.day_boundary === "forward") setBaziDayBoundary(form.day_boundary)
     if (form.dayun_algorithm === "sect1" || form.dayun_algorithm === "sect2") setDayunAlgorithm(form.dayun_algorithm)
-    if (typeof form.fix_leap === "boolean") setFixLeap(form.fix_leap)
+    if (typeof form.is_leap_month === "boolean") setIsLeapMonth(form.is_leap_month)
     if (form.ziwei_calendar === "solar" || form.ziwei_calendar === "lunar") setZiweiCalendar(form.ziwei_calendar)
     if (typeof form.ziwei_leap_month === "boolean") setZiweiLeapMonth(form.ziwei_leap_month)
-    if (form.ziwei_algorithm === "default" || form.ziwei_algorithm === "zhongzhou") setZiweiAlgorithm(form.ziwei_algorithm)
-    if (form.ziwei_astro_type === "heaven" || form.ziwei_astro_type === "earth" || form.ziwei_astro_type === "human") setZiweiAstroType(form.ziwei_astro_type)
-    if (form.ziwei_year_divide === "normal" || form.ziwei_year_divide === "exact") setZiweiYearDivide(form.ziwei_year_divide)
     if (typeof form.horoscope_date === "string") setHoroscopeDate(form.horoscope_date)
     const savedLocation = form.selected_location
     if (savedLocation && typeof savedLocation === "object") {
@@ -329,14 +474,23 @@ export function MetaphysicsTools() {
     if (record.chart_type === "bazi") {
       const snapshot = record.result_snapshot as { chart?: MetaphysicsChart; generated_at?: string; subject_name?: string }
       if (!snapshot.chart) throw new Error(locale === "zh" ? "八字命盘快照不完整。" : "The BaZi snapshot is incomplete.")
+      if (form.hour_uncertain === true || snapshot.chart.birth_profile?.hour_uncertain) {
+        setBirthResult(null)
+        setIncompleteBaziRecord({ subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
+        setActiveBaziChartId(record.id)
+        setBaziEditorOpen(true)
+        setActiveTab("bazi")
+        return
+      }
       let chart = snapshot.chart
-      if (!chart.derived_schema_version || !chart.shen_sha || !chart.statistics || !chart.period_layers) {
+      if ((chart.derived_schema_version ?? 0) < 3 || !chart.shen_sha || !chart.statistics || !chart.period_layers || !chart.structure || !chart.theme_profiles) {
         const request = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
         if (!request) throw new Error(locale === "zh" ? "旧命盘缺少可重算的原始参数。" : "This legacy chart lacks the original calculation inputs.")
         chart = await calculateMetaphysicsChart(request)
         toast.info(locale === "zh" ? "已按新版规则临时补算；原档案仍保留旧结果，重新保存后升级。" : "Recomputed with the new rules for this view. The stored legacy result remains unchanged until you save again.")
       }
       setBirthResult({ chart, generatedAt: snapshot.generated_at ?? record.updated_at, subjectName: snapshot.subject_name ?? subjectName })
+      setIncompleteBaziRecord(null)
       setActiveBaziChartId(record.id)
       setBaziEditorOpen(false)
       setActiveTab("bazi")
@@ -350,18 +504,69 @@ export function MetaphysicsTools() {
         subject_name?: string
         statistics?: MetaphysicsStatistics
       }
-      if (!snapshot.chart || !snapshot.horoscope || !snapshot.provenance) throw new Error(locale === "zh" ? "紫微命盘快照不完整。" : "The Zi Wei snapshot is incomplete.")
-      const statistics = snapshot.statistics ?? await fetchMetaphysicsStatistics({ chart_type: "ziwei", baseline_id: ZIWEI_BASELINE_ID, feature_ids: ziweiFeatureIds(snapshot.chart) })
-      setZiweiResult({
-        chart: snapshot.chart,
-        horoscope: snapshot.horoscope,
-        horoscopeDate: snapshot.horoscope_date ?? record.birth_date,
-        generatedAt: snapshot.generated_at ?? record.updated_at,
-        provenance: snapshot.provenance,
-        subjectName: snapshot.subject_name ?? subjectName,
-        statistics,
-      })
+      const storedProvenance = snapshot.provenance ?? (record.input_snapshot.provenance as ZiweiProvenance | undefined)
+      const fallbackProvenance: ZiweiProvenance = {
+        algorithm: form.ziwei_algorithm === "zhongzhou" ? "zhongzhou" : "default",
+        astroType: form.ziwei_astro_type === "earth" || form.ziwei_astro_type === "human" ? form.ziwei_astro_type : "heaven",
+        yearDivide: form.ziwei_year_divide === "normal" ? "normal" : "exact",
+        dayBoundary: form.day_boundary === "current" ? "current" : "forward",
+        calendar: record.subject.calendar_type,
+        fixLeap: form.fix_leap !== false,
+        isLeapMonth: form.ziwei_leap_month === true,
+      }
+      const provenance = storedProvenance ?? fallbackProvenance
+      const savedHoroscopeDate = snapshot.horoscope_date ?? record.birth_date
+      const hasStoredNormalizedInput = Boolean(record.input_snapshot.normalized_ziwei && typeof record.input_snapshot.normalized_ziwei === "object")
+      const normalizedInput = normalizedZiweiInputFromRecord(record, form, savedHoroscopeDate)
+      const generatedAt = snapshot.generated_at ?? record.updated_at
+
+      if (normalizedInput) {
+        setZiweiCalendar(normalizedInput.calendar)
+        setZiweiLeapMonth(normalizedInput.isLeapMonth)
+        setGender(normalizedInput.gender)
+        setHoroscopeDate(normalizedInput.horoscopeDate)
+        if (normalizedInput.calendar === "solar") setBirthTime(`${normalizedInput.date}T${normalizedInput.time}`)
+        else {
+          setLunarBirthDate(normalizedInput.date)
+          setLunarBirthTime(normalizedInput.time)
+        }
+      }
+
+      if (isStandardZiweiProvenance(provenance) && hasStoredNormalizedInput && normalizedInput) {
+        const { chart, horoscope, statisticsChart } = await instantiateStandardZiwei(normalizedInput, locale)
+        setZiweiResult({
+          chart,
+          horoscope,
+          horoscopeDate: normalizedInput.horoscopeDate,
+          generatedAt,
+          provenance: standardZiweiProvenance(normalizedInput),
+          subjectName: snapshot.subject_name ?? subjectName,
+          statistics: null,
+          statisticsStatus: "loading",
+          archiveMode: "standard",
+          normalizedInput,
+        })
+        requestZiweiStatistics(statisticsChart, generatedAt)
+      } else {
+        if (!snapshot.chart || !snapshot.horoscope) throw new Error(locale === "zh" ? "紫微命盘快照不完整。" : "The Zi Wei snapshot is incomplete.")
+        const archiveMode: ZiweiArchiveMode = !isStandardZiweiProvenance(provenance) ? "legacy-nonstandard" : "legacy-static"
+        setZiweiResult({
+          chart: snapshot.chart,
+          horoscope: snapshot.horoscope,
+          horoscopeDate: savedHoroscopeDate,
+          generatedAt,
+          provenance,
+          subjectName: snapshot.subject_name ?? subjectName,
+          statistics: null,
+          statisticsStatus: "unavailable",
+          statisticsError: locale === "zh" ? "旧档案以静态快照保留，未重新计算频率样本。" : "This legacy archive is preserved as a static snapshot; frequency samples were not recalculated.",
+          archiveMode,
+          normalizedInput: normalizedInput ?? undefined,
+        })
+      }
       setActiveZiweiChartId(record.id)
+      setZiweiPeriodSavePending(false)
+      setZiweiPeriodSaveError(false)
       setZiweiEditorOpen(false)
       setActiveTab("ziwei")
     }
@@ -372,18 +577,18 @@ export function MetaphysicsTools() {
       birth_time: birthTime,
       lunar_birth_date: lunarBirthDate,
       lunar_birth_time: lunarBirthTime,
-      true_solar: trueSolar,
-      day_boundary: dayBoundary,
+      true_solar: baziTrueSolar,
+      day_boundary: baziDayBoundary,
       is_leap_month: isLeapMonth,
-      hour_uncertain: hourUncertain,
+      hour_uncertain: false,
       dayun_algorithm: dayunAlgorithm,
       selected_location: selectedBirthPlace,
-      fix_leap: fixLeap,
+      fix_leap: STANDARD_ZIWEI_RULES.fixLeap,
       ziwei_calendar: ziweiCalendar,
       ziwei_leap_month: ziweiLeapMonth,
-      ziwei_algorithm: ziweiAlgorithm,
-      ziwei_astro_type: ziweiAstroType,
-      ziwei_year_divide: ziweiYearDivide,
+      ziwei_algorithm: STANDARD_ZIWEI_RULES.algorithm,
+      ziwei_astro_type: STANDARD_ZIWEI_RULES.astroType,
+      ziwei_year_divide: STANDARD_ZIWEI_RULES.yearDivide,
       horoscope_date: horoscopeDate,
     }
   }
@@ -391,7 +596,7 @@ export function MetaphysicsTools() {
   function subjectPayload(calendarType: "solar" | "lunar", subjectGender: "male" | "female") {
     const localTimestamp = calendarType === "solar"
       ? birthTime
-      : `${lunarBirthDate}T${hourUncertain ? "12:00" : lunarBirthTime}`
+      : `${lunarBirthDate}T${lunarBirthTime}`
     return {
       id: activeSubjectId,
       display_name: baziSubjectName.trim() || null,
@@ -406,11 +611,13 @@ export function MetaphysicsTools() {
     } satisfies MetaphysicsChartSavePayload["subject"]
   }
 
-  async function persistGeneratedChart(payload: MetaphysicsChartSavePayload) {
-    if (!auth.accessToken) return null
+  async function persistGeneratedChart(payload: MetaphysicsChartSavePayload, options?: { isCurrent?: () => boolean }) {
+    const isCurrent = options?.isCurrent ?? (() => true)
+    if (!auth.accessToken || !isCurrent()) return null
     setSavingType(payload.chart_type)
     try {
       const record = await saveMetaphysicsChart(payload, auth.accessToken)
+      if (!isCurrent()) return null
       setActiveSubjectId(record.subject_id)
       if (record.chart_type === "bazi") setActiveBaziChartId(record.id)
       else setActiveZiweiChartId(record.id)
@@ -418,19 +625,24 @@ export function MetaphysicsTools() {
       router.replace(`${toLocalePath("/tools")}?tab=${record.chart_type}&chart=${record.id}`, { scroll: false })
       return record
     } catch {
-      toast.error(copy.saveFailed)
+      if (isCurrent()) toast.error(copy.saveFailed)
       return null
     } finally {
-      setSavingType(null)
+      if (isCurrent()) setSavingType(null)
     }
   }
 
   function startNewChart() {
+    ziweiPeriodSaveVersionRef.current += 1
     setBirthResult(null)
+    setIncompleteBaziRecord(null)
     setZiweiResult(null)
     setActiveSubjectId(null)
     setActiveBaziChartId(null)
     setActiveZiweiChartId(null)
+    setZiweiPeriodSavePending(false)
+    setZiweiPeriodSaveError(false)
+    setSavingType(null)
     setBaziSubjectName("")
     setBirthTime(localDateTimeValue(new Date(1990, 0, 1, 12, 0)))
     setLunarBirthDate("1990-01-01")
@@ -470,45 +682,45 @@ export function MetaphysicsTools() {
   }
 
   async function generateBazi() {
-    if (baziCalendar === "solar" && (!birthTime || Number.isNaN(new Date(birthTime).getTime()))) {
-      toast.error(locale === "zh" ? "请输入有效出生时间。" : "Enter a valid birth time.")
-      return
-    }
-    if (trueSolar && !longitude) {
-      toast.error(locale === "zh" ? "使用真太阳时必须填写出生地经度。" : "Longitude is required for true-solar correction.")
+    const solarDate = normalizeCalendarDate(birthTime.slice(0, 10))
+    const solarTime = normalizeExactTime(birthTime.slice(11, 16))
+    if (baziCalendar === "solar" && (!solarDate || !solarTime)) {
+      toast.error(locale === "zh" ? "请输入准确到分钟的有效出生时间。" : "Enter a valid birth time to the minute.")
       return
     }
     const lunarMatch = lunarBirthDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
-    const lunarTimeMatch = lunarBirthTime.match(/^(\d{1,2}):(\d{2})$/)
+    const lunarExactTime = normalizeExactTime(lunarBirthTime)
+    const lunarTimeMatch = lunarExactTime?.match(/^(\d{2}):(\d{2})$/)
     if (baziCalendar === "lunar" && (!lunarMatch || !lunarTimeMatch)) {
-      toast.error(locale === "zh" ? "农历日期请使用 YYYY-MM-DD，时间请使用 HH:mm。" : "Use YYYY-MM-DD for the lunar date and HH:mm for time.")
+      toast.error(locale === "zh" ? "农历日期请使用 YYYY-MM-DD，并填写准确到分钟的出生时间。" : "Use YYYY-MM-DD for the lunar date and provide an exact birth time to the minute.")
       return
     }
     setBirthLoading(true)
     try {
       const calculationRequest = {
-        timestamp: baziCalendar === "solar" ? birthTime : `${lunarBirthDate}T${hourUncertain ? "12:00" : lunarBirthTime}`,
+        timestamp: baziCalendar === "solar" ? `${solarDate}T${solarTime}` : `${lunarBirthDate}T${lunarExactTime}`,
         timezone,
         longitude: longitude ? Number(longitude) : null,
-        use_true_solar_time: trueSolar,
-        day_boundary: dayBoundary,
+        use_true_solar_time: baziTrueSolar,
+        day_boundary: baziDayBoundary,
         calendar_type: baziCalendar,
         is_leap_month: baziCalendar === "lunar" && isLeapMonth,
         gender: baziGender,
         birth_place: birthPlace || null,
-        hour_uncertain: hourUncertain,
+        hour_uncertain: false,
         dayun_algorithm: dayunAlgorithm,
         lunar_year: lunarMatch ? Number(lunarMatch[1]) : null,
         lunar_month: lunarMatch ? Number(lunarMatch[2]) : null,
         lunar_day: lunarMatch ? Number(lunarMatch[3]) : null,
-        lunar_hour: lunarTimeMatch ? (hourUncertain ? 12 : Number(lunarTimeMatch[1])) : null,
-        lunar_minute: lunarTimeMatch ? (hourUncertain ? 0 : Number(lunarTimeMatch[2])) : null,
+        lunar_hour: lunarTimeMatch ? Number(lunarTimeMatch[1]) : null,
+        lunar_minute: lunarTimeMatch ? Number(lunarTimeMatch[2]) : null,
       } as const
       const chart = await calculateMetaphysicsChart(calculationRequest)
       const subjectName = baziSubjectName.trim()
       const nextBirthResult = { chart, generatedAt: new Date().toISOString(), subjectName }
       const generatedAt = nextBirthResult.generatedAt
       setBirthResult(nextBirthResult)
+      setIncompleteBaziRecord(null)
       setBaziEditorOpen(false)
       await persistGeneratedChart({
         id: activeBaziChartId,
@@ -518,11 +730,11 @@ export function MetaphysicsTools() {
         birth_date: (chart.birth_profile.converted_solar_date ?? chart.calculation_timestamp).slice(0, 10),
         day_pillar: chart.calendar_facts.day_pillar,
         input_snapshot: { form: formSnapshot(), calculation_request: calculationRequest },
-        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 2, baseline_id: chart.statistics.baseline.id },
+        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 3, baseline_id: chart.statistics.baseline.id },
         engine_name: "sxtwl+lunar-python",
         engine_version: "2.0.7+1.4.8",
-        rules_version: `${chart.rules_version}:${dayBoundary}:${dayunAlgorithm}`,
-        schema_version: 2,
+        rules_version: `${chart.rules_version}:${baziDayBoundary}:${dayunAlgorithm}`,
+        schema_version: 3,
       })
     } catch (error) {
       toast.error((error as Error).message)
@@ -532,64 +744,31 @@ export function MetaphysicsTools() {
   }
 
   async function generateZiwei() {
-    if (ziweiCalendar === "solar" && (!birthTime || Number.isNaN(new Date(birthTime).getTime()))) {
-      toast.error(locale === "zh" ? "请输入有效出生时间。" : "Enter a valid birth time.")
-      return
-    }
     if (!isSupportedHoroscopeDate(horoscopeDate)) {
       toast.error(copy.invalidHoroscopeDate)
       return
     }
-    const lunarDateMatch = lunarBirthDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
-    const selectedTime = ziweiCalendar === "lunar" ? lunarBirthTime : birthTime.slice(11, 16)
-    const timeMatch = selectedTime.match(/^(\d{1,2}):(\d{2})$/)
-    if (ziweiCalendar === "lunar" && (!lunarDateMatch || !timeMatch)) {
-      toast.error(locale === "zh" ? "农历日期请使用 YYYY-MM-DD，时间请使用 HH:mm。" : "Use YYYY-MM-DD for the lunar date and HH:mm for time.")
+    const date = normalizeCalendarDate(ziweiCalendar === "lunar" ? lunarBirthDate : birthTime.slice(0, 10))
+    const time = normalizeExactTime(ziweiCalendar === "lunar" ? lunarBirthTime : birthTime.slice(11, 16))
+    if (!date || !time) {
+      toast.error(locale === "zh" ? "请输入有效日期和准确到分钟的出生时间。" : "Enter a valid date and exact birth time to the minute.")
       return
     }
-    const provenance: ZiweiProvenance = {
-      algorithm: ziweiAlgorithm,
-      astroType: ziweiAlgorithm === "zhongzhou" ? ziweiAstroType : "heaven",
-      yearDivide: ziweiYearDivide,
-      dayBoundary,
+    const normalizedInput: ZiweiNormalizedInput = {
       calendar: ziweiCalendar,
-      fixLeap,
+      date,
+      time,
+      gender,
       isLeapMonth: ziweiCalendar === "lunar" && ziweiLeapMonth,
+      horoscopeDate,
     }
+    const provenance = standardZiweiProvenance(normalizedInput)
+    ziweiPeriodSaveVersionRef.current += 1
+    setZiweiPeriodSavePending(false)
+    setZiweiPeriodSaveError(false)
     setZiweiLoading(true)
     try {
-      const { astro } = await import("iztro")
-      const hour = timeMatch ? Number(timeMatch[1]) : new Date(birthTime).getHours()
-      const timeIndex = hour === 23 ? 12 : Math.floor((hour + 1) / 2)
-      const chart = astro.withOptions({
-        type: ziweiCalendar,
-        dateStr: ziweiCalendar === "lunar" ? lunarBirthDate : birthTime.slice(0, 10),
-        timeIndex,
-        gender,
-        isLeapMonth: ziweiCalendar === "lunar" && ziweiLeapMonth,
-        fixLeap,
-        language: locale === "zh" ? "zh-CN" : "en-US",
-        config: {
-          algorithm: ziweiAlgorithm,
-          dayDivide: dayBoundary,
-          yearDivide: ziweiYearDivide,
-          horoscopeDivide: ziweiYearDivide,
-        },
-        astroType: provenance.astroType,
-      })
-      const horoscope = chart.horoscope(horoscopeDate)
-      const statisticsChart = locale === "zh" ? chart : astro.withOptions({
-        type: ziweiCalendar,
-        dateStr: ziweiCalendar === "lunar" ? lunarBirthDate : birthTime.slice(0, 10),
-        timeIndex,
-        gender,
-        isLeapMonth: ziweiCalendar === "lunar" && ziweiLeapMonth,
-        fixLeap,
-        language: "zh-CN",
-        config: { algorithm: ziweiAlgorithm, dayDivide: dayBoundary, yearDivide: ziweiYearDivide, horoscopeDivide: ziweiYearDivide },
-        astroType: provenance.astroType,
-      })
-      const statistics = await fetchMetaphysicsStatistics({ chart_type: "ziwei", baseline_id: ZIWEI_BASELINE_ID, feature_ids: ziweiFeatureIds(statisticsChart) })
+      const { chart, horoscope, statisticsChart } = await instantiateStandardZiwei(normalizedInput, locale)
       const generatedAt = new Date().toISOString()
       const subjectName = baziSubjectName.trim()
       setZiweiResult({
@@ -599,9 +778,14 @@ export function MetaphysicsTools() {
         generatedAt,
         provenance,
         subjectName,
-        statistics,
+        statistics: null,
+        statisticsStatus: "loading",
+        archiveMode: "standard",
+        normalizedInput,
       })
       setZiweiEditorOpen(false)
+      requestZiweiStatistics(statisticsChart, generatedAt)
+      await ziweiPeriodSaveQueueRef.current
       await persistGeneratedChart({
         id: activeZiweiChartId,
         chart_type: "ziwei",
@@ -609,18 +793,94 @@ export function MetaphysicsTools() {
         title: subjectName ? `${subjectName} · 紫微` : null,
         birth_date: chart.solarDate.slice(0, 10),
         day_pillar: chart.rawDates.chineseDate.daily.join(""),
-        input_snapshot: { form: formSnapshot(), provenance },
-        result_snapshot: { chart, horoscope, horoscope_date: horoscopeDate, generated_at: generatedAt, provenance, subject_name: subjectName, statistics, derived_schema_version: 2, baseline_id: statistics.baseline.id },
+        input_snapshot: { form: formSnapshot(), provenance, normalized_ziwei: normalizedInput },
+        result_snapshot: { chart, horoscope, horoscope_date: horoscopeDate, generated_at: generatedAt, provenance, subject_name: subjectName, statistics_status: "deferred", derived_schema_version: 3, baseline_id: ZIWEI_BASELINE_ID },
         engine_name: "iztro",
         engine_version: "2.5.8",
-        rules_version: `ziwei-v2:${ziweiAlgorithm}:${ziweiYearDivide}:${dayBoundary}`,
-        schema_version: 2,
+        rules_version: "ziwei-v2.1:default:heaven:exact:forward",
+        schema_version: 3,
       })
     } catch (error) {
       toast.error((error as Error).message || (locale === "zh" ? "紫微排盘内核加载失败。" : "Zi Wei engine failed to load."))
     } finally {
       setZiweiLoading(false)
     }
+  }
+
+  function changeZiweiHoroscopeDate(nextDate: string) {
+    if (!ziweiResult || ziweiResult.archiveMode !== "standard") return
+    if (!isSupportedHoroscopeDate(nextDate)) {
+      toast.error(copy.invalidHoroscopeDate)
+      return
+    }
+    try {
+      const horoscope = ziweiResult.chart.horoscope(nextDate)
+      const normalizedInput = ziweiResult.normalizedInput
+        ? { ...ziweiResult.normalizedInput, horoscopeDate: nextDate }
+        : undefined
+      setHoroscopeDate(nextDate)
+      setZiweiResult((current) => current?.archiveMode === "standard"
+        ? {
+            ...current,
+            horoscope,
+            horoscopeDate: nextDate,
+            normalizedInput,
+          }
+        : current)
+      if (activeZiweiChartId && normalizedInput) {
+        const currentResult = ziweiResult
+        const saveVersion = ++ziweiPeriodSaveVersionRef.current
+        const payload: MetaphysicsChartSavePayload = {
+          id: activeZiweiChartId,
+          chart_type: "ziwei",
+          subject: subjectPayload(normalizedInput.calendar, normalizedInput.gender === "女" ? "female" : "male"),
+          title: currentResult.subjectName ? `${currentResult.subjectName} · 紫微` : null,
+          birth_date: currentResult.chart.solarDate.slice(0, 10),
+          day_pillar: currentResult.chart.rawDates.chineseDate.daily.join(""),
+          input_snapshot: { form: { ...formSnapshot(), horoscope_date: nextDate }, provenance: currentResult.provenance, normalized_ziwei: normalizedInput },
+          result_snapshot: { chart: currentResult.chart, horoscope, horoscope_date: nextDate, generated_at: currentResult.generatedAt, provenance: currentResult.provenance, subject_name: currentResult.subjectName, statistics: currentResult.statistics, derived_schema_version: 3, baseline_id: ZIWEI_BASELINE_ID },
+          engine_name: "iztro",
+          engine_version: "2.5.8",
+          rules_version: "ziwei-v2.1:default:heaven:exact:forward",
+          schema_version: 3,
+        }
+        setZiweiPeriodSavePending(true)
+        setZiweiPeriodSaveError(false)
+        ziweiPeriodSaveQueueRef.current = ziweiPeriodSaveQueueRef.current.then(async () => {
+          if (saveVersion !== ziweiPeriodSaveVersionRef.current) return
+          const saved = await persistGeneratedChart(payload, {
+            isCurrent: () => saveVersion === ziweiPeriodSaveVersionRef.current,
+          })
+          if (saveVersion === ziweiPeriodSaveVersionRef.current) {
+            setZiweiPeriodSavePending(false)
+            setZiweiPeriodSaveError(!saved)
+          }
+        })
+      }
+    } catch {
+      toast.error(copy.invalidHoroscopeDate)
+    }
+  }
+
+  function createStandardZiweiCopy() {
+    const normalizedInput = ziweiResult?.normalizedInput
+    if (normalizedInput) {
+      setZiweiCalendar(normalizedInput.calendar)
+      setZiweiLeapMonth(normalizedInput.isLeapMonth)
+      setGender(normalizedInput.gender)
+      setHoroscopeDate(normalizedInput.horoscopeDate)
+      if (normalizedInput.calendar === "solar") setBirthTime(`${normalizedInput.date}T${normalizedInput.time}`)
+      else {
+        setLunarBirthDate(normalizedInput.date)
+        setLunarBirthTime(normalizedInput.time)
+      }
+    }
+    setZiweiResult(null)
+    setActiveZiweiChartId(null)
+    setZiweiEditorOpen(true)
+    loadedChartRef.current = null
+    router.replace(`${toLocalePath("/tools")}?tab=ziwei`, { scroll: false })
+    window.setTimeout(() => document.getElementById("ziwei-edit-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0)
   }
 
   return (
@@ -641,6 +901,7 @@ export function MetaphysicsTools() {
           <Button asChild><Link href={castHref}>{copy.useToCast}</Link></Button>
         </TabsContent>
         <TabsContent value="bazi" className="mt-4 space-y-4">
+          {incompleteBaziRecord ? <aside className="rounded-xl border border-border/60 bg-surface p-4"><h2 className="text-sm font-semibold">{locale === "zh" ? "这份旧档案缺少准确时辰" : "This legacy record lacks an exact birth hour"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{incompleteBaziRecord.subjectName || (locale === "zh" ? "匿名命主" : "Anonymous")} · {incompleteBaziRecord.birthTimestamp}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "完整四柱、运限、神煞和统计暂不展示。请在下方补充准确出生时间后重新生成。" : "The full chart, periods, Shen Sha, and statistics are withheld. Add an exact birth time below to recalculate."}</p></aside> : null}
           {birthResult ? (
             <>
               <ChartPersistenceBar copy={copy} isSaving={savingType === "bazi"} isSaved={Boolean(activeBaziChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => setBaziEditorOpen(true)} onNew={startNewChart} />
@@ -650,7 +911,8 @@ export function MetaphysicsTools() {
           <details data-export-exclude open={baziEditorOpen} onToggle={(event) => setBaziEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{birthResult ? copy.editDetails : copy.basicSettings}</summary>
             <div className="mt-4 space-y-4">
-              <BaziControls copy={copy} locale={locale} subjectName={baziSubjectName} setSubjectName={setBaziSubjectName} birthTime={birthTime} setBirthTime={setBirthTime} lunarBirthDate={lunarBirthDate} setLunarBirthDate={setLunarBirthDate} lunarBirthTime={lunarBirthTime} setLunarBirthTime={setLunarBirthTime} timezone={timezone} setTimezone={setTimezone} timezoneOptions={timezoneOptions} longitude={longitude} setLongitude={setLongitude} trueSolar={trueSolar} setTrueSolar={setTrueSolar} dayBoundary={dayBoundary} setDayBoundary={setDayBoundary} calendar={baziCalendar} setCalendar={setBaziCalendar} gender={baziGender} setGender={setBaziGender} selectedLocation={selectedBirthPlace} birthPlaceOverrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onBirthPlaceSelect={handleBirthPlaceSelect} onBirthPlaceClear={handleBirthPlaceClear} isLeapMonth={isLeapMonth} setIsLeapMonth={setIsLeapMonth} hourUncertain={hourUncertain} setHourUncertain={setHourUncertain} dayunAlgorithm={dayunAlgorithm} setDayunAlgorithm={setDayunAlgorithm} />
+              <p className="text-xs leading-5 text-muted-foreground">{copy.exactTimeRequired}</p>
+              <BaziControls copy={copy} locale={locale} subjectName={baziSubjectName} setSubjectName={setBaziSubjectName} birthTime={birthTime} setBirthTime={setBirthTime} lunarBirthDate={lunarBirthDate} setLunarBirthDate={setLunarBirthDate} lunarBirthTime={lunarBirthTime} setLunarBirthTime={setLunarBirthTime} timezone={timezone} setTimezone={setTimezone} timezoneOptions={timezoneOptions} longitude={longitude} setLongitude={setLongitude} trueSolar={baziTrueSolar} setTrueSolar={setBaziTrueSolar} dayBoundary={baziDayBoundary} setDayBoundary={setBaziDayBoundary} calendar={baziCalendar} setCalendar={setBaziCalendar} gender={baziGender} setGender={setBaziGender} selectedLocation={selectedBirthPlace} birthPlaceOverrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onBirthPlaceSelect={handleBirthPlaceSelect} onBirthPlaceClear={handleBirthPlaceClear} isLeapMonth={isLeapMonth} setIsLeapMonth={setIsLeapMonth} dayunAlgorithm={dayunAlgorithm} setDayunAlgorithm={setDayunAlgorithm} />
               <Button onClick={generateBazi} disabled={birthLoading}>{birthLoading ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
             </div>
           </details>
@@ -659,13 +921,13 @@ export function MetaphysicsTools() {
           </div>
         </TabsContent>
         <TabsContent value="ziwei" className="mt-4 space-y-4">
-          {ziweiResult ? <ChartPersistenceBar copy={copy} isSaving={savingType === "ziwei"} isSaved={Boolean(activeZiweiChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => setZiweiEditorOpen(true)} onNew={startNewChart} /> : null}
-          {ziweiResult ? <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} statistics={ziweiResult.statistics} /> : null}
-          <details id="ziwei-edit-details" data-export-exclude open={ziweiEditorOpen} onToggle={(event) => setZiweiEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
+          {ziweiResult ? <ChartPersistenceBar copy={copy} isSaving={savingType === "ziwei" || ziweiPeriodSavePending} isSaved={Boolean(activeZiweiChartId) && !ziweiPeriodSaveError} saveError={ziweiPeriodSaveError} isAuthenticated={Boolean(auth.user)} onEdit={ziweiResult.archiveMode === "standard" ? () => setZiweiEditorOpen(true) : undefined} onNew={startNewChart} /> : null}
+          {ziweiResult ? <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} statistics={ziweiResult.statistics} statisticsStatus={ziweiResult.statisticsStatus} statisticsError={ziweiResult.statisticsError} archiveMode={ziweiResult.archiveMode} onHoroscopeDateChange={changeZiweiHoroscopeDate} onCreateStandardCopy={createStandardZiweiCopy} /> : null}
+          {!ziweiResult || ziweiResult.archiveMode === "standard" ? <details id="ziwei-edit-details" data-export-exclude open={ziweiEditorOpen} onToggle={(event) => setZiweiEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{ziweiResult ? copy.editDetails : copy.ziweiBasicSettings}</summary>
             <div className="mt-4 space-y-4">
           <section aria-labelledby="ziwei-basic-title">
-            <h2 id="ziwei-basic-title" className="text-sm font-semibold">{copy.ziweiBasicSettings}</h2>
+            <div className="flex flex-wrap items-end justify-between gap-2"><div><h2 id="ziwei-basic-title" className="text-sm font-semibold">{copy.ziweiBasicSettings}</h2><p className="mt-1 text-xs text-muted-foreground">{copy.exactTimeRequired}</p></div><p className="max-w-2xl text-xs leading-5 text-muted-foreground"><strong className="text-foreground">{copy.standardRules}:</strong> {copy.standardRulesBody}</p></div>
             <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <label htmlFor="ziwei-subject-name" className="text-sm font-medium">{copy.subjectName}</label>
@@ -679,11 +941,11 @@ export function MetaphysicsTools() {
                 </Select>
               </div>
               {ziweiCalendar === "solar" ? (
-                <div className="space-y-2"><label htmlFor="ziwei-birth-time" className="text-sm font-medium">{copy.birth}</label><Input id="ziwei-birth-time" type="datetime-local" value={birthTime} onChange={(event) => setBirthTime(event.target.value)} /></div>
+                <div className="space-y-2"><label htmlFor="ziwei-birth-time" className="text-sm font-medium">{copy.birth}</label><Input id="ziwei-birth-time" type="datetime-local" value={birthTime} onChange={(event) => setBirthTime(event.target.value)} required /></div>
               ) : (
                 <div className="grid gap-2 sm:grid-cols-[1fr_8rem] lg:col-span-2">
-                  <div className="space-y-2"><label htmlFor="ziwei-lunar-date" className="text-sm font-medium">{copy.lunarDateFormat}</label><Input id="ziwei-lunar-date" value={lunarBirthDate} inputMode="numeric" placeholder="1990-01-01" onChange={(event) => setLunarBirthDate(event.target.value)} /></div>
-                  <div className="space-y-2"><label htmlFor="ziwei-lunar-time" className="text-sm font-medium">{copy.birth}</label><Input id="ziwei-lunar-time" type="time" value={lunarBirthTime} onChange={(event) => setLunarBirthTime(event.target.value)} /></div>
+                  <div className="space-y-2"><label htmlFor="ziwei-lunar-date" className="text-sm font-medium">{copy.lunarDateFormat}</label><Input id="ziwei-lunar-date" value={lunarBirthDate} inputMode="numeric" placeholder="1990-01-01" onChange={(event) => setLunarBirthDate(event.target.value)} required /></div>
+                  <div className="space-y-2"><label htmlFor="ziwei-lunar-time" className="text-sm font-medium">{copy.birth}</label><Input id="ziwei-lunar-time" type="time" value={lunarBirthTime} onChange={(event) => setLunarBirthTime(event.target.value)} required /></div>
                 </div>
               )}
               <div className="space-y-2">
@@ -694,45 +956,14 @@ export function MetaphysicsTools() {
                 </Select>
               </div>
               <div className="space-y-2"><label htmlFor="ziwei-horoscope-date" className="text-sm font-medium">{copy.horoscopeDate}</label><Input id="ziwei-horoscope-date" type="date" value={horoscopeDate} onChange={(event) => setHoroscopeDate(event.target.value)} /></div>
+              {ziweiCalendar === "lunar" ? <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><label id="ziwei-leap-month-label" htmlFor="ziwei-leap-month" className="text-sm">{copy.leapMonth}</label><Switch id="ziwei-leap-month" aria-labelledby="ziwei-leap-month-label" checked={ziweiLeapMonth} onCheckedChange={setZiweiLeapMonth} /></div> : null}
               <div className="md:col-span-2 lg:col-span-4"><BirthPlaceField locale={locale} selectedLocation={selectedBirthPlace} overrideActive={locationOverrideActive} effectiveTimezone={timezone} effectiveLongitude={longitude} onSelect={handleBirthPlaceSelect} onClear={handleBirthPlaceClear} /></div>
             </div>
           </section>
 
-          <details className="rounded-lg border border-border/60 bg-surface px-4 py-3">
-            <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{copy.ziweiProfessionalSettings}</summary>
-            <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <div className="space-y-2">
-                <label id="ziwei-school-label" className="text-sm font-medium">{copy.school}</label>
-                <Select value={ziweiAlgorithm} onValueChange={(value) => setZiweiAlgorithm(value as "default" | "zhongzhou")}>
-                  <SelectTrigger id="ziwei-school" aria-labelledby="ziwei-school-label"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="default">{copy.standardSchool}</SelectItem><SelectItem value="zhongzhou">{copy.zhongzhouSchool}</SelectItem></SelectContent>
-                </Select>
-              </div>
-              {ziweiAlgorithm === "zhongzhou" ? (
-                <div className="space-y-2">
-                  <label id="ziwei-astro-type-label" className="text-sm font-medium">{copy.astroType}</label>
-                  <Select value={ziweiAstroType} onValueChange={(value) => setZiweiAstroType(value as "heaven" | "earth" | "human")}>
-                    <SelectTrigger id="ziwei-astro-type" aria-labelledby="ziwei-astro-type-label"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="heaven">{copy.heaven}</SelectItem><SelectItem value="earth">{copy.earth}</SelectItem><SelectItem value="human">{copy.human}</SelectItem></SelectContent>
-                  </Select>
-                </div>
-              ) : null}
-              <div className="space-y-2">
-                <label id="ziwei-year-boundary-label" className="text-sm font-medium">{copy.yearDivide}</label>
-                <Select value={ziweiYearDivide} onValueChange={(value) => setZiweiYearDivide(value as "normal" | "exact")}>
-                  <SelectTrigger id="ziwei-year-boundary" aria-labelledby="ziwei-year-boundary-label"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="exact">{copy.exactYear}</SelectItem><SelectItem value="normal">{copy.lunarYear}</SelectItem></SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><label id="ziwei-fix-leap-label" htmlFor="ziwei-fix-leap" className="text-sm">{copy.fixLeap}</label><Switch id="ziwei-fix-leap" aria-labelledby="ziwei-fix-leap-label" checked={fixLeap} onCheckedChange={setFixLeap} /></div>
-              {ziweiCalendar === "lunar" ? <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><label id="ziwei-leap-month-label" htmlFor="ziwei-leap-month" className="text-sm">{copy.leapMonth}</label><Switch id="ziwei-leap-month" aria-labelledby="ziwei-leap-month-label" checked={ziweiLeapMonth} onCheckedChange={setZiweiLeapMonth} /></div> : null}
-              <div className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"><label id="ziwei-day-boundary-label" htmlFor="ziwei-day-boundary" className="text-sm">{copy.boundary}</label><Switch id="ziwei-day-boundary" aria-labelledby="ziwei-day-boundary-label" checked={dayBoundary === "forward"} onCheckedChange={(checked) => setDayBoundary(checked ? "forward" : "current")} /></div>
-            </div>
-          </details>
-
           <Button onClick={generateZiwei} disabled={ziweiLoading}>{ziweiLoading ? <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin" /> : null}{copy.calculate}</Button>
             </div>
-          </details>
+          </details> : null}
           <div aria-live="polite" aria-busy={ziweiLoading}>
             {ziweiLoading ? <Loading locale={locale} label={copy.loadingZiwei} /> : null}
           </div>
@@ -742,15 +973,16 @@ export function MetaphysicsTools() {
   )
 }
 
-function ChartPersistenceBar({ copy, isSaving, isSaved, isAuthenticated, onEdit, onNew }: {
-  copy: { newChart: string; editDetails: string; savedCloud: string; savingCloud: string; loginToSave: string }
+function ChartPersistenceBar({ copy, isSaving, isSaved, saveError = false, isAuthenticated, onEdit, onNew }: {
+  copy: { newChart: string; editDetails: string; savedCloud: string; savingCloud: string; loginToSave: string; saveFailed: string }
   isSaving: boolean
   isSaved: boolean
+  saveError?: boolean
   isAuthenticated: boolean
-  onEdit: () => void
+  onEdit?: () => void
   onNew: () => void
 }) {
-  const status = isSaving ? copy.savingCloud : isSaved ? copy.savedCloud : copy.loginToSave
+  const status = isSaving ? copy.savingCloud : saveError ? copy.saveFailed : isSaved ? copy.savedCloud : copy.loginToSave
   return (
     <div data-export-exclude className="flex flex-col gap-3 border-y border-border/60 py-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -758,10 +990,10 @@ function ChartPersistenceBar({ copy, isSaving, isSaved, isAuthenticated, onEdit,
         {status}
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
+        {onEdit ? <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
           <Pencil className="size-4" />
           {copy.editDetails}
-        </Button>
+        </Button> : null}
         <Button type="button" size="sm" variant="outline" onClick={onNew}>
           <Plus className="size-4" />
           {copy.newChart}

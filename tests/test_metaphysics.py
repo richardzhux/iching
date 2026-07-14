@@ -44,6 +44,19 @@ def test_professional_pillar_facts_and_relationships_match_known_chart() -> None
     assert chart["element_season_status"] == {"火": "旺", "土": "相", "木": "休", "水": "囚", "金": "死"}
 
 
+def test_each_theme_counts_all_matching_shensha_as_one_evidence_family() -> None:
+    chart = build_metaphysics_chart(
+        datetime(2004, 6, 26, 4),
+        timezone_name="Asia/Shanghai",
+        gender="male",
+    )
+
+    for profile in chart["theme_profiles"]:
+        shensha_evidence = [item for item in profile["evidence"] if item["family"] == "神煞"]
+        assert len(shensha_evidence) == 1
+        assert "、" in shensha_evidence[0]["detail"]
+
+
 def test_heavenly_stem_combinations_take_precedence_over_element_control() -> None:
     assert _stem_relations([{"stem": "甲"}, {"stem": "己"}]) == ["甲己合土"]
     assert _stem_relations([{"stem": "己"}, {"stem": "甲"}]) == ["甲己合土"]
@@ -107,18 +120,13 @@ def test_lunar_input_converts_with_historical_timezone_and_crosschecks_engines()
     assert len(chart["birth_profile"]["dayun"]["cycles"]) == 9
 
 
-def test_unknown_hour_exposes_candidates_and_withholds_dayun_precision() -> None:
-    chart = build_metaphysics_chart(
-        datetime(1990, 1, 1, 12, 0),
-        gender="female",
-        hour_uncertain=True,
-    )
-
-    assert chart["pillars"][3]["text"] == "待定"
-    assert len(chart["birth_profile"]["hour_candidates"]) == 13
-    assert chart["birth_profile"]["dayun"]["status"] == "requires_hour"
-    assert chart["birth_profile"]["dayun"]["cycles"] == []
-    assert sum(chart["element_counts"].values()) == 6
+def test_unknown_hour_is_rejected_for_full_chart() -> None:
+    with pytest.raises(ValueError, match="需要准确出生时辰"):
+        build_metaphysics_chart(
+            datetime(1990, 1, 1, 12, 0),
+            gender="female",
+            hour_uncertain=True,
+        )
 
 
 def test_invalid_lunar_input_is_rejected() -> None:

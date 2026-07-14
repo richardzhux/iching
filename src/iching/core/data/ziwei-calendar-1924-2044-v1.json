@@ -1,27 +1,416 @@
 {
+  "schema_version": 3,
   "id": "ziwei-calendar-1924-2044-v1",
   "chart_type": "ziwei",
   "kind": "calendar_sample_frequency",
-  "label": "1924-02-05—2044-02-04 紫微历法样本",
-  "start": "1924-02-05T09:49:32+08:00",
-  "end": "2044-02-04T12:43:35+08:00",
+  "label": "1924-02-05—2044-02-04（不含）紫微标准历法样本",
+  "start": "1924-02-05",
+  "end": "2044-02-04",
+  "interval_semantics": "[start, end) civil dates",
   "timezone": "Asia/Shanghai",
-  "day_boundary": "iztro-default",
+  "day_boundary": "forward",
+  "config_id": "ziwei-standard-v1",
+  "config": {
+    "calendar": "solar",
+    "algorithm": "default",
+    "day_boundary": "forward",
+    "year_boundary": "exact",
+    "fix_leap": true,
+    "astro_type": "heaven"
+  },
   "engine": "iztro 2.5.8",
-  "rules_version": "ziwei-structural-2026.07-v1",
-  "sample_unit": "chart",
+  "rules_version": "ziwei-structural-2026.07-v2.1",
+  "rules_registry_hash": "sha256:761dbbc002c9f32bf8289df32907c71c14ccad8085540a1f70ac7ca0af97f1e9",
+  "feature_catalog": [
+    "ziwei.auspicious_max_density.0",
+    "ziwei.auspicious_max_density.1",
+    "ziwei.auspicious_max_density.2",
+    "ziwei.auspicious_max_density.3",
+    "ziwei.auspicious_max_density.4",
+    "ziwei.auspicious_max_density.5",
+    "ziwei.auspicious_max_density.6",
+    "ziwei.auspicious_palaces.0",
+    "ziwei.auspicious_palaces.1",
+    "ziwei.auspicious_palaces.10",
+    "ziwei.auspicious_palaces.11",
+    "ziwei.auspicious_palaces.12",
+    "ziwei.auspicious_palaces.2",
+    "ziwei.auspicious_palaces.3",
+    "ziwei.auspicious_palaces.4",
+    "ziwei.auspicious_palaces.5",
+    "ziwei.auspicious_palaces.6",
+    "ziwei.auspicious_palaces.7",
+    "ziwei.auspicious_palaces.8",
+    "ziwei.auspicious_palaces.9",
+    "ziwei.body_branch.chen",
+    "ziwei.body_branch.chou",
+    "ziwei.body_branch.hai",
+    "ziwei.body_branch.mao",
+    "ziwei.body_branch.shen",
+    "ziwei.body_branch.si",
+    "ziwei.body_branch.wei",
+    "ziwei.body_branch.wu",
+    "ziwei.body_branch.xu",
+    "ziwei.body_branch.yin",
+    "ziwei.body_branch.you",
+    "ziwei.body_branch.zi",
+    "ziwei.brightness.de.0",
+    "ziwei.brightness.de.1",
+    "ziwei.brightness.de.10",
+    "ziwei.brightness.de.11",
+    "ziwei.brightness.de.12",
+    "ziwei.brightness.de.13",
+    "ziwei.brightness.de.14",
+    "ziwei.brightness.de.2",
+    "ziwei.brightness.de.3",
+    "ziwei.brightness.de.4",
+    "ziwei.brightness.de.5",
+    "ziwei.brightness.de.6",
+    "ziwei.brightness.de.7",
+    "ziwei.brightness.de.8",
+    "ziwei.brightness.de.9",
+    "ziwei.brightness.li.0",
+    "ziwei.brightness.li.1",
+    "ziwei.brightness.li.10",
+    "ziwei.brightness.li.11",
+    "ziwei.brightness.li.12",
+    "ziwei.brightness.li.13",
+    "ziwei.brightness.li.14",
+    "ziwei.brightness.li.2",
+    "ziwei.brightness.li.3",
+    "ziwei.brightness.li.4",
+    "ziwei.brightness.li.5",
+    "ziwei.brightness.li.6",
+    "ziwei.brightness.li.7",
+    "ziwei.brightness.li.8",
+    "ziwei.brightness.li.9",
+    "ziwei.brightness.miao.0",
+    "ziwei.brightness.miao.1",
+    "ziwei.brightness.miao.10",
+    "ziwei.brightness.miao.11",
+    "ziwei.brightness.miao.12",
+    "ziwei.brightness.miao.13",
+    "ziwei.brightness.miao.14",
+    "ziwei.brightness.miao.2",
+    "ziwei.brightness.miao.3",
+    "ziwei.brightness.miao.4",
+    "ziwei.brightness.miao.5",
+    "ziwei.brightness.miao.6",
+    "ziwei.brightness.miao.7",
+    "ziwei.brightness.miao.8",
+    "ziwei.brightness.miao.9",
+    "ziwei.brightness.ping.0",
+    "ziwei.brightness.ping.1",
+    "ziwei.brightness.ping.10",
+    "ziwei.brightness.ping.11",
+    "ziwei.brightness.ping.12",
+    "ziwei.brightness.ping.13",
+    "ziwei.brightness.ping.14",
+    "ziwei.brightness.ping.2",
+    "ziwei.brightness.ping.3",
+    "ziwei.brightness.ping.4",
+    "ziwei.brightness.ping.5",
+    "ziwei.brightness.ping.6",
+    "ziwei.brightness.ping.7",
+    "ziwei.brightness.ping.8",
+    "ziwei.brightness.ping.9",
+    "ziwei.brightness.unmarked.0",
+    "ziwei.brightness.unmarked.1",
+    "ziwei.brightness.unmarked.10",
+    "ziwei.brightness.unmarked.11",
+    "ziwei.brightness.unmarked.12",
+    "ziwei.brightness.unmarked.13",
+    "ziwei.brightness.unmarked.14",
+    "ziwei.brightness.unmarked.2",
+    "ziwei.brightness.unmarked.3",
+    "ziwei.brightness.unmarked.4",
+    "ziwei.brightness.unmarked.5",
+    "ziwei.brightness.unmarked.6",
+    "ziwei.brightness.unmarked.7",
+    "ziwei.brightness.unmarked.8",
+    "ziwei.brightness.unmarked.9",
+    "ziwei.brightness.wang.0",
+    "ziwei.brightness.wang.1",
+    "ziwei.brightness.wang.10",
+    "ziwei.brightness.wang.11",
+    "ziwei.brightness.wang.12",
+    "ziwei.brightness.wang.13",
+    "ziwei.brightness.wang.14",
+    "ziwei.brightness.wang.2",
+    "ziwei.brightness.wang.3",
+    "ziwei.brightness.wang.4",
+    "ziwei.brightness.wang.5",
+    "ziwei.brightness.wang.6",
+    "ziwei.brightness.wang.7",
+    "ziwei.brightness.wang.8",
+    "ziwei.brightness.wang.9",
+    "ziwei.brightness.xian.0",
+    "ziwei.brightness.xian.1",
+    "ziwei.brightness.xian.10",
+    "ziwei.brightness.xian.11",
+    "ziwei.brightness.xian.12",
+    "ziwei.brightness.xian.13",
+    "ziwei.brightness.xian.14",
+    "ziwei.brightness.xian.2",
+    "ziwei.brightness.xian.3",
+    "ziwei.brightness.xian.4",
+    "ziwei.brightness.xian.5",
+    "ziwei.brightness.xian.6",
+    "ziwei.brightness.xian.7",
+    "ziwei.brightness.xian.8",
+    "ziwei.brightness.xian.9",
+    "ziwei.challenging_max_density.0",
+    "ziwei.challenging_max_density.1",
+    "ziwei.challenging_max_density.2",
+    "ziwei.challenging_max_density.3",
+    "ziwei.challenging_max_density.4",
+    "ziwei.challenging_max_density.5",
+    "ziwei.challenging_max_density.6",
+    "ziwei.challenging_palaces.0",
+    "ziwei.challenging_palaces.1",
+    "ziwei.challenging_palaces.10",
+    "ziwei.challenging_palaces.11",
+    "ziwei.challenging_palaces.12",
+    "ziwei.challenging_palaces.2",
+    "ziwei.challenging_palaces.3",
+    "ziwei.challenging_palaces.4",
+    "ziwei.challenging_palaces.5",
+    "ziwei.challenging_palaces.6",
+    "ziwei.challenging_palaces.7",
+    "ziwei.challenging_palaces.8",
+    "ziwei.challenging_palaces.9",
+    "ziwei.empty_palaces.0",
+    "ziwei.empty_palaces.1",
+    "ziwei.empty_palaces.10",
+    "ziwei.empty_palaces.11",
+    "ziwei.empty_palaces.12",
+    "ziwei.empty_palaces.2",
+    "ziwei.empty_palaces.3",
+    "ziwei.empty_palaces.4",
+    "ziwei.empty_palaces.5",
+    "ziwei.empty_palaces.6",
+    "ziwei.empty_palaces.7",
+    "ziwei.empty_palaces.8",
+    "ziwei.empty_palaces.9",
+    "ziwei.five_elements.earth-1",
+    "ziwei.five_elements.earth-2",
+    "ziwei.five_elements.earth-3",
+    "ziwei.five_elements.earth-4",
+    "ziwei.five_elements.earth-5",
+    "ziwei.five_elements.earth-6",
+    "ziwei.five_elements.fire-1",
+    "ziwei.five_elements.fire-2",
+    "ziwei.five_elements.fire-3",
+    "ziwei.five_elements.fire-4",
+    "ziwei.five_elements.fire-5",
+    "ziwei.five_elements.fire-6",
+    "ziwei.five_elements.metal-1",
+    "ziwei.five_elements.metal-2",
+    "ziwei.five_elements.metal-3",
+    "ziwei.five_elements.metal-4",
+    "ziwei.five_elements.metal-5",
+    "ziwei.five_elements.metal-6",
+    "ziwei.five_elements.water-1",
+    "ziwei.five_elements.water-2",
+    "ziwei.five_elements.water-3",
+    "ziwei.five_elements.water-4",
+    "ziwei.five_elements.water-5",
+    "ziwei.five_elements.water-6",
+    "ziwei.five_elements.wood-1",
+    "ziwei.five_elements.wood-2",
+    "ziwei.five_elements.wood-3",
+    "ziwei.five_elements.wood-4",
+    "ziwei.five_elements.wood-5",
+    "ziwei.five_elements.wood-6",
+    "ziwei.life_combo.empty",
+    "ziwei.life_combo.jumen",
+    "ziwei.life_combo.jumen-lianzhen",
+    "ziwei.life_combo.jumen-pojun",
+    "ziwei.life_combo.jumen-qisha",
+    "ziwei.life_combo.jumen-taiyang",
+    "ziwei.life_combo.jumen-taiyin",
+    "ziwei.life_combo.jumen-tanlang",
+    "ziwei.life_combo.jumen-tianfu",
+    "ziwei.life_combo.jumen-tianji",
+    "ziwei.life_combo.jumen-tianliang",
+    "ziwei.life_combo.jumen-tiantong",
+    "ziwei.life_combo.jumen-tianxiang",
+    "ziwei.life_combo.jumen-wuqu",
+    "ziwei.life_combo.jumen-ziwei",
+    "ziwei.life_combo.lianzhen",
+    "ziwei.life_combo.lianzhen-pojun",
+    "ziwei.life_combo.lianzhen-qisha",
+    "ziwei.life_combo.lianzhen-taiyang",
+    "ziwei.life_combo.lianzhen-taiyin",
+    "ziwei.life_combo.lianzhen-tanlang",
+    "ziwei.life_combo.lianzhen-tianfu",
+    "ziwei.life_combo.lianzhen-tianji",
+    "ziwei.life_combo.lianzhen-tianliang",
+    "ziwei.life_combo.lianzhen-tiantong",
+    "ziwei.life_combo.lianzhen-tianxiang",
+    "ziwei.life_combo.lianzhen-wuqu",
+    "ziwei.life_combo.lianzhen-ziwei",
+    "ziwei.life_combo.pojun",
+    "ziwei.life_combo.pojun-qisha",
+    "ziwei.life_combo.pojun-taiyang",
+    "ziwei.life_combo.pojun-taiyin",
+    "ziwei.life_combo.pojun-tanlang",
+    "ziwei.life_combo.pojun-tianfu",
+    "ziwei.life_combo.pojun-tianji",
+    "ziwei.life_combo.pojun-tianliang",
+    "ziwei.life_combo.pojun-tiantong",
+    "ziwei.life_combo.pojun-tianxiang",
+    "ziwei.life_combo.pojun-wuqu",
+    "ziwei.life_combo.pojun-ziwei",
+    "ziwei.life_combo.qisha",
+    "ziwei.life_combo.qisha-taiyang",
+    "ziwei.life_combo.qisha-taiyin",
+    "ziwei.life_combo.qisha-tanlang",
+    "ziwei.life_combo.qisha-tianfu",
+    "ziwei.life_combo.qisha-tianji",
+    "ziwei.life_combo.qisha-tianliang",
+    "ziwei.life_combo.qisha-tiantong",
+    "ziwei.life_combo.qisha-tianxiang",
+    "ziwei.life_combo.qisha-wuqu",
+    "ziwei.life_combo.qisha-ziwei",
+    "ziwei.life_combo.taiyang",
+    "ziwei.life_combo.taiyang-taiyin",
+    "ziwei.life_combo.taiyang-tanlang",
+    "ziwei.life_combo.taiyang-tianfu",
+    "ziwei.life_combo.taiyang-tianji",
+    "ziwei.life_combo.taiyang-tianliang",
+    "ziwei.life_combo.taiyang-tiantong",
+    "ziwei.life_combo.taiyang-tianxiang",
+    "ziwei.life_combo.taiyang-wuqu",
+    "ziwei.life_combo.taiyang-ziwei",
+    "ziwei.life_combo.taiyin",
+    "ziwei.life_combo.taiyin-tanlang",
+    "ziwei.life_combo.taiyin-tianfu",
+    "ziwei.life_combo.taiyin-tianji",
+    "ziwei.life_combo.taiyin-tianliang",
+    "ziwei.life_combo.taiyin-tiantong",
+    "ziwei.life_combo.taiyin-tianxiang",
+    "ziwei.life_combo.taiyin-wuqu",
+    "ziwei.life_combo.taiyin-ziwei",
+    "ziwei.life_combo.tanlang",
+    "ziwei.life_combo.tanlang-tianfu",
+    "ziwei.life_combo.tanlang-tianji",
+    "ziwei.life_combo.tanlang-tianliang",
+    "ziwei.life_combo.tanlang-tiantong",
+    "ziwei.life_combo.tanlang-tianxiang",
+    "ziwei.life_combo.tanlang-wuqu",
+    "ziwei.life_combo.tanlang-ziwei",
+    "ziwei.life_combo.tianfu",
+    "ziwei.life_combo.tianfu-tianji",
+    "ziwei.life_combo.tianfu-tianliang",
+    "ziwei.life_combo.tianfu-tiantong",
+    "ziwei.life_combo.tianfu-tianxiang",
+    "ziwei.life_combo.tianfu-wuqu",
+    "ziwei.life_combo.tianfu-ziwei",
+    "ziwei.life_combo.tianji",
+    "ziwei.life_combo.tianji-tianliang",
+    "ziwei.life_combo.tianji-tiantong",
+    "ziwei.life_combo.tianji-tianxiang",
+    "ziwei.life_combo.tianji-wuqu",
+    "ziwei.life_combo.tianji-ziwei",
+    "ziwei.life_combo.tianliang",
+    "ziwei.life_combo.tianliang-tiantong",
+    "ziwei.life_combo.tianliang-tianxiang",
+    "ziwei.life_combo.tianliang-wuqu",
+    "ziwei.life_combo.tianliang-ziwei",
+    "ziwei.life_combo.tiantong",
+    "ziwei.life_combo.tiantong-tianxiang",
+    "ziwei.life_combo.tiantong-wuqu",
+    "ziwei.life_combo.tiantong-ziwei",
+    "ziwei.life_combo.tianxiang",
+    "ziwei.life_combo.tianxiang-wuqu",
+    "ziwei.life_combo.tianxiang-ziwei",
+    "ziwei.life_combo.wuqu",
+    "ziwei.life_combo.wuqu-ziwei",
+    "ziwei.life_combo.ziwei",
+    "ziwei.mutagen.ji.palace-0",
+    "ziwei.mutagen.ji.palace-1",
+    "ziwei.mutagen.ji.palace-10",
+    "ziwei.mutagen.ji.palace-11",
+    "ziwei.mutagen.ji.palace-2",
+    "ziwei.mutagen.ji.palace-3",
+    "ziwei.mutagen.ji.palace-4",
+    "ziwei.mutagen.ji.palace-5",
+    "ziwei.mutagen.ji.palace-6",
+    "ziwei.mutagen.ji.palace-7",
+    "ziwei.mutagen.ji.palace-8",
+    "ziwei.mutagen.ji.palace-9",
+    "ziwei.mutagen.ke.palace-0",
+    "ziwei.mutagen.ke.palace-1",
+    "ziwei.mutagen.ke.palace-10",
+    "ziwei.mutagen.ke.palace-11",
+    "ziwei.mutagen.ke.palace-2",
+    "ziwei.mutagen.ke.palace-3",
+    "ziwei.mutagen.ke.palace-4",
+    "ziwei.mutagen.ke.palace-5",
+    "ziwei.mutagen.ke.palace-6",
+    "ziwei.mutagen.ke.palace-7",
+    "ziwei.mutagen.ke.palace-8",
+    "ziwei.mutagen.ke.palace-9",
+    "ziwei.mutagen.lu.palace-0",
+    "ziwei.mutagen.lu.palace-1",
+    "ziwei.mutagen.lu.palace-10",
+    "ziwei.mutagen.lu.palace-11",
+    "ziwei.mutagen.lu.palace-2",
+    "ziwei.mutagen.lu.palace-3",
+    "ziwei.mutagen.lu.palace-4",
+    "ziwei.mutagen.lu.palace-5",
+    "ziwei.mutagen.lu.palace-6",
+    "ziwei.mutagen.lu.palace-7",
+    "ziwei.mutagen.lu.palace-8",
+    "ziwei.mutagen.lu.palace-9",
+    "ziwei.mutagen.quan.palace-0",
+    "ziwei.mutagen.quan.palace-1",
+    "ziwei.mutagen.quan.palace-10",
+    "ziwei.mutagen.quan.palace-11",
+    "ziwei.mutagen.quan.palace-2",
+    "ziwei.mutagen.quan.palace-3",
+    "ziwei.mutagen.quan.palace-4",
+    "ziwei.mutagen.quan.palace-5",
+    "ziwei.mutagen.quan.palace-6",
+    "ziwei.mutagen.quan.palace-7",
+    "ziwei.mutagen.quan.palace-8",
+    "ziwei.mutagen.quan.palace-9"
+  ],
+  "feature_catalog_hash": "sha256:dd1036f98f23bb86a08082126c644ad1a93ccaf3c0d711dcaf5ea3da24d12b54",
+  "unique_state_count": 569777,
+  "sample_unit": "calendar_state",
+  "weighted_unit": "civil_hour",
   "sample_weight": 1051896,
-  "method": "逐日 × 12时辰 × 两种性别确定性穷举；所选本命结构经引擎确认不随性别变化，按男女各一份计权；不使用用户数据或随机抽样。",
-  "gender_weighting": "male_and_female_equal; selected natal structural features are gender-invariant",
+  "time_index_weights": [
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    1
+  ],
+  "method": "逐日 × 13 个民用时段索引穷举，早子/晚子各按 1 小时、其余索引各按 2 小时加权；仅计算男性本命结构，登记特征不含随性别变化的运限方向与标签。",
+  "gender_scope": "male_only_natal_structure_gender_invariant",
   "features": {
+    "ziwei.auspicious_max_density.0": {
+      "hit_weight": 0
+    },
     "ziwei.auspicious_max_density.1": {
-      "hit_weight": 298176
+      "hit_weight": 297893
     },
     "ziwei.auspicious_max_density.2": {
-      "hit_weight": 605828
+      "hit_weight": 606208
     },
     "ziwei.auspicious_max_density.3": {
-      "hit_weight": 133254
+      "hit_weight": 133157
     },
     "ziwei.auspicious_max_density.4": {
       "hit_weight": 10228
@@ -29,441 +418,1050 @@
     "ziwei.auspicious_max_density.5": {
       "hit_weight": 4410
     },
+    "ziwei.auspicious_max_density.6": {
+      "hit_weight": 0
+    },
+    "ziwei.auspicious_palaces.0": {
+      "hit_weight": 0
+    },
+    "ziwei.auspicious_palaces.1": {
+      "hit_weight": 0
+    },
+    "ziwei.auspicious_palaces.10": {
+      "hit_weight": 0
+    },
+    "ziwei.auspicious_palaces.11": {
+      "hit_weight": 0
+    },
+    "ziwei.auspicious_palaces.12": {
+      "hit_weight": 0
+    },
     "ziwei.auspicious_palaces.2": {
       "hit_weight": 8820
     },
     "ziwei.auspicious_palaces.3": {
-      "hit_weight": 51076
+      "hit_weight": 51060
     },
     "ziwei.auspicious_palaces.4": {
-      "hit_weight": 326024
+      "hit_weight": 325868
     },
     "ziwei.auspicious_palaces.5": {
-      "hit_weight": 367800
+      "hit_weight": 368255
     },
     "ziwei.auspicious_palaces.6": {
-      "hit_weight": 298176
+      "hit_weight": 297893
+    },
+    "ziwei.auspicious_palaces.7": {
+      "hit_weight": 0
+    },
+    "ziwei.auspicious_palaces.8": {
+      "hit_weight": 0
+    },
+    "ziwei.auspicious_palaces.9": {
+      "hit_weight": 0
     },
     "ziwei.body_branch.chen": {
-      "hit_weight": 87658
+      "hit_weight": 87660
     },
     "ziwei.body_branch.chou": {
-      "hit_weight": 87658
+      "hit_weight": 87644
     },
     "ziwei.body_branch.hai": {
       "hit_weight": 87658
     },
     "ziwei.body_branch.mao": {
-      "hit_weight": 87658
+      "hit_weight": 87728
     },
     "ziwei.body_branch.shen": {
-      "hit_weight": 87658
+      "hit_weight": 87599
     },
     "ziwei.body_branch.si": {
-      "hit_weight": 87658
+      "hit_weight": 87700
     },
     "ziwei.body_branch.wei": {
-      "hit_weight": 87658
+      "hit_weight": 87660
     },
     "ziwei.body_branch.wu": {
       "hit_weight": 87658
     },
     "ziwei.body_branch.xu": {
-      "hit_weight": 87658
+      "hit_weight": 87630
     },
     "ziwei.body_branch.yin": {
       "hit_weight": 87658
     },
     "ziwei.body_branch.you": {
-      "hit_weight": 87658
+      "hit_weight": 87643
     },
     "ziwei.body_branch.zi": {
       "hit_weight": 87658
     },
+    "ziwei.brightness.de.0": {
+      "hit_weight": 0
+    },
     "ziwei.brightness.de.1": {
-      "hit_weight": 185200
+      "hit_weight": 185203
+    },
+    "ziwei.brightness.de.10": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.11": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.12": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.13": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.14": {
+      "hit_weight": 0
     },
     "ziwei.brightness.de.2": {
-      "hit_weight": 556588
+      "hit_weight": 556591
     },
     "ziwei.brightness.de.3": {
-      "hit_weight": 113988
+      "hit_weight": 113969
+    },
+    "ziwei.brightness.de.4": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.5": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.6": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.7": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.8": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.de.9": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.0": {
+      "hit_weight": 0
     },
     "ziwei.brightness.li.1": {
-      "hit_weight": 417436
+      "hit_weight": 417429
+    },
+    "ziwei.brightness.li.10": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.11": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.12": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.13": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.14": {
+      "hit_weight": 0
     },
     "ziwei.brightness.li.2": {
-      "hit_weight": 196104
+      "hit_weight": 196119
     },
     "ziwei.brightness.li.3": {
-      "hit_weight": 71244
+      "hit_weight": 71264
+    },
+    "ziwei.brightness.li.4": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.5": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.6": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.7": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.8": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.li.9": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.0": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.1": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.10": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.11": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.12": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.13": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.14": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.2": {
+      "hit_weight": 0
     },
     "ziwei.brightness.miao.3": {
-      "hit_weight": 377600
+      "hit_weight": 377574
     },
     "ziwei.brightness.miao.4": {
-      "hit_weight": 153816
+      "hit_weight": 153841
     },
     "ziwei.brightness.miao.5": {
-      "hit_weight": 302964
+      "hit_weight": 302956
     },
     "ziwei.brightness.miao.6": {
-      "hit_weight": 106876
+      "hit_weight": 106854
     },
     "ziwei.brightness.miao.7": {
-      "hit_weight": 110640
+      "hit_weight": 110671
+    },
+    "ziwei.brightness.miao.8": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.miao.9": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.0": {
+      "hit_weight": 0
     },
     "ziwei.brightness.ping.1": {
-      "hit_weight": 292520
+      "hit_weight": 292532
+    },
+    "ziwei.brightness.ping.10": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.11": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.12": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.13": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.14": {
+      "hit_weight": 0
     },
     "ziwei.brightness.ping.2": {
-      "hit_weight": 406520
+      "hit_weight": 406480
     },
     "ziwei.brightness.ping.3": {
       "hit_weight": 178104
     },
+    "ziwei.brightness.ping.4": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.5": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.6": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.7": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.8": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.ping.9": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.0": {
+      "hit_weight": 0
+    },
     "ziwei.brightness.unmarked.1": {
-      "hit_weight": 410316
+      "hit_weight": 410293
+    },
+    "ziwei.brightness.unmarked.10": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.11": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.12": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.13": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.14": {
+      "hit_weight": 0
     },
     "ziwei.brightness.unmarked.2": {
-      "hit_weight": 160512
+      "hit_weight": 160532
+    },
+    "ziwei.brightness.unmarked.3": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.4": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.5": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.6": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.7": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.8": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.unmarked.9": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.wang.0": {
+      "hit_weight": 0
     },
     "ziwei.brightness.wang.1": {
-      "hit_weight": 225084
+      "hit_weight": 225094
+    },
+    "ziwei.brightness.wang.10": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.wang.11": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.wang.12": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.wang.13": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.wang.14": {
+      "hit_weight": 0
     },
     "ziwei.brightness.wang.2": {
       "hit_weight": 178104
     },
     "ziwei.brightness.wang.3": {
-      "hit_weight": 299228
+      "hit_weight": 299189
     },
     "ziwei.brightness.wang.4": {
-      "hit_weight": 196120
+      "hit_weight": 196122
     },
     "ziwei.brightness.wang.5": {
-      "hit_weight": 64116
+      "hit_weight": 64108
     },
     "ziwei.brightness.wang.6": {
-      "hit_weight": 89244
+      "hit_weight": 89279
+    },
+    "ziwei.brightness.wang.7": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.wang.8": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.wang.9": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.0": {
+      "hit_weight": 0
     },
     "ziwei.brightness.xian.1": {
-      "hit_weight": 331480
+      "hit_weight": 331494
+    },
+    "ziwei.brightness.xian.10": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.11": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.12": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.13": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.14": {
+      "hit_weight": 0
     },
     "ziwei.brightness.xian.2": {
-      "hit_weight": 352820
+      "hit_weight": 352814
     },
     "ziwei.brightness.xian.3": {
-      "hit_weight": 171448
-    },
-    "ziwei.brightness.xian.4": {
-      "hit_weight": 85508
-    },
-    "ziwei.challenging_max_density.1": {
-      "hit_weight": 315642
-    },
-    "ziwei.challenging_max_density.2": {
-      "hit_weight": 666214
-    },
-    "ziwei.challenging_max_density.3": {
-      "hit_weight": 70040
-    },
-    "ziwei.challenging_palaces.3": {
-      "hit_weight": 21856
-    },
-    "ziwei.challenging_palaces.4": {
-      "hit_weight": 201510
-    },
-    "ziwei.challenging_palaces.5": {
-      "hit_weight": 512888
-    },
-    "ziwei.challenging_palaces.6": {
-      "hit_weight": 315642
-    },
-    "ziwei.empty_palaces.0": {
-      "hit_weight": 185232
-    },
-    "ziwei.empty_palaces.2": {
-      "hit_weight": 695248
-    },
-    "ziwei.empty_palaces.4": {
       "hit_weight": 171416
     },
+    "ziwei.brightness.xian.4": {
+      "hit_weight": 85501
+    },
+    "ziwei.brightness.xian.5": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.6": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.7": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.8": {
+      "hit_weight": 0
+    },
+    "ziwei.brightness.xian.9": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_max_density.0": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_max_density.1": {
+      "hit_weight": 315572
+    },
+    "ziwei.challenging_max_density.2": {
+      "hit_weight": 666200
+    },
+    "ziwei.challenging_max_density.3": {
+      "hit_weight": 70124
+    },
+    "ziwei.challenging_max_density.4": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_max_density.5": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_max_density.6": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.0": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.1": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.10": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.11": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.12": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.2": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.3": {
+      "hit_weight": 21910
+    },
+    "ziwei.challenging_palaces.4": {
+      "hit_weight": 201616
+    },
+    "ziwei.challenging_palaces.5": {
+      "hit_weight": 512798
+    },
+    "ziwei.challenging_palaces.6": {
+      "hit_weight": 315572
+    },
+    "ziwei.challenging_palaces.7": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.8": {
+      "hit_weight": 0
+    },
+    "ziwei.challenging_palaces.9": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.0": {
+      "hit_weight": 185223
+    },
+    "ziwei.empty_palaces.1": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.10": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.11": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.12": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.2": {
+      "hit_weight": 695277
+    },
+    "ziwei.empty_palaces.3": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.4": {
+      "hit_weight": 171396
+    },
+    "ziwei.empty_palaces.5": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.6": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.7": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.8": {
+      "hit_weight": 0
+    },
+    "ziwei.empty_palaces.9": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.earth-1": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.earth-2": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.earth-3": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.earth-4": {
+      "hit_weight": 0
+    },
     "ziwei.five_elements.earth-5": {
-      "hit_weight": 210268
+      "hit_weight": 210319
+    },
+    "ziwei.five_elements.earth-6": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.fire-1": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.fire-2": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.fire-3": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.fire-4": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.fire-5": {
+      "hit_weight": 0
     },
     "ziwei.five_elements.fire-6": {
-      "hit_weight": 210428
+      "hit_weight": 210378
+    },
+    "ziwei.five_elements.metal-1": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.metal-2": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.metal-3": {
+      "hit_weight": 0
     },
     "ziwei.five_elements.metal-4": {
-      "hit_weight": 210284
+      "hit_weight": 210428
+    },
+    "ziwei.five_elements.metal-5": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.metal-6": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.water-1": {
+      "hit_weight": 0
     },
     "ziwei.five_elements.water-2": {
-      "hit_weight": 210516
+      "hit_weight": 210377
+    },
+    "ziwei.five_elements.water-3": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.water-4": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.water-5": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.water-6": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.wood-1": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.wood-2": {
+      "hit_weight": 0
     },
     "ziwei.five_elements.wood-3": {
-      "hit_weight": 210400
+      "hit_weight": 210394
+    },
+    "ziwei.five_elements.wood-4": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.wood-5": {
+      "hit_weight": 0
+    },
+    "ziwei.five_elements.wood-6": {
+      "hit_weight": 0
     },
     "ziwei.life_combo.empty": {
-      "hit_weight": 173020
+      "hit_weight": 173076
     },
     "ziwei.life_combo.jumen": {
-      "hit_weight": 44848
+      "hit_weight": 44862
+    },
+    "ziwei.life_combo.jumen-lianzhen": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.jumen-pojun": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.jumen-qisha": {
+      "hit_weight": 0
     },
     "ziwei.life_combo.jumen-taiyang": {
-      "hit_weight": 14284
+      "hit_weight": 14271
+    },
+    "ziwei.life_combo.jumen-taiyin": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.jumen-tanlang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.jumen-tianfu": {
+      "hit_weight": 0
     },
     "ziwei.life_combo.jumen-tianji": {
-      "hit_weight": 15156
+      "hit_weight": 15140
+    },
+    "ziwei.life_combo.jumen-tianliang": {
+      "hit_weight": 0
     },
     "ziwei.life_combo.jumen-tiantong": {
-      "hit_weight": 13372
+      "hit_weight": 13358
+    },
+    "ziwei.life_combo.jumen-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.jumen-wuqu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.jumen-ziwei": {
+      "hit_weight": 0
     },
     "ziwei.life_combo.lianzhen": {
-      "hit_weight": 15154
+      "hit_weight": 15153
     },
     "ziwei.life_combo.lianzhen-pojun": {
-      "hit_weight": 14290
+      "hit_weight": 14299
     },
     "ziwei.life_combo.lianzhen-qisha": {
-      "hit_weight": 14836
+      "hit_weight": 14840
+    },
+    "ziwei.life_combo.lianzhen-taiyang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.lianzhen-taiyin": {
+      "hit_weight": 0
     },
     "ziwei.life_combo.lianzhen-tanlang": {
-      "hit_weight": 14554
+      "hit_weight": 14570
     },
     "ziwei.life_combo.lianzhen-tianfu": {
-      "hit_weight": 13374
+      "hit_weight": 13398
+    },
+    "ziwei.life_combo.lianzhen-tianji": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.lianzhen-tianliang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.lianzhen-tiantong": {
+      "hit_weight": 0
     },
     "ziwei.life_combo.lianzhen-tianxiang": {
-      "hit_weight": 15434
-    },
-    "ziwei.life_combo.pojun": {
-      "hit_weight": 43968
-    },
-    "ziwei.life_combo.pojun-wuqu": {
-      "hit_weight": 14844
-    },
-    "ziwei.life_combo.pojun-ziwei": {
-      "hit_weight": 14566
-    },
-    "ziwei.life_combo.qisha": {
-      "hit_weight": 43968
-    },
-    "ziwei.life_combo.qisha-wuqu": {
-      "hit_weight": 14554
-    },
-    "ziwei.life_combo.qisha-ziwei": {
-      "hit_weight": 14288
-    },
-    "ziwei.life_combo.taiyang": {
-      "hit_weight": 44846
-    },
-    "ziwei.life_combo.taiyang-taiyin": {
-      "hit_weight": 15160
-    },
-    "ziwei.life_combo.taiyang-tianliang": {
-      "hit_weight": 13376
-    },
-    "ziwei.life_combo.taiyin": {
-      "hit_weight": 43366
-    },
-    "ziwei.life_combo.taiyin-tianji": {
-      "hit_weight": 14844
-    },
-    "ziwei.life_combo.taiyin-tiantong": {
-      "hit_weight": 14282
-    },
-    "ziwei.life_combo.tanlang": {
-      "hit_weight": 43966
-    },
-    "ziwei.life_combo.tanlang-wuqu": {
-      "hit_weight": 14282
-    },
-    "ziwei.life_combo.tanlang-ziwei": {
-      "hit_weight": 14844
-    },
-    "ziwei.life_combo.tianfu": {
-      "hit_weight": 43692
-    },
-    "ziwei.life_combo.tianfu-wuqu": {
-      "hit_weight": 15160
-    },
-    "ziwei.life_combo.tianfu-ziwei": {
-      "hit_weight": 15438
-    },
-    "ziwei.life_combo.tianji": {
-      "hit_weight": 43384
-    },
-    "ziwei.life_combo.tianji-tianliang": {
-      "hit_weight": 14288
-    },
-    "ziwei.life_combo.tianliang": {
-      "hit_weight": 45432
-    },
-    "ziwei.life_combo.tianliang-tiantong": {
-      "hit_weight": 14554
-    },
-    "ziwei.life_combo.tiantong": {
-      "hit_weight": 45428
-    },
-    "ziwei.life_combo.tianxiang": {
-      "hit_weight": 43694
-    },
-    "ziwei.life_combo.tianxiang-wuqu": {
-      "hit_weight": 13376
-    },
-    "ziwei.life_combo.tianxiang-ziwei": {
-      "hit_weight": 15162
-    },
-    "ziwei.life_combo.wuqu": {
       "hit_weight": 15436
     },
+    "ziwei.life_combo.lianzhen-wuqu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.lianzhen-ziwei": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun": {
+      "hit_weight": 43970
+    },
+    "ziwei.life_combo.pojun-qisha": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-taiyang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-taiyin": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-tanlang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-tianfu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-tianji": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-tianliang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-tiantong": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.pojun-wuqu": {
+      "hit_weight": 14845
+    },
+    "ziwei.life_combo.pojun-ziwei": {
+      "hit_weight": 14560
+    },
+    "ziwei.life_combo.qisha": {
+      "hit_weight": 43943
+    },
+    "ziwei.life_combo.qisha-taiyang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.qisha-taiyin": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.qisha-tanlang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.qisha-tianfu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.qisha-tianji": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.qisha-tianliang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.qisha-tiantong": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.qisha-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.qisha-wuqu": {
+      "hit_weight": 14561
+    },
+    "ziwei.life_combo.qisha-ziwei": {
+      "hit_weight": 14295
+    },
+    "ziwei.life_combo.taiyang": {
+      "hit_weight": 44831
+    },
+    "ziwei.life_combo.taiyang-taiyin": {
+      "hit_weight": 15168
+    },
+    "ziwei.life_combo.taiyang-tanlang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyang-tianfu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyang-tianji": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyang-tianliang": {
+      "hit_weight": 13395
+    },
+    "ziwei.life_combo.taiyang-tiantong": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyang-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyang-wuqu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyang-ziwei": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyin": {
+      "hit_weight": 43395
+    },
+    "ziwei.life_combo.taiyin-tanlang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyin-tianfu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyin-tianji": {
+      "hit_weight": 14820
+    },
+    "ziwei.life_combo.taiyin-tianliang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyin-tiantong": {
+      "hit_weight": 14275
+    },
+    "ziwei.life_combo.taiyin-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyin-wuqu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.taiyin-ziwei": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tanlang": {
+      "hit_weight": 43953
+    },
+    "ziwei.life_combo.tanlang-tianfu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tanlang-tianji": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tanlang-tianliang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tanlang-tiantong": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tanlang-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tanlang-wuqu": {
+      "hit_weight": 14276
+    },
+    "ziwei.life_combo.tanlang-ziwei": {
+      "hit_weight": 14833
+    },
+    "ziwei.life_combo.tianfu": {
+      "hit_weight": 43698
+    },
+    "ziwei.life_combo.tianfu-tianji": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianfu-tianliang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianfu-tiantong": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianfu-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianfu-wuqu": {
+      "hit_weight": 15158
+    },
+    "ziwei.life_combo.tianfu-ziwei": {
+      "hit_weight": 15428
+    },
+    "ziwei.life_combo.tianji": {
+      "hit_weight": 43365
+    },
+    "ziwei.life_combo.tianji-tianliang": {
+      "hit_weight": 14283
+    },
+    "ziwei.life_combo.tianji-tiantong": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianji-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianji-wuqu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianji-ziwei": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianliang": {
+      "hit_weight": 45434
+    },
+    "ziwei.life_combo.tianliang-tiantong": {
+      "hit_weight": 14552
+    },
+    "ziwei.life_combo.tianliang-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianliang-wuqu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianliang-ziwei": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tiantong": {
+      "hit_weight": 45431
+    },
+    "ziwei.life_combo.tiantong-tianxiang": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tiantong-wuqu": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tiantong-ziwei": {
+      "hit_weight": 0
+    },
+    "ziwei.life_combo.tianxiang": {
+      "hit_weight": 43695
+    },
+    "ziwei.life_combo.tianxiang-wuqu": {
+      "hit_weight": 13384
+    },
+    "ziwei.life_combo.tianxiang-ziwei": {
+      "hit_weight": 15148
+    },
+    "ziwei.life_combo.wuqu": {
+      "hit_weight": 15423
+    },
+    "ziwei.life_combo.wuqu-ziwei": {
+      "hit_weight": 0
+    },
     "ziwei.life_combo.ziwei": {
-      "hit_weight": 13376
+      "hit_weight": 13374
     },
     "ziwei.mutagen.ji.palace-0": {
-      "hit_weight": 100426
+      "hit_weight": 100482
     },
     "ziwei.mutagen.ji.palace-1": {
-      "hit_weight": 96990
+      "hit_weight": 96985
     },
     "ziwei.mutagen.ji.palace-10": {
-      "hit_weight": 98610
+      "hit_weight": 98594
     },
     "ziwei.mutagen.ji.palace-11": {
-      "hit_weight": 104870
+      "hit_weight": 104931
     },
     "ziwei.mutagen.ji.palace-2": {
-      "hit_weight": 86122
+      "hit_weight": 86124
     },
     "ziwei.mutagen.ji.palace-3": {
-      "hit_weight": 80790
+      "hit_weight": 80791
     },
     "ziwei.mutagen.ji.palace-4": {
-      "hit_weight": 76082
+      "hit_weight": 76053
     },
     "ziwei.mutagen.ji.palace-5": {
-      "hit_weight": 70182
+      "hit_weight": 70163
     },
     "ziwei.mutagen.ji.palace-6": {
-      "hit_weight": 75854
+      "hit_weight": 75805
     },
     "ziwei.mutagen.ji.palace-7": {
-      "hit_weight": 79846
+      "hit_weight": 79855
     },
     "ziwei.mutagen.ji.palace-8": {
-      "hit_weight": 88558
+      "hit_weight": 88548
     },
     "ziwei.mutagen.ji.palace-9": {
-      "hit_weight": 93566
+      "hit_weight": 93565
     },
     "ziwei.mutagen.ke.palace-0": {
-      "hit_weight": 97226
+      "hit_weight": 97270
     },
     "ziwei.mutagen.ke.palace-1": {
-      "hit_weight": 99426
+      "hit_weight": 99587
     },
     "ziwei.mutagen.ke.palace-10": {
-      "hit_weight": 87122
+      "hit_weight": 87108
     },
     "ziwei.mutagen.ke.palace-11": {
-      "hit_weight": 95530
+      "hit_weight": 95569
     },
     "ziwei.mutagen.ke.palace-2": {
-      "hit_weight": 94350
+      "hit_weight": 94544
     },
     "ziwei.mutagen.ke.palace-3": {
-      "hit_weight": 86554
+      "hit_weight": 86558
     },
     "ziwei.mutagen.ke.palace-4": {
-      "hit_weight": 86674
+      "hit_weight": 86717
     },
     "ziwei.mutagen.ke.palace-5": {
-      "hit_weight": 81634
+      "hit_weight": 81637
     },
     "ziwei.mutagen.ke.palace-6": {
-      "hit_weight": 78590
+      "hit_weight": 78537
     },
     "ziwei.mutagen.ke.palace-7": {
-      "hit_weight": 78038
+      "hit_weight": 78043
     },
     "ziwei.mutagen.ke.palace-8": {
-      "hit_weight": 81654
+      "hit_weight": 81476
     },
     "ziwei.mutagen.ke.palace-9": {
-      "hit_weight": 85098
+      "hit_weight": 84850
     },
     "ziwei.mutagen.lu.palace-0": {
-      "hit_weight": 95056
+      "hit_weight": 95101
     },
     "ziwei.mutagen.lu.palace-1": {
-      "hit_weight": 98976
+      "hit_weight": 99103
     },
     "ziwei.mutagen.lu.palace-10": {
-      "hit_weight": 97712
+      "hit_weight": 97771
     },
     "ziwei.mutagen.lu.palace-11": {
-      "hit_weight": 101560
+      "hit_weight": 101579
     },
     "ziwei.mutagen.lu.palace-2": {
-      "hit_weight": 87860
+      "hit_weight": 87920
     },
     "ziwei.mutagen.lu.palace-3": {
-      "hit_weight": 85520
+      "hit_weight": 85560
     },
     "ziwei.mutagen.lu.palace-4": {
-      "hit_weight": 77896
+      "hit_weight": 77916
     },
     "ziwei.mutagen.lu.palace-5": {
-      "hit_weight": 72232
+      "hit_weight": 72166
     },
     "ziwei.mutagen.lu.palace-6": {
-      "hit_weight": 77068
+      "hit_weight": 76974
     },
     "ziwei.mutagen.lu.palace-7": {
-      "hit_weight": 77220
+      "hit_weight": 77139
     },
     "ziwei.mutagen.lu.palace-8": {
-      "hit_weight": 88680
+      "hit_weight": 88592
     },
     "ziwei.mutagen.lu.palace-9": {
-      "hit_weight": 92116
+      "hit_weight": 92075
     },
     "ziwei.mutagen.quan.palace-0": {
-      "hit_weight": 99476
+      "hit_weight": 99521
     },
     "ziwei.mutagen.quan.palace-1": {
-      "hit_weight": 101392
+      "hit_weight": 101325
     },
     "ziwei.mutagen.quan.palace-10": {
-      "hit_weight": 93876
+      "hit_weight": 93860
     },
     "ziwei.mutagen.quan.palace-11": {
-      "hit_weight": 101328
+      "hit_weight": 101292
     },
     "ziwei.mutagen.quan.palace-2": {
-      "hit_weight": 94424
+      "hit_weight": 94417
     },
     "ziwei.mutagen.quan.palace-3": {
-      "hit_weight": 88476
+      "hit_weight": 88502
     },
     "ziwei.mutagen.quan.palace-4": {
-      "hit_weight": 79976
+      "hit_weight": 79961
     },
     "ziwei.mutagen.quan.palace-5": {
-      "hit_weight": 73720
+      "hit_weight": 73744
     },
     "ziwei.mutagen.quan.palace-6": {
-      "hit_weight": 74080
+      "hit_weight": 74166
     },
     "ziwei.mutagen.quan.palace-7": {
-      "hit_weight": 74220
+      "hit_weight": 74232
     },
     "ziwei.mutagen.quan.palace-8": {
-      "hit_weight": 83544
+      "hit_weight": 83505
     },
     "ziwei.mutagen.quan.palace-9": {
-      "hit_weight": 87384
+      "hit_weight": 87371
     }
   },
-  "hash": "sha256:29d08616e684c222176653a9c0191dfc996b19447b6b1c49aeddd0721d5912d8"
+  "hash": "sha256:dd4023a79ecb2df31837e4fbf0394a4b9ef270b2025e8e529d764d658497493c"
 }
