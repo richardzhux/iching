@@ -61,6 +61,129 @@ export type ShenShaHit = {
   registry_version?: string
   registry_digest?: string
   rules_version: string
+  state?: "发力" | "有力" | "可见" | "受制"
+  state_reason?: string
+  effect_score?: number
+  rarity_percentage?: number
+}
+
+export type PatternCandidate = {
+  id: string
+  name: string
+  title?: string
+  status: "成格" | "得用" | "受制" | "救成" | "混杂" | "转化" | string
+  score?: number
+  strength?: number
+  summary?: string
+  evidence?: Array<string | Record<string, unknown>>
+  evidence_ids?: string[]
+  constraints?: string[]
+  rescues?: string[]
+}
+
+export type PatternAssessment = {
+  rules_version: string
+  primary: PatternCandidate | null
+  ordinary: PatternCandidate[]
+  special: PatternCandidate[]
+  evidence?: Array<Record<string, unknown>>
+}
+
+export type ConsumerSubjectScore = {
+  key: "career" | "wealth" | "relationship" | "health"
+  label: string
+  score: number
+  global_percentile: number
+  global_top_percentage: number
+  cohort_percentile: number
+  cohort_top_percentage: number
+  headline: string
+  drivers?: string[]
+}
+
+export type ConsumerAchievement = {
+  id: string
+  title: string
+  tier: "SSR" | "SR" | "R" | string
+  state: string
+  rarity_percentage: number
+  position: string
+  summary: string
+  member_ids: string[]
+}
+
+export type ConsumerFingerprint = {
+  id: string
+  title: string
+  detail: string
+  rarity_label: string
+  top_percentage: number
+}
+
+export type LifeKlineMonth = {
+  index: number
+  label: string
+  ganzhi: string
+  value: number
+  delta: number
+  drivers: string[]
+  intensity?: number
+}
+
+export type LifeKlinePoint = {
+  year: number
+  open: number
+  close: number
+  high: number
+  low: number
+  volume: number
+  ma3: number | null
+  ma5: number | null
+  ma10: number | null
+  months: LifeKlineMonth[]
+}
+
+export type LifeKlineSeries = {
+  default_window: { start_year: number; end_year: number }
+  series: Array<{
+    key: "overall" | "career" | "wealth" | "relationship" | "health" | string
+    label: string
+    color: string
+    points: LifeKlinePoint[]
+  }>
+  period_bands: Array<{ label: string; start_year: number; end_year: number }>
+  stages: Array<{ key: string; label: string; year: number; score: number; theme: string; summary: string }>
+  method: string
+}
+
+export type ConsumerProfile = {
+  version: string
+  system: "bazi" | "ziwei"
+  identity: {
+    system_title: string
+    archetype_id?: string
+    archetype_title: string
+    archetype_subtitle: string
+    fusion_title?: string | null
+    main_score: number
+    global_percentile: number
+    global_top_percentage: number
+    cohort_percentile: number
+    cohort_top_percentage: number
+    cohort_label: string
+  }
+  subjects: ConsumerSubjectScore[]
+  achievements: ConsumerAchievement[]
+  fingerprints: ConsumerFingerprint[]
+  twin: {
+    family_id: string
+    title: string
+    share_percentage: number
+    summary: string
+    representatives: string[]
+  } | null
+  life_kline: LifeKlineSeries
+  capability_key: string | null
 }
 
 export type RarityMetric = {
@@ -168,6 +291,7 @@ export type MetaphysicsStatistics = {
     hash: string
   }
   rarity_metrics: RarityMetric[]
+  consumer_baseline?: unknown
   disclaimer: string
   status?: "available" | "unavailable" | "version_mismatch"
   unavailable_reason?: string
@@ -276,6 +400,7 @@ export type MetaphysicsChart = {
     structural_relations: StructuralRelation[]
     theme_profiles: ThemeProfile[]
     synthesis?: BaziSynthesis
+    patterns?: PatternAssessment
   }
   theme_profiles: ThemeProfile[]
   synthesis: BaziSynthesis
@@ -289,6 +414,7 @@ export type MetaphysicsChart = {
     }
     engine: string
   }
+  consumer?: ConsumerProfile
   previous_solar_term?: { name: string; timestamp: string; days_away: number; seconds_away: number } | null
   next_solar_term?: { name: string; timestamp: string; days_away: number; seconds_away: number } | null
   birth_profile: {

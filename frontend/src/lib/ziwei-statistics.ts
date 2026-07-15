@@ -1,4 +1,5 @@
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
+import { computeZiweiNatalConsumerScores } from "@/lib/ziwei-consumer"
 
 const MAJOR: Record<string, string> = { 紫微: "ziwei", 天机: "tianji", 太阳: "taiyang", 武曲: "wuqu", 天同: "tiantong", 廉贞: "lianzhen", 天府: "tianfu", 太阴: "taiyin", 贪狼: "tanlang", 巨门: "jumen", 天相: "tianxiang", 天梁: "tianliang", 七杀: "qisha", 破军: "pojun" }
 const BRANCH: Record<string, string> = { 子: "zi", 丑: "chou", 寅: "yin", 卯: "mao", 辰: "chen", 巳: "si", 午: "wu", 未: "wei", 申: "shen", 酉: "you", 戌: "xu", 亥: "hai" }
@@ -44,5 +45,8 @@ export function ziweiFeatureIds(chart: IFunctionalAstrolabe) {
   result.push(`ziwei.auspicious_max_density.${Math.max(...auspiciousDensity)}`)
   result.push(`ziwei.challenging_palaces.${challengingDensity.filter(Boolean).length}`)
   result.push(`ziwei.challenging_max_density.${Math.max(...challengingDensity)}`)
+  const consumer = computeZiweiNatalConsumerScores(chart)
+  result.push(`ziwei.archetype.${consumer.archetype.id}`)
+  result.push(...consumer.achievement_feature_ids)
   return [...new Set(result)]
 }

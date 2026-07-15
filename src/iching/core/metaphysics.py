@@ -10,6 +10,7 @@ import sxtwl
 from lunar_python import Lunar as LunarCalendar
 from lunar_python import Solar as SolarCalendar
 
+from iching.core.bazi_patterns import assess_patterns
 from iching.core.bazi_structure import build_structure_profile, structured_relations
 from iching.core.calendar_engine import (
     JIE_MONTH_BRANCH,
@@ -22,7 +23,9 @@ from iching.core.calendar_engine import (
 )
 from iching.core.najia import derive_six_gods
 from iching.core.metaphysics_statistics import statistics_for_shensha
+from iching.core.metaphysics_consumer import build_bazi_consumer_profile, consumer_feature_records
 from iching.core.shensha import RULES_VERSION, evaluate_shensha
+from iching.core.shensha_effects import evaluate_shensha_effects
 
 STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
 BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
@@ -506,6 +509,7 @@ def _build_uncertain_metaphysics_chart(
         "synthesis": {"method": "modern-ziping-common-v1", "conclusions": conclusions},
         "statistics": statistics,
         "period_layers": {"dayun": [], "current": {"as_of": datetime.now(local.tzinfo).isoformat(), "year": None, "month": None}, "engine": "pending_exact_hour"},
+        "consumer": {},
     })
     base["structure"]["theme_profiles"] = stable_theme_profiles
     base["structure"]["synthesis"] = base["synthesis"]
@@ -727,7 +731,7 @@ def _dayun_payload(
                 month_payload = {
                     "layer": "liuyue",
                     "index": liu_yue.getIndex(),
-                    "label": f"{liu_yue.getMonthInChinese()}月",
+                    "label": f"{str(liu_yue.getMonthInChinese()).lstrip('0123456789')}月",
                     "ganzhi": month_ganzhi,
                     "ten_god": month_ten_god,
                     "xunkong": liu_yue.getXunKong(),
@@ -926,21 +930,39 @@ def build_metaphysics_chart(
         include_period_details=include_period_details,
         period_cycle_index=period_cycle_index,
     )
-    shen_sha = evaluate_shensha(pillars)
+    raw_shen_sha = evaluate_shensha(pillars)
     structure = build_structure_profile(
         pillars,
         gender=gender,
-        shensha_hits=shen_sha,
+        shensha_hits=raw_shen_sha,
         seasonal_status=_seasonal_status(month_branch),
     )
+    patterns = assess_patterns(pillars, structure)
+    structure["patterns"] = patterns
+    shensha_effects = evaluate_shensha_effects(raw_shen_sha, pillars, structure)
+    shen_sha = shensha_effects["hits"]
+    consumer_features = consumer_feature_records(patterns, shensha_effects)
     statistics = statistics_for_shensha(
         shen_sha,
         day_boundary,
         theme_profiles=structure["theme_profiles"],
         gender=gender,
+        day_master=day_stem,
+        month_command=month_branch,
+        consumer_feature_ids=[item["id"] for item in consumer_features],
     )
     theme_profiles = statistics.get("theme_profiles", structure["theme_profiles"])
     structure["theme_profiles"] = theme_profiles
+    rarity_by_feature = {
+        str(item.get("feature_id", "")): float(item.get("percentage", 0) or 0)
+        for item in statistics.get("rarity_metrics", ())
+        if item.get("status") in {"observed", "zero"}
+    }
+    for hit in shen_sha:
+        feature_id = str(hit.get("feature_id", ""))
+        if feature_id in rarity_by_feature:
+            hit["rarity_percentage"] = rarity_by_feature[feature_id]
+    structure["shensha_combinations"] = shensha_effects["combinations"]
     synthesis = structure.get("synthesis", {"method": "modern-ziping-common-v1", "conclusions": []})
     profiles_by_theme = {str(profile.get("theme", "")): profile for profile in theme_profiles}
     for conclusion in synthesis.get("conclusions", []):
@@ -957,6 +979,15 @@ def build_metaphysics_chart(
         else:
             context = f"较常见 · 同值样本 {same_mass:.1f}%"
         conclusion["distribution_context"] = context
+    consumer = build_bazi_consumer_profile(
+        pillars=pillars,
+        structure=structure,
+        patterns=patterns,
+        shensha_effects=shensha_effects,
+        cycles=dayun.get("cycles", []),
+        consumer_distributions=statistics.get("consumer_distributions"),
+        consumer_feature_metrics=statistics.get("consumer_feature_metrics", ()),
+    )
     return {
         "timezone": timezone_name,
         "input_timestamp": local.isoformat(),
@@ -985,7 +1016,7 @@ def build_metaphysics_chart(
             "six_spirits": six_gods,
         },
         "element_counts": {element: counts.get(element, 0) for element in ELEMENTS},
-        "derived_schema_version": 5,
+        "derived_schema_version": 6,
         "calculation_quality": calendar_facts.quality,
         "boundary_flags": calendar_facts.boundary_flags,
         "rules_version": RULES_VERSION,
@@ -999,6 +1030,7 @@ def build_metaphysics_chart(
             "current": dayun.get("current", {"as_of": datetime.now(calculation_time.tzinfo).isoformat(), "year": None, "month": None}),
             "engine": "lunar_python 1.4.8",
         },
+        "consumer": consumer,
         "previous_solar_term": previous_term,
         "next_solar_term": next_term,
         "birth_profile": {

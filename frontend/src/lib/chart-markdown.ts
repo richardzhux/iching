@@ -1,10 +1,34 @@
-import type { MetaphysicsChart, MetaphysicsStatistics } from "@/types/api"
+import type { ConsumerProfile, MetaphysicsChart, MetaphysicsStatistics } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 
 type Locale = "en" | "zh"
 
 const cell = (value: string) => value.replaceAll("|", "\\|").replaceAll("\n", "<br>") || "—"
+
+function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
+  if (!consumer?.identity) return []
+  const identity = consumer.identity
+  const subjectTable = [
+    `| ${zh ? "主题" : "Subject"} | ${zh ? "指数" : "Index"} | ${zh ? "全部样本" : "All samples"} | ${identity.cohort_label} |`,
+    "| --- | ---: | ---: | ---: |",
+    ...consumer.subjects.map((subject) => `| ${cell(subject.label)} | ${subject.score} | ${zh ? "前" : "Top"} ${subject.global_top_percentage}% | ${zh ? "前" : "Top"} ${subject.cohort_top_percentage}% |`),
+  ]
+  const stages = consumer.life_kline.stages.slice(0, 3).map((stage) => `- ${stage.year}｜**${stage.label}**：${stage.summary}`)
+  return [
+    `## ${zh ? "命格身份" : "Chart identity"}`,
+    "",
+    `### ${identity.fusion_title || identity.archetype_title}`,
+    "",
+    identity.archetype_subtitle,
+    "",
+    `**${zh ? "命盘总指数" : "Main chart index"} ${identity.main_score} · ${zh ? "全部样本前" : "Top"} ${identity.global_top_percentage}% · ${identity.cohort_label}${zh ? "前" : " top"} ${identity.cohort_top_percentage}%**`,
+    "",
+    ...subjectTable,
+    ...(stages.length ? ["", `### ${zh ? "未来三大阶段" : "Three future stages"}`, "", ...stages] : []),
+    "",
+  ]
+}
 
 function ziweiMetricMarkdownLabel(featureId: string, chart: IFunctionalAstrolabe, zh: boolean) {
   const life = chart.palaces.find((palace) => palace.name === "命宫" || palace.name.toLowerCase().includes("soul"))
@@ -114,13 +138,12 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
     ...profile.evidence.map((item) => `- ${item.evidence_type}｜${item.title}：${item.detail}（${item.source}）`),
   ])
   return [
-    `## ${zh ? "命主" : "Chart"}：${title}`, "", `## ${zh ? "生辰八字" : "BaZi"}`, "", ...table, "", ...facts,
+    `## ${zh ? "命主" : "Chart"}：${title}`, "", ...consumerMarkdown(chart.consumer, zh), `## ${zh ? "生辰八字" : "BaZi"}`, "", ...table, "", ...facts,
     "", ...dayun,
     "", `## ${zh ? "神煞与历法样本频率" : "Shen Sha and calendar-sample frequency"}`, "", ...shensha,
     "", `## ${zh ? "核心判断" : "Key findings"}`, "", ...(chart.synthesis?.conclusions ?? []).map((item) => `- **${item.headline}**：${item.body}${item.distribution_context ? `（${item.distribution_context}）` : ""}`),
     "", `## ${zh ? "四主题结构画像" : "Four-theme structure profile"}`, "", ...themes,
-    "", `> ${zh ? "结构分布用于说明辨识度；不合成为吉凶或命运总分。" : "Structure distributions describe distinctiveness and are not combined into a fate score."}`,
-    `> ${chart.statistics.disclaimer}`, `> ${zh ? "规则版本" : "Rules"}: ${chart.rules_version} · ${zh ? "统计基线" : "Baseline"}: ${chart.statistics.baseline.id} · ${chart.statistics.baseline.hash}`,
+    "", `> ${zh ? "规则版本" : "Rules"}: ${chart.rules_version} · ${zh ? "统计基线" : "Baseline"}: ${chart.statistics.baseline.id}`,
   ].join("\n")
 }
 
@@ -142,6 +165,7 @@ export function buildZiweiMarkdown(
       fixLeap: boolean
       isLeapMonth: boolean
     }
+    consumer?: ConsumerProfile
   },
 ) {
   const zh = locale === "zh"
@@ -225,6 +249,7 @@ export function buildZiweiMarkdown(
   return [
     `## ${zh ? "命主" : "Chart"}：${title}`,
     "",
+    ...consumerMarkdown(context?.consumer, zh),
     `## ${zh ? "紫微斗数" : "Zi Wei Dou Shu"}`,
     "",
     ...summaryTable,
@@ -241,6 +266,6 @@ export function buildZiweiMarkdown(
     "",
     ...periodTable,
     ...(rarity.length ? ["", `## ${zh ? "结构出现频率" : "Structural frequency"}`, "", ...rarity] : []),
-    ...(statistics ? ["", `> ${statistics.disclaimer}`, `> ${zh ? "统计基线" : "Baseline"}: ${statistics.baseline.id} · ${statistics.baseline.hash}`] : []),
+    ...(statistics ? ["", `> ${zh ? "统计基线" : "Baseline"}: ${statistics.baseline.id}`] : []),
   ].join("\n")
 }

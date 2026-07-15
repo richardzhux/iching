@@ -14,11 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BaziChartView } from "@/components/tools/bazi-chart-view"
+import { type ConsumerIdentityProfile } from "@/components/tools/consumer-identity"
+import { MetaphysicsComparisonDialog, type ComparisonInput } from "@/components/tools/metaphysics-comparison-dialog"
 import { BaziControls } from "@/components/tools/metaphysics-controls"
 import { ZiweiChartView, type ZiweiArchiveMode, type ZiweiProvenance, type ZiweiStatisticsStatus } from "@/components/tools/ziwei-chart-view"
 import { calculateMetaphysicsChart, fetchMetaphysicsChart, fetchMetaphysicsStatistics, saveMetaphysicsChart } from "@/lib/api"
 import type { LocationResult } from "@/lib/location-search"
 import { ZIWEI_BASELINE_ID, ziweiFeatureIds } from "@/lib/ziwei-statistics"
+import { buildZiweiConsumerProfile, resolveZiweiBaziFusionTitle, type ZiweiConsumerProfile } from "@/lib/ziwei-consumer"
 import type { MetaphysicsChart, MetaphysicsChartRecord, MetaphysicsChartSavePayload, MetaphysicsStatistics } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
@@ -60,6 +63,7 @@ type ZiweiResultSnapshot = {
   statisticsError?: string
   archiveMode: ZiweiArchiveMode
   normalizedInput?: ZiweiNormalizedInput
+  consumer: ZiweiConsumerProfile
 }
 
 type BaziResultSnapshot = {
@@ -284,23 +288,84 @@ export function MetaphysicsTools() {
   const [savingType, setSavingType] = useState<"bazi" | "ziwei" | null>(null)
   const [ziweiPeriodSavePending, setZiweiPeriodSavePending] = useState(false)
   const [ziweiPeriodSaveError, setZiweiPeriodSaveError] = useState(false)
+  const [comparisonKind, setComparisonKind] = useState<"bazi" | "ziwei" | null>(null)
+  const [comparisonOpen, setComparisonOpen] = useState(false)
   const ziweiPeriodSaveVersionRef = useRef(0)
   const ziweiPeriodSaveQueueRef = useRef<Promise<void>>(Promise.resolve())
   const timezoneOptions = useMemo(() => TIMEZONES.includes(timezone) ? TIMEZONES : [timezone, ...TIMEZONES], [timezone])
+  const displayZiweiConsumer = useMemo(() => {
+    if (!ziweiResult) return null
+    const baziArchetype = birthResult?.chart.consumer?.identity.archetype_title ?? birthResult?.chart.consumer?.identity.archetype_id
+    if (!baziArchetype) return ziweiResult.consumer
+    return {
+      ...ziweiResult.consumer,
+      identity: {
+        ...ziweiResult.consumer.identity,
+        fusion_title: resolveZiweiBaziFusionTitle(ziweiResult.consumer.metadata.archetype_id, baziArchetype),
+      },
+    }
+  }, [birthResult, ziweiResult])
+  const displayBirthChart = useMemo(() => {
+    const chart = birthResult?.chart
+    const consumer = chart?.consumer
+    const ziweiConsumer = ziweiResult?.consumer
+    if (!chart || !consumer || !ziweiConsumer) return chart ?? null
+    return {
+      ...chart,
+      consumer: {
+        ...consumer,
+        identity: {
+          ...consumer.identity,
+          fusion_title: resolveZiweiBaziFusionTitle(ziweiConsumer.metadata.archetype_id, consumer.identity.archetype_title ?? consumer.identity.archetype_id),
+        },
+      },
+    }
+  }, [birthResult, ziweiResult])
+  const comparisonCurrentProfile = useMemo<ConsumerIdentityProfile | null>(() => {
+    if (comparisonKind === "bazi") {
+      const consumer = displayBirthChart?.consumer
+      if (!consumer?.twin) return null
+      return { identity: consumer.identity, subjects: consumer.subjects, fingerprints: consumer.fingerprints, twin: consumer.twin }
+    }
+    if (comparisonKind === "ziwei") {
+      const consumer = displayZiweiConsumer ?? ziweiResult?.consumer
+      if (!consumer) return null
+      return { identity: consumer.identity, subjects: consumer.subjects, fingerprints: consumer.fingerprints, twin: consumer.twin }
+    }
+    return null
+  }, [comparisonKind, displayBirthChart, displayZiweiConsumer, ziweiResult])
   const locationOverrideActive = Boolean(locationAutofill && (
     timezone !== locationAutofill.appliedTimezone || longitude !== locationAutofill.appliedLongitude
   ))
 
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      const requested = new URLSearchParams(window.location.search).get("tab")
+      if (requested === "current" || requested === "bazi" || requested === "ziwei") setActiveTab(requested)
+    }
+    syncTabFromUrl()
+    window.addEventListener("popstate", syncTabFromUrl)
+    return () => window.removeEventListener("popstate", syncTabFromUrl)
+  }, [])
+
+  function changeActiveTab(nextTab: "current" | "bazi" | "ziwei") {
+    setActiveTab(nextTab)
+    const query = new URLSearchParams(window.location.search)
+    query.set("tab", nextTab)
+    if (nextTab === "current") query.delete("chart")
+    router.replace(`${toLocalePath("/tools")}?${query.toString()}`, { scroll: false })
+  }
+
   const copy = locale === "zh" ? {
     subjectName: "命主称呼",
-    title: "八字与紫微排盘",
-    subtitle: "输入出生信息生成个人命盘，也可随时查看当前时令。",
+    title: "命盘与人生走势",
+    subtitle: "八字、紫微、稀有成就与未来十年，一次看清。",
     current: "当前时令",
     bazi: "八字排盘",
     ziwei: "紫微斗数",
     basicSettings: "基础出生信息",
     professionalSettings: "专业排盘设置",
-    professionalSettingsHint: "这些设置用于明确历法与起运规则；不改变排盘事实与解释层的边界。",
+    professionalSettingsHint: "默认配置已经适合绝大多数人；需要时可进一步校准出生地与起运方式。",
     timezone: "时区",
     birth: "出生时间",
     calendar: "历法",
@@ -343,26 +408,26 @@ export function MetaphysicsTools() {
     lunarYear: "农历正月初一",
     exactYear: "立春",
     horoscopeDate: "运限日期",
-    chartNote: "按出生地时间与精确节气排盘，并结合传统命理规则与历法统计进行分析。",
+    chartNote: "精确节气排盘 · 历法样本排名 · 确定性人生 K 线",
     newChart: "新建命盘",
     savedCloud: "已自动保存到我的档案",
     savingCloud: "正在保存…",
     loginToSave: "登录后自动保存并可随时打开",
     saveFailed: "命盘已生成，但云端保存失败，请稍后重试。",
     loadedChart: "已打开私人命盘档案。",
-    exactTimeRequired: "准确时间可看到完整四柱与运限；时间不确定时也可先查看稳定结构。",
+    exactTimeRequired: "准确时辰将解锁完整身份、四科排名与人生 K 线。",
     standardRules: "统一排盘规则",
-    standardRulesBody: "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启",
+    standardRulesBody: "已为你采用通行法排盘",
   } : {
     subjectName: "Chart name",
-    title: "BaZi & Zi Wei Charts",
-    subtitle: "Enter birth details to generate a personal chart, or check the current calendar at a glance.",
+    title: "Charts & Life Timeline",
+    subtitle: "BaZi, Zi Wei, rare achievements, and your next ten years in one place.",
     current: "Current Time",
     bazi: "BaZi",
     ziwei: "Zi Wei Dou Shu",
     basicSettings: "Basic birth details",
     professionalSettings: "Professional chart settings",
-    professionalSettingsHint: "These settings make calendar and cycle rules explicit without mixing deterministic facts with interpretation.",
+    professionalSettingsHint: "The defaults suit most people; fine-tune birth location and cycle settings only when needed.",
     timezone: "Time zone",
     birth: "Birth time",
     calendar: "Calendar",
@@ -405,16 +470,16 @@ export function MetaphysicsTools() {
     lunarYear: "Lunar New Year",
     exactYear: "Start of Spring",
     horoscopeDate: "Horoscope date",
-    chartNote: "Calculated from local birth time and exact solar terms, then interpreted with traditional rules and calendar statistics.",
+    chartNote: "Exact solar terms · calendar-sample ranks · deterministic Life K-line",
     newChart: "New chart",
     savedCloud: "Automatically saved to My Charts",
     savingCloud: "Saving…",
     loginToSave: "Sign in to save and reopen this chart",
     saveFailed: "The chart was generated, but cloud saving failed. Try again later.",
     loadedChart: "Private chart opened.",
-    exactTimeRequired: "An exact time unlocks the full chart and periods; uncertain times can still show stable structures.",
+    exactTimeRequired: "An exact birth hour unlocks your full identity, four subject ranks, and Life K-line.",
     standardRules: "Standard chart rules",
-    standardRulesBody: "Standard algorithm · Heaven chart · Start-of-Spring year and horoscope boundaries · late Zi advances the day · leap-month adjustment on",
+    standardRulesBody: "The standard method is already selected for you",
   }
 
   function persistedForm(): PersistedChartForm {
@@ -507,6 +572,7 @@ export function MetaphysicsTools() {
           statisticsStatus: "loading",
           archiveMode: "standard",
           normalizedInput: saved.normalizedInput,
+          consumer: buildZiweiConsumerProfile(chart, horoscope),
         })
         requestZiweiStatistics(statisticsChart, saved.generatedAt)
       }).catch(() => {
@@ -594,7 +660,7 @@ export function MetaphysicsTools() {
         return
       }
       setZiweiResult((current) => current?.generatedAt === generatedAt
-        ? { ...current, statistics, statisticsStatus: "ready", statisticsError: undefined }
+        ? { ...current, statistics, statisticsStatus: "ready", statisticsError: undefined, consumer: buildZiweiConsumerProfile(current.chart, current.horoscope, statistics) }
         : current)
     }).catch(() => {
       setZiweiResult((current) => current?.generatedAt === generatedAt
@@ -674,7 +740,7 @@ export function MetaphysicsTools() {
       if (!snapshot.chart) throw new Error(locale === "zh" ? "八字命盘快照不完整。" : "The BaZi snapshot is incomplete.")
       let chart = snapshot.chart
       const calculationRequest = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
-      if ((chart.derived_schema_version ?? 0) < 4 || !chart.shen_sha || !chart.statistics || !chart.period_layers || !chart.structure || !chart.theme_profiles || (chart.birth_profile?.hour_uncertain && !chart.birth_profile?.stability)) {
+      if ((chart.derived_schema_version ?? 0) < 6 || !chart.shen_sha || !chart.statistics || !chart.period_layers || !chart.structure || !chart.theme_profiles || (!chart.birth_profile?.hour_uncertain && !chart.consumer) || (chart.birth_profile?.hour_uncertain && !chart.birth_profile?.stability)) {
         if (!calculationRequest && chart.birth_profile?.hour_uncertain) {
           setBirthResult(null)
           setIncompleteBaziRecord({ subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
@@ -753,6 +819,7 @@ export function MetaphysicsTools() {
           statisticsStatus: "loading",
           archiveMode: "standard",
           normalizedInput,
+          consumer: buildZiweiConsumerProfile(chart, horoscope, snapshot.statistics),
         })
         requestZiweiStatistics(statisticsChart, generatedAt)
       } else {
@@ -770,6 +837,7 @@ export function MetaphysicsTools() {
           statisticsError: locale === "zh" ? "旧档案以静态快照保留，未重新计算频率样本。" : "This legacy archive is preserved as a static snapshot; frequency samples were not recalculated.",
           archiveMode,
           normalizedInput: normalizedInput ?? undefined,
+          consumer: buildZiweiConsumerProfile(snapshot.chart, snapshot.horoscope, snapshot.statistics),
         })
       }
       setActiveZiweiSubjectId(record.subject_id)
@@ -965,11 +1033,11 @@ export function MetaphysicsTools() {
         birth_date: (chart.birth_profile.converted_solar_date ?? chart.calculation_timestamp).slice(0, 10),
         day_pillar: chart.calendar_facts.day_pillar,
         input_snapshot: { form: formSnapshot(), calculation_request: calculationRequest },
-        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 5, baseline_id: chart.statistics.baseline.id },
+        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 6, baseline_id: chart.statistics.baseline.id },
         engine_name: "canonical-calendar",
         engine_version: "1+sxtwl-2.0.7+lunar-python-1.4.8",
         rules_version: `${chart.rules_version}:${baziDayBoundary}:${dayunAlgorithm}`,
-        schema_version: 5,
+        schema_version: 6,
       })
       if (saved) persistBaziWorkspace(nextBirthResult, saved.id, saved.subject_id)
     } catch (error) {
@@ -1013,6 +1081,7 @@ export function MetaphysicsTools() {
       const { chart, horoscope, statisticsChart } = await instantiateStandardZiwei(normalizedInput, locale)
       const generatedAt = new Date().toISOString()
       const subjectName = baziSubjectName.trim()
+      const consumer = buildZiweiConsumerProfile(chart, horoscope)
       setZiweiResult({
         chart,
         horoscope,
@@ -1024,6 +1093,7 @@ export function MetaphysicsTools() {
         statisticsStatus: "loading",
         archiveMode: "standard",
         normalizedInput,
+        consumer,
       })
       setZiweiEditorOpen(false)
       persistZiweiWorkspace(normalizedInput, generatedAt, subjectName)
@@ -1037,11 +1107,11 @@ export function MetaphysicsTools() {
         birth_date: chart.solarDate.slice(0, 10),
         day_pillar: chart.rawDates.chineseDate.daily.join(""),
         input_snapshot: { form: formSnapshot(), provenance, normalized_ziwei: normalizedInput },
-        result_snapshot: { chart, horoscope, horoscope_date: horoscopeDate, generated_at: generatedAt, provenance, subject_name: subjectName, statistics_status: "deferred", derived_schema_version: 3, baseline_id: ZIWEI_BASELINE_ID },
+        result_snapshot: { chart, horoscope, horoscope_date: horoscopeDate, generated_at: generatedAt, provenance, subject_name: subjectName, consumer, statistics_status: "deferred", derived_schema_version: 4, baseline_id: ZIWEI_BASELINE_ID },
         engine_name: "iztro",
         engine_version: "2.5.8",
         rules_version: "ziwei-v2.1:default:heaven:exact:forward",
-        schema_version: 3,
+        schema_version: 4,
       })
       if (saved) persistZiweiWorkspace(normalizedInput, generatedAt, subjectName, saved.id, saved.subject_id)
     } catch (error) {
@@ -1059,6 +1129,7 @@ export function MetaphysicsTools() {
     }
     try {
       const horoscope = ziweiResult.chart.horoscope(nextDate)
+      const consumer = buildZiweiConsumerProfile(ziweiResult.chart, horoscope, ziweiResult.statistics)
       const normalizedInput = ziweiResult.normalizedInput
         ? { ...ziweiResult.normalizedInput, horoscopeDate: nextDate }
         : undefined
@@ -1069,6 +1140,7 @@ export function MetaphysicsTools() {
             horoscope,
             horoscopeDate: nextDate,
             normalizedInput,
+            consumer,
           }
         : current)
       if (normalizedInput) {
@@ -1085,11 +1157,11 @@ export function MetaphysicsTools() {
           birth_date: currentResult.chart.solarDate.slice(0, 10),
           day_pillar: currentResult.chart.rawDates.chineseDate.daily.join(""),
           input_snapshot: { form: { ...formSnapshot(), horoscope_date: nextDate }, provenance: currentResult.provenance, normalized_ziwei: normalizedInput },
-          result_snapshot: { chart: currentResult.chart, horoscope, horoscope_date: nextDate, generated_at: currentResult.generatedAt, provenance: currentResult.provenance, subject_name: currentResult.subjectName, statistics: currentResult.statistics, derived_schema_version: 3, baseline_id: ZIWEI_BASELINE_ID },
+          result_snapshot: { chart: currentResult.chart, horoscope, horoscope_date: nextDate, generated_at: currentResult.generatedAt, provenance: currentResult.provenance, subject_name: currentResult.subjectName, statistics: currentResult.statistics, consumer, derived_schema_version: 4, baseline_id: ZIWEI_BASELINE_ID },
           engine_name: "iztro",
           engine_version: "2.5.8",
           rules_version: "ziwei-v2.1:default:heaven:exact:forward",
-          schema_version: 3,
+          schema_version: 4,
         }
         setZiweiPeriodSavePending(true)
         setZiweiPeriodSaveError(false)
@@ -1132,6 +1204,44 @@ export function MetaphysicsTools() {
     window.setTimeout(() => document.getElementById("ziwei-edit-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0)
   }
 
+  function openComparison(kind: "bazi" | "ziwei") {
+    setComparisonKind(kind)
+    setComparisonOpen(true)
+  }
+
+  async function calculateComparison(input: ComparisonInput): Promise<ConsumerIdentityProfile> {
+    if (comparisonKind === "bazi") {
+      const chart = await calculateMetaphysicsChart({
+        timestamp: input.birthLocal,
+        timezone: input.timezone,
+        day_boundary: "forward",
+        calendar_type: "solar",
+        gender: input.gender,
+        include_period_details: false,
+      })
+      const consumer = chart.consumer
+      if (!consumer?.twin) throw new Error(locale === "zh" ? "这张命盘暂时无法生成比较。" : "This chart could not be compared yet.")
+      return { identity: consumer.identity, subjects: consumer.subjects, fingerprints: consumer.fingerprints, twin: consumer.twin }
+    }
+    if (comparisonKind === "ziwei") {
+      const date = normalizeCalendarDate(input.birthLocal.slice(0, 10))
+      const time = normalizeExactTime(input.birthLocal.slice(11, 16))
+      if (!date || !time) throw new Error(locale === "zh" ? "请输入有效的出生时间。" : "Enter a valid birth time.")
+      const comparisonDate = ziweiResult?.horoscopeDate ?? localDateTimeValue(new Date()).slice(0, 10)
+      const { chart, horoscope } = await instantiateStandardZiwei({
+        calendar: "solar",
+        date,
+        time,
+        gender: input.gender === "female" ? "女" : "男",
+        isLeapMonth: false,
+        horoscopeDate: comparisonDate,
+      }, locale)
+      const consumer = buildZiweiConsumerProfile(chart, horoscope)
+      return { identity: consumer.identity, subjects: consumer.subjects, fingerprints: consumer.fingerprints, twin: consumer.twin }
+    }
+    throw new Error(locale === "zh" ? "请先选择要比较的命盘。" : "Choose a chart to compare.")
+  }
+
   return (
     <main className="mx-auto max-w-[92rem] space-y-6">
       <header className="border-b border-border/60 pb-5">
@@ -1141,7 +1251,7 @@ export function MetaphysicsTools() {
         <p className="mt-3 max-w-3xl text-xs leading-5 text-muted-foreground">{copy.chartNote}</p>
       </header>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "current" | "bazi" | "ziwei")}>
+      <Tabs value={activeTab} onValueChange={(value) => changeActiveTab(value as "current" | "bazi" | "ziwei")}>
         <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="current"><CalendarClock className="mr-2 size-4" />{copy.current}</TabsTrigger><TabsTrigger value="bazi"><Compass className="mr-2 size-4" />{copy.bazi}</TabsTrigger><TabsTrigger value="ziwei"><Sparkles className="mr-2 size-4" />{copy.ziwei}</TabsTrigger></TabsList>
         <TabsContent value="current" className="mt-4 space-y-4">
           <div aria-live="polite" aria-busy={currentLoading}>
@@ -1154,7 +1264,7 @@ export function MetaphysicsTools() {
           {birthResult ? (
             <>
               <ChartPersistenceBar copy={copy} isSaving={savingType === "bazi"} isSaved={Boolean(activeBaziChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => { const saved = readPersistedWorkspace().bazi; if (saved) applyPersistedForm(saved.form); setBaziEditorOpen(true) }} onNew={() => startNewChart("bazi")} />
-              <BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt} subjectName={birthResult.subjectName} locale={locale} mode="birth" />
+              <BaziChartView chart={displayBirthChart ?? birthResult.chart} generatedAt={birthResult.generatedAt} subjectName={birthResult.subjectName} locale={locale} mode="birth" onCompare={() => openComparison("bazi")} />
             </>
           ) : null}
           <details data-export-exclude open={baziEditorOpen} onToggle={(event) => setBaziEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
@@ -1172,7 +1282,7 @@ export function MetaphysicsTools() {
         </TabsContent>
         <TabsContent value="ziwei" className="mt-4 space-y-4">
           {ziweiResult ? <ChartPersistenceBar copy={copy} isSaving={savingType === "ziwei" || ziweiPeriodSavePending} isSaved={Boolean(activeZiweiChartId) && !ziweiPeriodSaveError} saveError={ziweiPeriodSaveError} isAuthenticated={Boolean(auth.user)} onEdit={ziweiResult.archiveMode === "standard" ? () => { const saved = readPersistedWorkspace().ziwei; if (saved) applyPersistedForm(saved.form); setZiweiEditorOpen(true) } : undefined} onNew={() => startNewChart("ziwei")} /> : null}
-          {ziweiResult ? <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} statistics={ziweiResult.statistics} statisticsStatus={ziweiResult.statisticsStatus} statisticsError={ziweiResult.statisticsError} archiveMode={ziweiResult.archiveMode} onHoroscopeDateChange={changeZiweiHoroscopeDate} onCreateStandardCopy={createStandardZiweiCopy} /> : null}
+          {ziweiResult ? <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} consumer={displayZiweiConsumer ?? ziweiResult.consumer} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} statistics={ziweiResult.statistics} statisticsStatus={ziweiResult.statisticsStatus} statisticsError={ziweiResult.statisticsError} archiveMode={ziweiResult.archiveMode} onHoroscopeDateChange={changeZiweiHoroscopeDate} onCreateStandardCopy={createStandardZiweiCopy} onCompare={() => openComparison("ziwei")} /> : null}
           {!ziweiResult || ziweiResult.archiveMode === "standard" ? <details id="ziwei-edit-details" data-export-exclude open={ziweiEditorOpen} onToggle={(event) => setZiweiEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{ziweiResult ? copy.editDetails : copy.ziweiBasicSettings}</summary>
             <div className="mt-4 space-y-4">
@@ -1219,6 +1329,7 @@ export function MetaphysicsTools() {
           </div>
         </TabsContent>
       </Tabs>
+      {comparisonKind && comparisonCurrentProfile ? <MetaphysicsComparisonDialog open={comparisonOpen} onOpenChange={setComparisonOpen} kind={comparisonKind} locale={locale} currentName={comparisonKind === "bazi" ? birthResult?.subjectName ?? "" : ziweiResult?.subjectName ?? ""} currentProfile={comparisonCurrentProfile} onCalculate={calculateComparison} /> : null}
     </main>
   )
 }

@@ -16,9 +16,13 @@ const OUTPUT = path.join(here, "..", "src", "iching", "core", "data", `${BASELIN
 const SCHEMA_VERSION = 3
 const CONFIG_ID = "ziwei-standard-v1"
 const RULES_VERSION = "ziwei-structural-2026.07-v2.1"
+const CONSUMER_RULES_VERSION = "ziwei-consumer-c1"
 const TIME_INDEX_WEIGHTS = Object.freeze([1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1])
+const TIME_INDEX_LABELS = Object.freeze(["早子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥", "晚子"])
+const SCORE_KEYS = Object.freeze(["overall", "career", "wealth", "relationship", "health"])
 const REGISTRY_DESCRIPTOR = {
   rules_version: RULES_VERSION,
+  consumer_rules_version: CONSUMER_RULES_VERSION,
   encoding_version: 1,
   feature_families: [
     "life_combo",
@@ -31,6 +35,10 @@ const REGISTRY_DESCRIPTOR = {
     "auspicious_max_density",
     "challenging_palaces",
     "challenging_max_density",
+    "achievement",
+    "archetype",
+    "consumer_score_histogram",
+    "structural_family",
   ],
 }
 const MAJOR = { 紫微: "ziwei", 天机: "tianji", 太阳: "taiyang", 武曲: "wuqu", 天同: "tiantong", 廉贞: "lianzhen", 天府: "tianfu", 太阴: "taiyin", 贪狼: "tanlang", 巨门: "jumen", 天相: "tianxiang", 天梁: "tianliang", 七杀: "qisha", 破军: "pojun" }
@@ -41,6 +49,12 @@ const BRIGHTNESS = { 庙: "miao", 旺: "wang", 得: "de", 利: "li", 平: "ping"
 const MUTAGEN = { 禄: "lu", 权: "quan", 科: "ke", 忌: "ji" }
 const AUSPICIOUS = new Set(["左辅", "右弼", "文昌", "文曲", "天魁", "天钺"])
 const CHALLENGING = new Set(["擎羊", "陀罗", "火星", "铃星", "地空", "地劫"])
+const ACHIEVEMENT_IDS = Object.freeze([
+  "ziwei-tianfu", "sun-moon", "left-right", "chang-qu", "kui-yue", "sha-po-lang",
+  "three-positive-transformations", "six-aids-network", "life-body-aligned",
+  "main-axis-obstacle", "life-axis-defined",
+])
+const MAJOR_LABEL_BY_SLUG = Object.fromEntries(Object.entries(MAJOR).map(([label, slug]) => [slug, label]))
 
 function supportedFeatureCatalog() {
   const ids = new Set()
@@ -69,16 +83,88 @@ function supportedFeatureCatalog() {
   }
   for (let count = 0; count <= 6; count += 1) ids.add(`ziwei.auspicious_max_density.${count}`)
   for (let count = 0; count <= 6; count += 1) ids.add(`ziwei.challenging_max_density.${count}`)
+  for (const achievementId of ACHIEVEMENT_IDS) ids.add(`ziwei.achievement.${achievementId}`)
   return ids
 }
 
 let astroEngine
+let consumerScoreEngine
 
 function astro() {
   if (!astroEngine) {
     ;({ astro: astroEngine } = require(path.join(here, "..", "frontend", "node_modules", "iztro")))
   }
   return astroEngine
+}
+
+async function consumerScorer() {
+  if (!consumerScoreEngine) {
+    // Keep the production bundle free of baseline-generation code while still
+    // using the exact same score function. TypeScript is already a frontend
+    // dev dependency; transpilation happens once per worker, never at runtime.
+    const ts = require(path.join(here, "..", "frontend", "node_modules", "typescript"))
+    const source = fs.readFileSync(path.join(here, "..", "frontend", "src", "lib", "ziwei-consumer.ts"), "utf8")
+    const compiled = ts.transpileModule(source, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2022,
+        module: ts.ModuleKind.ES2022,
+        importsNotUsedAsValues: ts.ImportsNotUsedAsValues.Remove,
+      },
+    }).outputText
+    const moduleUrl = `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`
+    const consumerModule = await import(moduleUrl)
+    if (consumerModule.ZIWEI_CONSUMER_RULES_VERSION !== CONSUMER_RULES_VERSION) {
+      throw new Error(`consumer rules mismatch: ${consumerModule.ZIWEI_CONSUMER_RULES_VERSION}`)
+    }
+    consumerScoreEngine = consumerModule.computeZiweiNatalConsumerScores
+  }
+  return consumerScoreEngine
+}
+
+function emptyScoreHistograms() {
+  return Object.fromEntries(SCORE_KEYS.map((key) => [key, {}]))
+}
+
+function addHistogramValue(histogram, value, weight) {
+  const bin = String(value)
+  histogram[bin] = (histogram[bin] ?? 0) + weight
+}
+
+function mergeScoreHistograms(target, source) {
+  for (const key of SCORE_KEYS) {
+    for (const [bin, weight] of Object.entries(source[key] ?? {})) {
+      target[key][bin] = (target[key][bin] ?? 0) + weight
+    }
+  }
+}
+
+function addRepresentative(target, key, label) {
+  target[key] ??= []
+  if (target[key].length < 3 && !target[key].includes(label)) target[key].push(label)
+}
+
+function mergeRepresentatives(target, source) {
+  for (const [key, labels] of Object.entries(source)) {
+    for (const label of labels) addRepresentative(target, key, label)
+  }
+}
+
+function consumerScoreSignature(chart) {
+  const palaces = chart.palaces.map((palace) => {
+    const scoredStars = [...palace.majorStars, ...palace.minorStars, ...palace.adjectiveStars]
+      .filter((star) => MAJOR[star.name] || AUSPICIOUS.has(star.name) || CHALLENGING.has(star.name) || MUTAGEN[star.mutagen])
+      .map((star) => `${star.name}:${star.brightness ?? ""}:${star.mutagen ?? ""}`)
+      .sort()
+      .join(",")
+    return `${palace.index}:${palace.name}:${palace.isBodyPalace ? 1 : 0}:${scoredStars}`
+  }).join("|")
+  return `${chart.soul ?? ""}:${chart.body ?? ""}|${palaces}`
+}
+
+function lifeComboLabel(cohortId) {
+  const combo = cohortId.replace(/^life_combo\./, "")
+  if (!combo || combo === "empty") return "空宫借星"
+  return combo.split("-").map((slug) => MAJOR_LABEL_BY_SLUG[slug] ?? slug).join("×")
 }
 
 function features(chart) {
@@ -118,8 +204,18 @@ function features(chart) {
   return [...new Set(result)]
 }
 
-function runSlice(startDay, endDay) {
+async function runSlice(startDay, endDay) {
   const counts = new Map()
+  const scoreHistograms = emptyScoreHistograms()
+  const cohortHistograms = {}
+  const cohortWeights = {}
+  const archetypeWeights = {}
+  const structuralFamilyWeights = {}
+  const archetypeDefinitions = {}
+  const archetypeRepresentatives = {}
+  const structuralFamilyRepresentatives = {}
+  const scoreChart = await consumerScorer()
+  const scoreCache = new Map()
   let sampleWeight = 0
   let uniqueStateCount = 0
   for (let day = startDay; day < endDay; day += 1) {
@@ -145,17 +241,89 @@ function runSlice(startDay, endDay) {
         astroType: "heaven",
       })
       for (const featureId of features(chart)) counts.set(featureId, (counts.get(featureId) ?? 0) + hourWeight)
+      const scoreSignature = consumerScoreSignature(chart)
+      let consumer = scoreCache.get(scoreSignature)
+      if (!consumer) {
+        consumer = scoreChart(chart)
+        scoreCache.set(scoreSignature, consumer)
+      }
+      for (const featureId of consumer.achievement_feature_ids) counts.set(featureId, (counts.get(featureId) ?? 0) + hourWeight)
+      const cohortId = consumer.cohort_id
+      const archetypeId = consumer.archetype.id
+      const structuralFamilyId = `${cohortId}|${archetypeId}`
+      const representative = `${date.replaceAll("-", ".")} · ${TIME_INDEX_LABELS[timeIndex]}时段`
+      cohortHistograms[cohortId] ??= emptyScoreHistograms()
+      cohortWeights[cohortId] = (cohortWeights[cohortId] ?? 0) + hourWeight
+      archetypeWeights[archetypeId] = (archetypeWeights[archetypeId] ?? 0) + hourWeight
+      structuralFamilyWeights[structuralFamilyId] = (structuralFamilyWeights[structuralFamilyId] ?? 0) + hourWeight
+      archetypeDefinitions[archetypeId] = consumer.archetype
+      addRepresentative(archetypeRepresentatives, archetypeId, representative)
+      addRepresentative(structuralFamilyRepresentatives, structuralFamilyId, representative)
+      counts.set(`ziwei.archetype.${archetypeId}`, (counts.get(`ziwei.archetype.${archetypeId}`) ?? 0) + hourWeight)
+      for (const key of SCORE_KEYS) {
+        addHistogramValue(scoreHistograms[key], consumer.scores[key], hourWeight)
+        addHistogramValue(cohortHistograms[cohortId][key], consumer.scores[key], hourWeight)
+      }
       sampleWeight += hourWeight
       uniqueStateCount += 1
     }
   }
-  return { counts: Object.fromEntries(counts), sampleWeight, uniqueStateCount }
+  return { counts: Object.fromEntries(counts), scoreHistograms, cohortHistograms, cohortWeights, archetypeWeights, structuralFamilyWeights, archetypeDefinitions, archetypeRepresentatives, structuralFamilyRepresentatives, sampleWeight, uniqueStateCount }
 }
 
-function buildPayload(counts, sampleWeight, uniqueStateCount) {
+function buildPayload(counts, scoreHistograms, cohortHistograms, cohortWeights, archetypeWeights, structuralFamilyWeights, archetypeDefinitions, archetypeRepresentatives, structuralFamilyRepresentatives, sampleWeight, uniqueStateCount) {
   const supported = supportedFeatureCatalog()
   for (const featureId of Object.keys(counts)) supported.add(featureId)
   const featureCatalog = [...supported].sort((left, right) => left.localeCompare(right))
+  const archetypeFamilies = Object.entries(archetypeWeights).map(([archetypeId, weight]) => {
+    const definition = archetypeDefinitions[archetypeId]
+    return {
+      id: `archetype.${archetypeId}`,
+      title: `${definition?.title ?? archetypeId}结构族`,
+      title_en: `${definition?.title_en ?? archetypeId} family`,
+      summary: definition?.summary ?? "同一主导星曜结构的人，共享相近的决策与行动节奏。",
+      summary_en: definition?.summary_en ?? "Charts in this family share a similar decision and action rhythm.",
+      features: [`archetype:${archetypeId}`],
+      archetype_id: archetypeId,
+      weight,
+      total_weight: sampleWeight,
+      share_percentage: Number((weight / sampleWeight * 100).toFixed(6)),
+      representatives: archetypeRepresentatives[archetypeId] ?? [],
+    }
+  })
+  const jointFamilies = Object.entries(structuralFamilyWeights).map(([familyId, weight]) => {
+    const [cohortId, archetypeId] = familyId.split("|")
+    const definition = archetypeDefinitions[archetypeId]
+    const lifeLabel = lifeComboLabel(cohortId)
+    return {
+      id: `joint.${cohortId}.${archetypeId}`,
+      title: `${lifeLabel} · ${definition?.title ?? archetypeId}`,
+      title_en: `${lifeLabel} · ${definition?.title_en ?? archetypeId}`,
+      summary: `命宫以${lifeLabel}为主轴，并呈现“${definition?.title ?? archetypeId}”的行动节奏。`,
+      summary_en: `This life-star axis expresses the ${definition?.title_en ?? archetypeId} rhythm.`,
+      features: [`life:${cohortId.replace(/^life_combo\./, "")}`, `archetype:${archetypeId}`],
+      archetype_id: archetypeId,
+      weight,
+      total_weight: sampleWeight,
+      share_percentage: Number((weight / sampleWeight * 100).toFixed(6)),
+      representatives: structuralFamilyRepresentatives[familyId] ?? [],
+    }
+  })
+  const consumerBaseline = {
+    schema_version: 1,
+    id: `${BASELINE_ID}-${CONSUMER_RULES_VERSION}`,
+    rules_version: CONSUMER_RULES_VERSION,
+    score_keys: SCORE_KEYS,
+    sample_weight: sampleWeight,
+    weighted_unit: "civil_hour",
+    histograms: scoreHistograms,
+    cohort_key: "life_palace_major_star_combination",
+    cohort_weights: Object.fromEntries(Object.entries(cohortWeights).sort(([left], [right]) => left.localeCompare(right))),
+    cohort_histograms: Object.fromEntries(Object.entries(cohortHistograms).sort(([left], [right]) => left.localeCompare(right))),
+    structural_families: [...jointFamilies, ...archetypeFamilies].sort((left, right) => right.weight - left.weight || left.id.localeCompare(right.id)),
+    method: "Weighted empirical score histograms from the same versioned natal scoring function; compact aggregates only, no chart samples retained.",
+  }
+  consumerBaseline.hash = sha256Value(consumerBaseline)
   return {
     schema_version: SCHEMA_VERSION,
     id: BASELINE_ID,
@@ -189,6 +357,7 @@ function buildPayload(counts, sampleWeight, uniqueStateCount) {
     method: "逐日 × 13 个民用时段索引穷举，早子/晚子各按 1 小时、其余索引各按 2 小时加权；仅计算男性本命结构，登记特征不含随性别变化的运限方向与标签。",
     gender_scope: "male_only_natal_structure_gender_invariant",
     features: Object.fromEntries(featureCatalog.map((featureId) => [featureId, { hit_weight: counts[featureId] ?? 0 }])),
+    consumer_baseline: consumerBaseline,
   }
 }
 
@@ -213,13 +382,15 @@ function generatorMetadata() {
     sample_weight: totalDays * TIME_INDEX_WEIGHTS.reduce((total, weight) => total + weight, 0),
     weighted_unit: "civil_hour",
     rules_registry_hash: sha256Value(REGISTRY_DESCRIPTOR),
+    consumer_rules_version: CONSUMER_RULES_VERSION,
+    consumer_score_keys: SCORE_KEYS,
   }
 }
 
 if (isMainThread && process.argv.includes("--metadata")) {
   process.stdout.write(`${JSON.stringify(generatorMetadata())}\n`)
 } else if (!isMainThread) {
-  parentPort.postMessage(runSlice(workerData.startDay, workerData.endDay))
+  parentPort.postMessage(await runSlice(workerData.startDay, workerData.endDay))
 } else {
   const totalDays = Math.round((END.getTime() - START.getTime()) / 86400000)
   const workerCount = Math.min(8, Math.max(1, os.availableParallelism?.() ?? os.cpus().length))
@@ -235,14 +406,33 @@ if (isMainThread && process.argv.includes("--metadata")) {
   })
   const results = await Promise.all(jobs)
   const counts = {}
+  const scoreHistograms = emptyScoreHistograms()
+  const cohortHistograms = {}
+  const cohortWeights = {}
+  const archetypeWeights = {}
+  const structuralFamilyWeights = {}
+  const archetypeDefinitions = {}
+  const archetypeRepresentatives = {}
+  const structuralFamilyRepresentatives = {}
   let sampleWeight = 0
   let uniqueStateCount = 0
   for (const result of results) {
     sampleWeight += result.sampleWeight
     uniqueStateCount += result.uniqueStateCount
     for (const [featureId, hitWeight] of Object.entries(result.counts)) counts[featureId] = (counts[featureId] ?? 0) + hitWeight
+    mergeScoreHistograms(scoreHistograms, result.scoreHistograms)
+    for (const [cohortId, histograms] of Object.entries(result.cohortHistograms)) {
+      cohortHistograms[cohortId] ??= emptyScoreHistograms()
+      mergeScoreHistograms(cohortHistograms[cohortId], histograms)
+    }
+    for (const [cohortId, weight] of Object.entries(result.cohortWeights)) cohortWeights[cohortId] = (cohortWeights[cohortId] ?? 0) + weight
+    for (const [archetypeId, weight] of Object.entries(result.archetypeWeights)) archetypeWeights[archetypeId] = (archetypeWeights[archetypeId] ?? 0) + weight
+    for (const [familyId, weight] of Object.entries(result.structuralFamilyWeights)) structuralFamilyWeights[familyId] = (structuralFamilyWeights[familyId] ?? 0) + weight
+    Object.assign(archetypeDefinitions, result.archetypeDefinitions)
+    mergeRepresentatives(archetypeRepresentatives, result.archetypeRepresentatives)
+    mergeRepresentatives(structuralFamilyRepresentatives, result.structuralFamilyRepresentatives)
   }
-  const payload = buildPayload(counts, sampleWeight, uniqueStateCount)
+  const payload = buildPayload(counts, scoreHistograms, cohortHistograms, cohortWeights, archetypeWeights, structuralFamilyWeights, archetypeDefinitions, archetypeRepresentatives, structuralFamilyRepresentatives, sampleWeight, uniqueStateCount)
   payload.hash = sha256Value(payload)
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true })
   fs.writeFileSync(OUTPUT, `${JSON.stringify(payload, null, 2)}\n`)
