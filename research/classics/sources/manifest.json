@@ -1,0 +1,149 @@
+{
+  "schema": "iching.classics.source-manifest.v1",
+  "search_aids": [
+    {
+      "authority_role": "search_aid",
+      "id": "8bei8-transcription",
+      "label": "8bei8 網絡文本",
+      "production_use_allowed": false,
+      "reason": "Modern web transcription without scan-level provenance."
+    },
+    {
+      "authority_role": "search_aid",
+      "id": "ctext-transcription",
+      "label": "Chinese Text Project",
+      "production_use_allowed": false,
+      "reason": "Locator/search aid only unless independently matched to an eligible scan."
+    },
+    {
+      "authority_role": "search_aid",
+      "id": "dongli-transcription",
+      "label": "東里網絡文本",
+      "production_use_allowed": false,
+      "reason": "Modern web transcription without scan-level provenance."
+    },
+    {
+      "authority_role": "search_aid",
+      "id": "guji520-mirror",
+      "label": "guji520 paid mirror",
+      "production_use_allowed": false,
+      "reason": "Paid or unlicensed mirror; never a production authority."
+    },
+    {
+      "authority_role": "search_aid",
+      "id": "unlicensed-github-mirrors",
+      "label": "Unlicensed GitHub transcriptions",
+      "production_use_allowed": false,
+      "reason": "Unknown rights and witness provenance."
+    },
+    {
+      "authority_role": "search_aid",
+      "id": "wikisource-transcription",
+      "label": "Wikisource",
+      "production_use_allowed": false,
+      "reason": "Search aid only; production claims require a visually verified scan."
+    }
+  ],
+  "witnesses": [
+    {
+      "authority_role": "canonical_textual_authority",
+      "authority_roles": [
+        "canonical_textual_authority"
+      ],
+      "bibliography": {
+        "author_attribution": "No author named in this witness; the corpus layer name shen_core is conventional, not a witness-level attribution.",
+        "date": null,
+        "date_certainty": "undated",
+        "edition_statement": "清敬一堂鈔本",
+        "repository": "National Central Library, Taiwan",
+        "shelfmark": "NCL-06599",
+        "title_diplomatic": "耕寸集"
+      },
+      "bytes": 22371107,
+      "catalog_url": "https://commons.wikimedia.org/wiki/File:NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf",
+      "completeness": "complete",
+      "id": "gengcun-ji-ncl-06599",
+      "local_path": "references/classics/raw/gengcun-ji-ncl-06599.pdf",
+      "pages": 103,
+      "provenance_url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf",
+      "relation": "base_witness",
+      "rights": {
+        "basis": [
+          "Wikimedia Commons PD-old",
+          "Wikimedia Commons PD-scan"
+        ],
+        "caveat": "Public-domain status follows the Commons source record; no modern transcription is imported as authority.",
+        "production_use_allowed": true,
+        "status": "public_domain"
+      },
+      "sha256": "8d6a42e1a6aa5675f978256349c9fcc145550a1c29c3947c425d3f611bfb27a3"
+    },
+    {
+      "authority_role": "operational_locator",
+      "authority_roles": [
+        "operational_locator",
+        "independent_collation"
+      ],
+      "bibliography": {
+        "date": "1926",
+        "date_certainty": "catalogued",
+        "editor": "秦慎安校勘",
+        "publisher": "文明書局",
+        "repository": "National Taiwan Library",
+        "shelfmark": "NTL-9900014380; accession 31111003618764",
+        "title_diplomatic": "淵海子平子平真詮卷二"
+      },
+      "bytes": 68883628,
+      "catalog_url": "https://taiwanebook.ncl.edu.tw/zh-tw/book/NTL-9900014380",
+      "completeness": "complete",
+      "id": "qin-shenan-1926-ziping-zhenquan-v2",
+      "local_path": "references/classics/raw/yuanhai-ziping-qin-1926-v2.pdf",
+      "pages": 164,
+      "provenance_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf",
+      "relation": "later_typeset_collation",
+      "rights": {
+        "basis": [
+          "Published in 1926 and public domain in the United States",
+          "Wikimedia Commons PD-scan"
+        ],
+        "caveat": "Used as an operational locator and variant witness; it does not override the earlier base witness.",
+        "production_use_allowed": true,
+        "status": "public_domain"
+      },
+      "sha256": "02f8771f69b6d5650ca3a20e629b9351a1f0f71c24f36f3eb11631495505f483"
+    },
+    {
+      "authority_role": "search_aid",
+      "authority_roles": [
+        "search_aid",
+        "comparison_only"
+      ],
+      "bibliography": {
+        "date": "19--?",
+        "date_certainty": "catalogue_date_unresolved",
+        "publisher": "上海世界圖書館",
+        "repository": "National Library of China",
+        "shelfmark": "NLC416-11jh010455-35296; item 35296",
+        "title_diplomatic": "秘本子平真詮"
+      },
+      "bytes": 7126096,
+      "catalog_url": "https://commons.wikimedia.org/wiki/File:NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf",
+      "completeness": "complete",
+      "id": "world-library-ziping-zhenquan-nlc",
+      "local_path": "references/classics/raw/ziping-zhenquan-world-library-nlc.pdf",
+      "pages": 287,
+      "provenance_url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf",
+      "relation": "independent_typeset_witness",
+      "rights": {
+        "basis": [
+          "Wikimedia Commons PD-China",
+          "Wikimedia Commons PD-scan"
+        ],
+        "caveat": "The catalogue date is unresolved, so United States URAA status has not been established. This witness is comparison-only pending legal/date review.",
+        "production_use_allowed": false,
+        "status": "public_domain_source_jurisdiction_us_date_unresolved"
+      },
+      "sha256": "71402a780b0351b54edf121a51bc4a4a4ce5896496c35b954563ee06f1a6f620"
+    }
+  ]
+}

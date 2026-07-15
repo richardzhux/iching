@@ -1,0 +1,280 @@
+{
+  "chapters": [
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "cdaf3cc689d35b77256d854e086a7f5163c7cb7c694128763c08e34f4e401c60",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.useful-god.success-failure-rescue.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.useful-god.success-failure-rescue.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.useful-god.success-failure-rescue.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.useful-god.success-failure-rescue.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.useful-god.success-failure-rescue.jsonl"
+      },
+      "id": "zzq.useful-god.success-failure-rescue",
+      "record_counts": {
+        "examples": 0,
+        "non_rules": 3,
+        "propositions": 63,
+        "rule_candidates": 63,
+        "segments": 6
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論用神成敗救應"
+    },
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "946938df7205798755b3598c5aa57ce39783821b2786452d95cbcaa32503b729",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.direct-officer.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.direct-officer.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.direct-officer.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.direct-officer.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.direct-officer.jsonl"
+      },
+      "id": "zzq.pattern.direct-officer",
+      "record_counts": {
+        "examples": 6,
+        "non_rules": 5,
+        "propositions": 22,
+        "rule_candidates": 15,
+        "segments": 14
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論正官"
+    }
+  ],
+  "commentary_boundary": {
+    "canonical_layer": "shen_core",
+    "later_commentary_imported": false,
+    "note": "The layer name shen_core follows the project contract; the undated Gengcun Ji witness itself names no author. No Xu Lewu or other later commentary is silently merged into these slices. Headings and methodological closings are marked editorial, and chart cases are marked example."
+  },
+  "corpus_id": "ziping-zhenquan-vertical-v1",
+  "determinism": {
+    "encoding": "UTF-8",
+    "jsonl": "one object per line with no blank lines",
+    "key_order": "lexicographic"
+  },
+  "locators": [
+    {
+      "column_line": "left folio, right-to-left columns 1-4",
+      "id": "loc.gc.useful.18",
+      "pdf_page": 18,
+      "printed_page": null,
+      "quote": "用神專尋月令然以四柱配之有成敗",
+      "quote_sha256": "929d91c34f6bf9b26d5aa9570bb0720393937006c01ec1015520a87bddf868e5",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=18",
+      "visually_verified": true,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "column_line": "both folios, right-to-left columns",
+      "id": "loc.gc.useful.19",
+      "pdf_page": 19,
+      "printed_page": null,
+      "quote": "成中有敗必是帶忌敗中有成全凭救應",
+      "quote_sha256": "d6d04baf51f859fdf62491d81d3d2a284ff49de10341dce717dc81b404d62a74",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=19",
+      "visually_verified": true,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "column_line": "right folio through left folio, right-to-left columns",
+      "id": "loc.gc.useful.20",
+      "pdf_page": 20,
+      "printed_page": null,
+      "quote": "何謂救應如官逢傷而透印以解之",
+      "quote_sha256": "56eb28130c12be40bf0f6924ecadb182e74c922b70aeb37bfc105f0b0ff40ace",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=20",
+      "visually_verified": true,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "column_line": "right-to-left columns 1-10",
+      "id": "loc.qin.useful.113",
+      "pdf_page": 113,
+      "printed_page": "12",
+      "quote": "用神專尋月令以四柱配之必有成敗",
+      "quote_sha256": "97a7c566e3f9870a1f40f0a875295530e1c1c02ca330190ece96be91f4b38918",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=113",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "right-to-left columns 1-9",
+      "id": "loc.qin.useful.114",
+      "pdf_page": 114,
+      "printed_page": "13",
+      "quote": "八字妙用全在成敗救應其中權輕權重甚是活變",
+      "quote_sha256": "001805e693df30a5a6f74be911e23e7fad580c2fa211d5213633ebabc349f5a6",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=114",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "right-to-left columns 1-4",
+      "id": "loc.world.useful.28",
+      "pdf_page": 28,
+      "printed_page": "19",
+      "quote": "用神專求月令然以四柱配之必有成敗",
+      "quote_sha256": "d07de3dc5b353dc6d54f40ea29340e3766499ee9c6fba6ffc0835782bf0f07b1",
+      "review_state": "scan_verified_comparison_only",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf#page=28",
+      "visually_verified": true,
+      "witness_id": "world-library-ziping-zhenquan-nlc"
+    },
+    {
+      "column_line": "right-to-left columns 1-10",
+      "id": "loc.world.useful.29",
+      "pdf_page": 29,
+      "printed_page": "20",
+      "quote": "何謂敗官逢傷尅刑冲官格敗也",
+      "quote_sha256": "cd20f1f62144c1a406af490c2acba7a697d6eb2654c4746f9a8a9143ec5c130b",
+      "review_state": "scan_verified_comparison_only",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf#page=29",
+      "visually_verified": true,
+      "witness_id": "world-library-ziping-zhenquan-nlc"
+    },
+    {
+      "column_line": "right-to-left columns 1-10",
+      "id": "loc.world.useful.30",
+      "pdf_page": 30,
+      "printed_page": "21",
+      "quote": "何謂救應如官逢傷而透印以解之",
+      "quote_sha256": "56eb28130c12be40bf0f6924ecadb182e74c922b70aeb37bfc105f0b0ff40ace",
+      "review_state": "scan_verified_comparison_only",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf#page=30",
+      "visually_verified": true,
+      "witness_id": "world-library-ziping-zhenquan-nlc"
+    },
+    {
+      "column_line": "left folio, right-to-left columns 1-4",
+      "id": "loc.gc.officer.57",
+      "pdf_page": 57,
+      "printed_page": null,
+      "quote": "官以尅身雖與七煞有別終受彼制",
+      "quote_sha256": "6f716f57482d97bccb2fffbeedc091e47c72cc7c689cbbff3dcb433b930d3760",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=57",
+      "visually_verified": true,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "column_line": "both folios, right-to-left columns",
+      "id": "loc.gc.officer.58",
+      "pdf_page": 58,
+      "printed_page": null,
+      "quote": "若財印不兩用則單用印不若單用財",
+      "quote_sha256": "179b526d30ad81744227360007132cf1a3b1d1c5d2d302da10cac99ac6b78d32",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
+      "visually_verified": true,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "column_line": "right folio, right-to-left columns 1-7",
+      "id": "loc.gc.officer.59",
+      "pdf_page": 59,
+      "printed_page": null,
+      "quote": "以丁合壬而財去以丙制傷而官清",
+      "quote_sha256": "0590311f4e184a919a49b211fa2956d074b8b2333af5a55230d1062b71aa51fd",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=59",
+      "visually_verified": true,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "column_line": "right-to-left columns 1-8",
+      "id": "loc.qin.officer.136",
+      "pdf_page": 136,
+      "printed_page": "35",
+      "quote": "官以尅身雖與七煞有別終受彼制",
+      "quote_sha256": "6f716f57482d97bccb2fffbeedc091e47c72cc7c689cbbff3dcb433b930d3760",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=136",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "right-to-left columns 1-10",
+      "id": "loc.qin.officer.137",
+      "pdf_page": 137,
+      "printed_page": "36",
+      "quote": "若財印不兩用則單用印不若單用財",
+      "quote_sha256": "179b526d30ad81744227360007132cf1a3b1d1c5d2d302da10cac99ac6b78d32",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=137",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "right-to-left column 1",
+      "id": "loc.qin.officer.138",
+      "pdf_page": 138,
+      "printed_page": "37",
+      "quote": "亦不談及矣",
+      "quote_sha256": "7f2e0f4ce814e9177b97064814274ef3017c77f9e513d6eea11f285dcfce49ab",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=138",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "right-to-left columns 1-8",
+      "id": "loc.world.officer.65",
+      "pdf_page": 65,
+      "printed_page": "56",
+      "quote": "論正官",
+      "quote_sha256": "0cce0615d665e10bb081bb4205b1ed884bd452a9d05d898b8b3c647d2cc78c1a",
+      "review_state": "scan_verified_comparison_only",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf#page=65",
+      "visually_verified": true,
+      "witness_id": "world-library-ziping-zhenquan-nlc"
+    },
+    {
+      "column_line": "right-to-left columns 1-10",
+      "id": "loc.world.officer.66",
+      "pdf_page": 66,
+      "printed_page": "57",
+      "quote": "若財印不以兩用則單用印不若單用財",
+      "quote_sha256": "4ca84b4f315145a315d9d5479e577f544bdda12f366012037ca57f7345b2efaf",
+      "review_state": "scan_verified_comparison_only",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf#page=66",
+      "visually_verified": true,
+      "witness_id": "world-library-ziping-zhenquan-nlc"
+    },
+    {
+      "column_line": "right-to-left columns 1-3",
+      "id": "loc.world.officer.67",
+      "pdf_page": 67,
+      "printed_page": "58",
+      "quote": "至若地支刑冲會合可解已見前篇",
+      "quote_sha256": "b57e0a327bba6bb555ba135afb7a4a2e32b5dfa09f082fd670b99a91b18ad97b",
+      "review_state": "scan_verified_comparison_only",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf#page=67",
+      "visually_verified": true,
+      "witness_id": "world-library-ziping-zhenquan-nlc"
+    }
+  ],
+  "normalization_policy": {
+    "mapping": {
+      "冲": "衝",
+      "凭": "憑",
+      "却": "卻",
+      "尅": "克",
+      "于": "於",
+      "禄": "祿",
+      "伏〔旁改制〕": "制"
+    },
+    "method": "declared deterministic replacement mapping; multi-character editorial resolutions are applied before single-character mappings",
+    "note": "No OpenCC dependency is used. Canonical lexical readings, marginal corrections, and witness variants remain in diplomatic_text; normalized_search_text never replaces diplomatic_text."
+  },
+  "schema": "iching.classics.corpus-manifest.v1",
+  "source_manifest": "research/classics/sources/manifest.json",
+  "witness_variants": [{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"月令然以四柱配之","id":"var.useful.001","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"月令以四柱配之"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"有成敗","id":"var.useful.002","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"必有成敗"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"位置安適","id":"var.useful.003","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"位置妥帖"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"透印食神格成也","id":"var.useful.004","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"透印食格成也"},{"base_locator_ids":["loc.gc.useful.18","loc.gc.useful.19"],"base_reading":"羊刃；羊刃格","id":"var.useful.005","kind":"orthographic","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"陽刃；刃格"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"傷食","id":"var.useful.006","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"食傷"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"逢伏〔旁改制〕煞；遇伏制","id":"var.useful.007","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"逢制煞；遇制伏"},{"base_locator_ids":["loc.gc.useful.19"],"base_reading":"敗中有成","id":"var.useful.008","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"敗中而成"},{"base_locator_ids":["loc.gc.useful.19"],"base_reading":"財旺生官而官又逢傷","id":"var.useful.009","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"財旺生官而又逢傷"},{"base_locator_ids":["loc.gc.useful.20"],"base_reading":"而財以去印存食","id":"var.useful.010","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.114"],"witness_reading":"而逢財以去印存食"},{"base_locator_ids":["loc.gc.useful.20"],"base_reading":"是皆謂之救應也","id":"var.useful.011","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.114"],"witness_reading":"是謂之救應也"},{"base_locator_ids":["loc.gc.useful.20"],"base_reading":"能以萬變中融以一理","id":"var.useful.012","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.114"],"witness_reading":"能於萬變中融以一理"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"論正官","id":"var.officer.001","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"論正官格"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"豈知","id":"var.officer.002","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"蓋"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"為喜矣","id":"var.officer.003","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"為喜也"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"貴之中又有","id":"var.officer.004","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"貴之又有"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"論之","id":"var.officer.005","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"言之"},{"base_locator_ids":["loc.gc.officer.58"],"base_reading":"仍以孤官無輔所以","id":"var.officer.006","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"仍以孤官無輔論所以"},{"base_locator_ids":["loc.gc.officer.58"],"base_reading":"並用財印","id":"var.officer.007","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"皆用財印"},{"base_locator_ids":["loc.gc.officer.58"],"base_reading":"用清支會","id":"var.officer.008","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"清用支會"},{"base_locator_ids":["loc.gc.officer.59"],"base_reading":"逢財而反","id":"var.officer.009","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"逢財反"},{"base_locator_ids":["loc.gc.officer.59"],"base_reading":"支具巳丑","id":"var.officer.010","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"支中巳丑"},{"base_locator_ids":["loc.gc.officer.58"],"base_reading":"印能護官亦能減官","id":"var.officer.011","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"印能護官亦能洩官"}],
+  "variant_policy": "Gengcun Ji supplies the diplomatic base. The rights-clear Qin 1926 scan serves both as operational locator and independent collation witness. The World Library scan is a comparison-only search aid because its United States date status remains unresolved."
+}
