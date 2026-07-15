@@ -37,7 +37,7 @@ export interface ConsumerFingerprint {
   detail: string
   rarity_label: string
   top_percentage: number
-  incidence_percentage?: number
+  incidence_percentage?: number | null
 }
 
 export interface ConsumerStructuralTwin {
@@ -240,7 +240,7 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
                 <div className="min-w-0">
                   <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <h4 className="font-semibold leading-6">{fingerprint.title}</h4>
-                    <p className="text-xs font-semibold text-primary">{fingerprint.rarity_label} · {incidenceLabel(fingerprint.incidence_percentage ?? fingerprint.top_percentage, locale)}</p>
+                    <p className="text-xs font-semibold text-primary">{fingerprint.rarity_label}{fingerprint.incidence_percentage != null ? ` · ${incidenceLabel(fingerprint.incidence_percentage, locale)}` : ""}</p>
                   </div>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{fingerprint.detail}</p>
                 </div>

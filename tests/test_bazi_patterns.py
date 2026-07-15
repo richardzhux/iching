@@ -144,7 +144,10 @@ def test_strict_special_patterns_have_positive_gate_examples(
     )
 
     assert item["status"] == "formed", (name, item)
-    assert item["score"] >= 80
+    assert item["formation"] == "formed"
+    assert item["authenticity"] == "strict"
+    assert "score" not in item
+    assert all(gate["passed"] for gate in item["hard_gates"])
     assert item["evidence"]
 
 
@@ -183,3 +186,45 @@ def test_incomplete_month_command_returns_an_explicit_empty_assessment() -> None
     assert result["ordinary"] == []
     assert result["special"] == []
     assert result["evidence"] == []
+
+
+def test_yang_blade_recognizes_hidden_officer_control() -> None:
+    module = importlib.import_module("iching.core.bazi_patterns")
+    pillars, structure = _chart("甲申", "庚午", "丙子", "庚寅")
+
+    result = module.assess_patterns(pillars, structure)
+    blade = next(item for item in result["ordinary"] if item["name"] == "阳刃")
+
+    assert result["primary"]["name"] == "阳刃"
+    assert blade["status"] in {"formed", "rescued"}
+    assert blade["formation_path"]["id"] in {"blade_officer", "blade_killing"}
+    assert "阳刃无制" not in blade["constraints"]
+    assert any("藏" in item["detail"] and ("正官" in item["detail"] or "七杀" in item["detail"]) for item in blade["evidence"])
+
+
+def test_indirect_resource_requires_and_reports_a_formation_path() -> None:
+    module = importlib.import_module("iching.core.bazi_patterns")
+    pillars, structure = _chart("甲申", "癸酉", "癸巳", "癸亥")
+
+    result = module.assess_patterns(pillars, structure)
+    resource = next(item for item in result["ordinary"] if item["name"] == "偏印")
+
+    assert result["primary"]["name"] == "偏印"
+    assert resource["selection"] == "month_main_qi"
+    assert resource["formation_path"]["id"] == "resource_output"
+    assert resource["status"] == "formed"
+    assert resource["integrity"] == "minor_damage"
+    assert "财星坏印" not in resource["constraints"]
+    assert any("财星藏见" in tension for tension in resource["tensions"])
+
+
+def test_classical_yang_blade_is_limited_to_yang_day_stems() -> None:
+    module = importlib.import_module("iching.core.bazi_patterns")
+    yin_pillars, yin_structure = _chart("甲申", "戊辰", "乙巳", "癸亥")
+    robbery_pillars, robbery_structure = _chart("甲申", "甲寅", "乙巳", "癸亥")
+
+    yin_result = module.assess_patterns(yin_pillars, yin_structure)
+    robbery_result = module.assess_patterns(robbery_pillars, robbery_structure)
+
+    assert next(item for item in yin_result["ordinary"] if item["name"] == "阳刃")["status"] == "not_candidate"
+    assert next(item for item in robbery_result["ordinary"] if item["name"] == "月劫")["selection"] == "month_main_qi"

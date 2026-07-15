@@ -383,15 +383,15 @@ def _fingerprints(
     candidates: list[tuple[int, float, dict[str, Any]]] = []
     primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
     if isinstance(primary, Mapping) and primary.get("name"):
-        fallback_incidence = max(1.0, 18 - float(primary.get("strength", 50) or 50) / 6)
-        pattern_incidence = feature_percentages.get(str(primary.get("id", "")), fallback_incidence)
-        candidates.append((0, pattern_incidence, {
+        pattern_incidence = feature_percentages.get(str(primary.get("id", "")))
+        sort_incidence = pattern_incidence if pattern_incidence is not None else 100.0
+        candidates.append((0, sort_incidence, {
             "id": f"pattern.{primary.get('id', 'primary')}",
             "title": f"{primary.get('title', primary['name'])} · {_PATTERN_STATUS_LABELS.get(str(primary.get('status', '')), str(primary.get('status', '主导')))}",
             "detail": str(primary.get("summary", "这是命盘最醒目的格局结构。")),
-            "rarity_label": "罕见" if pattern_incidence < 1 else "稀有" if pattern_incidence < 5 else "少见" if pattern_incidence < 20 else "核心格局",
-            "top_percentage": max(1, min(99, int(round(pattern_incidence)))),
-            "incidence_percentage": round(pattern_incidence, 2),
+            "rarity_label": "主格结构" if pattern_incidence is None else "罕见" if pattern_incidence < 1 else "稀有" if pattern_incidence < 5 else "少见" if pattern_incidence < 20 else "核心格局",
+            "top_percentage": max(1, min(99, int(round(pattern_incidence)))) if pattern_incidence is not None else 100,
+            "incidence_percentage": round(pattern_incidence, 2) if pattern_incidence is not None else None,
         }))
     metric_priority = {
         "root_pillar_count": 1,

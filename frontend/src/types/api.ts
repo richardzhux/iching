@@ -73,12 +73,32 @@ export type PatternCandidate = {
   title?: string
   status: "成格" | "得用" | "受制" | "救成" | "混杂" | "转化" | string
   score?: number
-  strength?: number
+  strength?: number | "effective" | "ordinary" | "weak" | "none" | string
   summary?: string
   evidence?: Array<string | Record<string, unknown>>
   evidence_ids?: string[]
   constraints?: string[]
   rescues?: string[]
+  tensions?: string[]
+  selection?: string
+  formation?: string
+  formation_path?: {
+    id: string
+    title: string
+    evidence_weight?: number
+    details?: string[]
+  } | null
+  formation_paths?: Array<{
+    id: string
+    title: string
+    evidence_weight?: number
+    details?: string[]
+  }>
+  integrity?: string
+  rescue?: string
+  purity?: string
+  authenticity?: string
+  role?: string
 }
 
 export type PatternAssessment = {
@@ -87,6 +107,8 @@ export type PatternAssessment = {
   ordinary: PatternCandidate[]
   special: PatternCandidate[]
   evidence?: Array<Record<string, unknown>>
+  effective_structure?: Record<string, unknown>
+  source_refs?: string[]
 }
 
 export type ConsumerSubjectScore = {
@@ -121,7 +143,7 @@ export type ConsumerFingerprint = {
   detail: string
   rarity_label: string
   top_percentage: number
-  incidence_percentage?: number
+  incidence_percentage?: number | null
 }
 
 export type LifeKlineMonth = {

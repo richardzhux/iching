@@ -324,8 +324,35 @@ function BaziConsumerResult({
 function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
   const primary = chart.structure.patterns?.primary
   if (!primary) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "这张命盘以主导结构呈现，不强贴单一格局标签。" : "This chart is described by its dominant structure rather than a forced pattern label."}</p>
-  const statusLabels: Record<string, string> = { formed: "成格", effective: "得用", broken: "受制", rescued: "救成", mixed: "混杂", transformed: "转化" }
-  return <section className="rounded-2xl bg-primary/[0.06] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-2xl font-semibold">{primary.title || `${primary.name}格`}</h3><span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{statusLabels[primary.status] || primary.status}</span></div><p className="mt-3 text-sm leading-7 text-muted-foreground">{primary.summary}</p>{primary.rescues?.length ? <p className="mt-3 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{primary.rescues.join(" · ")}</p> : null}{primary.constraints?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "制约" : "Constraints"}：</strong>{primary.constraints.join(" · ")}</p> : null}</section>
+  const statusLabels: Record<string, string> = { formed: "成格", candidate: "候选", effective: "得用", broken: "受制", rescued: "救成", mixed: "混杂", transformed: "转化" }
+  const selectionLabels: Record<string, string> = { month_main_qi: "月令本气", month_hidden_exposed: "藏气透干", month_meeting: "合会取格", strict_special_gates: "特殊格严格成立" }
+  const integrityLabels: Record<string, string> = { complete: "完整", minor_damage: "有局部牵制", rescued: "破而有救", broken: "受损" }
+  const purityLabels: Record<string, string> = { clear: "清", combined: "兼见", mixed: "混杂" }
+  const strengthLabels: Record<string, string> = { effective: "有力", ordinary: "可用", weak: "偏弱", none: "未定" }
+  const allEvidence = (chart.structure.patterns?.evidence ?? []) as Array<{ id?: string; kind?: string; detail?: string }>
+  const evidence = allEvidence.filter((item) => item.id && primary.evidence_ids?.includes(item.id))
+  const pathTitle = primary.formation_path?.title
+  const dimensions = [
+    [locale === "zh" ? "取格" : "Selection", selectionLabels[primary.selection ?? ""] ?? primary.selection],
+    [locale === "zh" ? "成格路径" : "Formation path", pathTitle],
+    [locale === "zh" ? "完整性" : "Integrity", integrityLabels[primary.integrity ?? ""] ?? primary.integrity],
+    [locale === "zh" ? "清浊" : "Purity", purityLabels[primary.purity ?? ""] ?? primary.purity],
+    [locale === "zh" ? "力度" : "Strength", typeof primary.strength === "string" ? (strengthLabels[primary.strength] ?? primary.strength) : undefined],
+  ].filter((item): item is [string, string] => Boolean(item[1]))
+  return (
+    <section className="rounded-2xl bg-primary/[0.06] p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-2xl font-semibold">{primary.title || `${primary.name}格`}</h3>
+        <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{statusLabels[primary.status] || primary.status}</span>
+      </div>
+      <p className="mt-3 text-sm leading-7 text-muted-foreground">{primary.summary}</p>
+      {dimensions.length ? <dl className="mt-5 grid gap-px overflow-hidden rounded-xl border border-border/50 bg-border/50 sm:grid-cols-3 lg:grid-cols-5">{dimensions.map(([label, value]) => <div key={label} className="bg-surface px-3 py-3"><dt className="text-[0.68rem] font-semibold text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-semibold text-foreground">{value}</dd></div>)}</dl> : null}
+      {primary.rescues?.length ? <p className="mt-4 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{primary.rescues.join(" · ")}</p> : null}
+      {primary.tensions?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "结构张力" : "Structural tension"}：</strong>{primary.tensions.join(" · ")}</p> : null}
+      {primary.constraints?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "制约" : "Constraints"}：</strong>{primary.constraints.join(" · ")}</p> : null}
+      {evidence.length ? <details className="mt-5 border-t border-border/50 pt-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "为什么这样判断" : "Why this pattern"}</summary><ol className="mt-3 space-y-2">{evidence.map((item, index) => <li key={item.id ?? index} className="flex gap-2 text-sm leading-6 text-muted-foreground"><span aria-hidden="true" className="font-semibold text-primary">{item.kind === "tension" ? "△" : "✓"}</span><span>{item.detail}</span></li>)}</ol></details> : null}
+    </section>
+  )
 }
 
 function UncertainBaziView({ chart, locale, subjectName, generatedAt, calculationRule, exportTargetId, markdown }: { chart: MetaphysicsChart; locale: Locale; subjectName: string; generatedAt: string; calculationRule: string; exportTargetId: string; markdown: string }) {
