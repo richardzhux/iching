@@ -222,7 +222,7 @@ test("home navigation is task-oriented and localized", async ({ page }) => {
 
 test("public tools, library search, and hexagram sources expose consumer controls", async ({ page }) => {
   await page.goto("/en/tools")
-  await expect(page.getByRole("heading", { name: /BaZi & Zi Wei Charts/i })).toBeVisible()
+  await expect(page.getByRole("heading", { name: /Charts & Life Timeline/i })).toBeVisible()
   await expect(page.getByRole("tab", { name: /current time/i })).toBeVisible()
 
   await page.goto("/en/library")
