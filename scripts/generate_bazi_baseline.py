@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 import sxtwl
 
 from iching.core.bazi_structure import METRIC_DEFINITIONS, THEME_ORDER, build_structure_profile
+from iching.core.bazi_patterns import assess_patterns
 from iching.core.calendar_engine import (
     BRANCHES,
     JIE_MONTH_BRANCH,
@@ -28,7 +29,14 @@ from iching.core.metaphysics_statistics import (
     metric_catalog_hash,
     payload_hash,
 )
+from iching.core.metaphysics_consumer import (
+    CONSUMER_RULES_VERSION,
+    THEME_ORDER as CONSUMER_THEME_ORDER,
+    consumer_feature_records,
+    score_bazi_consumer_themes,
+)
 from iching.core.shensha import RULE_BY_ID, RULES_VERSION, evaluate_shensha
+from iching.core.shensha_effects import evaluate_shensha_effects
 
 
 DEFAULT_OUTPUT = Path(__file__).parents[1] / "src" / "iching" / "core" / "data"
@@ -60,6 +68,8 @@ def generator_metadata() -> dict[str, object]:
         "rules_registry_hash": bazi_rules_registry_hash(),
         "weighted_unit": "minute",
         "theme_comparison_method": "transparent_metric_distributions",
+        "consumer_rules_version": CONSUMER_RULES_VERSION,
+        "consumer_score_dimensions": ["overall", *CONSUMER_THEME_ORDER],
     }
 
 
@@ -138,6 +148,21 @@ def _baseline_pillars(
     return [_pillar(label, gz, day_stem) for label, gz in zip(("年", "月", "日", "时"), gz_values)]
 
 
+def _pillars_from_state_key(state_key: tuple[str, ...]) -> list[dict[str, Any]]:
+    day_stem = state_key[2][0]
+    values = [GanZhiIndex(STEMS.index(text[0]), BRANCHES.index(text[1])) for text in state_key]
+    return [_pillar(label, value, day_stem) for label, value in zip(("年", "月", "日", "时"), values)]
+
+
+def compact_score_histogram(histogram: Counter[str]) -> str:
+    """Encode a small integer-score histogram without tens of thousands of JSON rows."""
+    entries = []
+    for score, seconds in sorted(histogram.items(), key=lambda item: int(item[0])):
+        weight = f"{seconds / 60:.6f}".rstrip("0").rstrip(".")
+        entries.append(f"{score}:{weight}")
+    return ",".join(entries)
+
+
 def generate(day_boundary: str) -> dict:
     zone = ZoneInfo("Asia/Shanghai")
     start = _lichun(1924, zone)
@@ -154,9 +179,18 @@ def generate(day_boundary: str) -> dict:
         gender: {theme: {} for theme in THEME_ORDER}
         for gender in profile_genders
     }
-    unique_states: set[tuple[str, ...]] = set()
-    state_cache: dict[tuple[str, ...], tuple[Any, Any]] = {}
-    total_seconds = 0.0
+    score_dimensions = ("overall", *CONSUMER_THEME_ORDER)
+    consumer_global = {
+        gender: {dimension: Counter() for dimension in score_dimensions}
+        for gender in profile_genders
+    }
+    consumer_cohorts: dict[str, dict[str, dict[str, Counter[str]]]] = {}
+    consumer_feature_weights: Counter[str] = Counter()
+    consumer_feature_catalog: dict[str, dict[str, str]] = {}
+    # Aggregate identical four-pillar states before running the expensive
+    # structure engines. This keeps the exhaustive 120-year semantics while
+    # retaining only a compact tuple->duration map in memory.
+    state_weights: Counter[tuple[str, ...]] = Counter()
     for left, right in zip(events, events[1:]):
         seconds = right.timestamp() - left.timestamp()
         if seconds <= 0:
@@ -171,38 +205,54 @@ def generate(day_boundary: str) -> dict:
             lichun_timestamps=lichun_timestamps,
         )
         state_key = tuple(pillar["text"] for pillar in pillars)
-        unique_states.add(state_key)
-        cached = state_cache.get(state_key)
-        if cached is None:
-            evaluated_hits = evaluate_shensha(pillars, include_extended=True)
-            hits = [
-                {
-                    "rule_id": hit["rule_id"],
-                    "feature_id": hit["feature_id"],
-                    "name": hit["name"],
-                    "axis": hit["axis"],
-                    "level": hit["level"],
-                    "topic_tags": hit["topic_tags"],
-                }
-                for hit in evaluated_hits
-            ]
-            seasonal_status = _seasonal_status(pillars[1]["branch"])
-            profile_metrics = {
-                gender: {
-                    item["theme"]: item["structure_metrics"]
-                    for item in build_structure_profile(
-                        pillars,
-                        gender=calculation_gender,
-                        shensha_hits=hits,
-                        seasonal_status=seasonal_status,
-                    )["theme_profiles"]
-                }
-                for gender, calculation_gender in profile_genders.items()
+        state_weights[state_key] += seconds
+
+    total_seconds = sum(state_weights.values())
+    for state_key, seconds in state_weights.items():
+        pillars = _pillars_from_state_key(state_key)
+        evaluated_hits = evaluate_shensha(pillars, include_extended=True)
+        hits = [
+            {
+                "rule_id": hit["rule_id"],
+                "feature_id": hit["feature_id"],
+                "name": hit["name"],
+                "axis": hit["axis"],
+                "level": hit["level"],
+                "topic_tags": hit["topic_tags"],
             }
-            state_cache[state_key] = (hits, profile_metrics)
-        else:
-            hits, profile_metrics = cached
-        total_seconds += seconds
+            for hit in evaluated_hits
+        ]
+        seasonal_status = _seasonal_status(pillars[1]["branch"])
+        structures = {
+            gender: build_structure_profile(
+                pillars,
+                gender=calculation_gender,
+                shensha_hits=hits,
+                seasonal_status=seasonal_status,
+            )
+            for gender, calculation_gender in profile_genders.items()
+        }
+        patterns = assess_patterns(pillars, structures["neutral"])
+        structures["neutral"]["patterns"] = patterns
+        effects = evaluate_shensha_effects(evaluated_hits, pillars, structures["neutral"])
+        profile_metrics = {
+            gender: {
+                item["theme"]: item["structure_metrics"]
+                for item in structures[gender]["theme_profiles"]
+            }
+            for gender in profile_genders
+        }
+        consumer_scores = {
+            gender: score_bazi_consumer_themes(
+                structure=structures[gender],
+                patterns=patterns,
+                shensha_effects=effects,
+            )
+            for gender in profile_genders
+        }
+        for record in consumer_feature_records(patterns, effects):
+            consumer_feature_weights[record["id"]] += seconds
+            consumer_feature_catalog.setdefault(record["id"], record)
         for hit in hits:
             feature_weights[hit["feature_id"]] += seconds
         for gender in profile_genders:
@@ -210,6 +260,18 @@ def generate(day_boundary: str) -> dict:
                 for metric in metrics:
                     histogram = theme_metric_weights_by_gender[gender][theme].setdefault(metric["metric_id"], Counter())
                     histogram[str(metric["value"])] += seconds
+            cohort_key = f"{pillars[2]['stem']}-{pillars[1]['branch']}"
+            cohort = consumer_cohorts.setdefault(
+                cohort_key,
+                {
+                    cohort_gender: {dimension: Counter() for dimension in score_dimensions}
+                    for cohort_gender in profile_genders
+                },
+            )
+            for dimension in score_dimensions:
+                score = str(int(consumer_scores[gender][dimension]["score"]))
+                consumer_global[gender][dimension][score] += seconds
+                cohort[gender][dimension][score] += seconds
 
     sample_weight = round(total_seconds / 60, 6)
     catalog = _feature_catalog()
@@ -233,7 +295,7 @@ def generate(day_boundary: str) -> dict:
         "feature_catalog_hash": feature_catalog_hash(catalog),
         "metric_catalog": metric_catalog,
         "metric_catalog_hash": metric_catalog_hash(metric_catalog),
-        "unique_state_count": len(unique_states),
+        "unique_state_count": len(state_weights),
         "sample_unit": "minute",
         "weighted_unit": "minute",
         "sample_weight": sample_weight,
@@ -252,6 +314,40 @@ def generate(day_boundary: str) -> dict:
                 for theme, metrics in themes.items()
             }
             for gender, themes in theme_metric_weights_by_gender.items()
+        },
+        "consumer_score_distributions": {
+            "rules_version": CONSUMER_RULES_VERSION,
+            "weighted_unit": "minute",
+            "dimensions": list(score_dimensions),
+            "method": "weighted_empirical_integer_score_histograms",
+            "encoding": "comma_separated_score:minute_weight",
+            "global": {
+                gender: {
+                    dimension: compact_score_histogram(histogram)
+                    for dimension, histogram in dimensions.items()
+                }
+                for gender, dimensions in consumer_global.items()
+            },
+            "cohorts": {
+                cohort_key: {
+                    gender: {
+                        dimension: compact_score_histogram(histogram)
+                        for dimension, histogram in dimensions.items()
+                    }
+                    for gender, dimensions in genders.items()
+                }
+                for cohort_key, genders in sorted(consumer_cohorts.items())
+            },
+        },
+        "consumer_features": {
+            "rules_version": CONSUMER_RULES_VERSION,
+            "weighted_unit": "minute",
+            "method": "weighted_empirical_feature_incidence",
+            "catalog": [consumer_feature_catalog[key] for key in sorted(consumer_feature_catalog)],
+            "hit_weights": {
+                key: round(consumer_feature_weights[key] / 60, 6)
+                for key in sorted(consumer_feature_catalog)
+            },
         },
     }
     payload["hash"] = payload_hash(payload)

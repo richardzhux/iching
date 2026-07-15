@@ -4,16 +4,19 @@ import { useEffect, useId, useState } from "react"
 import { ChevronRight } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
+import { ConsumerIdentity } from "@/components/tools/consumer-identity"
+import { LifeKlineChart } from "@/components/tools/life-kline-chart"
+import { MetaphysicsAchievements, type MetaphysicsAchievement } from "@/components/tools/metaphysics-achievements"
 import { buildBaziMarkdown } from "@/lib/chart-markdown"
-import { fetchMetaphysicsPeriod } from "@/lib/api"
-import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodThemeActivation, PeriodThemeActivations, PeriodYear, RarityMetric, ShenShaHit, ThemeComparison, ThemeProfile } from "@/types/api"
+import { calculateMetaphysicsChart, fetchMetaphysicsPeriod } from "@/lib/api"
+import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeComparison, ThemeProfile } from "@/types/api"
 
 type Locale = "en" | "zh"
 type DisplayMode = "simple" | "study" | "professional"
 type SolarTerm = NonNullable<MetaphysicsChart["next_solar_term"]>
 type BaziChartViewProps =
-  | { chart: MetaphysicsChart; locale: Locale; mode: "current"; generatedAt?: never }
-  | { chart: MetaphysicsChart; locale: Locale; mode: "birth"; generatedAt: string; subjectName: string }
+  | { chart: MetaphysicsChart; locale: Locale; mode: "current"; generatedAt?: never; onCompare?: never }
+  | { chart: MetaphysicsChart; locale: Locale; mode: "birth"; generatedAt: string; subjectName: string; onCompare?: () => void }
 
 function formatChartTimestamp(timestamp: string, locale: Locale, timeZone: string) {
   return new Date(timestamp).toLocaleString(locale === "zh" ? "zh-CN" : "en-US", { timeZone })
@@ -106,6 +109,32 @@ export function BaziChartView(props: BaziChartViewProps) {
     return <UncertainBaziView chart={chart} locale={locale} subjectName={subjectName} generatedAt={resultGeneratedAt} calculationRule={calculationRule} exportTargetId={exportTargetId} markdown={markdown} />
   }
 
+  if (chart.consumer?.identity && chart.consumer.twin) {
+    return <BaziConsumerResult
+      chart={chart}
+      locale={locale}
+      subjectName={subjectName}
+      generatedAt={resultGeneratedAt}
+      calculationRule={calculationRule}
+      currentCycleText={currentCycleText}
+      trustNote={trustNote}
+      exportTargetId={exportTargetId}
+      tableExportTargetId={tableExportTargetId}
+      markdown={markdown}
+      periodCycles={periodCycles}
+      currentYear={currentYear}
+      selectedCycleIndex={selectedCycleIndex}
+      selectedYear={selectedYear}
+      selectedMonthIndex={selectedMonthIndex}
+      periodLoadingIndex={periodLoadingIndex}
+      periodError={periodError}
+      onCycleChange={(cycle) => void selectCycle(cycle)}
+      onYearChange={(year) => { setSelectedYear(year.year); setSelectedMonthIndex(0) }}
+      onMonthChange={(month) => setSelectedMonthIndex(month.index)}
+      onCompare={props.onCompare}
+    />
+  }
+
   return (
     <section className="chart-report space-y-8" aria-label={locale === "zh" ? "八字排盘结果" : "BaZi chart result"}>
       <div data-export-exclude className="flex justify-end">
@@ -173,6 +202,130 @@ export function BaziChartView(props: BaziChartViewProps) {
       <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={resultGeneratedAt} trustNote={trustNote} />
     </section>
   )
+}
+
+type ConsumerTab = "identity" | "kline" | "chart"
+
+function BaziConsumerResult({
+  chart, locale, subjectName, generatedAt, calculationRule, currentCycleText, trustNote,
+  exportTargetId, tableExportTargetId, markdown, periodCycles, currentYear,
+  selectedCycleIndex, selectedYear, selectedMonthIndex, periodLoadingIndex, periodError,
+  onCycleChange, onYearChange, onMonthChange,
+  onCompare,
+}: {
+  chart: MetaphysicsChart
+  locale: Locale
+  subjectName: string
+  generatedAt: string
+  calculationRule: string
+  currentCycleText: string
+  trustNote: string
+  exportTargetId: string
+  tableExportTargetId: string
+  markdown: string
+  periodCycles: DayunCycle[]
+  currentYear: number
+  selectedCycleIndex: number
+  selectedYear: number
+  selectedMonthIndex: number
+  periodLoadingIndex: number | null
+  periodError: string | null
+  onCycleChange: (cycle: DayunCycle) => void
+  onYearChange: (year: PeriodYear) => void
+  onMonthChange: (month: PeriodMonth) => void
+  onCompare?: () => void
+}) {
+  const [tab, setTab] = useState<ConsumerTab>("identity")
+  const identityCardId = `bazi-identity-${useId().replaceAll(":", "")}`
+  const achievementCardId = `bazi-achievements-${useId().replaceAll(":", "")}`
+  const klineCardId = `bazi-kline-${useId().replaceAll(":", "")}`
+  const consumer = chart.consumer!
+  const [lifeKline, setLifeKline] = useState(consumer.life_kline)
+  const [fullLifeLoading, setFullLifeLoading] = useState(false)
+  const [fullLifeError, setFullLifeError] = useState<string | null>(null)
+  useEffect(() => {
+    setLifeKline(consumer.life_kline)
+    setFullLifeError(null)
+  }, [consumer.life_kline])
+  const profile = {
+    identity: consumer.identity,
+    subjects: consumer.subjects,
+    fingerprints: consumer.fingerprints,
+    twin: consumer.twin!,
+  }
+  const achievementStates = new Set(["发力", "有力", "可见", "受制"])
+  const achievements = consumer.achievements
+    .filter((item) => achievementStates.has(item.state)) as MetaphysicsAchievement[]
+  const tabs: Array<{ key: ConsumerTab; label: string; description: string }> = locale === "zh"
+    ? [
+      { key: "identity", label: "我是谁", description: "称号、排名与命盘成就" },
+      { key: "kline", label: "人生 K 线", description: "未来十年与月份节奏" },
+      { key: "chart", label: "完整命盘", description: "四柱、运限与全部依据" },
+    ]
+    : [
+      { key: "identity", label: "Identity", description: "Archetype, ranks, achievements" },
+      { key: "kline", label: "Life K-line", description: "Ten-year and monthly rhythm" },
+      { key: "chart", label: "Full chart", description: "Pillars, periods, all details" },
+    ]
+
+  async function loadFullLifeKline() {
+    const request = chart.birth_profile.period_query
+    if (!request || fullLifeLoading) return
+    setFullLifeLoading(true)
+    setFullLifeError(null)
+    try {
+      const expanded = await calculateMetaphysicsChart({ ...request, include_period_details: true, period_cycle_index: null })
+      if (!expanded.consumer?.life_kline.series.some((series) => series.points.length > 10)) throw new Error(locale === "zh" ? "完整人生走势暂时未生成。" : "The full-life series is not available yet.")
+      setLifeKline(expanded.consumer.life_kline)
+    } catch (cause) {
+      setFullLifeError((cause as Error).message)
+    } finally {
+      setFullLifeLoading(false)
+    }
+  }
+
+  return <section className="chart-report min-w-0 space-y-6" aria-label={locale === "zh" ? "八字命盘结果" : "BaZi result"}>
+    <div data-export-exclude className="flex justify-end">
+      <ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "一键导出" : "Export"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated."} safeBaseFilename={`bazi-${chart.birth_profile.input_date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败，请改用下载。" : "Copy failed."} />
+    </div>
+
+    <nav data-export-exclude aria-label={locale === "zh" ? "八字结果主导航" : "BaZi result navigation"} className="sticky top-20 z-20 grid grid-cols-3 gap-1 rounded-2xl border border-border/60 bg-background/90 p-1.5 shadow-sm backdrop-blur">
+      {tabs.map((item) => <button key={item.key} type="button" aria-pressed={tab === item.key} onClick={() => setTab(item.key)} className={`min-w-0 rounded-xl px-2 py-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${tab === item.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-primary/8 hover:text-foreground"}`}><span className="block text-sm font-semibold sm:text-base">{item.label}</span><span className={`mt-1 hidden text-[0.68rem] sm:block ${tab === item.key ? "text-primary-foreground/75" : "text-muted-foreground"}`}>{item.description}</span></button>)}
+    </nav>
+
+    {tab === "identity" ? <div className="space-y-9">
+      <div data-export-exclude className="flex flex-wrap justify-end gap-2"><ChartAssetExportButton targetId={identityCardId} label={locale === "zh" ? "分享身份卡" : "Share identity card"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "身份卡生成失败。" : "Identity card could not be generated."} safeBaseFilename={`bazi-identity-${chart.birth_profile.input_date}`} /></div>
+      <div id={identityCardId}><ConsumerIdentity profile={profile} locale={locale} comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined} /></div>
+      <div data-export-exclude className="flex flex-wrap justify-end gap-2"><ChartAssetExportButton targetId={achievementCardId} label={locale === "zh" ? "分享成就卡" : "Share achievements"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "成就卡生成失败。" : "Achievement card could not be generated."} safeBaseFilename={`bazi-achievements-${chart.birth_profile.input_date}`} /></div>
+      <div id={achievementCardId}><MetaphysicsAchievements achievements={achievements} locale={locale} /></div>
+    </div> : null}
+
+    {tab === "kline" ? <div className="space-y-8">
+      <div data-export-exclude className="flex justify-end"><ChartAssetExportButton targetId={klineCardId} label={locale === "zh" ? "分享人生 K 线" : "Share Life K-line"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "K 线图片生成失败。" : "K-line image could not be generated."} safeBaseFilename={`bazi-kline-${chart.birth_profile.input_date}`} /></div>
+      <div id={klineCardId}><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYear} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} /></div>
+      {fullLifeError ? <p role="alert" className="text-sm text-destructive">{fullLifeError}</p> : null}
+      <section className="rounded-3xl border border-border/60 bg-surface p-5 sm:p-7"><h2 className="text-xl font-semibold">{locale === "zh" ? "点开阶段看细节" : "Open a period"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "选择大运、流年和流月，查看这一阶段新增、联动和冲突的具体结构。" : "Choose a cycle, year, and month to inspect its activated structures."}</p><div className="mt-5"><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></div></section>
+    </div> : null}
+
+    {tab === "chart" ? <div className="space-y-9">
+      <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
+      <ReportChapter title={locale === "zh" ? "四柱命盘" : "Four pillars"} intro={locale === "zh" ? "四柱、十神、藏干、神煞与状态集中在同一张专业表。" : "Pillars, Ten Gods, hidden stems, and Shen Sha in one table."}><div data-export-exclude className="mb-3 flex justify-end"><ChartAssetExportButton targetId={tableExportTargetId} label={locale === "zh" ? "单独导出四柱表" : "Export pillar table"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "四柱表导出失败。" : "Pillar table export failed."} safeBaseFilename={`bazi-pillars-${chart.birth_profile.input_date}`} /></div><div id={tableExportTargetId}><BaziProfessionalTable chart={chart} locale={locale} /></div></ReportChapter>
+      <ReportChapter title={locale === "zh" ? "格局与核心判断" : "Pattern and findings"}><BaziPatternSummary chart={chart} locale={locale} /><div className="mt-7"><BaziSynthesisPanel chart={chart} locale={locale} /></div></ReportChapter>
+      <ReportChapter title={locale === "zh" ? "运限" : "Periods"}><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></ReportChapter>
+      <ReportChapter title={locale === "zh" ? "结构排名" : "Structural ranks"}><ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /></ReportChapter>
+      <ReportChapter title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ReportChapter>
+      <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看排盘规则与原始统计" : "Chart rules and raw statistics"}</summary><div className="mt-6 space-y-7"><BaziStatistics chart={chart} locale={locale} currentYear={currentYear} /><p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {chart.rules_version} · {chart.statistics.baseline.id}</p></div></details>
+    </div> : null}
+
+    <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
+  </section>
+}
+
+function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+  const primary = chart.structure.patterns?.primary
+  if (!primary) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "这张命盘以主导结构呈现，不强贴单一格局标签。" : "This chart is described by its dominant structure rather than a forced pattern label."}</p>
+  const statusLabels: Record<string, string> = { formed: "成格", effective: "得用", broken: "受制", rescued: "救成", mixed: "混杂", transformed: "转化" }
+  return <section className="rounded-2xl bg-primary/[0.06] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-2xl font-semibold">{primary.title || `${primary.name}格`}</h3><span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{statusLabels[primary.status] || primary.status}</span></div><p className="mt-3 text-sm leading-7 text-muted-foreground">{primary.summary}</p>{primary.rescues?.length ? <p className="mt-3 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{primary.rescues.join(" · ")}</p> : null}{primary.constraints?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "制约" : "Constraints"}：</strong>{primary.constraints.join(" · ")}</p> : null}</section>
 }
 
 function UncertainBaziView({ chart, locale, subjectName, generatedAt, calculationRule, exportTargetId, markdown }: { chart: MetaphysicsChart; locale: Locale; subjectName: string; generatedAt: string; calculationRule: string; exportTargetId: string; markdown: string }) {
@@ -276,7 +429,7 @@ function BaziProfessionalTable({ chart, locale }: { chart: MetaphysicsChart; loc
     { label: locale === "zh" ? "空亡" : "Void", values: chart.pillars.map((pillar) => pillar.xunkong ?? "—") },
     { label: locale === "zh" ? "地势" : "Life stage", values: chart.pillars.map((pillar) => pillar.di_shi ?? "—") },
     { label: locale === "zh" ? "自坐" : "Self seat", values: chart.pillars.map((pillar) => pillar.self_seat ?? "—") },
-    { label: locale === "zh" ? "神煞" : "Shen Sha", values: chart.pillars.map((pillar) => chart.shen_sha.filter((hit) => hit.pillar_labels.includes(pillar.label)).map((hit) => hit.name).join(" / ") || "—") },
+    { label: locale === "zh" ? "神煞" : "Shen Sha", values: chart.pillars.map((pillar) => chart.shen_sha.filter((hit) => hit.pillar_labels.includes(pillar.label)).map((hit) => `${hit.name}${hit.state ? `·${hit.state}` : ""}`).join(" / ") || "—") },
   ]
   const status = Object.entries(chart.element_season_status ?? {})
   return (
@@ -343,11 +496,6 @@ function BaziPeriodNavigator({ cycles, locale, currentYear, selectedCycleIndex, 
         <PeriodSummary label={locale === "zh" ? "所选流年" : "Selected year"} value={year ? `${year.ganzhi} · ${year.ten_god}` : "—"} detail={year ? `${year.year} · ${locale === "zh" ? "旬空" : "Void"} ${year.xunkong}` : "—"} />
         <PeriodSummary label={locale === "zh" ? "所选流月" : "Selected month"} value={month ? `${month.ganzhi} · ${month.ten_god}` : "—"} detail={month ? `${locale === "zh" ? "旬空" : "Void"} ${month.xunkong}` : "—"} />
       </div>
-      <section className="space-y-5 border-t border-border/55 pt-6" aria-labelledby="future-activation-title"><div><h3 id="future-activation-title" className="text-xl font-semibold">{locale === "zh" ? "未来哪些阶段会激活什么" : "What future periods activate"}</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{locale === "zh" ? "颜色深浅只表示该层新增的十神、神煞与干支关系数量；不代表吉凶。大运为持续背景，流年与流月只记录本层新增变化。" : "Color intensity counts newly activated Ten-God, Shen Sha, and stem-branch relationships at that layer. It is not good or bad. Da Yun is the persistent background; years and months show new changes."}</p></div>
-        <ThemeActivationGrid items={selectedCycle.years} selectedId={year?.year ?? -1} locale={locale} layer="year" onSelect={(item) => onYearChange(item as PeriodYear)} />
-        {year ? <ThemeActivationGrid items={year.months} selectedId={month?.index ?? -1} locale={locale} layer="month" onSelect={(item) => onMonthChange(item as PeriodMonth)} /> : null}
-        <PeriodThemeDetails cycle={selectedCycle} year={year} month={month} locale={locale} />
-      </section>
     </div>
   )
 }
@@ -362,39 +510,6 @@ function PeriodButton({ selected, current, onClick, title, meta, footer }: { sel
 
 function PeriodSummary({ label, value, detail }: { label: string; value: string; detail: string }) {
   return <div><p className="text-xs font-semibold text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>
-}
-
-const PERIOD_THEMES = ["事业", "财富", "感情", "五行与承压结构"] as const
-const EMPTY_THEME_ACTIVATIONS: PeriodThemeActivations = { 事业: [], 财富: [], 感情: [], 五行与承压结构: [] }
-const THEME_CELL_COLORS: Record<(typeof PERIOD_THEMES)[number], string> = {
-  事业: "bg-indigo-500",
-  财富: "bg-amber-500",
-  感情: "bg-fuchsia-500",
-  五行与承压结构: "bg-cyan-600",
-}
-const ACTIVATION_TRACKS = [
-  { key: "natal", zh: "原局触发", en: "Natal trigger", color: "bg-indigo-500" },
-  { key: "relation", zh: "新增关系", en: "New relation", color: "bg-rose-500" },
-  { key: "change", zh: "牵制变化", en: "Change", color: "bg-amber-500" },
-  { key: "shensha", zh: "神煞辅助", en: "Shen Sha", color: "bg-cyan-600" },
-] as const
-
-function activationTrack(event: PeriodThemeActivation) {
-  if (event.label.includes("神煞")) return "shensha"
-  if (event.kind === "冲突" || event.kind === "联动") return "relation"
-  if (event.kind === "变化") return "change"
-  return "natal"
-}
-
-function ThemeActivationGrid({ items, selectedId, locale, layer, onSelect }: { items: Array<PeriodYear | PeriodMonth>; selectedId: number; locale: Locale; layer: "year" | "month"; onSelect: (item: PeriodYear | PeriodMonth) => void }) {
-  const gridTemplateColumns = `4.5rem repeat(${items.length}, minmax(3.5rem, 1fr))`
-  const itemId = (item: PeriodYear | PeriodMonth) => "year" in item ? item.year : item.index
-  const itemLabel = (item: PeriodYear | PeriodMonth) => layer === "year" && "year" in item ? String(item.year) : item.label
-  return <div><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-semibold">{layer === "year" ? (locale === "zh" ? "流年结构轨道" : "Annual structure tracks") : (locale === "zh" ? "流月结构轨道" : "Monthly structure tracks")}</h4><div className="flex flex-wrap gap-2 text-[0.68rem] text-muted-foreground">{ACTIVATION_TRACKS.map((track) => <span key={track.key} className="inline-flex items-center gap-1"><span className={`size-2 rounded-full ${track.color}`} />{locale === "zh" ? track.zh : track.en}</span>)}</div></div><div className="overflow-x-auto rounded-xl border border-border/50 custom-scrollbar"><div className="min-w-max" style={{ minWidth: `${4.5 + items.length * 3.5}rem` }}><div className="grid border-b border-border/40 bg-muted/35" style={{ gridTemplateColumns }}><span className="px-3 py-2 text-xs text-muted-foreground">{locale === "zh" ? "主题" : "Theme"}</span>{items.map((item) => <button type="button" key={itemId(item)} onClick={() => onSelect(item)} className={`min-h-11 border-l border-border/30 px-1 text-xs font-medium ${itemId(item) === selectedId ? "bg-primary/10 text-primary" : "hover:bg-muted/60"}`}>{itemLabel(item)}</button>)}</div>{PERIOD_THEMES.map((theme) => <div key={theme} className="grid border-b border-border/30 last:border-b-0" style={{ gridTemplateColumns }}><span className="sticky left-0 z-10 flex items-center bg-background px-3 py-2 text-xs font-semibold">{theme === "五行与承压结构" && locale === "zh" ? "五行承压" : theme}</span>{items.map((item) => { const events = item.theme_activations?.[theme] ?? []; const activeTracks = new Set(events.map(activationTrack)); return <button type="button" key={`${theme}-${itemId(item)}`} onClick={() => onSelect(item)} aria-label={`${itemLabel(item)} ${theme} ${events.length} ${locale === "zh" ? "项结构变化" : "structure changes"}`} className={`min-h-12 border-l border-border/30 px-1.5 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${itemId(item) === selectedId ? "bg-primary/[0.06] ring-2 ring-inset ring-primary/55" : ""}`}><span className="grid grid-cols-2 gap-1" aria-hidden="true">{ACTIVATION_TRACKS.map((track) => <span key={track.key} className={`h-1.5 rounded-full ${activeTracks.has(track.key) ? track.color : "bg-muted"}`} />)}</span>{events.length ? <strong className={`mt-1 block text-[0.68rem] ${THEME_CELL_COLORS[theme].replace("bg-", "text-")}`}>{events.length}</strong> : <span className="mt-1 block text-[0.68rem] text-muted-foreground">—</span>}</button>})}</div>)}</div></div></div>
-}
-
-function PeriodThemeDetails({ cycle, year, month, locale }: { cycle: DayunCycle; year?: PeriodYear; month?: PeriodMonth; locale: Locale }) {
-  return <div className="grid gap-4 lg:grid-cols-2">{PERIOD_THEMES.map((theme) => { const layers: Array<{ label: string; events: PeriodThemeActivation[] }> = [{ label: locale === "zh" ? "大运持续" : "Da Yun background", events: cycle.theme_activations?.[theme] ?? EMPTY_THEME_ACTIVATIONS[theme] }, { label: locale === "zh" ? "流年新增" : "Year additions", events: year?.theme_activations?.[theme] ?? EMPTY_THEME_ACTIVATIONS[theme] }, { label: locale === "zh" ? "流月新增" : "Month additions", events: month?.theme_activations?.[theme] ?? EMPTY_THEME_ACTIVATIONS[theme] }]; const total = layers.reduce((sum, item) => sum + item.events.length, 0); return <section key={theme} className="rounded-2xl border border-border/55 bg-surface p-5"><div className="flex items-center justify-between gap-3"><h4 className="text-lg font-semibold">{theme}</h4><span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">{total} {locale === "zh" ? "项结构信号" : "signals"}</span></div><div className="mt-4 space-y-4">{layers.map((layerItem) => <div key={layerItem.label}><p className="text-xs font-semibold text-muted-foreground">{layerItem.label}</p><div className="mt-2 space-y-2">{layerItem.events.length ? layerItem.events.map((event, index) => <details key={`${event.label}-${index}`} className="rounded-xl bg-muted/35 px-3 py-2"><summary className="cursor-pointer list-none text-sm font-medium"><span className="mr-2 rounded-full bg-background px-2 py-0.5 text-xs text-primary">{event.kind}</span>{event.label}</summary><p className="mt-2 text-sm leading-6 text-muted-foreground">{event.detail}</p><p className="mt-1 text-xs text-muted-foreground">{event.source}</p></details>) : <p className="text-sm text-muted-foreground">{locale === "zh" ? "本层无新增信号" : "No new signal at this layer"}</p>}</div></div>)}</div></section>})}</div>
 }
 
 function ShenShaPanel({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
@@ -425,13 +540,13 @@ function ShenShaRow({ hit, metric, locale }: { hit: ShenShaHit; metric?: RarityM
     : metric.status === "zero"
       ? (locale === "zh" ? "0% · 本参考周期未出现" : "0% · not observed in this reference")
       : `${metric.display_percentage} · ${rarityLabels[metric.level as keyof typeof rarityLabels]}`
-  return <details className="group rounded-xl border border-border/50 bg-surface px-4 py-3 open:border-primary/35 open:bg-primary/[0.035]"><summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-4"><span><strong>{hit.name}</strong><span className="ml-2 text-xs text-muted-foreground">{hit.pillar_labels.join("、")}{locale === "zh" ? "柱" : " pillar"}</span></span><span className="text-right text-xs font-semibold text-primary">{frequency}</span></span></summary><div className="mt-3 space-y-2 border-t border-border/45 pt-3 text-xs leading-5 text-muted-foreground"><p>{hit.trigger}</p><p><strong className="text-foreground">{locale === "zh" ? "来源" : "Source"}：</strong>{hit.source.title} · {hit.source.note}</p>{hit.school_note ? <p><strong className="text-foreground">{locale === "zh" ? "口径备注" : "Convention note"}：</strong>{hit.school_note}</p> : null}{metric && metric.status !== "unsupported" ? <p>{locale === "zh" ? "分母" : "Denominator"}：{metric.total_weight.toLocaleString()} {locale === "zh" ? "历法分钟权重" : "calendar-minute weight"}</p> : null}{hit.formula_digest ? <p className="font-mono text-[0.68rem]">{hit.formula_digest}</p> : null}</div></details>
+  return <details className="group rounded-xl border border-border/50 bg-surface px-4 py-3 open:border-primary/35 open:bg-primary/[0.035]"><summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-4"><span><strong>{hit.name}</strong>{hit.state ? <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{hit.state}</span> : null}<span className="ml-2 text-xs text-muted-foreground">{hit.pillar_labels.join("、")}{locale === "zh" ? "柱" : " pillar"}</span></span><span className="text-right text-xs font-semibold text-primary">{frequency}</span></span></summary><div className="mt-3 space-y-2 border-t border-border/45 pt-3 text-xs leading-5 text-muted-foreground">{hit.state_reason ? <p className="font-medium text-foreground">{hit.state_reason}</p> : null}<p>{hit.trigger}</p><p><strong className="text-foreground">{locale === "zh" ? "来源" : "Source"}：</strong>{hit.source.title} · {hit.source.note}</p>{hit.school_note ? <p><strong className="text-foreground">{locale === "zh" ? "口径备注" : "Convention note"}：</strong>{hit.school_note}</p> : null}{metric && metric.status !== "unsupported" ? <p>{locale === "zh" ? "分母" : "Denominator"}：{metric.total_weight.toLocaleString()} {locale === "zh" ? "历法分钟权重" : "calendar-minute weight"}</p> : null}{hit.formula_digest ? <p className="font-mono text-[0.68rem]">{hit.formula_digest}</p> : null}</div></details>
 }
 
 function ThemeProfilePanel({ profiles, baselineLabel, locale }: { profiles: ThemeProfile[]; baselineLabel: string; locale: Locale }) {
   const english: Record<string, string> = { 事业: "Career", 财富: "Wealth", 感情: "Relationship", 五行与承压结构: "Elements & pressure" }
   if (!profiles.length) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "旧版命盘尚无四主题结构数据；按新版重新排盘后可查看。" : "This legacy chart has no four-theme structure data. Recalculate with the current version."}</p>
-  return <section aria-labelledby="theme-profile-title"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 id="theme-profile-title" className="text-xl font-semibold">{locale === "zh" ? "哪些结构更有辨识度" : "Which structures are more distinctive"}</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{locale === "zh" ? "每项结构按自身类型比较：数量看分布区间，是否命中看出现率，不把它们压成一个总分。" : "Each structure uses the right comparison: counts use distribution intervals, binary features use incidence, and none are collapsed into one score."}</p></div><p className="text-xs text-muted-foreground">{baselineLabel}</p></div><div className="mt-5 grid gap-4 lg:grid-cols-2">{profiles.map((profile) => <ThemeProfileCard key={profile.theme} profile={profile} label={locale === "zh" ? profile.theme : english[profile.theme]} locale={locale} />)}</div></section>
+  return <section aria-labelledby="theme-profile-title"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 id="theme-profile-title" className="text-xl font-semibold">{locale === "zh" ? "哪些结构更有辨识度" : "Which structures are more distinctive"}</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{locale === "zh" ? "直接对照每项结构在历法样本中的位置，看清哪些更常见、哪些最能形成你的个人辨识度。" : "Compare each structure with the calendar sample space to see what is common and what most strongly distinguishes your chart."}</p></div><p className="text-xs text-muted-foreground">{baselineLabel}</p></div><div className="mt-5 grid gap-4 lg:grid-cols-2">{profiles.map((profile) => <ThemeProfileCard key={profile.theme} profile={profile} label={locale === "zh" ? profile.theme : english[profile.theme]} locale={locale} />)}</div></section>
 }
 
 function ThemeProfileCard({ profile, label, locale }: { profile: ThemeProfile; label: string; locale: Locale }) {
@@ -568,10 +683,11 @@ function HistoricalSolarTerm({ term, calculationTimestamp, locale, timeZone }: {
 }
 
 function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculationRule, currentCycleText, generatedAt, trustNote }: { exportTargetId: string; chart: MetaphysicsChart; locale: Locale; subjectName: string; calculationRule: string; currentCycleText: string; generatedAt: string; trustNote: string }) {
+  const consumerProfile = chart.consumer?.twin ? { identity: chart.consumer.identity, subjects: chart.consumer.subjects, fingerprints: chart.consumer.fingerprints, twin: chart.consumer.twin } : null
   return (
     <div aria-hidden="true" className="chart-export-stage">
       <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
-        <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
+        {consumerProfile ? <><ConsumerIdentity profile={consumerProfile} locale={locale} /><div className="mt-8"><MetaphysicsAchievements achievements={chart.consumer?.achievements ?? []} locale={locale} /></div></> : <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />}
         <div className="mt-8"><ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /></div>
         <div className="mt-8"><BaziStatistics chart={chart} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></div>
         <div className="mt-8"><BaziProfessionalTable chart={chart} locale={locale} /></div>
