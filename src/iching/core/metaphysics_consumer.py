@@ -29,28 +29,6 @@ THEME_COLORS = {
     "health": "#059669",
 }
 
-_CONSTRAINT_METRICS = {
-    "peer_count",
-    "missing_element_count",
-    "concentrated_element_count",
-    "pressure_relation_count",
-    "repeated_branch_count",
-}
-_METRIC_WEIGHTS = {
-    "officer_count": 1.3,
-    "resource_count": 1.1,
-    "output_count": 1.15,
-    "visible_wealth_count": 1.45,
-    "hidden_wealth_count": 0.9,
-    "visible_spouse_count": 1.3,
-    "hidden_spouse_count": 0.8,
-    "spouse_palace_relation_count": 1.15,
-    "day_stem_combine_count": 1.0,
-    "root_pillar_count": 1.35,
-    "relation_count": 0.85,
-    "mobility_count": 0.8,
-    "shensha_count": 0.45,
-}
 
 _ARCHETYPES = (
     ("breaker", "破局型表达者", "把复杂局面说清楚，再把新路走出来", {"食神", "伤官"}),
@@ -72,24 +50,6 @@ _ARCHETYPES = (
     ("magnet", "魅力型影响者", "个人表达与关系感知很容易形成记忆点", {"桃花", "红鸾", "天喜"}),
     ("integrator", "全局型整合者", "擅长把分散的信息、人和资源重新组织", set()),
 )
-
-_PATTERN_THEME_BONUS = {
-    "正官": {"career": 10, "wealth": 3, "relationship": 3, "health": 2},
-    "七杀": {"career": 11, "wealth": 4, "relationship": 2, "health": -2},
-    "正财": {"career": 4, "wealth": 12, "relationship": 5, "health": 2},
-    "偏财": {"career": 5, "wealth": 12, "relationship": 4, "health": 1},
-    "食神": {"career": 7, "wealth": 8, "relationship": 4, "health": 5},
-    "伤官": {"career": 9, "wealth": 7, "relationship": 5, "health": -1},
-    "正印": {"career": 9, "wealth": 3, "relationship": 3, "health": 6},
-    "偏印": {"career": 8, "wealth": 3, "relationship": 2, "health": 3},
-    "建禄": {"career": 8, "wealth": 5, "relationship": 2, "health": 7},
-    "阳刃": {"career": 9, "wealth": 4, "relationship": 1, "health": -3},
-    "从财": {"career": 6, "wealth": 15, "relationship": 5, "health": 1},
-    "从杀": {"career": 15, "wealth": 5, "relationship": 2, "health": -2},
-    "从儿": {"career": 10, "wealth": 9, "relationship": 5, "health": 3},
-    "从旺": {"career": 9, "wealth": 5, "relationship": 2, "health": 8},
-    "从强": {"career": 9, "wealth": 4, "relationship": 2, "health": 9},
-}
 
 _PERIOD_EVENT_WEIGHTS = {"新增": 3.2, "联动": 4.4, "变化": 1.2, "冲突": -4.8}
 _PATTERN_STATUS_LABELS = {
@@ -130,135 +90,12 @@ def _stable_fraction(value: str) -> float:
     return int(sha256(value.encode("utf-8")).hexdigest()[:8], 16) / 0xFFFFFFFF
 
 
-def _metric_percentile(comparison: Mapping[str, Any]) -> float | None:
-    if comparison.get("status") not in {"observed", "zero"}:
-        return None
-    metric_id = str(comparison.get("metric_id", ""))
-    if comparison.get("comparison_mode") == "incidence":
-        hit = float(comparison.get("hit_percentage", 0) or 0)
-        value = float(comparison.get("value", 0) or 0)
-        result = 100 - hit / 2 if value > 0 else (100 - hit) / 2
-    else:
-        lower = float(comparison.get("lower_percentage", 0) or 0)
-        same = float(comparison.get("same_percentage", comparison.get("exact_percentage", 0)) or 0)
-        higher = float(comparison.get("higher_percentage", max(0, 100 - lower - same)) or 0)
-        result = higher + same / 2 if metric_id in _CONSTRAINT_METRICS else lower + same / 2
-    return _clamp(result)
-
-
 def _profile_by_key(profiles: Iterable[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
     return {
         PROFILE_THEME_KEYS[str(profile.get("theme", ""))]: profile
         for profile in profiles
         if str(profile.get("theme", "")) in PROFILE_THEME_KEYS
     }
-
-
-def _theme_score(
-    key: str,
-    profile: Mapping[str, Any],
-    pattern: Mapping[str, Any],
-    enhanced_hits: Iterable[Mapping[str, Any]],
-    combinations: Iterable[Mapping[str, Any]],
-) -> tuple[int, float, list[str]]:
-    score = 43.0
-    drivers: list[str] = []
-    evidence = list(profile.get("evidence", ()))
-    supporting = [item for item in evidence if item.get("evidence_type") in {"支持", "活动", "背景"}]
-    constraints = [item for item in evidence if item.get("evidence_type") == "制约"]
-    structure_points = min(23.0, sum(3.2 if item.get("evidence_type") == "支持" else 2.0 for item in supporting))
-    score += structure_points
-    if supporting:
-        drivers.extend(str(item.get("title", "")) for item in supporting[:2])
-
-    for metric in profile.get("structure_metrics", ()):
-        metric_id = str(metric.get("metric_id", ""))
-        value = float(metric.get("value", 0) or 0)
-        weight = _METRIC_WEIGHTS.get(metric_id, 0.55)
-        score += (-1 if metric_id in _CONSTRAINT_METRICS else 1) * min(6.0, value * weight)
-
-    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
-    if isinstance(primary, Mapping):
-        pattern_name = str(primary.get("name", ""))
-        for token, bonuses in _PATTERN_THEME_BONUS.items():
-            if token in pattern_name:
-                score += bonuses.get(key, 0)
-                status = _PATTERN_STATUS_LABELS.get(str(primary.get("status", "")), str(primary.get("status", "成格")))
-                drivers.insert(0, f"{pattern_name}·{status}")
-                break
-        score -= min(8.0, len(primary.get("constraints", ())) * 2.5)
-
-    topic = {"career": "career", "wealth": "wealth", "relationship": "relationship", "health": "health"}[key]
-    combo_points = 0.0
-    for combination in combinations:
-        tags = {str(item) for item in combination.get("topic_tags", ())}
-        if tags and topic not in tags:
-            continue
-        tier = str(combination.get("tier", "product_cluster"))
-        combo_points += {"classical_named": 7.0, "classical_interaction": 5.0, "product_cluster": 3.5}.get(tier, 3.0)
-        if len(drivers) < 4:
-            drivers.append(str(combination.get("title", "结构共振")))
-    score += min(20.0, combo_points)
-
-    shensha_points = 0.0
-    for hit in enhanced_hits:
-        tags = {str(item) for item in hit.get("topic_tags", ())}
-        if topic not in tags:
-            continue
-        shensha_points += {"发力": 4.5, "有力": 3.0, "可见": 1.2, "受制": -2.4}.get(str(hit.get("state", "可见")), 1.0)
-    score += max(-8.0, min(15.0, shensha_points))
-    score -= min(12.0, len(constraints) * 3.5)
-
-    metric_percentiles = [
-        value for comparison in profile.get("comparisons", ())
-        if (value := _metric_percentile(comparison)) is not None
-        and str(comparison.get("metric_id", "")) != "shensha_count"
-    ]
-    empirical = sum(metric_percentiles) / len(metric_percentiles) if metric_percentiles else score
-    score = int(round(_clamp(score, 28, 98)))
-    global_percentile = round(_clamp(empirical * 0.62 + score * 0.38, 2, 99.5), 1)
-    return score, global_percentile, [item for item in dict.fromkeys(drivers) if item][:4]
-
-
-def score_bazi_consumer_themes(
-    *,
-    structure: Mapping[str, Any],
-    patterns: Mapping[str, Any] | None,
-    shensha_effects: Mapping[str, Any] | None,
-) -> dict[str, dict[str, Any]]:
-    """Return deterministic natal scores before any population ranking is applied.
-
-    The baseline generator calls this same function, so the checked-in score
-    distributions and the score shown for a live chart cannot drift apart.
-    """
-    profiles_by_key = _profile_by_key(structure.get("theme_profiles", ()))
-    effects = shensha_effects or {}
-    hits = list(effects.get("hits", ()))
-    combinations = list(effects.get("combinations", ()))
-    pattern = patterns or {}
-    result: dict[str, dict[str, Any]] = {}
-    for key in THEME_ORDER:
-        score, fallback_percentile, drivers = _theme_score(
-            key,
-            profiles_by_key.get(key, {}),
-            pattern,
-            hits,
-            combinations,
-        )
-        result[key] = {
-            "score": score,
-            "fallback_percentile": fallback_percentile,
-            "drivers": drivers,
-        }
-    result["overall"] = {
-        "score": int(round(sum(int(result[key]["score"]) for key in THEME_ORDER) / len(THEME_ORDER))),
-        "fallback_percentile": round(
-            sum(float(result[key]["fallback_percentile"]) for key in THEME_ORDER) / len(THEME_ORDER),
-            1,
-        ),
-        "drivers": [],
-    }
-    return result
 
 
 def _theme_path(
@@ -531,7 +368,17 @@ def _event_delta(events: Iterable[Mapping[str, Any]]) -> tuple[float, list[str],
     return round(delta, 2), drivers, round(intensity, 2)
 
 
-def build_life_kline(cycles: Iterable[Mapping[str, Any]], natal_scores: Mapping[str, int]) -> dict[str, Any]:
+def build_life_kline(
+    cycles: Iterable[Mapping[str, Any]],
+    natal_scores: Mapping[str, int] | None = None,
+) -> dict[str, Any]:
+    """Build period activity without treating natal structure as quality.
+
+    ``natal_scores`` remains accepted so older callers keep working,
+    but intentionally has no effect. The client rebases each series to the
+    user's own long-term average of 100.
+    """
+    del natal_scores
     expanded_cycles = [cycle for cycle in cycles if cycle.get("years")]
     bands = [
         {
@@ -545,10 +392,7 @@ def build_life_kline(cycles: Iterable[Mapping[str, Any]], natal_scores: Mapping[
     all_years: set[int] = set()
     for key in ("overall", *THEME_ORDER):
         label = "综合" if key == "overall" else THEME_LABELS[key]
-        raw_natal = sum(natal_scores.values()) / 4 if key == "overall" else natal_scores.get(key, 60)
-        # Raw natal structure scores feed the trend, but a compressed plotting
-        # scale leaves enough headroom for actual period movement.
-        natal = 55 + (float(raw_natal) - 50) * 0.45
+        natal = 50.0
         points: list[dict[str, Any]] = []
         for cycle in expanded_cycles:
             cycle_theme = []
@@ -662,21 +506,22 @@ def build_bazi_consumer_profile(
     combinations = list(effects.get("combinations", ()))
     pattern = patterns or {}
     feature_percentages = _feature_percentage_map(consumer_feature_metrics)
-    raw_scores = score_bazi_consumer_themes(
-        structure=structure,
-        patterns=pattern,
-        shensha_effects=effects,
-    )
     profiles_by_key = _profile_by_key(profiles)
     subjects: list[dict[str, Any]] = []
-    natal_scores: dict[str, int] = {}
     for key in THEME_ORDER:
-        scored = raw_scores[key]
-        raw_score = int(scored["score"])
-        drivers = list(scored["drivers"])
         profile = profiles_by_key.get(key, {})
         path_label, path_summary = _theme_path(key, profile, pattern)
-        natal_scores[key] = raw_score
+        evidence = list(profile.get("evidence", ()))
+        drivers = [
+            str(item.get("title", ""))
+            for item in evidence
+            if item.get("evidence_type") in {"支持", "活动", "背景"} and item.get("title")
+        ][:4]
+        primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
+        if isinstance(primary, Mapping) and primary.get("name"):
+            status = _PATTERN_STATUS_LABELS.get(str(primary.get("status", "")), str(primary.get("status", "主导")))
+            drivers.insert(0, f"{primary['name']}·{status}")
+        drivers = list(dict.fromkeys(drivers))[:4]
         subjects.append({
             "key": key,
             "label": THEME_LABELS[key],
@@ -708,6 +553,6 @@ def build_bazi_consumer_profile(
         "fingerprints": _fingerprints(profiles, pattern, hits, feature_percentages),
         # A day-master/month-command cohort is not a true structural twin.
         "twin": None,
-        "life_kline": build_life_kline(cycles, natal_scores),
+        "life_kline": build_life_kline(cycles),
         "capability_key": None,
     }

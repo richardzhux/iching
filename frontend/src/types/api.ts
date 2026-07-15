@@ -111,20 +111,29 @@ export type PatternAssessment = {
   source_refs?: string[]
 }
 
-export type ConsumerSubjectScore = {
+export type ConsumerSubjectPath = {
   key: "career" | "wealth" | "relationship" | "health"
   label: string
-  /** Legacy score-era fields may exist on old snapshots, but are never presented as life quality. */
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   score?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
+  raw_score?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   global_percentile?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   global_top_percentage?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   cohort_percentile?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   cohort_top_percentage?: number
   headline: string
   drivers?: string[]
   path_label?: string
   path_summary?: string
 }
+
+/** @deprecated Compatibility alias for components that still use the old type name. */
+export type ConsumerSubjectScore = ConsumerSubjectPath
 
 export type ConsumerAchievement = {
   id: string
@@ -199,7 +208,7 @@ export type ConsumerProfile = {
     cohort_top_percentage?: number
     cohort_label?: string
   }
-  subjects: ConsumerSubjectScore[]
+  subjects: ConsumerSubjectPath[]
   achievements: ConsumerAchievement[]
   fingerprints: ConsumerFingerprint[]
   twin: {

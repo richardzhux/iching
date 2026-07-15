@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import iching.core.metaphysics_consumer as consumer_module
+import pytest
 from iching.core.metaphysics_consumer import THEME_ORDER, build_bazi_consumer_profile, build_life_kline
 from iching.core.metaphysics_statistics import select_consumer_distributions, select_consumer_feature_metrics
+from iching.tools.workspace_budget import check_workspace_budget
 
 
 def test_consumer_profile_keeps_empirical_scores_internal() -> None:
@@ -25,7 +30,12 @@ def test_consumer_profile_keeps_empirical_scores_internal() -> None:
     selected = select_consumer_distributions(baseline, gender="male", cohort_key="丙-午")
     structure = {
         "theme_profiles": [
-            {"theme": label, "evidence": [], "structure_metrics": [], "comparisons": []}
+            {
+                "theme": label,
+                "evidence": [],
+                "structure_metrics": ([{"metric_id": "hidden_wealth_count", "value": 1}] if label == "财富" else []),
+                "comparisons": [],
+            }
             for label in ("事业", "财富", "感情", "五行与承压结构")
         ],
     }
@@ -43,11 +53,34 @@ def test_consumer_profile_keeps_empirical_scores_internal() -> None:
         consumer_distributions=selected,
     )
 
-    assert "main_score" not in profile["identity"]
-    assert "global_percentile" not in profile["identity"]
-    assert all("score" not in subject for subject in profile["subjects"])
-    assert all("global_percentile" not in subject for subject in profile["subjects"])
+    forbidden_identity = {"main_score", "raw_score", "global_percentile", "cohort_percentile"}
+    forbidden_subject = {
+        "score", "raw_score", "global_percentile", "global_top_percentage",
+        "cohort_percentile", "cohort_top_percentage",
+    }
+    assert forbidden_identity.isdisjoint(profile["identity"])
+    assert all(forbidden_subject.isdisjoint(subject) for subject in profile["subjects"])
     assert all(subject["path_label"] for subject in profile["subjects"])
+    wealth = next(subject for subject in profile["subjects"] if subject["key"] == "wealth")
+    assert wealth["path_label"] == "潜藏兑现型"
+    assert "不等于贫穷" in wealth["path_summary"]
+    assert not hasattr(consumer_module, "score_bazi_consumer_themes")
+
+
+def test_workspace_budget_reports_soft_and_hard_limits(tmp_path: Path) -> None:
+    (tmp_path / "payload.bin").write_bytes(b"x" * 12)
+
+    soft = check_workspace_budget(tmp_path, soft_bytes=10, hard_bytes=20)
+    hard = check_workspace_budget(tmp_path, soft_bytes=5, hard_bytes=10)
+
+    assert soft.status == "soft_limit_exceeded"
+    assert hard.status == "hard_limit_exceeded"
+    assert soft.total_bytes == 12
+
+    with pytest.raises(NotADirectoryError):
+        check_workspace_budget(tmp_path / "payload.bin", soft_bytes=10, hard_bytes=20)
+    with pytest.raises(FileNotFoundError):
+        check_workspace_budget(tmp_path / "missing", soft_bytes=10, hard_bytes=20)
 
 
 def test_full_life_kline_opens_on_current_cycle() -> None:
@@ -75,6 +108,20 @@ def test_full_life_kline_opens_on_current_cycle() -> None:
     assert len(kline["stages"]) == 15
     assert {stage["key"] for stage in kline["stages"]} == {"overall", *THEME_ORDER}
     assert all(2026 <= stage["year"] <= 2035 for stage in kline["stages"])
+
+    alternate = build_life_kline(
+        [
+            {"label": "乙丑", "start_year": 2026, "end_year": 2035, "is_current": True, "theme_activations": {}, "years": [year(value) for value in range(2026, 2036)]},
+        ],
+        natal_scores={theme: 99 for theme in THEME_ORDER},
+    )
+    baseline = build_life_kline(
+        [
+            {"label": "乙丑", "start_year": 2026, "end_year": 2035, "is_current": True, "theme_activations": {}, "years": [year(value) for value in range(2026, 2036)]},
+        ],
+        natal_scores={theme: 1 for theme in THEME_ORDER},
+    )
+    assert alternate == baseline
 
 
 def test_consumer_feature_lookup_returns_compact_incidence() -> None:

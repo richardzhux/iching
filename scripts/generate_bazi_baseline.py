@@ -31,9 +31,7 @@ from iching.core.metaphysics_statistics import (
 )
 from iching.core.metaphysics_consumer import (
     CONSUMER_RULES_VERSION,
-    THEME_ORDER as CONSUMER_THEME_ORDER,
     consumer_feature_records,
-    score_bazi_consumer_themes,
 )
 from iching.core.shensha import RULE_BY_ID, RULES_VERSION, evaluate_shensha
 from iching.core.shensha_effects import evaluate_shensha_effects
@@ -69,7 +67,6 @@ def generator_metadata() -> dict[str, object]:
         "weighted_unit": "minute",
         "theme_comparison_method": "transparent_metric_distributions",
         "consumer_rules_version": CONSUMER_RULES_VERSION,
-        "consumer_score_dimensions": ["overall", *CONSUMER_THEME_ORDER],
     }
 
 
@@ -154,15 +151,6 @@ def _pillars_from_state_key(state_key: tuple[str, ...]) -> list[dict[str, Any]]:
     return [_pillar(label, value, day_stem) for label, value in zip(("年", "月", "日", "时"), values)]
 
 
-def compact_score_histogram(histogram: Counter[str]) -> str:
-    """Encode a small integer-score histogram without tens of thousands of JSON rows."""
-    entries = []
-    for score, seconds in sorted(histogram.items(), key=lambda item: int(item[0])):
-        weight = f"{seconds / 60:.6f}".rstrip("0").rstrip(".")
-        entries.append(f"{score}:{weight}")
-    return ",".join(entries)
-
-
 def generate(day_boundary: str) -> dict:
     zone = ZoneInfo("Asia/Shanghai")
     start = _lichun(1924, zone)
@@ -179,12 +167,6 @@ def generate(day_boundary: str) -> dict:
         gender: {theme: {} for theme in THEME_ORDER}
         for gender in profile_genders
     }
-    score_dimensions = ("overall", *CONSUMER_THEME_ORDER)
-    consumer_global = {
-        gender: {dimension: Counter() for dimension in score_dimensions}
-        for gender in profile_genders
-    }
-    consumer_cohorts: dict[str, dict[str, dict[str, Counter[str]]]] = {}
     consumer_feature_weights: Counter[str] = Counter()
     consumer_feature_catalog: dict[str, dict[str, str]] = {}
     # Aggregate identical four-pillar states before running the expensive
@@ -242,14 +224,6 @@ def generate(day_boundary: str) -> dict:
             }
             for gender in profile_genders
         }
-        consumer_scores = {
-            gender: score_bazi_consumer_themes(
-                structure=structures[gender],
-                patterns=patterns,
-                shensha_effects=effects,
-            )
-            for gender in profile_genders
-        }
         for record in consumer_feature_records(patterns, effects):
             consumer_feature_weights[record["id"]] += seconds
             consumer_feature_catalog.setdefault(record["id"], record)
@@ -260,18 +234,6 @@ def generate(day_boundary: str) -> dict:
                 for metric in metrics:
                     histogram = theme_metric_weights_by_gender[gender][theme].setdefault(metric["metric_id"], Counter())
                     histogram[str(metric["value"])] += seconds
-            cohort_key = f"{pillars[2]['stem']}-{pillars[1]['branch']}"
-            cohort = consumer_cohorts.setdefault(
-                cohort_key,
-                {
-                    cohort_gender: {dimension: Counter() for dimension in score_dimensions}
-                    for cohort_gender in profile_genders
-                },
-            )
-            for dimension in score_dimensions:
-                score = str(int(consumer_scores[gender][dimension]["score"]))
-                consumer_global[gender][dimension][score] += seconds
-                cohort[gender][dimension][score] += seconds
 
     sample_weight = round(total_seconds / 60, 6)
     catalog = _feature_catalog()
@@ -314,30 +276,6 @@ def generate(day_boundary: str) -> dict:
                 for theme, metrics in themes.items()
             }
             for gender, themes in theme_metric_weights_by_gender.items()
-        },
-        "consumer_score_distributions": {
-            "rules_version": CONSUMER_RULES_VERSION,
-            "weighted_unit": "minute",
-            "dimensions": list(score_dimensions),
-            "method": "weighted_empirical_integer_score_histograms",
-            "encoding": "comma_separated_score:minute_weight",
-            "global": {
-                gender: {
-                    dimension: compact_score_histogram(histogram)
-                    for dimension, histogram in dimensions.items()
-                }
-                for gender, dimensions in consumer_global.items()
-            },
-            "cohorts": {
-                cohort_key: {
-                    gender: {
-                        dimension: compact_score_histogram(histogram)
-                        for dimension, histogram in dimensions.items()
-                    }
-                    for gender, dimensions in genders.items()
-                }
-                for cohort_key, genders in sorted(consumer_cohorts.items())
-            },
         },
         "consumer_features": {
             "rules_version": CONSUMER_RULES_VERSION,

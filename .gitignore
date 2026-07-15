@@ -45,6 +45,7 @@ fileops/
 GRAPHS/
 # Raw source corpora (regenerable)
 /node_modules/
+.cache/classics/
 data/eng/
 data/takashima/
 references/

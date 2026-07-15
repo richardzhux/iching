@@ -61,23 +61,35 @@ export type ZiweiConsumerIdentity = {
   archetype_title: string
   archetype_subtitle: string
   fusion_title?: string
-  main_score: number
-  global_percentile: number
-  global_top_percentage: number
-  cohort_percentile: number
-  cohort_top_percentage: number
-  cohort_label: string
+  /** @deprecated Legacy snapshot only; new profiles do not grade a life. */
+  main_score?: number
+  /** @deprecated Legacy snapshot only; new profiles do not rank a life. */
+  global_percentile?: number
+  /** @deprecated Legacy snapshot only; new profiles do not rank a life. */
+  global_top_percentage?: number
+  /** @deprecated Legacy snapshot only; new profiles do not rank a life. */
+  cohort_percentile?: number
+  /** @deprecated Legacy snapshot only; new profiles do not rank a life. */
+  cohort_top_percentage?: number
+  cohort_label?: string
 }
 
 export type ZiweiConsumerSubject = {
   key: ZiweiThemeKey
   label: string
-  score: number
-  global_percentile: number
-  global_top_percentage: number
-  cohort_percentile: number
-  cohort_top_percentage: number
+  /** @deprecated Legacy snapshot only; new profiles describe expression paths. */
+  score?: number
+  /** @deprecated Legacy snapshot only. */
+  global_percentile?: number
+  /** @deprecated Legacy snapshot only. */
+  global_top_percentage?: number
+  /** @deprecated Legacy snapshot only. */
+  cohort_percentile?: number
+  /** @deprecated Legacy snapshot only. */
+  cohort_top_percentage?: number
   headline: string
+  path_label?: string
+  path_summary?: string
 }
 
 export type ZiweiConsumerFingerprint = {
@@ -178,16 +190,21 @@ export type ZiweiConsumerProfile = {
     cohort_id: string
     baseline_id: string | null
     baseline_hash: string | null
-    rank_sources: {
+    /** @deprecated Legacy score-baseline metadata. */
+    rank_sources?: {
       global: RankSource
       cohort: RankSource
     }
-    raw_scores: Record<ZiweiScoreKey, number>
+    /** @deprecated Legacy score-baseline metadata. */
+    raw_scores?: Record<ZiweiScoreKey, number>
     selected_period: string | null
-    scoring_inputs: string[]
+    /** @deprecated Legacy score-baseline metadata. */
+    scoring_inputs?: string[]
     methods: {
-      score: string
-      rank: string
+      /** @deprecated Legacy score-baseline metadata. */
+      score?: string
+      /** @deprecated Legacy score-baseline metadata. */
+      rank?: string
       kline: string
     }
     sources: string[]
@@ -383,7 +400,7 @@ const SUBJECT_COPY: Record<ZiweiThemeKey, { label_zh: string; label_en: string; 
   career: { label_zh: "事业", label_en: "Career", high_zh: "你适合抢主位，不适合长期做隐形齿轮。", high_en: "You are built for the lead seat, not permanent invisibility.", mid_zh: "你靠稳定推进赢，不必每次都抢第一枪。", mid_en: "You win through steady advance, not every first move.", low_zh: "先选对战场，再谈用力；位置比蛮力更重要。", low_en: "Choose the right arena before pushing harder." },
   wealth: { label_zh: "财富", label_en: "Wealth", high_zh: "你有把资源变成杠杆的结构，不只会守成。", high_en: "You can turn resources into leverage, not merely preserve them.", mid_zh: "财富靠节奏和配置增长，不靠一次豪赌。", mid_en: "Wealth grows through pacing and allocation, not one big bet.", low_zh: "先守现金流与边界，再放大收益想象。", low_en: "Protect cash flow and boundaries before chasing upside." },
   relationship: { label_zh: "感情", label_en: "Relationships", high_zh: "你在人际里有强牵引力，也需要同等清晰的边界。", high_en: "You carry strong relational gravity and need equally clear boundaries.", mid_zh: "关系质量取决于说清需求，而不是猜中彼此。", mid_en: "Relationship quality rises when needs are stated, not guessed.", low_zh: "慢一点绑定，先看长期协作是否真的成立。", low_en: "Bind slowly; test whether long-term cooperation is real." },
-  health: { label_zh: "健康", label_en: "Health", high_zh: "你的恢复力有底盘，但仍要给高压设置出口。", high_en: "Your recovery base is strong, but pressure still needs an exit.", mid_zh: "稳定作息比偶尔的极限补救更有效。", mid_en: "Consistent rhythm beats occasional heroic recovery.", low_zh: "把恢复当成硬任务，别等身体替你按暂停。", low_en: "Treat recovery as a hard commitment before the body forces a stop." },
+  health: { label_zh: "身心节奏", label_en: "Mind-body rhythm", high_zh: "你的恢复力有底盘，但仍要给高压设置出口。", high_en: "Your recovery base is strong, but pressure still needs an exit.", mid_zh: "稳定作息比偶尔的极限补救更有效。", mid_en: "Consistent rhythm beats occasional heroic recovery.", low_zh: "把恢复当成硬任务，别等身体替你按暂停。", low_en: "Treat recovery as a hard commitment before the body forces a stop." },
 }
 
 const SCORE_KEYS: readonly ZiweiScoreKey[] = ["overall", "career", "wealth", "relationship", "health"]
@@ -1168,6 +1185,25 @@ function emptyKline(year: number | null): ZiweiLifeKline {
   }
 }
 
+export function rebaseZiweiPeriodActivity(
+  natal: Record<ZiweiScoreKey, number>,
+  adjusted: Record<ZiweiScoreKey, number>,
+): Record<ZiweiScoreKey, number> {
+  const relative: Record<ZiweiThemeKey, number> = {
+    career: adjusted.career - natal.career,
+    wealth: adjusted.wealth - natal.wealth,
+    relationship: adjusted.relationship - natal.relationship,
+    health: adjusted.health - natal.health,
+  }
+  return {
+    overall: round1(clamp(50 + relative.career * 0.34 + relative.wealth * 0.26 + relative.relationship * 0.2 + relative.health * 0.2, 12, 98)),
+    career: round1(clamp(50 + relative.career, 12, 98)),
+    wealth: round1(clamp(50 + relative.wealth, 12, 98)),
+    relationship: round1(clamp(50 + relative.relationship, 12, 98)),
+    health: round1(clamp(50 + relative.health, 12, 98)),
+  }
+}
+
 function buildZiweiLifeKlineInternal(chart: IFunctionalAstrolabe, horoscope: IFunctionalHoroscope | null | undefined, existingContext?: ChartContext): ZiweiLifeKline {
   if (!horoscope) return emptyKline(null)
   const selectedYear = horoscopeYear(horoscope)
@@ -1188,7 +1224,7 @@ function buildZiweiLifeKlineInternal(chart: IFunctionalAstrolabe, horoscope: IFu
     career: context.locale === "zh" ? "事业" : "Career",
     wealth: context.locale === "zh" ? "财富" : "Wealth",
     relationship: context.locale === "zh" ? "感情" : "Relationships",
-    health: context.locale === "zh" ? "健康" : "Health",
+    health: context.locale === "zh" ? "身心节奏" : "Mind-body rhythm",
   }
   const monthlyByKey = Object.fromEntries(SCORE_KEYS.map((key) => [key, new Map<number, ZiweiKlineMonth[]>()])) as Record<ZiweiScoreKey, Map<number, ZiweiKlineMonth[]>>
   const volumesByKey = Object.fromEntries(SCORE_KEYS.map((key) => [key, new Map<number, number>()])) as Record<ZiweiScoreKey, Map<number, number>>
@@ -1200,6 +1236,7 @@ function buildZiweiLifeKlineInternal(chart: IFunctionalAstrolabe, horoscope: IFu
       const monthHoroscope = safeHoroscope(chart, horoscope, year, month)
       if (!monthHoroscope) continue
       const adjusted = periodAdjustedScores(context, monthHoroscope)
+      const activityValues = rebaseZiweiPeriodActivity(context.natal_scores, adjusted.scores)
       const overallIntensity = round1(adjusted.impacts.career.intensity * 0.34 + adjusted.impacts.wealth.intensity * 0.26 + adjusted.impacts.relationship.intensity * 0.2 + adjusted.impacts.health.intensity * 0.2)
       const intensityByKey: Record<ZiweiScoreKey, number> = {
         overall: overallIntensity,
@@ -1217,8 +1254,10 @@ function buildZiweiLifeKlineInternal(chart: IFunctionalAstrolabe, horoscope: IFu
       }
       SCORE_KEYS.forEach((key) => {
         const months = monthlyByKey[key].get(year) ?? []
-        const previousValue = months[months.length - 1]?.value ?? context.natal_scores[key]
-        const value = adjusted.scores[key]
+        const previousValue = months[months.length - 1]?.value ?? 50
+        // Period movement is rebased to this chart's own natal midpoint. The
+        // natal heuristic therefore cannot leak back out as a life grade.
+        const value = activityValues[key]
         months.push({
           index: month,
           label: `${year}-${String(month).padStart(2, "0")}`,
@@ -1289,11 +1328,63 @@ export function buildZiweiLifeKline(chart: IFunctionalAstrolabe, horoscope: IFun
   return buildZiweiLifeKlineInternal(chart, horoscope)
 }
 
-function scoreHeadline(key: ZiweiThemeKey, score: number, locale: ConsumerLocale): string {
-  const copy = SUBJECT_COPY[key]
-  if (score >= 68) return locale === "zh" ? copy.high_zh : copy.high_en
-  if (score >= 48) return locale === "zh" ? copy.mid_zh : copy.mid_en
-  return locale === "zh" ? copy.low_zh : copy.low_en
+function ziweiSubjectPath(context: ChartContext, key: ZiweiThemeKey): Pick<ZiweiConsumerSubject, "headline" | "path_label" | "path_summary"> {
+  const locale = context.locale
+  const primaryId = THEME_PRIMARY_PALACES[key][0]
+  const primaryPalace = findPalace(context.chart, primaryId)
+  const primaryPlacements = context.placements.filter((placement) => placement.palace_index === primaryPalace?.index)
+  const relatedPlacements = context.placements.filter((placement) => THEME_PRIMARY_PALACES[key].includes(placement.palace_id))
+  const activePlacements = primaryPlacements.length > 0 ? primaryPlacements : relatedPlacements
+  const majorIds = [...new Set(activePlacements.flatMap((placement) => placement.major_id ? [placement.major_id] : []))]
+  const transformations = [...new Set(activePlacements.flatMap((placement) => placement.mutagen_id ? [localized(MUTAGEN_LABELS[placement.mutagen_id], locale)] : []))]
+  const palaceLabel = localized(PALACE_LABELS[primaryId], locale)
+  const starLabel = majorIds.map((id) => localized(MAJOR_STAR_LABELS[id], locale)).join(locale === "zh" ? "、" : ", ")
+  const headline = [palaceLabel, starLabel || (locale === "zh" ? "借对宫与三方成局" : "Borrowed axis and trines"), transformations.join(locale === "zh" ? "、" : ", ")].filter(Boolean).join(" · ")
+  const hasAny = (...ids: MajorStarId[]) => ids.some((id) => majorIds.includes(id))
+  const hasPressure = activePlacements.some((placement) => placement.challenging_id || placement.mutagen_id === "ji")
+
+  if (key === "career") {
+    if (hasAny("wuqu", "qisha", "pojun", "lianzhen")) return locale === "zh"
+      ? { headline, path_label: "执行破局型", path_summary: "事业动力更容易落在结果、攻坚与重整局面上，适合用清晰目标带动行动。" }
+      : { headline, path_label: "Execution and breakthrough", path_summary: "Career momentum gathers around delivery, hard problems, and rebuilding situations around clear goals." }
+    if (hasAny("tianji", "jumen", "taiyin")) return locale === "zh"
+      ? { headline, path_label: "策略判断型", path_summary: "更适合通过分析、判断、专业表达与提前布局建立自己的位置。" }
+      : { headline, path_label: "Strategic judgment", path_summary: "Analysis, judgment, expert communication, and early positioning are the stronger career lane." }
+    return locale === "zh"
+      ? { headline, path_label: "统筹推进型", path_summary: "事业路径更适合把资源、人和规则组织起来，在协作中持续推动结果。" }
+      : { headline, path_label: "Coordinated advancement", path_summary: "Career grows through organizing people, resources, and rules into sustained outcomes." }
+  }
+  if (key === "wealth") {
+    if (hasAny("wuqu", "tianfu", "taiyin")) return locale === "zh"
+      ? { headline, path_label: "经营配置型", path_summary: "资源更适合通过配置、积累与长期经营逐步放大，而不是被理解成一次性的高低成绩。" }
+      : { headline, path_label: "Resource allocation", path_summary: "Resources are better amplified through allocation, compounding, and stewardship than read as a one-time grade." }
+    if (hasAny("tanlang", "pojun")) return locale === "zh"
+      ? { headline, path_label: "机会流动型", path_summary: "财富主题更容易随机会、人群与阶段变化流动，关键在识别窗口并留下成果。" }
+      : { headline, path_label: "Opportunity flow", path_summary: "Resources move with opportunity, networks, and changing stages; the key is recognizing windows and retaining gains." }
+    return locale === "zh"
+      ? { headline, path_label: "稳步积累型", path_summary: "财富结构更强调节奏、边界与长期兑现，不以单颗星曜判断贫富。" }
+      : { headline, path_label: "Steady compounding", path_summary: "The wealth structure emphasizes rhythm, boundaries, and long-term realization rather than grading prosperity from one star." }
+  }
+  if (key === "relationship") {
+    if (hasAny("tanlang", "taiyin", "tiantong")) return locale === "zh"
+      ? { headline, path_label: "感受连接型", path_summary: "关系中的感受、吸引与陪伴更容易成为主轴，清楚表达需求会让连接更稳定。" }
+      : { headline, path_label: "Emotional connection", path_summary: "Feeling, attraction, and companionship form the relationship axis; explicit needs make connection steadier." }
+    if (hasAny("lianzhen", "qisha", "pojun", "jumen")) return locale === "zh"
+      ? { headline, path_label: "强互动成长型", path_summary: "重要关系更容易带来选择与变化，适合把吸引力、边界和共同方向一起说清。" }
+      : { headline, path_label: "High-interaction growth", path_summary: "Important relationships can trigger choices and change; attraction, boundaries, and shared direction work best when explicit." }
+    return locale === "zh"
+      ? { headline, path_label: "共同建设型", path_summary: "关系更适合从信任、协作与长期生活节奏中逐步建立。" }
+      : { headline, path_label: "Building together", path_summary: "Relationships develop through trust, cooperation, and a shared long-term rhythm." }
+  }
+  if (hasAny("tianliang", "tiantong", "tianfu") && !hasPressure) return locale === "zh"
+    ? { headline, path_label: "稳定恢复型", path_summary: "身心节奏更适合稳定续航，用规律与恢复空间维持长期状态。" }
+    : { headline, path_label: "Steady recovery", path_summary: "A regular rhythm and protected recovery space support sustainable momentum." }
+  if (hasPressure) return locale === "zh"
+    ? { headline, path_label: "张弛调节型", path_summary: "盘面张力较容易集中到节奏与恢复上，适合主动安排停顿、切换与日常秩序。" }
+    : { headline, path_label: "Active regulation", path_summary: "Chart tension can gather around rhythm and recovery, making deliberate pauses and routines especially useful." }
+  return locale === "zh"
+    ? { headline, path_label: "节奏续航型", path_summary: "这一栏描述传统盘面里的节奏与恢复方式，不把星曜结构当作健康成绩。" }
+    : { headline, path_label: "Sustainable rhythm", path_summary: "This describes rhythm and recovery in the chart rather than grading real-world health." }
 }
 
 function baselineMetadata(statistics: unknown, consumerBaseline: ZiweiConsumerBaseline | null): { id: string | null; hash: string | null } {
@@ -1306,19 +1397,12 @@ export function buildZiweiConsumerProfile(chart: IFunctionalAstrolabe, horoscope
   const context = chartContext(chart)
   const baseline = extractConsumerBaseline(statistics)
   const rarityMetrics = extractRarityMetrics(statistics)
-  const globalRanks = Object.fromEntries(SCORE_KEYS.map((key) => [key, rankZiweiGlobalScore(context.natal_scores[key], key, baseline)])) as Record<ZiweiScoreKey, ZiweiRankResult>
-  const cohortRanks = Object.fromEntries(SCORE_KEYS.map((key) => [key, rankZiweiCohortScore(context.natal_scores[key], key, context.cohort_id, baseline)])) as Record<ZiweiScoreKey, ZiweiRankResult>
   const archetype = selectArchetype(context)
   const metadata = baselineMetadata(statistics, baseline)
   const subjects = SUBJECT_KEYS.map((key): ZiweiConsumerSubject => ({
     key,
     label: context.locale === "zh" ? SUBJECT_COPY[key].label_zh : SUBJECT_COPY[key].label_en,
-    score: Math.round(globalRanks[key].percentile),
-    global_percentile: globalRanks[key].percentile,
-    global_top_percentage: globalRanks[key].top_percentage,
-    cohort_percentile: cohortRanks[key].percentile,
-    cohort_top_percentage: cohortRanks[key].top_percentage,
-    headline: scoreHeadline(key, globalRanks[key].percentile, context.locale),
+    ...ziweiSubjectPath(context, key),
   }))
   return {
     version: ZIWEI_CONSUMER_RULES_VERSION,
@@ -1327,11 +1411,6 @@ export function buildZiweiConsumerProfile(chart: IFunctionalAstrolabe, horoscope
       system_title: context.locale === "zh" ? "紫微斗数" : "Zi Wei Dou Shu",
       archetype_title: context.locale === "zh" ? archetype.title : archetype.title_en,
       archetype_subtitle: context.locale === "zh" ? archetype.headline : archetype.headline_en,
-      main_score: Math.round(globalRanks.overall.percentile),
-      global_percentile: globalRanks.overall.percentile,
-      global_top_percentage: globalRanks.overall.top_percentage,
-      cohort_percentile: cohortRanks.overall.percentile,
-      cohort_top_percentage: cohortRanks.overall.top_percentage,
       cohort_label: context.locale === "zh" ? `同命宫主星组合 · ${context.life_major_ids.map((id) => MAJOR_STAR_LABELS[id].zh).join("×") || "空宫"}` : `Same life-star combination · ${context.life_major_ids.map((id) => MAJOR_STAR_LABELS[id].en).join(" × ") || "Empty"}`,
     },
     subjects,
@@ -1346,17 +1425,9 @@ export function buildZiweiConsumerProfile(chart: IFunctionalAstrolabe, horoscope
       cohort_id: context.cohort_id,
       baseline_id: metadata.id,
       baseline_hash: metadata.hash,
-      rank_sources: {
-        global: globalRanks.overall.source,
-        cohort: cohortRanks.overall.source,
-      },
-      raw_scores: Object.fromEntries(SCORE_KEYS.map((key) => [key, round1(context.natal_scores[key])])) as Record<ZiweiScoreKey, number>,
       selected_period: horoscope ? String(horoscope.solarDate) : null,
-      scoring_inputs: ["key-palace major stars and brightness", "natal four transformations", "body-palace focus", "six-aid distribution", "six-challenge distribution", "palace trines and opposition"],
       methods: {
-        score: "Fixed, versioned additive vectors normalized to 0-100; no AI-generated numbers.",
-        rank: baseline ? "Weighted empirical midrank CDF where supplied; deterministic logistic fallback per missing distribution." : "Deterministic logistic fallback; no consumer histogram was supplied.",
-        kline: "Annual OHLC candles from twelve iztro monthly midpoint states per year across the default ten-year window; volume is weighted activation intensity.",
+        kline: "Annual OHLC activity candles from twelve iztro monthly midpoint states, rebased to the chart's own natal midpoint.",
       },
       sources: ["iztro 2.5.8 functional astrolabe and horoscope fields", metadata.id ? `baseline:${metadata.id}` : "built-in deterministic fallback"],
     },
