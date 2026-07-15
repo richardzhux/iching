@@ -4,7 +4,7 @@ from iching.core.metaphysics_consumer import THEME_ORDER, build_bazi_consumer_pr
 from iching.core.metaphysics_statistics import select_consumer_distributions, select_consumer_feature_metrics
 
 
-def test_consumer_profile_uses_empirical_global_and_cohort_midrank() -> None:
+def test_consumer_profile_keeps_empirical_scores_internal() -> None:
     dimensions = ("overall", *THEME_ORDER)
     baseline = {
         "id": "test-bazi-baseline",
@@ -43,15 +43,11 @@ def test_consumer_profile_uses_empirical_global_and_cohort_midrank() -> None:
         consumer_distributions=selected,
     )
 
-    assert profile["identity"]["main_score"] == 50
-    assert profile["identity"]["raw_score"] == 43
-    assert profile["identity"]["global_percentile"] == 50.0
-    assert profile["identity"]["cohort_percentile"] == 5.0
-    assert profile["identity"]["ranking_basis"] == "weighted_empirical_calendar_baseline"
-    assert all(subject["score"] == 50 for subject in profile["subjects"])
-    assert all(subject["raw_score"] == 43 for subject in profile["subjects"])
-    assert all(subject["global_percentile"] == 50.0 for subject in profile["subjects"])
-    assert all(subject["cohort_percentile"] == 5.0 for subject in profile["subjects"])
+    assert "main_score" not in profile["identity"]
+    assert "global_percentile" not in profile["identity"]
+    assert all("score" not in subject for subject in profile["subjects"])
+    assert all("global_percentile" not in subject for subject in profile["subjects"])
+    assert all(subject["path_label"] for subject in profile["subjects"])
 
 
 def test_full_life_kline_opens_on_current_cycle() -> None:

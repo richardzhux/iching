@@ -92,13 +92,16 @@ export type PatternAssessment = {
 export type ConsumerSubjectScore = {
   key: "career" | "wealth" | "relationship" | "health"
   label: string
-  score: number
-  global_percentile: number
-  global_top_percentage: number
-  cohort_percentile: number
-  cohort_top_percentage: number
+  /** Legacy score-era fields may exist on old snapshots, but are never presented as life quality. */
+  score?: number
+  global_percentile?: number
+  global_top_percentage?: number
+  cohort_percentile?: number
+  cohort_top_percentage?: number
   headline: string
   drivers?: string[]
+  path_label?: string
+  path_summary?: string
 }
 
 export type ConsumerAchievement = {
@@ -118,6 +121,7 @@ export type ConsumerFingerprint = {
   detail: string
   rarity_label: string
   top_percentage: number
+  incidence_percentage?: number
 }
 
 export type LifeKlineMonth = {
@@ -165,12 +169,13 @@ export type ConsumerProfile = {
     archetype_title: string
     archetype_subtitle: string
     fusion_title?: string | null
-    main_score: number
-    global_percentile: number
-    global_top_percentage: number
-    cohort_percentile: number
-    cohort_top_percentage: number
-    cohort_label: string
+    /** Legacy score-era fields may exist on old snapshots. */
+    main_score?: number
+    global_percentile?: number
+    global_top_percentage?: number
+    cohort_percentile?: number
+    cohort_top_percentage?: number
+    cohort_label?: string
   }
   subjects: ConsumerSubjectScore[]
   achievements: ConsumerAchievement[]

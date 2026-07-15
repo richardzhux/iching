@@ -12,7 +12,7 @@ THEME_LABELS = {
     "career": "事业",
     "wealth": "财富",
     "relationship": "感情",
-    "health": "健康",
+    "health": "身心节奏",
 }
 PROFILE_THEME_KEYS = {
     "事业": "career",
@@ -102,6 +102,24 @@ _PATTERN_STATUS_LABELS = {
     "candidate": "主导",
 }
 _SHENSHA_STATE_IDS = {"发力": "activated", "有力": "supported", "可见": "visible", "受制": "constrained"}
+
+_PATTERN_ARCHETYPES = {
+    "正官": "guardian",
+    "七杀": "commander",
+    "正财": "builder",
+    "偏财": "connector",
+    "食神": "creator",
+    "伤官": "breaker",
+    "正印": "scholar",
+    "偏印": "scholar",
+    "建禄": "independent",
+    "阳刃": "challenger",
+    "从财": "operator",
+    "从杀": "commander",
+    "从儿": "creator",
+    "从旺": "independent",
+    "从强": "guardian",
+}
 
 
 def _clamp(value: float, minimum: float = 0, maximum: float = 100) -> float:
@@ -243,51 +261,46 @@ def score_bazi_consumer_themes(
     return result
 
 
-def _percentile_from_histogram(histogram: Mapping[str, Any], score: int) -> float | None:
-    weighted_values: list[tuple[int, float]] = []
-    for value, weight in histogram.items():
-        try:
-            numeric_value = int(value)
-            numeric_weight = float(weight)
-        except (TypeError, ValueError):
-            continue
-        if numeric_weight > 0:
-            weighted_values.append((numeric_value, numeric_weight))
-    total = sum(weight for _, weight in weighted_values)
-    if total <= 0:
-        return None
-    lower = sum(weight for value, weight in weighted_values if value < score)
-    same = sum(weight for value, weight in weighted_values if value == score)
-    # Midrank is stable for discrete integer scores and avoids claiming that
-    # every member of a tied score occupies the very top of the tie interval.
-    return round(_clamp((lower + same / 2) / total * 100, 0.5, 99.5), 1)
-
-
-def _empirical_percentile(
-    distributions: Mapping[str, Any] | None,
-    scope: str,
+def _theme_path(
     key: str,
-    score: int,
-) -> float | None:
-    if not isinstance(distributions, Mapping) or distributions.get("status") != "available":
-        return None
-    histograms = distributions.get(scope, {})
-    if not isinstance(histograms, Mapping):
-        return None
-    histogram = histograms.get(key, {})
-    return _percentile_from_histogram(histogram, score) if isinstance(histogram, Mapping) else None
-
-
-def _cohort_percentile(global_percentile: float, cohort_key: str, theme_key: str, score: int) -> float:
-    # Cohort baselines are compact projections around the same day-master/month-command family.
-    # The deterministic correction prevents identical global and cohort ranks while remaining stable.
-    correction = (_stable_fraction(f"{cohort_key}:{theme_key}") - 0.5) * 10
-    score_pull = (score - 65) * 0.08
-    return round(_clamp(global_percentile + correction + score_pull, 1, 99.5), 1)
-
-
-def _top_percentage(percentile: float) -> int:
-    return max(1, min(99, int(round(100 - percentile))))
+    profile: Mapping[str, Any],
+    pattern: Mapping[str, Any],
+) -> tuple[str, str]:
+    values = {
+        str(metric.get("metric_id", "")): int(metric.get("value", 0) or 0)
+        for metric in profile.get("structure_metrics", ())
+    }
+    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
+    pattern_name = str(primary.get("name", "")) if isinstance(primary, Mapping) else ""
+    if key == "career":
+        if "印" in pattern_name:
+            return "专业积累型", "更适合通过学习、研究、资质与长期能力建设形成位置。"
+        if any(token in pattern_name for token in ("官", "杀")):
+            return "责任推动型", "更容易在明确目标、责任与组织协作中建立影响力。"
+        if any(token in pattern_name for token in ("食神", "伤官")):
+            return "创造表达型", "更适合用作品、表达、解决问题与新方法打开局面。"
+        return "自主开拓型", "事业路径更依赖个人判断、持续行动与阶段机会。"
+    if key == "wealth":
+        visible = values.get("visible_wealth_count", 0)
+        hidden = values.get("hidden_wealth_count", 0)
+        if visible:
+            return "外显经营型", "资源与现实结果更容易直接进入选择和行动。"
+        if hidden:
+            return "潜藏兑现型", "财星主要藏于地支，资源更偏长期积累与阶段兑现；这不等于贫穷或没有财富。"
+        return "能力转化型", "财富更依赖专业能力、关系网络与运限机会转化，并非由单一财星数量决定。"
+    if key == "relationship":
+        if values.get("spouse_palace_relation_count", 0) >= 4:
+            return "高互动型", "关系与生活选择联动较多，重要关系更容易推动阶段变化。"
+        if values.get("day_stem_combine_count", 0):
+            return "关系牵引型", "亲密关系在选择、合作与人生节奏中具有较强牵引力。"
+        return "渐进建立型", "关系更适合通过理解、信任与共同经历逐步深化。"
+    pressure = values.get("pressure_relation_count", 0)
+    concentration = values.get("concentrated_element_count", 0)
+    if pressure >= 5:
+        return "敏感调节型", "结构变化较密集，需要在输出、休整与环境切换之间找到自己的节奏。"
+    if concentration >= 2:
+        return "内稳外紧型", "内在力量较集中，外部变化来临时更需要主动安排恢复与缓冲。"
+    return "均衡恢复型", "整体节奏更适合稳定推进，并为阶段变化保留恢复空间。"
 
 
 def consumer_feature_records(
@@ -334,8 +347,25 @@ def _feature_percentage_map(metrics: Iterable[Mapping[str, Any]]) -> dict[str, f
     }
 
 
-def _choose_archetype(pillars: Iterable[Mapping[str, Any]], shensha: Iterable[Mapping[str, Any]]) -> tuple[str, str, str]:
-    tokens = {str(pillar.get("ten_god", "")) for pillar in pillars}
+def _choose_archetype(
+    pillars: Iterable[Mapping[str, Any]],
+    shensha: Iterable[Mapping[str, Any]],
+    pattern: Mapping[str, Any],
+) -> tuple[str, str, str]:
+    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
+    pattern_name = str(primary.get("name", "")) if isinstance(primary, Mapping) else ""
+    preferred_id = next((archetype_id for token, archetype_id in _PATTERN_ARCHETYPES.items() if token in pattern_name), "")
+    if preferred_id:
+        preferred = next(item for item in _ARCHETYPES if item[0] == preferred_id)
+        return preferred[0], preferred[1], preferred[2]
+
+    pillar_list = list(pillars)
+    tokens = {str(pillar.get("ten_god", "")) for pillar in pillar_list}
+    tokens.update(
+        str(hidden.get("ten_god", ""))
+        for pillar in pillar_list
+        for hidden in pillar.get("hidden_stems", ())
+    )
     tokens.update(str(hit.get("name", "")) for hit in shensha)
     best = max(
         _ARCHETYPES,
@@ -350,18 +380,30 @@ def _fingerprints(
     shensha: Iterable[Mapping[str, Any]],
     feature_percentages: Mapping[str, float],
 ) -> list[dict[str, Any]]:
-    candidates: list[tuple[float, dict[str, Any]]] = []
+    candidates: list[tuple[int, float, dict[str, Any]]] = []
     primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
     if isinstance(primary, Mapping) and primary.get("name"):
         fallback_incidence = max(1.0, 18 - float(primary.get("strength", 50) or 50) / 6)
         pattern_incidence = feature_percentages.get(str(primary.get("id", "")), fallback_incidence)
-        candidates.append((pattern_incidence, {
+        candidates.append((0, pattern_incidence, {
             "id": f"pattern.{primary.get('id', 'primary')}",
             "title": f"{primary.get('title', primary['name'])} · {_PATTERN_STATUS_LABELS.get(str(primary.get('status', '')), str(primary.get('status', '主导')))}",
             "detail": str(primary.get("summary", "这是命盘最醒目的格局结构。")),
             "rarity_label": "罕见" if pattern_incidence < 1 else "稀有" if pattern_incidence < 5 else "少见" if pattern_incidence < 20 else "核心格局",
             "top_percentage": max(1, min(99, int(round(pattern_incidence)))),
+            "incidence_percentage": round(pattern_incidence, 2),
         }))
+    metric_priority = {
+        "root_pillar_count": 1,
+        "visible_wealth_count": 1,
+        "hidden_wealth_count": 1,
+        "visible_spouse_count": 1,
+        "hidden_spouse_count": 1,
+        "spouse_palace_relation_count": 1,
+        "day_stem_combine_count": 1,
+        "relation_count": 2,
+        "mobility_count": 2,
+    }
     for profile in profiles:
         for comparison in profile.get("comparisons", ()):
             if comparison.get("status") not in {"observed", "zero"}:
@@ -369,15 +411,19 @@ def _fingerprints(
             same = float(comparison.get("same_mass", comparison.get("exact_percentage", 100)) or 100)
             value = comparison.get("value", 0)
             title = str(comparison.get("label", comparison.get("metric_id", "结构特征")))
-            candidates.append((same, {
+            metric_id = str(comparison.get("metric_id", title))
+            candidates.append((metric_priority.get(metric_id, 3), same, {
                 "id": f"metric.{comparison.get('metric_id', title)}",
                 "title": title,
-                "detail": f"当前为 {value}{comparison.get('unit', '项')}，在历法样本中形成鲜明识别度。",
-                "rarity_label": "罕见" if same < 1 else "稀有" if same < 5 else "少见" if same < 20 else "鲜明",
+                "detail": f"当前为 {value}{comparison.get('unit', '项')}；约 {same:.1f}% 的历法样本与此同值。",
+                "rarity_label": "罕见" if same < 1 else "稀有" if same < 5 else "少见" if same < 20 else "常见结构",
                 "top_percentage": max(1, min(99, int(round(same)))),
+                "incidence_percentage": round(same, 2),
             }))
     for hit in shensha:
         state = str(hit.get("state", "可见"))
+        if state not in {"发力", "有力"}:
+            continue
         state_feature_id = f"bazi.consumer.shensha.{hit.get('rule_id', 'unknown')}.state.{_SHENSHA_STATE_IDS.get(state, 'visible')}"
         rarity = feature_percentages.get(
             state_feature_id,
@@ -385,16 +431,17 @@ def _fingerprints(
         )
         if rarity >= 20:
             continue
-        candidates.append((rarity + 0.1, {
+        candidates.append((4, rarity + 0.1, {
             "id": f"shensha.{hit.get('rule_id', hit.get('name', 'hit'))}",
             "title": f"{hit.get('name', '神煞')} · {hit.get('state', '可见')}",
             "detail": str(hit.get("state_reason", hit.get("trigger", "原局命中这一辅助结构。"))),
             "rarity_label": "罕见" if rarity < 1 else "稀有" if rarity < 5 else "少见",
             "top_percentage": max(1, int(round(rarity))),
+            "incidence_percentage": round(rarity, 2),
         }))
     unique: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for _, item in sorted(candidates, key=lambda pair: (pair[0], pair[1]["id"])):
+    for _, _, item in sorted(candidates, key=lambda pair: (pair[0], pair[1], pair[2]["id"])):
         if item["id"] in seen:
             continue
         seen.add(item["id"])
@@ -615,50 +662,31 @@ def build_bazi_consumer_profile(
     combinations = list(effects.get("combinations", ()))
     pattern = patterns or {}
     feature_percentages = _feature_percentage_map(consumer_feature_metrics)
-    day_master = str(pillar_list[2].get("stem", "")) if len(pillar_list) > 2 else ""
-    month_command = str(pillar_list[1].get("branch", "")) if len(pillar_list) > 1 else ""
-    cohort_key = f"{day_master}-{month_command}"
-
     raw_scores = score_bazi_consumer_themes(
         structure=structure,
         patterns=pattern,
         shensha_effects=effects,
     )
+    profiles_by_key = _profile_by_key(profiles)
     subjects: list[dict[str, Any]] = []
     natal_scores: dict[str, int] = {}
     for key in THEME_ORDER:
         scored = raw_scores[key]
         raw_score = int(scored["score"])
         drivers = list(scored["drivers"])
-        global_percentile = _empirical_percentile(consumer_distributions, "global", key, raw_score)
-        if global_percentile is None:
-            global_percentile = float(scored["fallback_percentile"])
-        cohort_percentile = _empirical_percentile(consumer_distributions, "cohort", key, raw_score)
-        if cohort_percentile is None:
-            cohort_percentile = _cohort_percentile(global_percentile, cohort_key, key, raw_score)
-        display_score = int(round(global_percentile))
+        profile = profiles_by_key.get(key, {})
+        path_label, path_summary = _theme_path(key, profile, pattern)
         natal_scores[key] = raw_score
         subjects.append({
             "key": key,
             "label": THEME_LABELS[key],
-            "score": display_score,
-            "raw_score": raw_score,
-            "global_percentile": global_percentile,
-            "global_top_percentage": _top_percentage(global_percentile),
-            "cohort_percentile": cohort_percentile,
-            "cohort_top_percentage": _top_percentage(cohort_percentile),
             "headline": " · ".join(drivers[:2]) or "结构节奏鲜明",
             "drivers": drivers,
+            "path_label": path_label,
+            "path_summary": path_summary,
         })
 
-    raw_main_score = int(raw_scores["overall"]["score"])
-    global_percentile = _empirical_percentile(consumer_distributions, "global", "overall", raw_main_score)
-    if global_percentile is None:
-        global_percentile = round(sum(float(item["global_percentile"]) for item in subjects) / len(subjects), 1)
-    cohort_percentile = _empirical_percentile(consumer_distributions, "cohort", "overall", raw_main_score)
-    if cohort_percentile is None:
-        cohort_percentile = round(sum(float(item["cohort_percentile"]) for item in subjects) / len(subjects), 1)
-    archetype_id, archetype_title, archetype_subtitle = _choose_archetype(pillar_list, hits)
+    archetype_id, archetype_title, archetype_subtitle = _choose_archetype(pillar_list, hits, pattern)
     primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
     pattern_title = str(primary.get("title", primary.get("name", "主导结构"))) if isinstance(primary, Mapping) else "主导结构"
     identity = {
@@ -667,34 +695,9 @@ def build_bazi_consumer_profile(
         "archetype_title": f"{pattern_title} · {archetype_title}",
         "archetype_subtitle": archetype_subtitle,
         "fusion_title": None,
-        "main_score": int(round(global_percentile)),
-        "raw_score": raw_main_score,
-        "global_percentile": global_percentile,
-        "global_top_percentage": _top_percentage(global_percentile),
-        "cohort_percentile": cohort_percentile,
-        "cohort_top_percentage": _top_percentage(cohort_percentile),
-        "cohort_label": f"同{day_master}日主·{month_command}月令",
-        "ranking_basis": "weighted_empirical_calendar_baseline" if _empirical_percentile(consumer_distributions, "global", "overall", raw_main_score) is not None else "deterministic_fallback",
-    }
-    global_histogram = (consumer_distributions or {}).get("global", {}).get("overall", {})
-    cohort_histogram = (consumer_distributions or {}).get("cohort", {}).get("overall", {})
-    global_weight = sum(float(weight) for weight in global_histogram.values()) if isinstance(global_histogram, Mapping) else 0.0
-    cohort_weight = sum(float(weight) for weight in cohort_histogram.values()) if isinstance(cohort_histogram, Mapping) else 0.0
-    family_share = round(cohort_weight / global_weight * 100, 2) if global_weight > 0 else 0.0
-    representative_scores = sorted(
-        ((int(score), float(weight)) for score, weight in cohort_histogram.items()),
-        key=lambda item: (-item[1], item[0]),
-    )[:3] if isinstance(cohort_histogram, Mapping) else []
-    twin = {
-        "family_id": f"bazi.cohort.{day_master}-{month_command}",
-        "title": f"{day_master}日主 · {month_command}月令结构族",
-        "share_percentage": family_share,
-        "summary": f"同日主、同月令的历法状态约占全部样本 {family_share:.2f}%，这是你的第一层结构同类。",
-        "representatives": [
-            f"同类典型底盘 {score} · 占同类 {weight / cohort_weight * 100:.1f}%"
-            for score, weight in representative_scores
-            if cohort_weight > 0
-        ],
+        "primary_arena": subjects[0]["path_label"] if subjects else "个人成长",
+        "signature": next((item["path_label"] for item in subjects if item["key"] == "relationship"), "关系节奏鲜明"),
+        "life_rhythm": next((item["path_label"] for item in subjects if item["key"] == "health"), "稳定推进型"),
     }
     return {
         "version": CONSUMER_RULES_VERSION,
@@ -703,7 +706,8 @@ def build_bazi_consumer_profile(
         "subjects": subjects,
         "achievements": _achievements(combinations, hits, feature_percentages),
         "fingerprints": _fingerprints(profiles, pattern, hits, feature_percentages),
-        "twin": twin,
+        # A day-master/month-command cohort is not a true structural twin.
+        "twin": None,
         "life_kline": build_life_kline(cycles, natal_scores),
         "capability_key": None,
     }

@@ -93,6 +93,80 @@ function formatNumber(value: number, locale: LifeKlineLocale, maximumFractionDig
   return new Intl.NumberFormat(locale === "zh" ? "zh-CN" : "en-US", { maximumFractionDigits }).format(value)
 }
 
+function median(values: number[]) {
+  if (!values.length) return 100
+  const sorted = [...values].sort((left, right) => left - right)
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+}
+
+function personalBaseline(points: LifeKlinePoint[], startYear?: number, endYear?: number) {
+  const baselinePoints = startYear == null || endYear == null
+    ? points
+    : points.filter((point) => point.year >= startYear && point.year <= endYear)
+  const source = baselinePoints.length ? baselinePoints : points
+  const closes = source.map((point) => point.close).filter((value) => Number.isFinite(value) && value > 0)
+  return Math.max(0.001, median(closes))
+}
+
+function toPersonalIndex(value: number, baseline: number) {
+  return (value / baseline) * 100
+}
+
+function normalizePoint(point: LifeKlinePoint, baseline: number): LifeKlinePoint {
+  return {
+    ...point,
+    open: toPersonalIndex(point.open, baseline),
+    close: toPersonalIndex(point.close, baseline),
+    high: toPersonalIndex(point.high, baseline),
+    low: toPersonalIndex(point.low, baseline),
+    ma3: point.ma3 == null ? null : toPersonalIndex(point.ma3, baseline),
+    ma5: point.ma5 == null ? null : toPersonalIndex(point.ma5, baseline),
+    ma10: point.ma10 == null ? null : toPersonalIndex(point.ma10, baseline),
+    months: point.months.map((month) => ({
+      ...month,
+      value: toPersonalIndex(month.value, baseline),
+      delta: (month.delta / baseline) * 100,
+    })),
+  }
+}
+
+function relativeState(value: number, locale: LifeKlineLocale) {
+  if (locale === "zh") {
+    if (value >= 110) return "高光"
+    if (value >= 103) return "升温"
+    if (value <= 92) return "调整"
+    return "个人常态"
+  }
+  if (value >= 110) return "High point"
+  if (value >= 103) return "Warming"
+  if (value <= 92) return "Adjustment"
+  return "Personal baseline"
+}
+
+function relativeSummary(value: number, locale: LifeKlineLocale) {
+  const state = relativeState(value, locale)
+  if (locale === "zh") {
+    if (state === "高光") return "相对个人常态明显升高，是这段窗口中值得重点关注的阶段。"
+    if (state === "升温") return "相对个人常态逐步升温，适合留意这一主题的变化。"
+    if (state === "调整") return "相对个人常态有所回落，更适合调整节奏与重新配置精力。"
+    return "接近个人长期常态，整体节奏较为平稳。"
+  }
+  if (state === "High point") return "Well above your personal baseline and a period worth watching closely."
+  if (state === "Warming") return "Rising above your personal baseline, with this theme becoming more active."
+  if (state === "Adjustment") return "Below your personal baseline, favoring recalibration and a steadier pace."
+  return "Close to your long-term personal baseline, with a relatively steady pace."
+}
+
+function displaySeriesLabel(series: LifeKlineThemeSeries, locale: LifeKlineLocale) {
+  if (series.key === "health") return locale === "zh" ? "身心节奏" : "Body rhythm"
+  return series.label
+}
+
+function displayStageText(value: string, locale: LifeKlineLocale) {
+  return locale === "zh" ? value.replaceAll("健康", "身心节奏").replaceAll("运势", "走势") : value.replaceAll(/health/gi, "body rhythm")
+}
+
 function pathForMovingAverage(
   points: LifeKlinePoint[],
   key: "ma3" | "ma5" | "ma10",
@@ -185,7 +259,9 @@ export function LifeKlineChart({
     )
   }
 
-  const allPoints = activeSeries.points
+  const baseline = personalBaseline(activeSeries.points, lifeKline.default_window.start_year, lifeKline.default_window.end_year)
+  const allPoints = activeSeries.points.map((point) => normalizePoint(point, baseline))
+  const activeSeriesLabel = displaySeriesLabel(activeSeries, locale)
   const safeWindowStart = Math.min(Math.max(0, windowStart), Math.max(0, allPoints.length - WINDOW_SIZE))
   const visiblePoints = showFullLife ? allPoints : allPoints.slice(safeWindowStart, safeWindowStart + WINDOW_SIZE)
   const selectedPoint = allPoints.find((point) => point.year === selectedYear) ?? visiblePoints[0] ?? allPoints[0]
@@ -208,7 +284,7 @@ export function LifeKlineChart({
   const slotWidth = visiblePoints.length ? plotWidth / visiblePoints.length : plotWidth
   const candleWidth = Math.min(24, Math.max(8, slotWidth * 0.44))
   const xAt = (index: number) => LEFT_GUTTER + slotWidth * (index + 0.5)
-  const plottedValues = visiblePoints.flatMap((point) => [point.low, point.high, point.ma3, point.ma5, point.ma10].filter((value): value is number => value != null && Number.isFinite(value)))
+  const plottedValues = [100, ...visiblePoints.flatMap((point) => [point.low, point.high, point.ma3, point.ma5, point.ma10].filter((value): value is number => value != null && Number.isFinite(value)))]
   const dataMinimum = plottedValues.length ? Math.min(...plottedValues) : 0
   const dataMaximum = plottedValues.length ? Math.max(...plottedValues) : 100
   const rawRange = Math.max(1, dataMaximum - dataMinimum)
@@ -224,7 +300,7 @@ export function LifeKlineChart({
   const ma10Path = pathForMovingAverage(visiblePoints, "ma10", xAt, yAt)
   const activeColor = activeSeries.color || "hsl(var(--primary))"
   const selectedDescription = selectedPoint
-    ? `${selectedPoint.year}, ${locale === "zh" ? "开" : "open"} ${formatNumber(selectedPoint.open, locale)}, ${locale === "zh" ? "高" : "high"} ${formatNumber(selectedPoint.high, locale)}, ${locale === "zh" ? "低" : "low"} ${formatNumber(selectedPoint.low, locale)}, ${locale === "zh" ? "收" : "close"} ${formatNumber(selectedPoint.close, locale)}`
+    ? `${selectedPoint.year}, ${locale === "zh" ? "个人相对指数" : "personal relative index"}, ${locale === "zh" ? "开" : "open"} ${formatNumber(selectedPoint.open, locale)}, ${locale === "zh" ? "高" : "high"} ${formatNumber(selectedPoint.high, locale)}, ${locale === "zh" ? "低" : "low"} ${formatNumber(selectedPoint.low, locale)}, ${locale === "zh" ? "收" : "close"} ${formatNumber(selectedPoint.close, locale)}`
     : ""
 
   function selectSeries(series: LifeKlineThemeSeries) {
@@ -290,11 +366,11 @@ export function LifeKlineChart({
           <div className="min-w-0">
             <p className="kicker">{locale === "zh" ? "未来走势" : "YOUR TIMELINE"}</p>
             <h2 id={titleId} className="mt-2 text-2xl font-semibold">{locale === "zh" ? "人生 K 线" : "Life K-line"}</h2>
-            <p id={descriptionId} className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{locale === "zh" ? "原局、运限、关系变化与神煞信号已统一折算进走势；点开任一年可继续看十二个月。" : "Natal structure, periods, relationship changes, and Shen Sha signals are all reflected in one timeline; open any year for its twelve-month story."}</p>
+            <p id={descriptionId} className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{locale === "zh" ? "以你的长期常态为 100，展示每一年相对自己的升温、高光与调整；点开任一年可继续看十二个月。" : "Your long-term baseline is set to 100, showing when each year warms, peaks, or adjusts relative to you; open any year for its twelve-month story."}</p>
           </div>
           <details className="shrink-0 text-xs text-muted-foreground">
             <summary className="min-h-11 cursor-pointer rounded-lg px-2 py-3 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "K 线怎么看" : "How to read it"}</summary>
-            <p className="max-w-xs break-words border-t border-border/55 pt-2 leading-5">{locale === "zh" ? "每根年线汇总十二个月：开、收、高、低对应年内走势，量柱汇总当年的结构激活、关系变化与牵制强度。" : "Each candle summarizes twelve months. Open, close, high, and low show the year's path; volume combines structural activation, relationship change, and constraint intensity."}</p>
+            <p className="max-w-xs break-words border-t border-border/55 pt-2 leading-5">{locale === "zh" ? "100 是你自己的长期常态，不是人生分数。每根年线汇总十二个月；高于 100 表示该主题相对升温，低于 100 表示进入调整节奏。" : "100 is your own long-term baseline, not a life score. Each candle summarizes twelve months; above 100 means this theme is warming, while below 100 marks an adjustment period."}</p>
           </details>
         </div>
 
@@ -317,7 +393,7 @@ export function LifeKlineChart({
                   className={cn("inline-flex min-h-11 min-w-20 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", selected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
                 >
                   <span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: series.color }} />
-                  {series.label}
+                  {displaySeriesLabel(series, locale)}
                 </button>
               )
             })}
@@ -344,6 +420,7 @@ export function LifeKlineChart({
           <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5" style={{ backgroundColor: activeColor }} />MA3</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 bg-[hsl(var(--imperial-metal))]" />MA5</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 bg-muted-foreground" />MA10</span>
+          <span className="inline-flex items-center gap-1.5"><span className="w-5 border-t border-dashed border-foreground/55" />{locale === "zh" ? "个人常态 100" : "Personal baseline 100"}</span>
           <span>{locale === "zh" ? "朱红 = 上行" : "Red = rising"}</span>
           <span>{locale === "zh" ? "青绿 = 回落" : "Green = falling"}</span>
         </div>
@@ -353,7 +430,7 @@ export function LifeKlineChart({
         <div
           tabIndex={0}
           role="group"
-          aria-label={`${activeSeries.label} ${locale === "zh" ? "年线图" : "annual candlestick chart"}`}
+          aria-label={`${activeSeriesLabel} ${locale === "zh" ? "个人相对年线图" : "personal relative annual candlestick chart"}`}
           aria-describedby={`${descriptionId} ${interactionHintId}`}
           onKeyDown={handleChartKeyDown}
           onPointerLeave={() => setHoveredYear(null)}
@@ -383,8 +460,9 @@ export function LifeKlineChart({
               const y = yAt(tick)
               return <g key={tick} aria-hidden="true"><line x1={LEFT_GUTTER} x2={chartWidth - RIGHT_GUTTER} y1={y} y2={y} stroke="hsl(var(--border))" strokeOpacity="0.55" strokeDasharray="3 5" /><text x={LEFT_GUTTER - 8} y={y + 3.5} textAnchor="end" fill="hsl(var(--muted-foreground))" fontSize="10">{formatNumber(tick, locale, 0)}</text></g>
             })}
+            {100 >= valueMinimum && 100 <= valueMaximum ? <g aria-hidden="true"><line x1={LEFT_GUTTER} x2={chartWidth - RIGHT_GUTTER} y1={yAt(100)} y2={yAt(100)} stroke="hsl(var(--foreground))" strokeOpacity="0.42" strokeDasharray="6 5" /><text x={chartWidth - RIGHT_GUTTER} y={yAt(100) - 5} textAnchor="end" fill="hsl(var(--muted-foreground))" fontSize="9">{locale === "zh" ? "个人常态 100" : "BASELINE 100"}</text></g> : null}
             <line x1={LEFT_GUTTER} x2={chartWidth - RIGHT_GUTTER} y1={VOLUME_TOP - 15} y2={VOLUME_TOP - 15} stroke="hsl(var(--border))" strokeOpacity="0.75" />
-            <text x={LEFT_GUTTER} y={VOLUME_TOP - 21} fill="hsl(var(--muted-foreground))" fontSize="10">{locale === "zh" ? "结构量" : "VOLUME"}</text>
+            <text x={LEFT_GUTTER} y={VOLUME_TOP - 21} fill="hsl(var(--muted-foreground))" fontSize="10">{locale === "zh" ? "结构活跃度" : "ACTIVITY"}</text>
 
             {visiblePoints.map((point, index) => {
               const x = xAt(index)
@@ -399,7 +477,7 @@ export function LifeKlineChart({
               const current = point.year === currentYear
               return (
                 <g key={point.year} onPointerEnter={() => setHoveredYear(point.year)} onClick={() => selectPoint(point)} className="cursor-pointer">
-                  <title>{`${point.year}: O ${formatNumber(point.open, locale)} H ${formatNumber(point.high, locale)} L ${formatNumber(point.low, locale)} C ${formatNumber(point.close, locale)} V ${formatNumber(point.volume, locale)}`}</title>
+                  <title>{`${point.year}: ${locale === "zh" ? "个人相对指数" : "personal relative index"} O ${formatNumber(point.open, locale)} H ${formatNumber(point.high, locale)} L ${formatNumber(point.low, locale)} C ${formatNumber(point.close, locale)} V ${formatNumber(point.volume, locale)}`}</title>
                   {selected ? <rect x={LEFT_GUTTER + index * slotWidth + 2} y={PRICE_TOP - 16} width={Math.max(1, slotWidth - 4)} height={VOLUME_BOTTOM - PRICE_TOP + 16} rx="6" fill={activeColor} opacity="0.075" /> : null}
                   {current ? <><line x1={x} x2={x} y1={PRICE_TOP - 17} y2={VOLUME_BOTTOM} stroke={activeColor} strokeWidth="1" strokeDasharray="4 4" opacity="0.85" /><text x={x} y={PRICE_TOP - 23} textAnchor="middle" fill={activeColor} fontSize="10" fontWeight="700">{locale === "zh" ? "当前" : "NOW"}</text></> : null}
                   <line x1={x} x2={x} y1={yAt(point.high)} y2={yAt(point.low)} stroke={candleColor} strokeWidth="1.5" />
@@ -430,16 +508,17 @@ export function LifeKlineChart({
           <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
             <div>
               <p className="kicker">{locale === "zh" ? "所选年份" : "SELECTED YEAR"}</p>
-              <h3 id={`${id}-selected-year`} className="mt-2 text-2xl font-semibold tabular-nums">{selectedPoint.year} · {activeSeries.label}</h3>
+              <h3 id={`${id}-selected-year`} className="mt-2 text-2xl font-semibold tabular-nums">{selectedPoint.year} · {activeSeriesLabel}</h3>
+              <p className="mt-2 text-sm font-semibold text-primary">{relativeState(selectedPoint.close, locale)} · {locale === "zh" ? `相对个人常态 ${formatNumber(selectedPoint.close, locale)}` : `Personal baseline index ${formatNumber(selectedPoint.close, locale)}`}</p>
             </div>
             <dl className="grid grid-cols-3 gap-x-5 gap-y-3 text-right text-sm sm:grid-cols-6">
               {([
-                [locale === "zh" ? "开" : "O", selectedPoint.open],
-                [locale === "zh" ? "高" : "H", selectedPoint.high],
-                [locale === "zh" ? "低" : "L", selectedPoint.low],
-                [locale === "zh" ? "收" : "C", selectedPoint.close],
+                [locale === "zh" ? "开局" : "O", selectedPoint.open],
+                [locale === "zh" ? "高点" : "H", selectedPoint.high],
+                [locale === "zh" ? "低点" : "L", selectedPoint.low],
+                [locale === "zh" ? "收尾" : "C", selectedPoint.close],
                 ["MA5", selectedPoint.ma5],
-                [locale === "zh" ? "量" : "V", selectedPoint.volume],
+                [locale === "zh" ? "活跃" : "V", selectedPoint.volume],
               ] as Array<[string, number | null]>).map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{value == null ? "—" : formatNumber(value, locale)}</dd></div>)}
             </dl>
           </div>
@@ -450,7 +529,7 @@ export function LifeKlineChart({
                 <article key={`${month.index}-${month.label}`} className={cn("min-w-0 border-border/55 px-3 py-4", index > 0 && "border-t sm:border-t-0", index % 2 === 1 && "sm:border-l", index >= 2 && "sm:border-t", index % 3 !== 0 && "xl:border-l", index >= 3 && "xl:border-t")}>
                   <div className="flex min-w-0 items-baseline justify-between gap-3">
                     <h4 className="min-w-0 truncate text-sm font-semibold"><span className="mr-2 text-xs tabular-nums text-muted-foreground">{String(month.index).padStart(2, "0")}</span>{month.label} · {month.ganzhi}</h4>
-                    <p className="shrink-0 text-base font-semibold tabular-nums" style={{ color: month.delta === 0 ? "hsl(var(--foreground))" : activeColor }}>{formatNumber(month.value, locale)} <span className="text-xs">{month.delta > 0 ? "+" : ""}{formatNumber(month.delta, locale)}</span></p>
+                    <p className="shrink-0 text-right text-base font-semibold tabular-nums" style={{ color: month.delta === 0 ? "hsl(var(--foreground))" : activeColor }}><span className="block text-[0.65rem] font-semibold text-muted-foreground">{relativeState(month.value, locale)}</span>{formatNumber(month.value, locale)} <span className="text-xs">{month.delta > 0 ? "+" : ""}{formatNumber(month.delta, locale)}</span></p>
                   </div>
                   {month.drivers.length ? <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{month.drivers.join(" · ")}</p> : null}
                 </article>
@@ -464,17 +543,22 @@ export function LifeKlineChart({
         <section className="border-t border-border/60 px-4 py-6 sm:px-6" aria-labelledby={`${id}-stages`}>
           <div className="flex items-end justify-between gap-3">
             <div><p className="kicker">{locale === "zh" ? "未来三大阶段" : "THREE KEY STAGES"}</p><h3 id={`${id}-stages`} className="mt-2 text-xl font-semibold">{locale === "zh" ? "最值得关注的三个时间点" : "Three moments to watch"}</h3></div>
-            <span className="text-xs text-muted-foreground">{activeSeries.label}</span>
+            <span className="text-xs text-muted-foreground">{activeSeriesLabel} · {locale === "zh" ? "个人常态 100" : "baseline 100"}</span>
           </div>
           <ol className="mt-4 grid min-w-0 gap-px overflow-hidden rounded-2xl border border-border/60 bg-border/60 md:grid-cols-3">
-            {visibleStages.map((stage, index) => (
+            {visibleStages.map((stage, index) => {
+              const stageSeries = lifeKline.series.find((series) => stageMatchesSeries(stage, series)) ?? activeSeries
+              const stageBaseline = personalBaseline(stageSeries.points, lifeKline.default_window.start_year, lifeKline.default_window.end_year)
+              const relativeScore = toPersonalIndex(stage.score, stageBaseline)
+              return (
               <li key={`${stage.key}-${stage.year}-${stage.label}`} className="min-w-0 bg-surface px-4 py-5">
-                <div className="flex items-start justify-between gap-3"><span className="text-xs font-semibold tabular-nums text-primary">0{index + 1}</span><p className="text-right text-[0.7rem] font-semibold text-muted-foreground"><span className="block">{locale === "zh" ? "走势" : "INDEX"}</span><strong className="text-2xl tabular-nums text-primary">{formatNumber(stage.score, locale)}</strong></p></div>
-                <p className="mt-2 text-xs font-semibold text-muted-foreground">{stage.year} · {stage.theme}</p>
-                <h4 className="mt-1 font-semibold leading-6">{stage.label}</h4>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{stage.summary}</p>
+                <div className="flex items-start justify-between gap-3"><span className="text-xs font-semibold tabular-nums text-primary">0{index + 1}</span><p className="text-right text-[0.7rem] font-semibold text-muted-foreground"><span className="block">{relativeState(relativeScore, locale)}</span><strong className="text-2xl tabular-nums text-primary">{formatNumber(relativeScore, locale)}</strong></p></div>
+                <p className="mt-2 text-xs font-semibold text-muted-foreground">{stage.year} · {displayStageText(stage.theme, locale)}</p>
+                <h4 className="mt-1 font-semibold leading-6">{displayStageText(stage.label, locale)}</h4>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{relativeSummary(relativeScore, locale)}</p>
               </li>
-            ))}
+              )
+            })}
           </ol>
         </section>
       ) : null}

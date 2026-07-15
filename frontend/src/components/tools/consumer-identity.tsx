@@ -10,23 +10,25 @@ export interface ConsumerIdentitySummary {
   archetype_title: string
   archetype_subtitle: string
   fusion_title?: string | null
-  main_score: number
-  global_percentile: number
-  global_top_percentage: number
-  cohort_percentile: number
-  cohort_top_percentage: number
-  cohort_label: string
+  main_score?: number
+  global_percentile?: number
+  global_top_percentage?: number
+  cohort_percentile?: number
+  cohort_top_percentage?: number
+  cohort_label?: string
 }
 
 export interface ConsumerSubjectScore {
   key: string
   label: string
-  score: number
-  global_percentile: number
-  global_top_percentage: number
-  cohort_percentile: number
-  cohort_top_percentage: number
+  score?: number
+  global_percentile?: number
+  global_top_percentage?: number
+  cohort_percentile?: number
+  cohort_top_percentage?: number
   headline: string
+  path_label?: string
+  path_summary?: string
 }
 
 export interface ConsumerFingerprint {
@@ -35,6 +37,7 @@ export interface ConsumerFingerprint {
   detail: string
   rarity_label: string
   top_percentage: number
+  incidence_percentage?: number
 }
 
 export interface ConsumerStructuralTwin {
@@ -74,13 +77,115 @@ function formatNumber(value: number, locale: ConsumerLocale, maximumFractionDigi
   }).format(value)
 }
 
-function boundedPercentage(value: number) {
-  return Math.min(100, Math.max(0, Number.isFinite(value) ? value : 0))
+function incidenceLabel(value: number, locale: ConsumerLocale) {
+  const formatted = formatNumber(value, locale)
+  return locale === "zh" ? `同值约 ${formatted}%` : `${formatted}% same-value incidence`
 }
 
-function topPercentageLabel(value: number, locale: ConsumerLocale) {
-  const formatted = formatNumber(value, locale)
-  return locale === "zh" ? `前 ${formatted}%` : `Top ${formatted}%`
+export interface ConsumerSubjectPath {
+  label: string
+  title: string
+  description: string
+}
+
+function includesAny(value: string, terms: string[]) {
+  return terms.some((term) => value.toLowerCase().includes(term.toLowerCase()))
+}
+
+/**
+ * Turn current and legacy score-era payloads into a descriptive consumer path.
+ * Numeric fields on old snapshots never shape the label or copy shown here.
+ */
+export function describeConsumerSubject(subject: ConsumerSubjectScore, locale: ConsumerLocale): ConsumerSubjectPath {
+  const key = subject.key.toLowerCase()
+  const headline = subject.headline || subject.label
+  if (subject.path_label && subject.path_summary) {
+    const labels: Record<string, { zh: string; en: string }> = {
+      career: { zh: "事业主场", en: "Career lane" },
+      wealth: { zh: "财富路径", en: "Wealth path" },
+      relationship: { zh: "关系磁场", en: "Relationship style" },
+      health: { zh: "身心节奏", en: "Mind-body rhythm" },
+    }
+    const localized = labels[key]
+    return {
+      label: localized ? localized[locale] : subject.label,
+      title: subject.path_label,
+      description: subject.path_summary,
+    }
+  }
+
+  if (key === "career" || includesAny(subject.label, ["事业", "career"])) {
+    if (includesAny(headline, ["食伤", "伤官", "食神", "output", "expression"])) {
+      return locale === "zh"
+        ? { label: "事业主场", title: "创造表达型", description: "更容易通过作品、表达与解决新问题建立自己的位置。" }
+        : { label: "Career lane", title: "Creative expression", description: "You build momentum through ideas, expression, and solving new problems." }
+    }
+    if (includesAny(headline, ["印星", "正印", "偏印", "resource", "knowledge"])) {
+      return locale === "zh"
+        ? { label: "事业主场", title: "专业积累型", description: "专业能力、学习深度与长期可信度，是更稳定的事业支点。" }
+        : { label: "Career lane", title: "Expertise builder", description: "Depth, learning, and long-term credibility are your steadier career anchors." }
+    }
+    if (includesAny(headline, ["官杀", "正官", "七杀", "authority", "officer"])) {
+      return locale === "zh"
+        ? { label: "事业主场", title: "责任推进型", description: "在有目标、有责任边界的环境里，更容易把事情持续向前推进。" }
+        : { label: "Career lane", title: "Purposeful operator", description: "Clear goals and responsibility help you keep complex work moving." }
+    }
+    return locale === "zh"
+      ? { label: "事业主场", title: "主动开拓型", description: "事业动力更适合落在主动选择、持续行动与阶段突破上。" }
+      : { label: "Career lane", title: "Active builder", description: "Your career momentum grows through initiative, consistent action, and timely breakthroughs." }
+  }
+
+  if (key === "wealth" || includesAny(subject.label, ["财富", "wealth"])) {
+    const hidden = includesAny(headline, ["藏干", "藏见", "深藏", "hidden"])
+    const visible = includesAny(headline, ["明干", "明透", "透干", "visible"])
+    if (hidden && !visible) {
+      return locale === "zh"
+        ? { label: "财富路径", title: "潜藏兑现型", description: "资源更常藏在能力、关系与长期积累里，等待合适阶段兑现；深藏不代表贫乏。" }
+        : { label: "Wealth path", title: "Quiet compounding", description: "Resources tend to build through skill, relationships, and time before becoming visible; hidden does not mean lacking." }
+    }
+    if (includesAny(headline, ["比劫", "peer"])) {
+      return locale === "zh"
+        ? { label: "财富路径", title: "协作竞争型", description: "资源往往伴随合作与竞争流动，重点在边界、分配与把机会留在自己手里。" }
+        : { label: "Wealth path", title: "Collaborative competition", description: "Resources move through both cooperation and competition, making boundaries and allocation especially important." }
+    }
+    if (visible) {
+      return locale === "zh"
+        ? { label: "财富路径", title: "外显经营型", description: "资源意识更容易被看见，适合通过明确目标、经营与现实结果持续积累。" }
+        : { label: "Wealth path", title: "Visible builder", description: "Your resource orientation is easier to see and grows through clear goals, stewardship, and tangible results." }
+    }
+    return locale === "zh"
+      ? { label: "财富路径", title: "长期积累型", description: "财富更适合被理解为积累方式与兑现节奏，而不是一张命盘里的高低成绩。" }
+      : { label: "Wealth path", title: "Long-term compounding", description: "This describes how resources accumulate and surface, not a grade for wealth." }
+  }
+
+  if (key === "relationship" || key === "relationships" || includesAny(subject.label, ["感情", "关系", "relationship", "love"])) {
+    if (includesAny(headline, ["桃花", "红鸾", "天喜", "红艳", "romance", "attraction"])) {
+      return locale === "zh"
+        ? { label: "关系磁场", title: "吸引表达型", description: "关系信号较容易显现，关键在把吸引力转化为真实、稳定的相处。" }
+        : { label: "Relationship style", title: "Expressive attraction", description: "Connection signals surface readily; the key is turning attraction into a real, steady bond." }
+    }
+    if (includesAny(headline, ["夫妻宫", "配偶星", "互动", "spouse", "partner"])) {
+      return locale === "zh"
+        ? { label: "关系磁场", title: "深度互动型", description: "亲密关系容易牵动重要选择，也更需要在互动中建立清楚的理解与边界。" }
+        : { label: "Relationship style", title: "Deep interaction", description: "Close relationships can shape major choices, making mutual understanding and boundaries especially important." }
+    }
+    return locale === "zh"
+      ? { label: "关系磁场", title: "共同成长型", description: "关系主题更适合从相处方式、选择联动与共同成长来理解。" }
+      : { label: "Relationship style", title: "Growing together", description: "Your relationship story is better understood through interaction, shared choices, and mutual growth." }
+  }
+
+  if (key === "health" || includesAny(subject.label, ["健康", "health", "身心"])) {
+    if (includesAny(headline, ["集中", "承压", "冲", "刑", "害", "破", "pressure", "concentrat"])) {
+      return locale === "zh"
+        ? { label: "身心节奏", title: "张弛调节型", description: "结构里的集中与牵动较明显，适合重视节奏切换、恢复空间与稳定日常。" }
+        : { label: "Mind-body rhythm", title: "Active regulation", description: "Concentrated and interacting signals make rhythm, recovery, and steady routines especially valuable." }
+    }
+    return locale === "zh"
+      ? { label: "身心节奏", title: "稳定续航型", description: "这一栏描述传统五行中的节奏与恢复方式，不把命盘结构当作健康成绩。" }
+      : { label: "Mind-body rhythm", title: "Steady endurance", description: "This describes rhythm and recovery in the chart rather than grading real-world health." }
+  }
+
+  return { label: subject.label, title: headline, description: locale === "zh" ? "这是一种命盘表达路径，不代表人生优劣。" : "This is a chart expression path, not a grade for a life." }
 }
 
 function ComparisonEntry({ action }: { action: ConsumerComparisonAction }) {
@@ -95,9 +200,8 @@ function ComparisonEntry({ action }: { action: ConsumerComparisonAction }) {
 
 export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, className }: ConsumerIdentityProps) {
   const headingId = `${useId()}-consumer-identity-title`
-  const { identity, subjects, fingerprints, twin } = profile
+  const { identity, subjects, fingerprints } = profile
   const title = identity.fusion_title || identity.archetype_title
-  const score = boundedPercentage(identity.main_score)
 
   return (
     <section
@@ -105,59 +209,27 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
       aria-labelledby={headingId}
       className={cn("min-w-0 overflow-hidden rounded-3xl border border-primary/25 bg-surface/95 shadow-[var(--surface-shadow)]", className)}
     >
-      <header className="imperial-highlight-panel grid min-w-0 gap-7 border-0 border-b border-primary/20 px-5 py-7 shadow-none sm:px-7 lg:grid-cols-[minmax(0,1fr)_10rem] lg:items-center lg:px-9 lg:py-9">
+      <header className="imperial-highlight-panel min-w-0 border-0 border-b border-primary/20 px-5 py-7 shadow-none sm:px-7 lg:px-9 lg:py-9">
         <div className="min-w-0">
           <p className="kicker">{identity.system_title}</p>
           <h2 id={headingId} className="mt-3 text-balance text-3xl font-semibold leading-tight sm:text-4xl">{title}</h2>
           {identity.fusion_title ? <p className="mt-2 text-sm font-semibold text-primary">{identity.archetype_title}</p> : null}
           <p className="mt-4 max-w-3xl text-pretty text-base font-semibold leading-7 sm:text-lg sm:leading-8">{identity.archetype_subtitle}</p>
-          <dl className="mt-6 flex min-w-0 flex-wrap gap-x-7 gap-y-3 text-sm">
-            <div>
-              <dt className="text-xs text-muted-foreground">{locale === "zh" ? "全部样本" : "All samples"}</dt>
-              <dd className="mt-1 font-semibold text-primary">{topPercentageLabel(identity.global_top_percentage, locale)}</dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="truncate text-xs text-muted-foreground">{identity.cohort_label}</dt>
-              <dd className="mt-1 font-semibold text-primary">{topPercentageLabel(identity.cohort_top_percentage, locale)}</dd>
-            </div>
-          </dl>
-        </div>
-        <div className="flex items-end justify-between gap-5 border-t border-primary/20 pt-5 lg:block lg:border-l lg:border-t-0 lg:py-3 lg:pl-8 lg:text-right">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground">{locale === "zh" ? "命盘总指数" : "CHART INDEX"}</p>
-            <p className="mt-1 text-6xl font-semibold leading-none tabular-nums text-primary">{formatNumber(identity.main_score, locale)}</p>
-          </div>
-          <div className="min-w-24 flex-1 lg:mt-4">
-            <div className="h-1.5 overflow-hidden rounded-full bg-primary/15" role="img" aria-label={`${locale === "zh" ? "命盘总指数" : "Chart index"} ${formatNumber(identity.main_score, locale)} / 100`}>
-              <span className="block h-full rounded-full bg-primary" style={{ width: `${score}%` }} />
-            </div>
-            <p className="mt-2 text-xs font-medium text-muted-foreground">{locale === "zh" ? `超过 ${formatNumber(identity.global_percentile, locale)}% 的历法样本` : `Ahead of ${formatNumber(identity.global_percentile, locale)}% of calendar samples`}</p>
-          </div>
         </div>
       </header>
 
-      <div role="group" className="grid min-w-0 grid-cols-2 border-b border-border/60 lg:grid-cols-4" aria-label={locale === "zh" ? "四项主题分数" : "Four subject scores"}>
+      <div role="group" className="grid min-w-0 gap-px border-b border-border/60 bg-border/55 sm:grid-cols-2 lg:grid-cols-4" aria-label={locale === "zh" ? "四条人生路径" : "Four life paths"}>
         {subjects.map((subject, index) => (
-          <article key={subject.key} className={cn("min-w-0 px-4 py-5 sm:px-5", index % 2 === 1 && "border-l border-border/55", index >= 2 && "border-t border-border/55 lg:border-t-0", index > 0 && "lg:border-l lg:border-border/55")}>
-            <div className="flex items-baseline justify-between gap-2">
-              <h3 className="truncate text-sm font-semibold">{subject.label}</h3>
-              <strong className="text-2xl font-semibold tabular-nums text-primary">{formatNumber(subject.score, locale)}</strong>
-            </div>
-            <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${subject.label} ${formatNumber(subject.score, locale)} / 100`}>
-              <span className="block h-full rounded-full bg-primary/75" style={{ width: `${boundedPercentage(subject.score)}%` }} />
-            </div>
-            <p className="mt-3 text-sm font-medium leading-6">{subject.headline}</p>
-            <p className="mt-2 text-xs font-medium leading-5 text-muted-foreground">{locale === "zh" ? `全部样本${topPercentageLabel(subject.global_top_percentage, locale)} · 同类${topPercentageLabel(subject.cohort_top_percentage, locale)}` : `${topPercentageLabel(subject.global_top_percentage, locale)} overall · ${topPercentageLabel(subject.cohort_top_percentage, locale)} among peers`}</p>
-          </article>
+          <SubjectPathCard key={subject.key} subject={subject} locale={locale} index={index} />
         ))}
       </div>
 
-      <div className={cn("grid min-w-0", twin && "lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]")}>
+      <div className="grid min-w-0">
         <section className="min-w-0 px-5 py-7 sm:px-7 lg:px-9" aria-labelledby={`${headingId}-fingerprints`}>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="kicker">{locale === "zh" ? "我的亮点" : "MY SIGNATURE"}</p>
-              <h3 id={`${headingId}-fingerprints`} className="mt-2 text-xl font-semibold">{locale === "zh" ? "最能代表你的五个特征" : "Five traits that stand out"}</h3>
+              <p className="kicker">{locale === "zh" ? "特别结构" : "DISTINCTIVE STRUCTURES"}</p>
+              <h3 id={`${headingId}-fingerprints`} className="mt-2 text-xl font-semibold">{locale === "zh" ? "命盘中较有辨识度的特征" : "Distinctive patterns in your chart"}</h3>
             </div>
             <span className="text-xs tabular-nums text-muted-foreground">{fingerprints.length}</span>
           </div>
@@ -168,35 +240,32 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
                 <div className="min-w-0">
                   <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <h4 className="font-semibold leading-6">{fingerprint.title}</h4>
-                    <p className="text-xs font-semibold text-primary">{fingerprint.rarity_label} · {topPercentageLabel(fingerprint.top_percentage, locale)}</p>
+                    <p className="text-xs font-semibold text-primary">{fingerprint.rarity_label} · {incidenceLabel(fingerprint.incidence_percentage ?? fingerprint.top_percentage, locale)}</p>
                   </div>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{fingerprint.detail}</p>
                 </div>
               </li>
             ))}
           </ol>
-          {!twin && comparisonAction ? <div data-export-exclude className="mt-6"><ComparisonEntry action={comparisonAction} /></div> : null}
-        </section>
-
-        {twin ? <aside className="min-w-0 border-t border-border/60 bg-primary/[0.035] px-5 py-7 sm:px-7 lg:border-l lg:border-t-0 lg:px-8" aria-labelledby={`${headingId}-twin`}>
-          <p className="kicker">{locale === "zh" ? "同类型命盘" : "YOUR CHART FAMILY"}</p>
-          <h3 id={`${headingId}-twin`} className="mt-2 text-2xl font-semibold leading-tight">{twin.title}</h3>
-          <p className="mt-3 text-sm leading-7 text-muted-foreground">{twin.summary}</p>
-          <p className="mt-5 border-y border-border/55 py-3 text-sm">
-            <strong className="text-2xl tabular-nums text-primary">{formatNumber(twin.share_percentage, locale)}%</strong>
-            <span className="ml-2 text-muted-foreground">{locale === "zh" ? "历法样本与你属于同一类型" : "of calendar samples share your chart family"}</span>
-          </p>
-          {twin.representatives.length ? (
-            <div className="mt-5">
-              <p className="text-xs font-semibold text-muted-foreground">{locale === "zh" ? "最接近你的结构样本" : "Closest chart patterns"}</p>
-              <ul className="mt-2 space-y-2 text-sm leading-6">
-                {twin.representatives.map((representative, index) => <li key={`${representative}-${index}`} className="flex gap-2"><span aria-hidden="true" className="text-primary">·</span><span>{representative}</span></li>)}
-              </ul>
-            </div>
-          ) : null}
+          <p className="mt-4 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "少见程度只说明结构辨识度，不代表吉凶或人生高低。" : "Rarity describes distinctiveness, not fortune or the quality of a life."}</p>
           {comparisonAction ? <div data-export-exclude className="mt-6"><ComparisonEntry action={comparisonAction} /></div> : null}
-        </aside> : null}
+        </section>
       </div>
     </section>
+  )
+}
+
+function SubjectPathCard({ subject, locale, index }: { subject: ConsumerSubjectScore; locale: ConsumerLocale; index: number }) {
+  const path = describeConsumerSubject(subject, locale)
+  return (
+    <article className="min-w-0 bg-surface px-4 py-5 sm:px-5">
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true" className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span>
+        <p className="text-xs font-semibold tracking-[0.12em] text-muted-foreground">{path.label}</p>
+      </div>
+      <h3 className="mt-3 text-xl font-semibold leading-tight text-primary">{path.title}</h3>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{path.description}</p>
+      <p className="mt-4 border-t border-border/50 pt-3 text-xs leading-5 text-foreground/75">{subject.headline}</p>
+    </article>
   )
 }

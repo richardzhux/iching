@@ -10,11 +10,11 @@ function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
   if (!consumer?.identity) return []
   const identity = consumer.identity
   const subjectTable = [
-    `| ${zh ? "主题" : "Subject"} | ${zh ? "指数" : "Index"} | ${zh ? "全部样本" : "All samples"} | ${identity.cohort_label} |`,
-    "| --- | ---: | ---: | ---: |",
-    ...consumer.subjects.map((subject) => `| ${cell(subject.label)} | ${subject.score} | ${zh ? "前" : "Top"} ${subject.global_top_percentage}% | ${zh ? "前" : "Top"} ${subject.cohort_top_percentage}% |`),
+    `| ${zh ? "人生主题" : "Life theme"} | ${zh ? "表达路径" : "Expression path"} | ${zh ? "说明" : "Meaning"} |`,
+    "| --- | --- | --- |",
+    ...consumer.subjects.map((subject) => `| ${cell(subject.label)} | ${cell(subject.path_label || subject.headline || (zh ? "结构路径" : "Structural path"))} | ${cell(subject.path_summary || (subject.drivers ?? []).slice(0, 2).join(" · ") || (zh ? "查看完整命盘" : "See full chart"))} |`),
   ]
-  const stages = consumer.life_kline.stages.slice(0, 3).map((stage) => `- ${stage.year}｜**${stage.label}**：${stage.summary}`)
+  const stages = consumer.life_kline.stages.slice(0, 3).map((stage) => `- ${stage.year}｜**${stage.label}**：${zh ? "值得关注的阶段" : "A period worth watching"}`)
   return [
     `## ${zh ? "命格身份" : "Chart identity"}`,
     "",
@@ -22,7 +22,7 @@ function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
     "",
     identity.archetype_subtitle,
     "",
-    `**${zh ? "命盘总指数" : "Main chart index"} ${identity.main_score} · ${zh ? "全部样本前" : "Top"} ${identity.global_top_percentage}% · ${identity.cohort_label}${zh ? "前" : " top"} ${identity.cohort_top_percentage}%**`,
+    `**${zh ? "你的四条人生路径" : "Your four life paths"}**`,
     "",
     ...subjectTable,
     ...(stages.length ? ["", `### ${zh ? "未来三大阶段" : "Three future stages"}`, "", ...stages] : []),
@@ -141,6 +141,7 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
     `## ${zh ? "命主" : "Chart"}：${title}`, "", ...consumerMarkdown(chart.consumer, zh), `## ${zh ? "生辰八字" : "BaZi"}`, "", ...table, "", ...facts,
     "", ...dayun,
     "", `## ${zh ? "神煞与历法样本频率" : "Shen Sha and calendar-sample frequency"}`, "", ...shensha,
+    "", `> ${zh ? "出现率只表示这项结构在历法样本中的少见程度，不代表吉凶或人生高低。" : "Incidence only describes how uncommon a structure is in calendar samples; it does not indicate fortune or life quality."}`,
     "", `## ${zh ? "核心判断" : "Key findings"}`, "", ...(chart.synthesis?.conclusions ?? []).map((item) => `- **${item.headline}**：${item.body}${item.distribution_context ? `（${item.distribution_context}）` : ""}`),
     "", `## ${zh ? "四主题结构画像" : "Four-theme structure profile"}`, "", ...themes,
     "", `> ${zh ? "规则版本" : "Rules"}: ${chart.rules_version} · ${zh ? "统计基线" : "Baseline"}: ${chart.statistics.baseline.id}`,
@@ -265,7 +266,7 @@ export function buildZiweiMarkdown(
     `## ${zh ? "运限" : "Periods"}`,
     "",
     ...periodTable,
-    ...(rarity.length ? ["", `## ${zh ? "结构出现频率" : "Structural frequency"}`, "", ...rarity] : []),
+    ...(rarity.length ? ["", `## ${zh ? "结构出现频率" : "Structural frequency"}`, "", ...rarity, "", `> ${zh ? "出现率只表示这项结构的少见程度，不代表吉凶或人生高低。" : "Incidence only describes how uncommon a structure is; it does not indicate fortune or life quality."}`] : []),
     ...(statistics ? ["", `> ${zh ? "统计基线" : "Baseline"}: ${statistics.baseline.id}`] : []),
   ].join("\n")
 }

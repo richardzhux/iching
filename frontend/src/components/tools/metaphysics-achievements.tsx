@@ -47,6 +47,8 @@ const englishState: Record<AchievementState, string> = {
   受制: "Constrained",
 }
 
+const achievementStates = new Set(["发力", "有力", "可见", "Activated", "Effective", "Visible"])
+
 function stateLabel(state: string, locale: AchievementLocale) {
   if (locale === "zh") return state
   return englishState[state as AchievementState] ?? state
@@ -65,23 +67,24 @@ export function MetaphysicsAchievements({
   className,
 }: MetaphysicsAchievementsProps) {
   const headingId = `${useId()}-metaphysics-achievements-title`
+  const visibleAchievements = achievements.filter((achievement) => achievementStates.has(achievement.state))
   const heading = title ?? (locale === "zh" ? "已解锁的命盘成就" : "Unlocked chart achievements")
-  const supportingCopy = description ?? (locale === "zh" ? "越稀有，越难在普通命盘里遇见；发力状态代表这项特征正得到原局呼应。" : "The rarer the achievement, the less often it appears; an activated state means the chart strongly reinforces it.")
+  const supportingCopy = description ?? (locale === "zh" ? "这里只收录得到原局支持或清晰可见的结构。出现率表示少见程度，不代表吉凶或人生高低。" : "Only supported or clearly visible structures appear here. Incidence describes rarity, not fortune or life quality.")
 
   return (
     <section className={cn("min-w-0", className)} aria-labelledby={headingId}>
       <header className="flex min-w-0 flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="kicker">{locale === "zh" ? "稀有成就" : "RARE ACHIEVEMENTS"}</p>
+          <p className="kicker">{locale === "zh" ? "命盘成就" : "CHART ACHIEVEMENTS"}</p>
           <h2 id={headingId} className="mt-2 text-2xl font-semibold">{heading}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{supportingCopy}</p>
         </div>
-        <p className="text-xs tabular-nums text-muted-foreground">{locale === "zh" ? `${achievements.length} 项` : `${achievements.length} found`}</p>
+        <p className="text-xs tabular-nums text-muted-foreground">{locale === "zh" ? `${visibleAchievements.length} 项` : `${visibleAchievements.length} found`}</p>
       </header>
 
-      {achievements.length ? (
+      {visibleAchievements.length ? (
         <ul className="mt-5 grid min-w-0 gap-3 md:grid-cols-2">
-          {achievements.map((achievement) => (
+          {visibleAchievements.map((achievement) => (
             <li key={achievement.id} className="min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-surface px-4 py-5 shadow-[var(--surface-shadow-soft)] sm:px-5">
               <article className="min-w-0">
                 <div className="flex items-center justify-between gap-3">
@@ -105,7 +108,7 @@ export function MetaphysicsAchievements({
           ))}
         </ul>
       ) : (
-        <p className="mt-5 rounded-2xl border border-border/60 bg-muted/30 px-5 py-6 text-sm leading-6 text-muted-foreground">{emptyMessage ?? (locale === "zh" ? "暂未解锁稀有成就；你的主导格局与主题亮点仍可在完整命盘中查看。" : "No rare achievement is unlocked yet; your main chart pattern and standout themes remain available in the full chart.")}</p>
+        <p className="mt-5 rounded-2xl border border-border/60 bg-muted/30 px-5 py-6 text-sm leading-6 text-muted-foreground">{emptyMessage ?? (locale === "zh" ? "当前没有需要单独展示的命盘成就；受制结构仍会保留在完整命盘中。" : "No chart achievement needs a separate highlight right now; constrained structures remain available in the full chart.")}</p>
       )}
     </section>
   )
