@@ -36,7 +36,7 @@ export interface ConsumerFingerprint {
   title: string
   detail: string
   rarity_label: string
-  top_percentage: number
+  top_percentage?: number
   incidence_percentage?: number | null
 }
 

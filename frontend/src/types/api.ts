@@ -140,7 +140,7 @@ export type ConsumerAchievement = {
   title: string
   tier: "SSR" | "SR" | "R" | string
   state: string
-  rarity_percentage: number
+  rarity_percentage: number | null
   position: string
   summary: string
   member_ids: string[]
@@ -151,7 +151,8 @@ export type ConsumerFingerprint = {
   title: string
   detail: string
   rarity_label: string
-  top_percentage: number
+  /** @deprecated Legacy ranking field; canonical claims do not populate it. */
+  top_percentage?: number
   incidence_percentage?: number | null
 }
 
@@ -191,8 +192,53 @@ export type LifeKlineSeries = {
   method: string
 }
 
+export type ConsumerClaim = {
+  id: string
+  slot: "hero" | "theme" | "signature" | "combination" | "timeline"
+  theme?: "career" | "wealth" | "relationship" | "rhythm"
+  title: string
+  summary: string
+  importance: "foundation" | "primary" | "major" | "supporting" | "auxiliary"
+  classicalRole: "pattern" | "formation_path" | "damage" | "rescue" | "expression" | "supporting_marker"
+  /** Canonical Task 5 IDs are present only after an exact source-backed match. */
+  patternId?: string
+  pathId?: string
+  /** Stable consumer expression path; distinct from a classical formation path. */
+  expressionPathId?: string
+  evidenceHighlights?: string[]
+  direction?: {
+    kind: "expression"
+    id: string
+    label: string
+  }
+  comparison?: {
+    kind: "incidence"
+    featureId: string
+    status: "observed" | "zero" | "unsupported"
+    percentage: number | null
+    display: string
+    baselineId: string | null
+  }
+  activation?: {
+    layer: "dayun" | "liunian" | "liuyue"
+    ganzhi: string
+    startTimestamp: string
+    endTimestamp: string
+    startYear?: number
+    endYear?: number
+    isCurrent: boolean
+    drivers?: Array<{ kind: string; label: string; detail: string; source: string }>
+  }
+  evidenceIds: string[]
+  ruleIds: string[]
+  sourceIds: string[]
+}
+
 export type ConsumerProfile = {
   version: string
+  claims_version?: string
+  /** Canonical for new BaZi snapshots; optional for Zi Wei and old archives. */
+  claims?: ConsumerClaim[]
   system: "bazi" | "ziwei"
   identity: {
     system_title: string

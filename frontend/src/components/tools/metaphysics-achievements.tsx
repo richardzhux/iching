@@ -12,7 +12,7 @@ export interface MetaphysicsAchievement {
   title: string
   tier: AchievementTier | string
   state: AchievementState | string
-  rarity_percentage: number
+  rarity_percentage: number | null
   position: string
   summary: string
   member_ids: string[]
@@ -93,7 +93,7 @@ export function MetaphysicsAchievements({
                 </div>
                 <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-5 gap-y-2">
                   <h3 className="mt-4 text-xl font-semibold leading-7">{achievement.title}</h3>
-                  <p className="mt-4 shrink-0 rounded-full bg-primary/[0.08] px-2.5 py-1 text-xs font-semibold text-primary">{locale === "zh" ? `出现率 ${formatPercentage(achievement.rarity_percentage, locale)}%` : `${formatPercentage(achievement.rarity_percentage, locale)}% incidence`}</p>
+                  {achievement.rarity_percentage != null ? <p className="mt-4 shrink-0 rounded-full bg-primary/[0.08] px-2.5 py-1 text-xs font-semibold text-primary">{locale === "zh" ? `出现率 ${formatPercentage(achievement.rarity_percentage, locale)}%` : `${formatPercentage(achievement.rarity_percentage, locale)}% incidence`}</p> : null}
                 </div>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">{achievement.summary}</p>
                 <dl className="mt-4 flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/55 pt-3 text-xs">
