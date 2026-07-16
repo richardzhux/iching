@@ -32,6 +32,31 @@
       },
       "review_state": "scan_verified_partial",
       "title_diplomatic": "繼善篇"
+    },
+    {
+      "completeness": "selected_scan_verified_passages_from_volume_five",
+      "files": {
+        "examples": null,
+        "non_rules": "research/classics/yuanhai_ziping/non_rules/yhzp.volume-five.selected-passages.jsonl",
+        "propositions": "research/classics/yuanhai_ziping/propositions/yhzp.volume-five.selected-passages.jsonl",
+        "rule_candidates": null,
+        "segments": "research/classics/yuanhai_ziping/segments/yhzp.volume-five.selected-passages.jsonl"
+      },
+      "file_sha256": {
+        "non_rules": "497377a87fb2b13d264ce3647841ed13a43060e70a43e0dcc09c63aa283c69b8",
+        "propositions": "1e20dd3ac048a158583b1d5fcc6d2295257ae28963d28ca92e7c8eb9bcd516e1",
+        "segments": "15b790af18ac017648faea6de6096b9310fa84c8026c73b517d9ac89708a4518"
+      },
+      "id": "yhzp.volume-five.selected-passages",
+      "record_counts": {
+        "examples": 0,
+        "non_rules": 5,
+        "propositions": 5,
+        "rule_candidates": 0,
+        "segments": 7
+      },
+      "review_state": "scan_verified_partial",
+      "title_diplomatic": "身弱論、棄命從殺詩訣、沐浴詩訣、格局生死引用（選段）"
     }
   ],
   "corpus_id": "yuanhai-ziping-first-tranche-v1",
@@ -43,17 +68,21 @@
       "ordinary direct-officer, seven-killings, wealth-to-officer, officer-seal, and hurting-officer concepts",
       "pattern guards preventing single-star or single-god conclusions",
       "strength-dependent officer/killing role change",
-      "one scan-located historical education claim, explicitly non-predictive"
+      "the 身弱論 heading and a separately witnessed strength/control verse, without invented strength thresholds",
+      "棄命從殺詩訣 as a named-pattern attestation, explicitly not a complete formation algorithm",
+      "two scan-located historical education claims, explicitly non-predictive",
+      "格局生死引用 as historical source claims that are permanently non-executable"
     ],
     "known_gaps": [
       "The separate 论月令 chapter has not yet been page-indexed in this Wanli witness.",
       "The individual ordinary-pattern chapters have not yet been transcribed end to end.",
-      "身弱论 and 弃命从杀论 are deferred because exact pages were not visually located in this pass.",
-      "子平百章论科甲歌 is deferred; only the verified 继善篇 education line is present.",
-      "格局生死引用 is deferred; this tranche includes only the verified strength-dependent life/damage concepts in 继善篇.",
+      "身弱論 is page-located in the Wanli witness, but its body has not yet been transcribed end to end.",
+      "棄命從殺詩訣 is page-located, but the selected verses do not define a complete formation, failure, or false-following algorithm.",
+      "No standalone 子平百章論科甲歌 was found in the scanned Qin volume; the verified 沐浴詩訣 line is retained instead.",
+      "格局生死引用 is represented by two verified claims rather than an end-to-end chapter transcription, and its deterministic fatality language is never executable.",
       "Printed folio numbers and line-level bounding boxes remain to be indexed."
     ],
-    "production_interpretation": "The source propositions are eligible for later overlay review. All rule candidates remain non-executable because compiling them now would invent definitions for useful god, depth, strength, excess, control effectiveness, or same-path damage."
+    "production_interpretation": "The source propositions are eligible for later overlay review. All rule candidates remain non-executable because compiling them now would invent definitions for useful god, depth, strength, excess, control effectiveness, same-path damage, or follow-pattern formation. Historical education and fatality claims are source records only and cannot become consumer predictions."
   },
   "determinism": {
     "encoding": "UTF-8",
@@ -133,6 +162,102 @@
       "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf#page=42",
       "visually_verified": true,
       "witness_id": "yuanhai-ziping-nlc-wanli-v1"
+    },
+    {
+      "column_line": "left folio, chapter heading",
+      "id": "loc.yhzp.v4.17.body-weak-heading",
+      "pdf_page": 17,
+      "printed_page": null,
+      "quote": "身弱論",
+      "quote_sha256": "fb8fd7661bde7272ea6d7f361384ab73ed2cfbe7b3e3e4b351655353aa6c4e8e",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/NLC892-2642-210318_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC4%E5%86%8A.pdf#page=17",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v4"
+    },
+    {
+      "column_line": "printed page 2, 偏官詩訣",
+      "id": "loc.yhzp.qin.50.killing-strength",
+      "pdf_page": 50,
+      "printed_page": "2",
+      "quote": "偏官如虎怕沖多，運旺身強豈奈何。身弱虎強成禍患，身強制伏貴中和。",
+      "quote_sha256": "5cf08a3c5eb887611c21931ae1badc0030b982dd8b94c03acaa2219010b37d45",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=50",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "printed page 21, 棄命從殺詩訣",
+      "id": "loc.yhzp.qin.69.follow-killing",
+      "pdf_page": 69,
+      "printed_page": "21",
+      "quote": "土臨卯位三合全，不見當生金水纏。火木旺鄉名利顯，再逢坤坎禍連綿。",
+      "quote_sha256": "9929cd7f631a6828023d550db2654b4f99be4eff85446b2f9a8a9b09e29672a1",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=69",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "left folio, 棄命從殺詩訣 heading",
+      "id": "loc.yhzp.v4.9.follow-killing",
+      "pdf_page": 9,
+      "printed_page": null,
+      "quote": "棄命從殺詩訣",
+      "quote_sha256": "5906241bd427ecf0b48ad52b7a70825229efa7e28453033afa3f64de61ef3a2c",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/NLC892-2642-210318_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC4%E5%86%8A.pdf#page=9",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v4"
+    },
+    {
+      "column_line": "printed page 28, 沐浴詩訣",
+      "id": "loc.yhzp.qin.76.education",
+      "pdf_page": 76,
+      "printed_page": "28",
+      "quote": "沐浴那堪吉位逢，更兼引從在其中。讀書必定登科甲，莫比諸神例作凶。",
+      "quote_sha256": "08fe7c3b3e95341a1d735cd030a7a29b3e44e40a01c7de209bd2942302bc75af",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=76",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "left folio, 沐浴詩訣 heading",
+      "id": "loc.yhzp.v4.12.education",
+      "pdf_page": 12,
+      "printed_page": null,
+      "quote": "沐浴詩訣",
+      "quote_sha256": "a8e0008882dcdc6d1bb38f6b06b181ea99a0bbca23edea12cf78da12b0ea7b45",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/NLC892-2642-210318_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC4%E5%86%8A.pdf#page=12",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v4"
+    },
+    {
+      "column_line": "printed page 38, 格局生死引用 opening",
+      "id": "loc.yhzp.qin.86.life-death-seal",
+      "pdf_page": 86,
+      "printed_page": "38",
+      "quote": "夫格局者，自有定論，今略而述之。印綬見財行財運又兼死絕，必入黃泉。如柱有比肩，庶幾有解。",
+      "quote_sha256": "473a77b781d4b6a98296b7591bf31e8ba3174ae9b6d7493aadf2f544adf90d97",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=86",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    },
+    {
+      "column_line": "printed page 38, 格局生死引用 later line",
+      "id": "loc.yhzp.qin.86.life-death-officer",
+      "pdf_page": 86,
+      "printed_page": "38",
+      "quote": "正官見殺及傷官，刑沖破害歲運相併，必死。",
+      "quote_sha256": "71ebf3f2be4cc88567fe3a85e578431103c4a49b884612cccee2c6f2d75b403d",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NTL-9900014380_%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE_v.2.pdf#page=86",
+      "visually_verified": true,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
     }
   ],
   "schema": "iching.classics.yuanhai-corpus.v1",
@@ -154,6 +279,7 @@
     "yuanhai-ziping-nlc-wanli-v1",
     "yuanhai-ziping-nlc-wanli-v2",
     "yuanhai-ziping-nlc-wanli-v3",
-    "yuanhai-ziping-nlc-wanli-v4"
+    "yuanhai-ziping-nlc-wanli-v4",
+    "qin-shenan-1926-ziping-zhenquan-v2"
   ]
 }

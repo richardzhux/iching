@@ -6,12 +6,12 @@
   "overlay_descriptor_version": "bazi-overlay-descriptor-v1",
   "registry": {
     "authority_layer": "yuanhai",
-    "bundle_digest": "a36fe297584ab6345cbb0aed424cd7a1de8b72996a7a72ddd1f613e046c8727e",
+    "bundle_digest": "b8300d0248b8688b86b55842bf868ae2cc90908f328294b31a7b9c44e28973a9",
     "bundle_id": "yuanhai-ziping-v1",
     "exclusions": [],
     "registry_version": "bazi-rule-registry-v1",
     "rules": [],
-    "source_bundle_digest": "ca1567b5acad881a34b22c02f9e766bff3aebbbb0c66292ea1ad9f5c81f5b3b8",
+    "source_bundle_digest": "bfbbcb378b69e3b00c3d80df17486bcf2e9352fc8137fd79bfecde291f812a36",
     "source_provenance": [],
     "source_provenance_digest": ""
   },
