@@ -119,7 +119,7 @@ class MetaphysicsChartRequest(BaseModel):
     fold_choice: Optional[Literal["first", "second"]] = None
     reference_timestamp: Optional[datetime] = None
     include_period_details: bool = False
-    period_cycle_index: Optional[int] = Field(default=None, ge=0, le=8)
+    period_cycle_index: Optional[int] = Field(default=None, ge=0, le=19)
 
     @model_validator(mode="after")
     def _validate_lunar_input(self) -> "MetaphysicsChartRequest":
@@ -129,7 +129,7 @@ class MetaphysicsChartRequest(BaseModel):
 
 
 class MetaphysicsPeriodRequest(MetaphysicsChartRequest):
-    cycle_index: int = Field(ge=0, le=8)
+    cycle_index: int = Field(ge=0, le=19)
 
 
 class MetaphysicsPeriodResponse(BaseModel):

@@ -1,0 +1,2110 @@
+{
+  "schema_version": 6,
+  "baseline_generation_version": 4,
+  "id": "bazi-calendar-1924-2044-g4-forward",
+  "chart_type": "bazi",
+  "kind": "calendar_sample_frequency",
+  "label": "1924立春—2044立春历法样本",
+  "start": "1924-02-05T09:49:32.093582+08:00",
+  "end": "2044-02-04T12:43:35.535736+08:00",
+  "timezone": "Asia/Shanghai",
+  "day_boundary": "forward",
+  "config_id": "bazi-canonical-calendar-1-asia-shanghai-forward",
+  "engine": "canonical-calendar-1 (sxtwl 2.0.7 ephemeris)",
+  "rules_version": "shensha-2026.07-v2.1",
+  "rules_registry_hash": "sha256:e59e91df098f6f556a4325863ffc99945ae75a708a1ef7952b3612b79941031f",
+  "pattern_bundle_id": "zzq-shen-canonical-v1",
+  "pattern_bundle_digest": "8c41b4f22b8461526651b364d95144a74036c9e9a8606f1088eb53c4d356a523",
+  "feature_catalog": [
+    "bazi.shensha.ciguan",
+    "bazi.shensha.dexiu",
+    "bazi.shensha.fuxing",
+    "bazi.shensha.guasuo",
+    "bazi.shensha.guchen",
+    "bazi.shensha.guoyin",
+    "bazi.shensha.hongluan",
+    "bazi.shensha.hongyan",
+    "bazi.shensha.huagai",
+    "bazi.shensha.jiangxing",
+    "bazi.shensha.jiesha",
+    "bazi.shensha.jinyu",
+    "bazi.shensha.kuigang",
+    "bazi.shensha.lushen",
+    "bazi.shensha.taiji",
+    "bazi.shensha.taohua",
+    "bazi.shensha.ten_bad_defeats",
+    "bazi.shensha.tiande",
+    "bazi.shensha.tianku",
+    "bazi.shensha.tianxi",
+    "bazi.shensha.tianyi",
+    "bazi.shensha.tianyi_doctor",
+    "bazi.shensha.wangshen",
+    "bazi.shensha.wenchang",
+    "bazi.shensha.xuetang",
+    "bazi.shensha.yangren",
+    "bazi.shensha.yima",
+    "bazi.shensha.yinyang_error",
+    "bazi.shensha.yuede",
+    "bazi.shensha.zaisha"
+  ],
+  "feature_catalog_hash": "sha256:9a0a48fe7b6745c8b33beafa432f466e655059308238667120b34b8c78e025e0",
+  "metric_catalog": [
+    {
+      "id": "事业.mobility_count",
+      "theme": "事业",
+      "metric_id": "mobility_count",
+      "label": "迁动信号",
+      "metric_type": "ordinal",
+      "source": "驿马与地支冲",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "发展路径较定向",
+        "typical": "迁动信号适中",
+        "high": "迁动与变化更活跃"
+      }
+    },
+    {
+      "id": "事业.officer_count",
+      "theme": "事业",
+      "metric_id": "officer_count",
+      "label": "官杀出现",
+      "metric_type": "ordinal",
+      "source": "日主中心十神",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "规则压力较轻",
+        "typical": "责任结构适中",
+        "high": "责任结构更集中"
+      }
+    },
+    {
+      "id": "事业.output_count",
+      "theme": "事业",
+      "metric_id": "output_count",
+      "label": "食伤出现",
+      "metric_type": "ordinal",
+      "source": "日主中心十神",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "表达方式偏内敛",
+        "typical": "表达结构适中",
+        "high": "表达与产出更活跃"
+      }
+    },
+    {
+      "id": "事业.relation_count",
+      "theme": "事业",
+      "metric_id": "relation_count",
+      "label": "事业相关关系",
+      "metric_type": "ordinal",
+      "source": "结构化干支关系",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "事业关系较聚焦",
+        "typical": "事业互动适中",
+        "high": "事业互动更密集"
+      }
+    },
+    {
+      "id": "事业.resource_count",
+      "theme": "事业",
+      "metric_id": "resource_count",
+      "label": "印星出现",
+      "metric_type": "ordinal",
+      "source": "日主中心十神",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "支持路径较精简",
+        "typical": "支持结构适中",
+        "high": "支持与学习结构更集中"
+      }
+    },
+    {
+      "id": "事业.shensha_count",
+      "theme": "事业",
+      "metric_id": "shensha_count",
+      "label": "事业辅助神煞",
+      "metric_type": "binary",
+      "source": "版本化神煞注册表",
+      "version": "bazi-core-metrics-2026.07-v2"
+    },
+    {
+      "id": "五行与承压结构.concentrated_element_count",
+      "theme": "五行与承压结构",
+      "metric_id": "concentrated_element_count",
+      "label": "集中五行",
+      "metric_type": "ordinal",
+      "source": "明干、主气、藏干分层",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "五行分布较分散",
+        "typical": "五行集中度适中",
+        "high": "五行集中度更高"
+      }
+    },
+    {
+      "id": "五行与承压结构.missing_element_count",
+      "theme": "五行与承压结构",
+      "metric_id": "missing_element_count",
+      "label": "未见五行",
+      "metric_type": "ordinal",
+      "source": "明干、主气、藏干分层",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "五行覆盖更完整",
+        "typical": "五行覆盖适中",
+        "high": "五行呈现更偏科"
+      }
+    },
+    {
+      "id": "五行与承压结构.pressure_relation_count",
+      "theme": "五行与承压结构",
+      "metric_id": "pressure_relation_count",
+      "label": "冲刑害破克",
+      "metric_type": "ordinal",
+      "source": "结构化干支关系",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "结构张力较低",
+        "typical": "结构张力适中",
+        "high": "结构张力更集中"
+      }
+    },
+    {
+      "id": "五行与承压结构.repeated_branch_count",
+      "theme": "五行与承压结构",
+      "metric_id": "repeated_branch_count",
+      "label": "重复地支",
+      "metric_type": "ordinal",
+      "source": "四支重复检查",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "地支重复较少",
+        "typical": "地支重复适中",
+        "high": "地支重复更明显"
+      }
+    },
+    {
+      "id": "五行与承压结构.root_pillar_count",
+      "theme": "五行与承压结构",
+      "metric_id": "root_pillar_count",
+      "label": "通根柱位",
+      "metric_type": "ordinal",
+      "source": "藏干同五行检查",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "通根范围较窄",
+        "typical": "通根范围适中",
+        "high": "通根范围较广"
+      }
+    },
+    {
+      "id": "五行与承压结构.shensha_count",
+      "theme": "五行与承压结构",
+      "metric_id": "shensha_count",
+      "label": "承压辅助神煞",
+      "metric_type": "binary",
+      "source": "版本化神煞注册表",
+      "version": "bazi-core-metrics-2026.07-v2"
+    },
+    {
+      "id": "感情.day_stem_combine_count",
+      "theme": "感情",
+      "metric_id": "day_stem_combine_count",
+      "label": "日干合",
+      "metric_type": "ordinal",
+      "source": "天干五合",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "日干互动较独立",
+        "typical": "日干互动适中",
+        "high": "日干合意象更突出"
+      }
+    },
+    {
+      "id": "感情.hidden_spouse_count",
+      "theme": "感情",
+      "metric_id": "hidden_spouse_count",
+      "label": "配偶星藏见",
+      "metric_type": "ordinal",
+      "source": "传统配偶星取法",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "配偶星路径较直接",
+        "typical": "配偶星藏见适中",
+        "high": "配偶星更偏内藏显现"
+      }
+    },
+    {
+      "id": "感情.relation_count",
+      "theme": "感情",
+      "metric_id": "relation_count",
+      "label": "感情相关关系",
+      "metric_type": "ordinal",
+      "source": "结构化干支关系",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "感情关系较聚焦",
+        "typical": "感情互动适中",
+        "high": "感情互动更密集"
+      }
+    },
+    {
+      "id": "感情.shensha_count",
+      "theme": "感情",
+      "metric_id": "shensha_count",
+      "label": "感情辅助神煞",
+      "metric_type": "binary",
+      "source": "版本化神煞注册表",
+      "version": "bazi-core-metrics-2026.07-v2"
+    },
+    {
+      "id": "感情.spouse_palace_relation_count",
+      "theme": "感情",
+      "metric_id": "spouse_palace_relation_count",
+      "label": "夫妻宫关系",
+      "metric_type": "ordinal",
+      "source": "日支夫妻宫与干支关系",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "夫妻宫关系较聚焦",
+        "typical": "夫妻宫互动适中",
+        "high": "夫妻宫互动更密集"
+      }
+    },
+    {
+      "id": "感情.visible_spouse_count",
+      "theme": "感情",
+      "metric_id": "visible_spouse_count",
+      "label": "配偶星明透",
+      "metric_type": "ordinal",
+      "source": "传统配偶星取法",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "配偶星表达偏潜藏",
+        "typical": "配偶星显隐适中",
+        "high": "配偶星表达更外显"
+      }
+    },
+    {
+      "id": "财富.hidden_wealth_count",
+      "theme": "财富",
+      "metric_id": "hidden_wealth_count",
+      "label": "财星藏见",
+      "metric_type": "ordinal",
+      "source": "日主中心十神",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "资源路径更直接",
+        "typical": "藏见资源适中",
+        "high": "资源更偏内藏积累"
+      }
+    },
+    {
+      "id": "财富.output_count",
+      "theme": "财富",
+      "metric_id": "output_count",
+      "label": "食伤出现",
+      "metric_type": "ordinal",
+      "source": "日主中心十神",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "价值输出偏收敛",
+        "typical": "价值转化适中",
+        "high": "价值转化更活跃"
+      }
+    },
+    {
+      "id": "财富.peer_count",
+      "theme": "财富",
+      "metric_id": "peer_count",
+      "label": "比劫出现",
+      "metric_type": "ordinal",
+      "source": "日主中心十神",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "资源边界较独立",
+        "typical": "协作结构适中",
+        "high": "共同体与协作更活跃"
+      }
+    },
+    {
+      "id": "财富.relation_count",
+      "theme": "财富",
+      "metric_id": "relation_count",
+      "label": "财富相关关系",
+      "metric_type": "ordinal",
+      "source": "结构化干支关系",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "财富关系较聚焦",
+        "typical": "财富互动适中",
+        "high": "财富互动更密集"
+      }
+    },
+    {
+      "id": "财富.shensha_count",
+      "theme": "财富",
+      "metric_id": "shensha_count",
+      "label": "财富辅助神煞",
+      "metric_type": "binary",
+      "source": "版本化神煞注册表",
+      "version": "bazi-core-metrics-2026.07-v2"
+    },
+    {
+      "id": "财富.visible_wealth_count",
+      "theme": "财富",
+      "metric_id": "visible_wealth_count",
+      "label": "财星明透",
+      "metric_type": "ordinal",
+      "source": "日主中心十神",
+      "version": "bazi-core-metrics-2026.07-v2",
+      "semantic_poles": {
+        "low": "财富表达偏潜藏",
+        "typical": "财富显隐适中",
+        "high": "财富表达更外显"
+      }
+    }
+  ],
+  "metric_catalog_hash": "sha256:17199c30026606c22c4554671cb8e1be2d4cba11d30ffa591ec89205ce3f42f0",
+  "unique_state_count": 389214,
+  "sample_unit": "minute",
+  "weighted_unit": "minute",
+  "sample_weight": 63113934.057369,
+  "method": "按四柱变化边界分段穷举，并按每段实际持续分钟数加权。",
+  "features": {
+    "bazi.shensha.ciguan": {
+      "hit_weight": 3610227.415566
+    },
+    "bazi.shensha.dexiu": {
+      "hit_weight": 55529693.534165
+    },
+    "bazi.shensha.fuxing": {
+      "hit_weight": 29031414.047038
+    },
+    "bazi.shensha.guasuo": {
+      "hit_weight": 14497270.357265
+    },
+    "bazi.shensha.guchen": {
+      "hit_weight": 14505415.08433
+    },
+    "bazi.shensha.guoyin": {
+      "hit_weight": 17725016.247552
+    },
+    "bazi.shensha.hongluan": {
+      "hit_weight": 14499405.145989
+    },
+    "bazi.shensha.hongyan": {
+      "hit_weight": 20177401.941323
+    },
+    "bazi.shensha.huagai": {
+      "hit_weight": 42610922.043454
+    },
+    "bazi.shensha.jiangxing": {
+      "hit_weight": 42607056.479106
+    },
+    "bazi.shensha.jiesha": {
+      "hit_weight": 24289983.40363
+    },
+    "bazi.shensha.jinyu": {
+      "hit_weight": 17756244.618
+    },
+    "bazi.shensha.kuigang": {
+      "hit_weight": 4206240.0
+    },
+    "bazi.shensha.lushen": {
+      "hit_weight": 17773178.115593
+    },
+    "bazi.shensha.taiji": {
+      "hit_weight": 36279688.832864
+    },
+    "bazi.shensha.taohua": {
+      "hit_weight": 24296860.728071
+    },
+    "bazi.shensha.ten_bad_defeats": {
+      "hit_weight": 10517820.0
+    },
+    "bazi.shensha.tiande": {
+      "hit_weight": 19621428.527866
+    },
+    "bazi.shensha.tianku": {
+      "hit_weight": 17760934.654414
+    },
+    "bazi.shensha.tianxi": {
+      "hit_weight": 14501190.54928
+    },
+    "bazi.shensha.tianyi": {
+      "hit_weight": 28996259.502174
+    },
+    "bazi.shensha.tianyi_doctor": {
+      "hit_weight": 14509238.941961
+    },
+    "bazi.shensha.wangshen": {
+      "hit_weight": 24293204.545837
+    },
+    "bazi.shensha.wenchang": {
+      "hit_weight": 19364282.782125
+    },
+    "bazi.shensha.xuetang": {
+      "hit_weight": 7690273.801731
+    },
+    "bazi.shensha.yangren": {
+      "hit_weight": 19386614.765295
+    },
+    "bazi.shensha.yima": {
+      "hit_weight": 23068320.193448
+    },
+    "bazi.shensha.yinyang_error": {
+      "hit_weight": 12622860.0
+    },
+    "bazi.shensha.yuede": {
+      "hit_weight": 21773926.918955
+    },
+    "bazi.shensha.zaisha": {
+      "hit_weight": 23068252.757988
+    }
+  },
+  "theme_comparison_method": "transparent_metric_distributions",
+  "theme_metric_weights_by_gender": {
+    "male": {
+      "事业": {
+        "officer_count": {
+          "0": 2919046.150001,
+          "1": 11400092.872132,
+          "2": 18740790.195014,
+          "3": 17232138.085945,
+          "4": 9461332.112677,
+          "5": 2878976.58089,
+          "6": 451318.060711,
+          "7": 30240.0
+        },
+        "resource_count": {
+          "0": 3164453.439937,
+          "1": 11569315.685831,
+          "2": 18296140.663362,
+          "3": 16897753.279605,
+          "4": 9622468.051019,
+          "5": 3010209.699196,
+          "6": 518989.355348,
+          "7": 34603.883072
+        },
+        "output_count": {
+          "0": 3140606.854038,
+          "1": 11537781.037328,
+          "2": 18384069.082182,
+          "3": 16931491.555812,
+          "4": 9555019.10627,
+          "5": 3016168.152357,
+          "6": 513490.283313,
+          "7": 35307.986069
+        },
+        "relation_count": {
+          "0": 843337.393398,
+          "1": 1662342.183466,
+          "2": 4169500.930057,
+          "3": 7039931.512303,
+          "4": 9994095.233878,
+          "5": 11181434.054678,
+          "6": 10942246.78305,
+          "7": 7786625.443225,
+          "8": 4960052.893955,
+          "9": 2573504.467433,
+          "10": 1092824.143885,
+          "11": 507853.497354,
+          "12": 203269.958038,
+          "13": 82589.016724,
+          "14": 33600.0,
+          "15": 27200.610409,
+          "16": 10719.644165,
+          "17": 2566.291351,
+          "18": 240.0
+        },
+        "mobility_count": {
+          "0": 26698454.789863,
+          "1": 21114777.275378,
+          "2": 12586339.034931,
+          "3": 2556491.551039,
+          "4": 121263.426849,
+          "5": 36607.979309
+        },
+        "shensha_count": {
+          "0": 3120.0,
+          "1": 63110814.057369
+        }
+      },
+      "财富": {
+        "visible_wealth_count": {
+          "0": 32291373.231144,
+          "1": 24298049.369067,
+          "2": 6000589.923806,
+          "3": 523921.533352
+        },
+        "hidden_wealth_count": {
+          "0": 5976105.258027,
+          "1": 17986947.664394,
+          "2": 21615262.387864,
+          "3": 13489602.110663,
+          "4": 4046016.636421
+        },
+        "output_count": {
+          "0": 3140606.854038,
+          "1": 11537781.037328,
+          "2": 18384069.082182,
+          "3": 16931491.555812,
+          "4": 9555019.10627,
+          "5": 3016168.152357,
+          "6": 513490.283313,
+          "7": 35307.986069
+        },
+        "peer_count": {
+          "0": 2992646.001473,
+          "1": 11394367.273269,
+          "2": 18706356.362503,
+          "3": 17204748.768716,
+          "4": 9330980.644624,
+          "5": 2951747.381316,
+          "6": 491087.625468,
+          "7": 42000.0
+        },
+        "relation_count": {
+          "0": 583399.969337,
+          "1": 1330306.669241,
+          "2": 3713847.753404,
+          "3": 6339206.025572,
+          "4": 9265448.646273,
+          "5": 11153065.429735,
+          "6": 11394508.316277,
+          "7": 8512468.356066,
+          "8": 5438783.45057,
+          "9": 2999410.339541,
+          "10": 1287397.007414,
+          "11": 627395.363198,
+          "12": 259200.975607,
+          "13": 102094.070622,
+          "14": 47533.944569,
+          "15": 40907.739944,
+          "16": 15600.0,
+          "17": 3360.0
+        },
+        "shensha_count": {
+          "0": 2348625.485769,
+          "1": 60765308.5716
+        }
+      },
+      "感情": {
+        "visible_spouse_count": {
+          "0": 32291373.231144,
+          "1": 24298049.369067,
+          "2": 6000589.923806,
+          "3": 523921.533352
+        },
+        "hidden_spouse_count": {
+          "0": 5976105.258027,
+          "1": 17986947.664394,
+          "2": 21615262.387864,
+          "3": 13489602.110663,
+          "4": 4046016.636421
+        },
+        "spouse_palace_relation_count": {
+          "0": 2114438.446928,
+          "1": 13460886.694105,
+          "2": 21303641.767761,
+          "3": 16534221.324522,
+          "4": 7119963.930635,
+          "5": 1956897.734736,
+          "6": 469491.70093,
+          "7": 129356.659698,
+          "8": 18675.798054,
+          "9": 6360.0
+        },
+        "day_stem_combine_count": {
+          "0": 46017166.690169,
+          "1": 15327237.796843,
+          "2": 1708897.671355,
+          "3": 60631.899002
+        },
+        "relation_count": {
+          "0": 171814.912746,
+          "1": 1079908.539561,
+          "2": 2602369.231632,
+          "3": 5307280.513603,
+          "4": 8314914.925993,
+          "5": 10536221.354627,
+          "6": 11910257.78447,
+          "7": 9905543.624906,
+          "8": 6539351.236621,
+          "9": 3737558.011417,
+          "10": 1735011.19028,
+          "11": 706625.812694,
+          "12": 319016.902588,
+          "13": 143498.931198,
+          "14": 48765.642815,
+          "15": 29115.798054,
+          "16": 19719.644165,
+          "17": 6120.0,
+          "18": 840.0
+        },
+        "shensha_count": {
+          "0": 6071484.759005,
+          "1": 57042449.298364
+        }
+      },
+      "五行与承压结构": {
+        "missing_element_count": {
+          "0": 51312739.50647,
+          "1": 11283098.785872,
+          "2": 504295.765028,
+          "3": 13800.0
+        },
+        "concentrated_element_count": {
+          "0": 75720.0,
+          "1": 6677455.736977,
+          "2": 30171324.552703,
+          "3": 24324195.329108,
+          "4": 1864398.438581,
+          "5": 840.0
+        },
+        "root_pillar_count": {
+          "0": 6002329.534563,
+          "1": 17921849.55848,
+          "2": 21653793.525221,
+          "3": 13501004.31127,
+          "4": 4034957.127834
+        },
+        "pressure_relation_count": {
+          "0": 397317.728016,
+          "1": 2981799.726674,
+          "2": 6598974.915532,
+          "3": 12149830.585643,
+          "4": 14318512.124519,
+          "5": 12264199.425044,
+          "6": 7285106.573192,
+          "7": 3692263.723107,
+          "8": 1844655.396695,
+          "9": 809873.854737,
+          "10": 311539.808837,
+          "11": 194214.816597,
+          "12": 137420.718269,
+          "13": 95113.343239,
+          "14": 29391.317268,
+          "15": 3720.0
+        },
+        "repeated_branch_count": {
+          "0": 36168841.331581,
+          "1": 25741733.160134,
+          "2": 1203359.565655
+        },
+        "shensha_count": {
+          "0": 1250613.121698,
+          "1": 61863320.935671
+        }
+      }
+    },
+    "female": {
+      "事业": {
+        "officer_count": {
+          "0": 2919046.150001,
+          "1": 11400092.872132,
+          "2": 18740790.195014,
+          "3": 17232138.085945,
+          "4": 9461332.112677,
+          "5": 2878976.58089,
+          "6": 451318.060711,
+          "7": 30240.0
+        },
+        "resource_count": {
+          "0": 3164453.439937,
+          "1": 11569315.685831,
+          "2": 18296140.663362,
+          "3": 16897753.279605,
+          "4": 9622468.051019,
+          "5": 3010209.699196,
+          "6": 518989.355348,
+          "7": 34603.883072
+        },
+        "output_count": {
+          "0": 3140606.854038,
+          "1": 11537781.037328,
+          "2": 18384069.082182,
+          "3": 16931491.555812,
+          "4": 9555019.10627,
+          "5": 3016168.152357,
+          "6": 513490.283313,
+          "7": 35307.986069
+        },
+        "relation_count": {
+          "0": 843337.393398,
+          "1": 1662342.183466,
+          "2": 4169500.930057,
+          "3": 7039931.512303,
+          "4": 9994095.233878,
+          "5": 11181434.054678,
+          "6": 10942246.78305,
+          "7": 7786625.443225,
+          "8": 4960052.893955,
+          "9": 2573504.467433,
+          "10": 1092824.143885,
+          "11": 507853.497354,
+          "12": 203269.958038,
+          "13": 82589.016724,
+          "14": 33600.0,
+          "15": 27200.610409,
+          "16": 10719.644165,
+          "17": 2566.291351,
+          "18": 240.0
+        },
+        "mobility_count": {
+          "0": 26698454.789863,
+          "1": 21114777.275378,
+          "2": 12586339.034931,
+          "3": 2556491.551039,
+          "4": 121263.426849,
+          "5": 36607.979309
+        },
+        "shensha_count": {
+          "0": 3120.0,
+          "1": 63110814.057369
+        }
+      },
+      "财富": {
+        "visible_wealth_count": {
+          "0": 32291373.231144,
+          "1": 24298049.369067,
+          "2": 6000589.923806,
+          "3": 523921.533352
+        },
+        "hidden_wealth_count": {
+          "0": 5976105.258027,
+          "1": 17986947.664394,
+          "2": 21615262.387864,
+          "3": 13489602.110663,
+          "4": 4046016.636421
+        },
+        "output_count": {
+          "0": 3140606.854038,
+          "1": 11537781.037328,
+          "2": 18384069.082182,
+          "3": 16931491.555812,
+          "4": 9555019.10627,
+          "5": 3016168.152357,
+          "6": 513490.283313,
+          "7": 35307.986069
+        },
+        "peer_count": {
+          "0": 2992646.001473,
+          "1": 11394367.273269,
+          "2": 18706356.362503,
+          "3": 17204748.768716,
+          "4": 9330980.644624,
+          "5": 2951747.381316,
+          "6": 491087.625468,
+          "7": 42000.0
+        },
+        "relation_count": {
+          "0": 583399.969337,
+          "1": 1330306.669241,
+          "2": 3713847.753404,
+          "3": 6339206.025572,
+          "4": 9265448.646273,
+          "5": 11153065.429735,
+          "6": 11394508.316277,
+          "7": 8512468.356066,
+          "8": 5438783.45057,
+          "9": 2999410.339541,
+          "10": 1287397.007414,
+          "11": 627395.363198,
+          "12": 259200.975607,
+          "13": 102094.070622,
+          "14": 47533.944569,
+          "15": 40907.739944,
+          "16": 15600.0,
+          "17": 3360.0
+        },
+        "shensha_count": {
+          "0": 2348625.485769,
+          "1": 60765308.5716
+        }
+      },
+      "感情": {
+        "visible_spouse_count": {
+          "0": 32329183.271724,
+          "1": 24195800.586842,
+          "2": 6097749.288778,
+          "3": 491200.910025
+        },
+        "hidden_spouse_count": {
+          "0": 6008371.163303,
+          "1": 17951388.938612,
+          "2": 21567695.273394,
+          "3": 13559708.868697,
+          "4": 4026769.813363
+        },
+        "spouse_palace_relation_count": {
+          "0": 2114438.446928,
+          "1": 13460886.694105,
+          "2": 21303641.767761,
+          "3": 16534221.324522,
+          "4": 7119963.930635,
+          "5": 1956897.734736,
+          "6": 469491.70093,
+          "7": 129356.659698,
+          "8": 18675.798054,
+          "9": 6360.0
+        },
+        "day_stem_combine_count": {
+          "0": 46017166.690169,
+          "1": 15327237.796843,
+          "2": 1708897.671355,
+          "3": 60631.899002
+        },
+        "relation_count": {
+          "0": 171814.912746,
+          "1": 1079908.539561,
+          "2": 2602369.231632,
+          "3": 5307280.513603,
+          "4": 8314914.925993,
+          "5": 10536221.354627,
+          "6": 11910257.78447,
+          "7": 9905543.624906,
+          "8": 6539351.236621,
+          "9": 3737558.011417,
+          "10": 1735011.19028,
+          "11": 706625.812694,
+          "12": 319016.902588,
+          "13": 143498.931198,
+          "14": 48765.642815,
+          "15": 29115.798054,
+          "16": 19719.644165,
+          "17": 6120.0,
+          "18": 840.0
+        },
+        "shensha_count": {
+          "0": 6071484.759005,
+          "1": 57042449.298364
+        }
+      },
+      "五行与承压结构": {
+        "missing_element_count": {
+          "0": 51312739.50647,
+          "1": 11283098.785872,
+          "2": 504295.765028,
+          "3": 13800.0
+        },
+        "concentrated_element_count": {
+          "0": 75720.0,
+          "1": 6677455.736977,
+          "2": 30171324.552703,
+          "3": 24324195.329108,
+          "4": 1864398.438581,
+          "5": 840.0
+        },
+        "root_pillar_count": {
+          "0": 6002329.534563,
+          "1": 17921849.55848,
+          "2": 21653793.525221,
+          "3": 13501004.31127,
+          "4": 4034957.127834
+        },
+        "pressure_relation_count": {
+          "0": 397317.728016,
+          "1": 2981799.726674,
+          "2": 6598974.915532,
+          "3": 12149830.585643,
+          "4": 14318512.124519,
+          "5": 12264199.425044,
+          "6": 7285106.573192,
+          "7": 3692263.723107,
+          "8": 1844655.396695,
+          "9": 809873.854737,
+          "10": 311539.808837,
+          "11": 194214.816597,
+          "12": 137420.718269,
+          "13": 95113.343239,
+          "14": 29391.317268,
+          "15": 3720.0
+        },
+        "repeated_branch_count": {
+          "0": 36168841.331581,
+          "1": 25741733.160134,
+          "2": 1203359.565655
+        },
+        "shensha_count": {
+          "0": 1250613.121698,
+          "1": 61863320.935671
+        }
+      }
+    },
+    "neutral": {
+      "事业": {
+        "officer_count": {
+          "0": 2919046.150001,
+          "1": 11400092.872132,
+          "2": 18740790.195014,
+          "3": 17232138.085945,
+          "4": 9461332.112677,
+          "5": 2878976.58089,
+          "6": 451318.060711,
+          "7": 30240.0
+        },
+        "resource_count": {
+          "0": 3164453.439937,
+          "1": 11569315.685831,
+          "2": 18296140.663362,
+          "3": 16897753.279605,
+          "4": 9622468.051019,
+          "5": 3010209.699196,
+          "6": 518989.355348,
+          "7": 34603.883072
+        },
+        "output_count": {
+          "0": 3140606.854038,
+          "1": 11537781.037328,
+          "2": 18384069.082182,
+          "3": 16931491.555812,
+          "4": 9555019.10627,
+          "5": 3016168.152357,
+          "6": 513490.283313,
+          "7": 35307.986069
+        },
+        "relation_count": {
+          "0": 843337.393398,
+          "1": 1662342.183466,
+          "2": 4169500.930057,
+          "3": 7039931.512303,
+          "4": 9994095.233878,
+          "5": 11181434.054678,
+          "6": 10942246.78305,
+          "7": 7786625.443225,
+          "8": 4960052.893955,
+          "9": 2573504.467433,
+          "10": 1092824.143885,
+          "11": 507853.497354,
+          "12": 203269.958038,
+          "13": 82589.016724,
+          "14": 33600.0,
+          "15": 27200.610409,
+          "16": 10719.644165,
+          "17": 2566.291351,
+          "18": 240.0
+        },
+        "mobility_count": {
+          "0": 26698454.789863,
+          "1": 21114777.275378,
+          "2": 12586339.034931,
+          "3": 2556491.551039,
+          "4": 121263.426849,
+          "5": 36607.979309
+        },
+        "shensha_count": {
+          "0": 3120.0,
+          "1": 63110814.057369
+        }
+      },
+      "财富": {
+        "visible_wealth_count": {
+          "0": 32291373.231144,
+          "1": 24298049.369067,
+          "2": 6000589.923806,
+          "3": 523921.533352
+        },
+        "hidden_wealth_count": {
+          "0": 5976105.258027,
+          "1": 17986947.664394,
+          "2": 21615262.387864,
+          "3": 13489602.110663,
+          "4": 4046016.636421
+        },
+        "output_count": {
+          "0": 3140606.854038,
+          "1": 11537781.037328,
+          "2": 18384069.082182,
+          "3": 16931491.555812,
+          "4": 9555019.10627,
+          "5": 3016168.152357,
+          "6": 513490.283313,
+          "7": 35307.986069
+        },
+        "peer_count": {
+          "0": 2992646.001473,
+          "1": 11394367.273269,
+          "2": 18706356.362503,
+          "3": 17204748.768716,
+          "4": 9330980.644624,
+          "5": 2951747.381316,
+          "6": 491087.625468,
+          "7": 42000.0
+        },
+        "relation_count": {
+          "0": 583399.969337,
+          "1": 1330306.669241,
+          "2": 3713847.753404,
+          "3": 6339206.025572,
+          "4": 9265448.646273,
+          "5": 11153065.429735,
+          "6": 11394508.316277,
+          "7": 8512468.356066,
+          "8": 5438783.45057,
+          "9": 2999410.339541,
+          "10": 1287397.007414,
+          "11": 627395.363198,
+          "12": 259200.975607,
+          "13": 102094.070622,
+          "14": 47533.944569,
+          "15": 40907.739944,
+          "16": 15600.0,
+          "17": 3360.0
+        },
+        "shensha_count": {
+          "0": 2348625.485769,
+          "1": 60765308.5716
+        }
+      },
+      "感情": {
+        "visible_spouse_count": {
+          "0": 13624611.120587,
+          "1": 27290521.860863,
+          "2": 18151029.377414,
+          "3": 4047771.698505
+        },
+        "hidden_spouse_count": {
+          "0": 685197.730434,
+          "1": 3603650.202747,
+          "2": 9606524.403517,
+          "3": 14741138.257913,
+          "4": 15281972.683809,
+          "5": 10778413.113058,
+          "6": 5799394.487957,
+          "7": 2054251.772515,
+          "8": 563391.405418
+        },
+        "spouse_palace_relation_count": {
+          "0": 2114438.446928,
+          "1": 13460886.694105,
+          "2": 21303641.767761,
+          "3": 16534221.324522,
+          "4": 7119963.930635,
+          "5": 1956897.734736,
+          "6": 469491.70093,
+          "7": 129356.659698,
+          "8": 18675.798054,
+          "9": 6360.0
+        },
+        "day_stem_combine_count": {
+          "0": 46017166.690169,
+          "1": 15327237.796843,
+          "2": 1708897.671355,
+          "3": 60631.899002
+        },
+        "relation_count": {
+          "0": 171814.912746,
+          "1": 1079908.539561,
+          "2": 2602369.231632,
+          "3": 5307280.513603,
+          "4": 8314914.925993,
+          "5": 10536221.354627,
+          "6": 11910257.78447,
+          "7": 9905543.624906,
+          "8": 6539351.236621,
+          "9": 3737558.011417,
+          "10": 1735011.19028,
+          "11": 706625.812694,
+          "12": 319016.902588,
+          "13": 143498.931198,
+          "14": 48765.642815,
+          "15": 29115.798054,
+          "16": 19719.644165,
+          "17": 6120.0,
+          "18": 840.0
+        },
+        "shensha_count": {
+          "0": 6071484.759005,
+          "1": 57042449.298364
+        }
+      },
+      "五行与承压结构": {
+        "missing_element_count": {
+          "0": 51312739.50647,
+          "1": 11283098.785872,
+          "2": 504295.765028,
+          "3": 13800.0
+        },
+        "concentrated_element_count": {
+          "0": 75720.0,
+          "1": 6677455.736977,
+          "2": 30171324.552703,
+          "3": 24324195.329108,
+          "4": 1864398.438581,
+          "5": 840.0
+        },
+        "root_pillar_count": {
+          "0": 6002329.534563,
+          "1": 17921849.55848,
+          "2": 21653793.525221,
+          "3": 13501004.31127,
+          "4": 4034957.127834
+        },
+        "pressure_relation_count": {
+          "0": 397317.728016,
+          "1": 2981799.726674,
+          "2": 6598974.915532,
+          "3": 12149830.585643,
+          "4": 14318512.124519,
+          "5": 12264199.425044,
+          "6": 7285106.573192,
+          "7": 3692263.723107,
+          "8": 1844655.396695,
+          "9": 809873.854737,
+          "10": 311539.808837,
+          "11": 194214.816597,
+          "12": 137420.718269,
+          "13": 95113.343239,
+          "14": 29391.317268,
+          "15": 3720.0
+        },
+        "repeated_branch_count": {
+          "0": 36168841.331581,
+          "1": 25741733.160134,
+          "2": 1203359.565655
+        },
+        "shensha_count": {
+          "0": 1250613.121698,
+          "1": 61863320.935671
+        }
+      }
+    }
+  },
+  "consumer_features": {
+    "rules_version": "metaphysics-consumer-2026.07-v4",
+    "weighted_unit": "minute",
+    "method": "weighted_empirical_feature_incidence",
+    "catalog": [
+      {
+        "id": "bazi.consumer.shensha.ciguan.state.activated",
+        "kind": "shensha_state",
+        "title": "词馆·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.ciguan.state.constrained",
+        "kind": "shensha_state",
+        "title": "词馆·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.ciguan.state.supported",
+        "kind": "shensha_state",
+        "title": "词馆·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.ciguan.state.visible",
+        "kind": "shensha_state",
+        "title": "词馆·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.dexiu.state.activated",
+        "kind": "shensha_state",
+        "title": "德秀贵人·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.dexiu.state.constrained",
+        "kind": "shensha_state",
+        "title": "德秀贵人·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.dexiu.state.supported",
+        "kind": "shensha_state",
+        "title": "德秀贵人·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.dexiu.state.visible",
+        "kind": "shensha_state",
+        "title": "德秀贵人·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.fuxing.state.activated",
+        "kind": "shensha_state",
+        "title": "福星贵人·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.fuxing.state.constrained",
+        "kind": "shensha_state",
+        "title": "福星贵人·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.fuxing.state.supported",
+        "kind": "shensha_state",
+        "title": "福星贵人·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.fuxing.state.visible",
+        "kind": "shensha_state",
+        "title": "福星贵人·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.guasuo.state.activated",
+        "kind": "shensha_state",
+        "title": "寡宿·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.guasuo.state.constrained",
+        "kind": "shensha_state",
+        "title": "寡宿·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.guasuo.state.supported",
+        "kind": "shensha_state",
+        "title": "寡宿·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.guasuo.state.visible",
+        "kind": "shensha_state",
+        "title": "寡宿·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.guchen.state.activated",
+        "kind": "shensha_state",
+        "title": "孤辰·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.guchen.state.constrained",
+        "kind": "shensha_state",
+        "title": "孤辰·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.guchen.state.supported",
+        "kind": "shensha_state",
+        "title": "孤辰·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.guchen.state.visible",
+        "kind": "shensha_state",
+        "title": "孤辰·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.guoyin.state.activated",
+        "kind": "shensha_state",
+        "title": "国印贵人·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.guoyin.state.constrained",
+        "kind": "shensha_state",
+        "title": "国印贵人·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.guoyin.state.supported",
+        "kind": "shensha_state",
+        "title": "国印贵人·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.guoyin.state.visible",
+        "kind": "shensha_state",
+        "title": "国印贵人·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.hongluan.state.activated",
+        "kind": "shensha_state",
+        "title": "红鸾·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.hongluan.state.constrained",
+        "kind": "shensha_state",
+        "title": "红鸾·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.hongluan.state.supported",
+        "kind": "shensha_state",
+        "title": "红鸾·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.hongluan.state.visible",
+        "kind": "shensha_state",
+        "title": "红鸾·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.hongyan.state.activated",
+        "kind": "shensha_state",
+        "title": "红艳·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.hongyan.state.constrained",
+        "kind": "shensha_state",
+        "title": "红艳·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.hongyan.state.supported",
+        "kind": "shensha_state",
+        "title": "红艳·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.hongyan.state.visible",
+        "kind": "shensha_state",
+        "title": "红艳·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.huagai.state.activated",
+        "kind": "shensha_state",
+        "title": "华盖·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.huagai.state.constrained",
+        "kind": "shensha_state",
+        "title": "华盖·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.huagai.state.supported",
+        "kind": "shensha_state",
+        "title": "华盖·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.huagai.state.visible",
+        "kind": "shensha_state",
+        "title": "华盖·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.jiangxing.state.activated",
+        "kind": "shensha_state",
+        "title": "将星·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.jiangxing.state.constrained",
+        "kind": "shensha_state",
+        "title": "将星·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.jiangxing.state.supported",
+        "kind": "shensha_state",
+        "title": "将星·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.jiangxing.state.visible",
+        "kind": "shensha_state",
+        "title": "将星·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.jiesha.state.activated",
+        "kind": "shensha_state",
+        "title": "劫煞·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.jiesha.state.constrained",
+        "kind": "shensha_state",
+        "title": "劫煞·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.jiesha.state.supported",
+        "kind": "shensha_state",
+        "title": "劫煞·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.jiesha.state.visible",
+        "kind": "shensha_state",
+        "title": "劫煞·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.jinyu.state.activated",
+        "kind": "shensha_state",
+        "title": "金舆·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.jinyu.state.constrained",
+        "kind": "shensha_state",
+        "title": "金舆·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.jinyu.state.supported",
+        "kind": "shensha_state",
+        "title": "金舆·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.jinyu.state.visible",
+        "kind": "shensha_state",
+        "title": "金舆·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.kuigang.state.activated",
+        "kind": "shensha_state",
+        "title": "魁罡·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.kuigang.state.constrained",
+        "kind": "shensha_state",
+        "title": "魁罡·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.kuigang.state.supported",
+        "kind": "shensha_state",
+        "title": "魁罡·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.kuigang.state.visible",
+        "kind": "shensha_state",
+        "title": "魁罡·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.lushen.state.activated",
+        "kind": "shensha_state",
+        "title": "禄神·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.lushen.state.constrained",
+        "kind": "shensha_state",
+        "title": "禄神·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.lushen.state.supported",
+        "kind": "shensha_state",
+        "title": "禄神·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.lushen.state.visible",
+        "kind": "shensha_state",
+        "title": "禄神·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.taiji.state.activated",
+        "kind": "shensha_state",
+        "title": "太极贵人·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.taiji.state.constrained",
+        "kind": "shensha_state",
+        "title": "太极贵人·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.taiji.state.supported",
+        "kind": "shensha_state",
+        "title": "太极贵人·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.taiji.state.visible",
+        "kind": "shensha_state",
+        "title": "太极贵人·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.taohua.state.activated",
+        "kind": "shensha_state",
+        "title": "桃花·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.taohua.state.constrained",
+        "kind": "shensha_state",
+        "title": "桃花·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.taohua.state.supported",
+        "kind": "shensha_state",
+        "title": "桃花·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.taohua.state.visible",
+        "kind": "shensha_state",
+        "title": "桃花·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.ten_bad_defeats.state.activated",
+        "kind": "shensha_state",
+        "title": "十恶大败·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.ten_bad_defeats.state.constrained",
+        "kind": "shensha_state",
+        "title": "十恶大败·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.ten_bad_defeats.state.supported",
+        "kind": "shensha_state",
+        "title": "十恶大败·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.ten_bad_defeats.state.visible",
+        "kind": "shensha_state",
+        "title": "十恶大败·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.tiande.state.activated",
+        "kind": "shensha_state",
+        "title": "天德贵人·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tiande.state.constrained",
+        "kind": "shensha_state",
+        "title": "天德贵人·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.tiande.state.supported",
+        "kind": "shensha_state",
+        "title": "天德贵人·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tiande.state.visible",
+        "kind": "shensha_state",
+        "title": "天德贵人·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianku.state.activated",
+        "kind": "shensha_state",
+        "title": "天厨·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianku.state.constrained",
+        "kind": "shensha_state",
+        "title": "天厨·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianku.state.supported",
+        "kind": "shensha_state",
+        "title": "天厨·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianku.state.visible",
+        "kind": "shensha_state",
+        "title": "天厨·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianxi.state.activated",
+        "kind": "shensha_state",
+        "title": "天喜·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianxi.state.constrained",
+        "kind": "shensha_state",
+        "title": "天喜·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianxi.state.supported",
+        "kind": "shensha_state",
+        "title": "天喜·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianxi.state.visible",
+        "kind": "shensha_state",
+        "title": "天喜·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianyi.state.activated",
+        "kind": "shensha_state",
+        "title": "天乙贵人·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianyi.state.constrained",
+        "kind": "shensha_state",
+        "title": "天乙贵人·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianyi.state.supported",
+        "kind": "shensha_state",
+        "title": "天乙贵人·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianyi.state.visible",
+        "kind": "shensha_state",
+        "title": "天乙贵人·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianyi_doctor.state.activated",
+        "kind": "shensha_state",
+        "title": "天医·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianyi_doctor.state.constrained",
+        "kind": "shensha_state",
+        "title": "天医·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianyi_doctor.state.supported",
+        "kind": "shensha_state",
+        "title": "天医·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.tianyi_doctor.state.visible",
+        "kind": "shensha_state",
+        "title": "天医·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.wangshen.state.activated",
+        "kind": "shensha_state",
+        "title": "亡神·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.wangshen.state.constrained",
+        "kind": "shensha_state",
+        "title": "亡神·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.wangshen.state.supported",
+        "kind": "shensha_state",
+        "title": "亡神·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.wangshen.state.visible",
+        "kind": "shensha_state",
+        "title": "亡神·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.wenchang.state.activated",
+        "kind": "shensha_state",
+        "title": "文昌贵人·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.wenchang.state.constrained",
+        "kind": "shensha_state",
+        "title": "文昌贵人·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.wenchang.state.supported",
+        "kind": "shensha_state",
+        "title": "文昌贵人·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.wenchang.state.visible",
+        "kind": "shensha_state",
+        "title": "文昌贵人·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.xuetang.state.activated",
+        "kind": "shensha_state",
+        "title": "学堂·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.xuetang.state.constrained",
+        "kind": "shensha_state",
+        "title": "学堂·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.xuetang.state.supported",
+        "kind": "shensha_state",
+        "title": "学堂·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.xuetang.state.visible",
+        "kind": "shensha_state",
+        "title": "学堂·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.yangren.state.activated",
+        "kind": "shensha_state",
+        "title": "羊刃·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.yangren.state.constrained",
+        "kind": "shensha_state",
+        "title": "羊刃·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.yangren.state.supported",
+        "kind": "shensha_state",
+        "title": "羊刃·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.yangren.state.visible",
+        "kind": "shensha_state",
+        "title": "羊刃·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.yima.state.activated",
+        "kind": "shensha_state",
+        "title": "驿马·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.yima.state.constrained",
+        "kind": "shensha_state",
+        "title": "驿马·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.yima.state.supported",
+        "kind": "shensha_state",
+        "title": "驿马·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.yima.state.visible",
+        "kind": "shensha_state",
+        "title": "驿马·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.yinyang_error.state.activated",
+        "kind": "shensha_state",
+        "title": "阴差阳错·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.yinyang_error.state.constrained",
+        "kind": "shensha_state",
+        "title": "阴差阳错·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.yinyang_error.state.supported",
+        "kind": "shensha_state",
+        "title": "阴差阳错·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.yinyang_error.state.visible",
+        "kind": "shensha_state",
+        "title": "阴差阳错·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.yuede.state.activated",
+        "kind": "shensha_state",
+        "title": "月德贵人·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.yuede.state.constrained",
+        "kind": "shensha_state",
+        "title": "月德贵人·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.yuede.state.supported",
+        "kind": "shensha_state",
+        "title": "月德贵人·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.yuede.state.visible",
+        "kind": "shensha_state",
+        "title": "月德贵人·可见"
+      },
+      {
+        "id": "bazi.consumer.shensha.zaisha.state.activated",
+        "kind": "shensha_state",
+        "title": "灾煞·发力"
+      },
+      {
+        "id": "bazi.consumer.shensha.zaisha.state.constrained",
+        "kind": "shensha_state",
+        "title": "灾煞·受制"
+      },
+      {
+        "id": "bazi.consumer.shensha.zaisha.state.supported",
+        "kind": "shensha_state",
+        "title": "灾煞·有力"
+      },
+      {
+        "id": "bazi.consumer.shensha.zaisha.state.visible",
+        "kind": "shensha_state",
+        "title": "灾煞·可见"
+      },
+      {
+        "id": "bazi.pattern.ordinary.direct_officer",
+        "kind": "pattern",
+        "title": "正官格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.direct_resource",
+        "kind": "pattern",
+        "title": "正印格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.direct_wealth",
+        "kind": "pattern",
+        "title": "正财格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.eating_god",
+        "kind": "pattern",
+        "title": "食神格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.hurting_officer",
+        "kind": "pattern",
+        "title": "伤官格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.indirect_resource",
+        "kind": "pattern",
+        "title": "偏印格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.indirect_wealth",
+        "kind": "pattern",
+        "title": "偏财格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.month_prosperity",
+        "kind": "pattern",
+        "title": "建禄格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.month_robbery",
+        "kind": "pattern",
+        "title": "月劫格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.seven_killings",
+        "kind": "pattern",
+        "title": "七杀格"
+      },
+      {
+        "id": "bazi.pattern.ordinary.yang_blade",
+        "kind": "pattern",
+        "title": "阳刃格"
+      },
+      {
+        "id": "bazi.pattern.special.exclusive_earth",
+        "kind": "pattern",
+        "title": "稼穑格"
+      },
+      {
+        "id": "bazi.pattern.special.exclusive_fire",
+        "kind": "pattern",
+        "title": "炎上格"
+      },
+      {
+        "id": "bazi.pattern.special.exclusive_water",
+        "kind": "pattern",
+        "title": "润下格"
+      },
+      {
+        "id": "bazi.pattern.special.follow_officer",
+        "kind": "pattern",
+        "title": "从杀格"
+      },
+      {
+        "id": "bazi.pattern.special.follow_output",
+        "kind": "pattern",
+        "title": "从儿格"
+      },
+      {
+        "id": "bazi.pattern.special.follow_prosperous",
+        "kind": "pattern",
+        "title": "从旺格"
+      },
+      {
+        "id": "bazi.pattern.special.follow_strong",
+        "kind": "pattern",
+        "title": "从强格"
+      },
+      {
+        "id": "bazi.pattern.special.follow_wealth",
+        "kind": "pattern",
+        "title": "从财格"
+      },
+      {
+        "id": "bazi.shensha.combination.blade_lu_officer_resource",
+        "kind": "combination",
+        "title": "羊刃带禄官印相资"
+      },
+      {
+        "id": "bazi.shensha.combination.dexiu_xuetang_wealth_officer",
+        "kind": "combination",
+        "title": "德秀学堂财官"
+      },
+      {
+        "id": "bazi.shensha.combination.general_virtue_tianyi",
+        "kind": "combination",
+        "title": "将星扶德天乙加临"
+      },
+      {
+        "id": "bazi.shensha.combination.literary_guoyin",
+        "kind": "combination",
+        "title": "有文有印"
+      },
+      {
+        "id": "bazi.shensha.combination.luma_crossed",
+        "kind": "combination",
+        "title": "禄马交驰"
+      },
+      {
+        "id": "bazi.shensha.combination.luma_same_place",
+        "kind": "combination",
+        "title": "禄马同乡"
+      },
+      {
+        "id": "bazi.shensha.combination.product_expedition_learning",
+        "kind": "combination",
+        "title": "远征学习引擎"
+      },
+      {
+        "id": "bazi.shensha.combination.product_noble_network",
+        "kind": "combination",
+        "title": "贵人协同网络"
+      },
+      {
+        "id": "bazi.shensha.combination.product_pressure_execution",
+        "kind": "combination",
+        "title": "高压执行核心"
+      },
+      {
+        "id": "bazi.shensha.combination.product_reflective_creation",
+        "kind": "combination",
+        "title": "思辨创作回路"
+      },
+      {
+        "id": "bazi.shensha.combination.product_relationship_field",
+        "kind": "combination",
+        "title": "关系磁场放大器"
+      },
+      {
+        "id": "bazi.shensha.combination.two_virtues",
+        "kind": "combination",
+        "title": "二德扶持"
+      },
+      {
+        "id": "bazi.shensha.combination.xuetang_lushen",
+        "kind": "combination",
+        "title": "学堂会禄"
+      },
+      {
+        "id": "bazi.shensha.combination.xuetang_tianyi",
+        "kind": "combination",
+        "title": "学堂会贵"
+      },
+      {
+        "id": "bazi.shensha.combination.xuetang_yima",
+        "kind": "combination",
+        "title": "学堂朝驿马"
+      }
+    ],
+    "hit_weights": {
+      "bazi.consumer.shensha.ciguan.state.activated": 651520.84157,
+      "bazi.consumer.shensha.ciguan.state.constrained": 764621.796112,
+      "bazi.consumer.shensha.ciguan.state.supported": 1289787.616401,
+      "bazi.consumer.shensha.ciguan.state.visible": 904297.161484,
+      "bazi.consumer.shensha.dexiu.state.activated": 11040451.573576,
+      "bazi.consumer.shensha.dexiu.state.constrained": 14754083.761109,
+      "bazi.consumer.shensha.dexiu.state.supported": 16022133.703014,
+      "bazi.consumer.shensha.dexiu.state.visible": 13713024.496465,
+      "bazi.consumer.shensha.fuxing.state.activated": 6434966.159678,
+      "bazi.consumer.shensha.fuxing.state.constrained": 4617220.071798,
+      "bazi.consumer.shensha.fuxing.state.supported": 10398155.113023,
+      "bazi.consumer.shensha.fuxing.state.visible": 7581072.702538,
+      "bazi.consumer.shensha.guasuo.state.activated": 3772211.654328,
+      "bazi.consumer.shensha.guasuo.state.constrained": 1963994.824599,
+      "bazi.consumer.shensha.guasuo.state.supported": 6219560.435028,
+      "bazi.consumer.shensha.guasuo.state.visible": 2541503.44331,
+      "bazi.consumer.shensha.guchen.state.activated": 3784973.287365,
+      "bazi.consumer.shensha.guchen.state.constrained": 2030575.611905,
+      "bazi.consumer.shensha.guchen.state.supported": 5345261.598774,
+      "bazi.consumer.shensha.guchen.state.visible": 3344604.586286,
+      "bazi.consumer.shensha.guoyin.state.activated": 3460964.827508,
+      "bazi.consumer.shensha.guoyin.state.constrained": 3302661.691652,
+      "bazi.consumer.shensha.guoyin.state.supported": 6414928.462908,
+      "bazi.consumer.shensha.guoyin.state.visible": 4546461.265484,
+      "bazi.consumer.shensha.hongluan.state.activated": 4033226.957521,
+      "bazi.consumer.shensha.hongluan.state.constrained": 2142488.787059,
+      "bazi.consumer.shensha.hongluan.state.supported": 5208235.281419,
+      "bazi.consumer.shensha.hongluan.state.visible": 3115454.11999,
+      "bazi.consumer.shensha.hongyan.state.activated": 3848072.385439,
+      "bazi.consumer.shensha.hongyan.state.constrained": 3230923.062009,
+      "bazi.consumer.shensha.hongyan.state.supported": 7276214.260199,
+      "bazi.consumer.shensha.hongyan.state.visible": 5822192.233677,
+      "bazi.consumer.shensha.huagai.state.activated": 11393414.913291,
+      "bazi.consumer.shensha.huagai.state.constrained": 6133896.391259,
+      "bazi.consumer.shensha.huagai.state.supported": 15881304.104468,
+      "bazi.consumer.shensha.huagai.state.visible": 9202306.634436,
+      "bazi.consumer.shensha.jiangxing.state.activated": 11269008.230474,
+      "bazi.consumer.shensha.jiangxing.state.constrained": 6221454.157374,
+      "bazi.consumer.shensha.jiangxing.state.supported": 13957106.282968,
+      "bazi.consumer.shensha.jiangxing.state.visible": 11159487.808289,
+      "bazi.consumer.shensha.jiesha.state.activated": 6073785.130713,
+      "bazi.consumer.shensha.jiesha.state.constrained": 4559812.552374,
+      "bazi.consumer.shensha.jiesha.state.supported": 7791922.199512,
+      "bazi.consumer.shensha.jiesha.state.visible": 5864463.521031,
+      "bazi.consumer.shensha.jinyu.state.activated": 3755302.376637,
+      "bazi.consumer.shensha.jinyu.state.constrained": 3278057.354926,
+      "bazi.consumer.shensha.jinyu.state.supported": 6352202.377509,
+      "bazi.consumer.shensha.jinyu.state.visible": 4370682.508927,
+      "bazi.consumer.shensha.kuigang.state.activated": 932502.487122,
+      "bazi.consumer.shensha.kuigang.state.constrained": 66069.820461,
+      "bazi.consumer.shensha.kuigang.state.supported": 2486714.162521,
+      "bazi.consumer.shensha.kuigang.state.visible": 720953.529896,
+      "bazi.consumer.shensha.lushen.state.activated": 3949827.316181,
+      "bazi.consumer.shensha.lushen.state.constrained": 3022084.097567,
+      "bazi.consumer.shensha.lushen.state.supported": 6306743.982075,
+      "bazi.consumer.shensha.lushen.state.visible": 4494522.71977,
+      "bazi.consumer.shensha.taiji.state.activated": 9291129.707881,
+      "bazi.consumer.shensha.taiji.state.constrained": 6310945.374824,
+      "bazi.consumer.shensha.taiji.state.supported": 12485340.614561,
+      "bazi.consumer.shensha.taiji.state.visible": 8192273.135598,
+      "bazi.consumer.shensha.taohua.state.activated": 4326204.542605,
+      "bazi.consumer.shensha.taohua.state.constrained": 4316601.368723,
+      "bazi.consumer.shensha.taohua.state.supported": 8023751.783072,
+      "bazi.consumer.shensha.taohua.state.visible": 7630303.033672,
+      "bazi.consumer.shensha.ten_bad_defeats.state.activated": 2797565.986382,
+      "bazi.consumer.shensha.ten_bad_defeats.state.constrained": 246560.823254,
+      "bazi.consumer.shensha.ten_bad_defeats.state.supported": 5864854.471211,
+      "bazi.consumer.shensha.ten_bad_defeats.state.visible": 1608838.719153,
+      "bazi.consumer.shensha.tiande.state.activated": 2793047.953424,
+      "bazi.consumer.shensha.tiande.state.constrained": 3418063.779005,
+      "bazi.consumer.shensha.tiande.state.supported": 6546518.431565,
+      "bazi.consumer.shensha.tiande.state.visible": 6863798.363871,
+      "bazi.consumer.shensha.tianku.state.activated": 4041325.873455,
+      "bazi.consumer.shensha.tianku.state.constrained": 2972538.058924,
+      "bazi.consumer.shensha.tianku.state.supported": 6269604.703635,
+      "bazi.consumer.shensha.tianku.state.visible": 4477466.0184,
+      "bazi.consumer.shensha.tianxi.state.activated": 3371922.070923,
+      "bazi.consumer.shensha.tianxi.state.constrained": 1961177.884809,
+      "bazi.consumer.shensha.tianxi.state.supported": 5540230.35537,
+      "bazi.consumer.shensha.tianxi.state.visible": 3627860.238179,
+      "bazi.consumer.shensha.tianyi.state.activated": 4810461.761757,
+      "bazi.consumer.shensha.tianyi.state.constrained": 6127074.174634,
+      "bazi.consumer.shensha.tianyi.state.supported": 8893170.726395,
+      "bazi.consumer.shensha.tianyi.state.visible": 9165552.839389,
+      "bazi.consumer.shensha.tianyi_doctor.state.activated": 3255375.783718,
+      "bazi.consumer.shensha.tianyi_doctor.state.constrained": 2151588.691489,
+      "bazi.consumer.shensha.tianyi_doctor.state.supported": 4588637.438048,
+      "bazi.consumer.shensha.tianyi_doctor.state.visible": 4513637.028706,
+      "bazi.consumer.shensha.wangshen.state.activated": 5969367.579218,
+      "bazi.consumer.shensha.wangshen.state.constrained": 4532126.665731,
+      "bazi.consumer.shensha.wangshen.state.supported": 8100960.005585,
+      "bazi.consumer.shensha.wangshen.state.visible": 5690750.295304,
+      "bazi.consumer.shensha.wenchang.state.activated": 4699690.128119,
+      "bazi.consumer.shensha.wenchang.state.constrained": 3037285.926986,
+      "bazi.consumer.shensha.wenchang.state.supported": 6654952.79583,
+      "bazi.consumer.shensha.wenchang.state.visible": 4972353.93119,
+      "bazi.consumer.shensha.xuetang.state.activated": 1920665.587607,
+      "bazi.consumer.shensha.xuetang.state.constrained": 811382.098088,
+      "bazi.consumer.shensha.xuetang.state.supported": 3210613.641888,
+      "bazi.consumer.shensha.xuetang.state.visible": 1747612.474148,
+      "bazi.consumer.shensha.yangren.state.activated": 4506216.183422,
+      "bazi.consumer.shensha.yangren.state.constrained": 2804605.094829,
+      "bazi.consumer.shensha.yangren.state.supported": 7755492.316084,
+      "bazi.consumer.shensha.yangren.state.visible": 4320301.170961,
+      "bazi.consumer.shensha.yima.state.activated": 5624263.504018,
+      "bazi.consumer.shensha.yima.state.constrained": 4985080.107765,
+      "bazi.consumer.shensha.yima.state.supported": 7417331.137947,
+      "bazi.consumer.shensha.yima.state.visible": 5041645.443718,
+      "bazi.consumer.shensha.yinyang_error.state.activated": 3492108.681787,
+      "bazi.consumer.shensha.yinyang_error.state.constrained": 206047.874136,
+      "bazi.consumer.shensha.yinyang_error.state.supported": 7207427.813779,
+      "bazi.consumer.shensha.yinyang_error.state.visible": 1717275.630298,
+      "bazi.consumer.shensha.yuede.state.activated": 4069615.316717,
+      "bazi.consumer.shensha.yuede.state.constrained": 3902736.711692,
+      "bazi.consumer.shensha.yuede.state.supported": 8009931.035708,
+      "bazi.consumer.shensha.yuede.state.visible": 5791643.854838,
+      "bazi.consumer.shensha.zaisha.state.activated": 5199332.487404,
+      "bazi.consumer.shensha.zaisha.state.constrained": 4387812.872834,
+      "bazi.consumer.shensha.zaisha.state.supported": 8038712.380115,
+      "bazi.consumer.shensha.zaisha.state.visible": 5442395.017635,
+      "bazi.pattern.ordinary.direct_officer": 6406873.945818,
+      "bazi.pattern.ordinary.direct_resource": 6102378.542098,
+      "bazi.pattern.ordinary.direct_wealth": 6450464.373669,
+      "bazi.pattern.ordinary.eating_god": 6427875.969397,
+      "bazi.pattern.ordinary.hurting_officer": 6404257.73192,
+      "bazi.pattern.ordinary.indirect_resource": 5790395.186862,
+      "bazi.pattern.ordinary.indirect_wealth": 6503603.443053,
+      "bazi.pattern.ordinary.month_prosperity": 4771278.911764,
+      "bazi.pattern.ordinary.month_robbery": 4173117.577856,
+      "bazi.pattern.ordinary.seven_killings": 6529638.270727,
+      "bazi.pattern.ordinary.yang_blade": 2355582.376739,
+      "bazi.pattern.special.exclusive_earth": 1080.0,
+      "bazi.pattern.special.exclusive_fire": 1080.0,
+      "bazi.pattern.special.exclusive_water": 1440.0,
+      "bazi.pattern.special.follow_officer": 720.0,
+      "bazi.pattern.special.follow_output": 960.0,
+      "bazi.pattern.special.follow_prosperous": 22080.0,
+      "bazi.pattern.special.follow_strong": 171201.849403,
+      "bazi.pattern.special.follow_wealth": 8192.727928,
+      "bazi.shensha.combination.blade_lu_officer_resource": 881371.382845,
+      "bazi.shensha.combination.dexiu_xuetang_wealth_officer": 1184334.000586,
+      "bazi.shensha.combination.general_virtue_tianyi": 8931814.723732,
+      "bazi.shensha.combination.literary_guoyin": 5670191.106044,
+      "bazi.shensha.combination.luma_crossed": 4338326.199826,
+      "bazi.shensha.combination.luma_same_place": 2899799.202499,
+      "bazi.shensha.combination.product_expedition_learning": 10062980.428265,
+      "bazi.shensha.combination.product_noble_network": 11959648.19553,
+      "bazi.shensha.combination.product_pressure_execution": 5926920.055468,
+      "bazi.shensha.combination.product_reflective_creation": 9745674.231424,
+      "bazi.shensha.combination.product_relationship_field": 15950333.403512,
+      "bazi.shensha.combination.two_virtues": 11581298.853063,
+      "bazi.shensha.combination.xuetang_lushen": 1789029.70692,
+      "bazi.shensha.combination.xuetang_tianyi": 4076614.319592,
+      "bazi.shensha.combination.xuetang_yima": 2943763.123185
+    }
+  },
+  "hash": "sha256:62e29ede39f0b9ab690d988718cc94141fa9afaa4eabf8f19a078b913185c67e"
+}

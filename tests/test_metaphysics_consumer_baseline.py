@@ -105,9 +105,12 @@ def test_full_life_kline_opens_on_current_cycle() -> None:
 
     assert kline["default_window"] == {"start_year": 2026, "end_year": 2035}
     assert len(kline["series"][0]["points"]) == 30
-    assert len(kline["stages"]) == 15
-    assert {stage["key"] for stage in kline["stages"]} == {"overall", *THEME_ORDER}
+    assert len(kline["stages"]) == 3
+    assert {series["key"] for series in kline["series"]} == set(THEME_ORDER)
+    assert "overall" not in {series["key"] for series in kline["series"]}
+    assert all("score" not in stage for stage in kline["stages"])
     assert all(2026 <= stage["year"] <= 2035 for stage in kline["stages"])
+    assert kline["baseline"]["normalized_value"] == 100
 
     alternate = build_life_kline(
         [
@@ -129,7 +132,7 @@ def test_consumer_feature_lookup_returns_compact_incidence() -> None:
         "id": "test-bazi-baseline",
         "sample_weight": 100,
         "consumer_features": {
-            "rules_version": "metaphysics-consumer-2026.07-v3",
+            "rules_version": consumer_module.CONSUMER_RULES_VERSION,
             "catalog": [{"id": "bazi.shensha.combination.two_virtues", "kind": "combination", "title": "二德扶持"}],
             "hit_weights": {"bazi.shensha.combination.two_virtues": 4.25},
         },

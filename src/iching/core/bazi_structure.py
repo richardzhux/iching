@@ -36,7 +36,7 @@ MEETINGS = (("亥子丑", "水"), ("寅卯辰", "木"), ("巳午未", "火"), ("
 
 THEME_ORDER = ("事业", "财富", "感情", "五行与承压结构")
 TOPIC_TO_THEME = {"career": "事业", "wealth": "财富", "relationship": "感情", "health": "五行与承压结构"}
-METRIC_REGISTRY_VERSION = "bazi-core-metrics-2026.07-v1"
+METRIC_REGISTRY_VERSION = "bazi-core-metrics-2026.07-v2"
 _THEME_METRICS = {
     "事业": (
         ("officer_count", "官杀出现", "ordinal", "日主中心十神"),
@@ -71,6 +71,28 @@ _THEME_METRICS = {
         ("shensha_count", "承压辅助神煞", "binary", "版本化神煞注册表"),
     ),
 }
+_METRIC_SEMANTIC_POLES = {
+    "事业.officer_count": {"low": "规则压力较轻", "typical": "责任结构适中", "high": "责任结构更集中"},
+    "事业.resource_count": {"low": "支持路径较精简", "typical": "支持结构适中", "high": "支持与学习结构更集中"},
+    "事业.output_count": {"low": "表达方式偏内敛", "typical": "表达结构适中", "high": "表达与产出更活跃"},
+    "事业.relation_count": {"low": "事业关系较聚焦", "typical": "事业互动适中", "high": "事业互动更密集"},
+    "事业.mobility_count": {"low": "发展路径较定向", "typical": "迁动信号适中", "high": "迁动与变化更活跃"},
+    "财富.visible_wealth_count": {"low": "财富表达偏潜藏", "typical": "财富显隐适中", "high": "财富表达更外显"},
+    "财富.hidden_wealth_count": {"low": "资源路径更直接", "typical": "藏见资源适中", "high": "资源更偏内藏积累"},
+    "财富.output_count": {"low": "价值输出偏收敛", "typical": "价值转化适中", "high": "价值转化更活跃"},
+    "财富.peer_count": {"low": "资源边界较独立", "typical": "协作结构适中", "high": "共同体与协作更活跃"},
+    "财富.relation_count": {"low": "财富关系较聚焦", "typical": "财富互动适中", "high": "财富互动更密集"},
+    "感情.visible_spouse_count": {"low": "配偶星表达偏潜藏", "typical": "配偶星显隐适中", "high": "配偶星表达更外显"},
+    "感情.hidden_spouse_count": {"low": "配偶星路径较直接", "typical": "配偶星藏见适中", "high": "配偶星更偏内藏显现"},
+    "感情.spouse_palace_relation_count": {"low": "夫妻宫关系较聚焦", "typical": "夫妻宫互动适中", "high": "夫妻宫互动更密集"},
+    "感情.day_stem_combine_count": {"low": "日干互动较独立", "typical": "日干互动适中", "high": "日干合意象更突出"},
+    "感情.relation_count": {"low": "感情关系较聚焦", "typical": "感情互动适中", "high": "感情互动更密集"},
+    "五行与承压结构.missing_element_count": {"low": "五行覆盖更完整", "typical": "五行覆盖适中", "high": "五行呈现更偏科"},
+    "五行与承压结构.concentrated_element_count": {"low": "五行分布较分散", "typical": "五行集中度适中", "high": "五行集中度更高"},
+    "五行与承压结构.root_pillar_count": {"low": "通根范围较窄", "typical": "通根范围适中", "high": "通根范围较广"},
+    "五行与承压结构.pressure_relation_count": {"low": "结构张力较低", "typical": "结构张力适中", "high": "结构张力更集中"},
+    "五行与承压结构.repeated_branch_count": {"low": "地支重复较少", "typical": "地支重复适中", "high": "地支重复更明显"},
+}
 METRIC_DEFINITIONS = {
     f"{theme}.{metric_id}": {
         "id": f"{theme}.{metric_id}",
@@ -80,6 +102,11 @@ METRIC_DEFINITIONS = {
         "metric_type": metric_type,
         "source": source,
         "version": METRIC_REGISTRY_VERSION,
+        **(
+            {"semantic_poles": _METRIC_SEMANTIC_POLES[f"{theme}.{metric_id}"]}
+            if metric_type == "ordinal"
+            else {}
+        ),
     }
     for theme, metrics in _THEME_METRICS.items()
     for metric_id, label, metric_type, source in metrics
@@ -570,6 +597,11 @@ def _theme_profiles(
                 "unit": "是否命中" if definition["metric_type"] == "binary" else "项",
                 "metric_type": definition["metric_type"],
                 "source": definition["source"],
+                **(
+                    {"semantic_poles": dict(definition["semantic_poles"])}
+                    if "semantic_poles" in definition
+                    else {}
+                ),
             })
         profiles.append({
             "theme": theme,

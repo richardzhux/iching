@@ -565,38 +565,70 @@ def _period_theme_activations(
     gender: Optional[str],
     shensha_hits: list[Dict[str, Any]],
     relations: list[Dict[str, Any]],
-) -> Dict[str, list[Dict[str, str]]]:
-    activations: Dict[str, list[Dict[str, str]]] = {theme: [] for theme in PERIOD_THEMES}
+) -> Dict[str, list[Dict[str, Any]]]:
+    activations: Dict[str, list[Dict[str, Any]]] = {theme: [] for theme in PERIOD_THEMES}
     seen: set[tuple[str, str, str]] = set()
+    layer = {"大运": "dayun", "流年": "liunian", "流月": "liuyue"}.get(period_label, "period")
 
-    def add(theme: str, kind: str, label: str, detail: str, source: str) -> None:
+    def add(
+        theme: str,
+        kind: str,
+        label: str,
+        detail: str,
+        source: str,
+        *,
+        role: str = "neutral",
+        delta: float = 0.0,
+        feature: str = "",
+    ) -> None:
         key = (theme, kind, label)
         if theme not in activations or key in seen:
             return
         seen.add(key)
-        activations[theme].append({"kind": kind, "label": label, "detail": detail, "source": source})
+        activations[theme].append({
+            "id": f"bazi.period.{layer}.{theme}.{len(activations[theme]) + 1}",
+            "layer": layer,
+            "kind": kind,
+            "role": role,
+            "delta": delta,
+            "feature": feature,
+            "label": label,
+            "detail": detail,
+            "source": source,
+        })
 
     if ten_god in {"正官", "七杀", "正印", "偏印", "食神", "伤官"}:
-        add("事业", "新增", f"{period_label}十神·{ten_god}", "该运限天干与日主形成此十神关系。", "日主中心十神")
+        add("事业", "新增", f"{period_label}十神·{ten_god}", "该运限天干与日主形成此十神关系。", "日主中心十神", feature=ten_god)
     if ten_god in {"正财", "偏财", "食神", "伤官", "比肩", "劫财"}:
-        add("财富", "新增", f"{period_label}十神·{ten_god}", "该运限天干与日主形成此十神关系。", "日主中心十神")
+        add("财富", "新增", f"{period_label}十神·{ten_god}", "该运限天干与日主形成此十神关系。", "日主中心十神", feature=ten_god)
     spouse_gods = {"正财", "偏财"} if gender == "male" else {"正官", "七杀"}
     if ten_god in spouse_gods:
-        add("感情", "新增", f"{period_label}配偶星·{ten_god}", "按男命财星、女命官杀的通行取法记录。", "子平配偶星取法")
+        add("感情", "新增", f"{period_label}配偶星·{ten_god}", "按男命财星、女命官杀的通行取法记录。", "子平配偶星取法", feature=ten_god)
     if ten_god in {"正印", "偏印", "比肩", "劫财", "正官", "七杀", "食神", "伤官"}:
-        add("五行与承压结构", "变化", f"{period_label}日主关系·{ten_god}", "传统五行的支持与制约关系在这一阶段发生变化。", "日主中心十神")
+        add("五行与承压结构", "变化", f"{period_label}日主关系·{ten_god}", "传统五行的支持与制约关系在这一阶段发生变化。", "日主中心十神", feature=ten_god)
 
     for hit in shensha_hits:
         for topic in hit.get("topic_tags", ()):
             theme = PERIOD_TOPIC_THEMES.get(str(topic))
             if theme:
-                add(theme, "新增", f"{period_label}神煞·{hit['name']}", str(hit.get("trigger", "")), "版本化神煞注册表")
+                # A ShenSha occurrence is context, not an automatic rise or fall.
+                add(theme, "新增", f"{period_label}神煞·{hit['name']}", str(hit.get("trigger", "")), "版本化神煞注册表", feature=str(hit.get("rule_id", hit["name"])))
 
     for relation in relations:
         relation_type = str(relation.get("relation_type", ""))
-        kind = "冲突" if any(token in relation_type for token in ("冲", "刑", "害", "破", "克")) else "联动"
+        conflict = any(token in relation_type for token in ("冲", "刑", "害", "破", "克"))
+        kind = "冲突" if conflict else "联动"
         for theme in relation.get("theme_tags", ()):
-            add(str(theme), kind, f"{period_label}关系·{relation_type}", str(relation.get("label", "")), "结构化干支关系")
+            add(
+                str(theme),
+                kind,
+                f"{period_label}关系·{relation_type}",
+                str(relation.get("label", "")),
+                "结构化干支关系",
+                role="conflict" if conflict else "support",
+                delta=-6.0 if conflict else 4.5,
+                feature=relation_type,
+            )
     return activations
 
 
@@ -674,9 +706,17 @@ def _dayun_payload(
         return lichun, next_lichun, [*month_starts, next_lichun]
     natal_relations = set(_stem_relations(natal_pillars) + _branch_relations(natal_pillars))
     cycles = []
+    kline_cycles = []
+    expand_next_cycle = False
     current_year_payload: Optional[Dict[str, Any]] = None
     current_month_payload: Optional[Dict[str, Any]] = None
-    for cycle in yun.getDaYun(9):
+    # Keep a stable contemporary minimum, then extend only as far as needed for
+    # the reference age plus the following cycle. The cap covers living users
+    # without allowing an extreme historical input to create an unbounded API
+    # payload.
+    reference_age_years = max(0, reference.year - value.year)
+    cycle_count = max(13, min(20, reference_age_years // 10 + 3))
+    for cycle in yun.getDaYun(cycle_count):
         cycle_index = cycle.getIndex()
         cycle_start = value if cycle_index == 0 else add_years(first_dayun_start, (cycle_index - 1) * 10)
         cycle_end = first_dayun_start if cycle_index == 0 else add_years(first_dayun_start, cycle_index * 10)
@@ -700,8 +740,15 @@ def _dayun_payload(
             if any(item.get("pillar") == "大运" for item in relation.get("participants", ()))
         ]
         years = []
-        should_expand_cycle = include_period_details or cycle_is_current or cycle_index == period_cycle_index
-        for liu_nian in cycle.getLiuNian() if should_expand_cycle else ():
+        is_default_next_cycle = expand_next_cycle
+        should_expand_cycle = (
+            include_period_details
+            or cycle_is_current
+            or is_default_next_cycle
+            or cycle_index == period_cycle_index
+        )
+        expand_next_cycle = cycle_is_current
+        for liu_nian in cycle.getLiuNian():
             year_start, year_end, month_boundaries = flow_boundaries(liu_nian.getYear())
             year_is_current = cycle_is_current and year_start <= reference < year_end
             year_ganzhi = liu_nian.getGanZhi()
@@ -798,7 +845,7 @@ def _dayun_payload(
             years.append(year_payload)
             if year_is_current and liu_nian.getYear() == reference_year:
                 current_year_payload = {key: value for key, value in year_payload.items() if key != "months"}
-        cycles.append({
+        cycle_payload = {
             "index": cycle_index,
             "label": "童限" if cycle_index == 0 else cycle_ganzhi,
             "ganzhi": cycle_ganzhi,
@@ -820,7 +867,13 @@ def _dayun_payload(
                 relations=cycle_structured_relations,
             ),
             "years": years,
-        })
+        }
+        kline_cycles.append(cycle_payload)
+        cycles.append(
+            cycle_payload
+            if should_expand_cycle
+            else {**cycle_payload, "years": []}
+        )
     return {
         "status": "available",
         "algorithm": algorithm,
@@ -836,6 +889,9 @@ def _dayun_payload(
         "engine_bazi": crosscheck_bazi,
         "crosscheck_matches": crosscheck_bazi == expected_bazi,
         "cycles": cycles,
+        # Consumed and removed before API serialization. It keeps the personal
+        # baseline fixed across the compact and full-life views.
+        "_kline_cycles": kline_cycles,
         "current": {
             "as_of": reference.isoformat(),
             "year": current_year_payload,
@@ -948,6 +1004,7 @@ def build_metaphysics_chart(
         include_period_details=include_period_details,
         period_cycle_index=period_cycle_index,
     )
+    kline_cycles = dayun.pop("_kline_cycles", dayun.get("cycles", []))
     raw_shen_sha = evaluate_shensha(pillars)
     fact_graph = build_bazi_fact_graph(pillars)
     structure = build_structure_profile(
@@ -1007,6 +1064,7 @@ def build_metaphysics_chart(
         cycles=dayun.get("cycles", []),
         consumer_distributions=statistics.get("consumer_distributions"),
         consumer_feature_metrics=statistics.get("consumer_feature_metrics", ()),
+        kline_cycles=kline_cycles,
     )
     return {
         "timezone": timezone_name,

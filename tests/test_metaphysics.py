@@ -201,7 +201,7 @@ def test_lunar_input_converts_with_historical_timezone_and_crosschecks_engines()
     assert chart["bazi"] == "丙寅 癸巳 癸酉 壬子"
     assert chart["birth_profile"]["dayun"]["status"] == "available"
     assert chart["birth_profile"]["dayun"]["crosscheck_matches"] is True
-    assert len(chart["birth_profile"]["dayun"]["cycles"]) == 9
+    assert len(chart["birth_profile"]["dayun"]["cycles"]) == 13
 
 
 def test_current_dayun_changes_at_the_exact_start_instant() -> None:
@@ -222,6 +222,27 @@ def test_current_dayun_changes_at_the_exact_start_instant() -> None:
     after_current = next(item for item in after["period_layers"]["dayun"] if item["is_current"])
     assert before_current["index"] == 1
     assert after_current["index"] == 2
+
+
+def test_compact_periods_cover_an_older_users_current_and_next_dayun() -> None:
+    chart = build_metaphysics_chart(
+        datetime(1905, 1, 1, 4),
+        timezone_name="Asia/Shanghai",
+        gender="male",
+        reference_timestamp=datetime(2026, 7, 16, 12),
+        include_period_details=False,
+    )
+
+    visible_cycles = chart["period_layers"]["dayun"]
+    assert len(chart["birth_profile"]["dayun"]["cycles"]) >= 15
+    assert len(visible_cycles) >= 15
+    current_cycle = next(item for item in visible_cycles if item["is_current"])
+    assert current_cycle["index"] >= 12
+    assert any(item["index"] == current_cycle["index"] + 1 for item in visible_cycles)
+
+    life_kline = chart["consumer"]["life_kline"]
+    assert all(len(series["points"]) == 20 for series in life_kline["series"])
+    assert len(life_kline["stages"]) == 3
 
 
 def test_current_flow_year_changes_at_lichun_not_midnight() -> None:

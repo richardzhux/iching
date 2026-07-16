@@ -12,14 +12,25 @@ import pytest
 from fastapi.testclient import TestClient
 
 import iching.core.metaphysics_statistics as statistics
+from iching.core.bazi_rules.registry import load_packaged_shen_registry
+from iching.core.bazi_structure import METRIC_DEFINITIONS
+from iching.core.metaphysics_consumer import CONSUMER_RULES_VERSION
 from iching.core.metaphysics_statistics import BASELINE_ID, frequency_label, lookup_statistics
+from iching.core.shensha import RULES_VERSION
 from iching.web.api.main import app
 
 
 client = TestClient(app)
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-from generate_bazi_baseline import _pillars as baseline_pillars  # noqa: E402
+from generate_bazi_baseline import (  # noqa: E402
+    _config_id,
+    _feature_catalog,
+    _pattern_bundle_identity,
+    _pillars as baseline_pillars,
+    _validate_promotion_source,
+    promote_g3_payload,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -62,10 +73,11 @@ def test_baseline_lookup_returns_denominator_and_version() -> None:
     assert all(metric["level"] in {"common", "less_common", "rare", "very_rare"} for metric in result["rarity_metrics"])
 
 
-def _write_v5_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
+def _write_v6_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
     catalog = ["bazi.shensha.wenchang", "bazi.shensha.yima"]
+    pattern_registry = load_packaged_shen_registry()
     payload = {
-        "schema_version": 5,
+        "schema_version": 6,
         "id": BASELINE_ID,
         "chart_type": "bazi",
         "kind": "calendar_sample_frequency",
@@ -76,7 +88,9 @@ def _write_v5_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
         "day_boundary": "forward",
         "config_id": "bazi-canonical-calendar-1-asia-shanghai-forward",
         "engine": "canonical-calendar-1",
-        "baseline_generation_version": 3,
+        "baseline_generation_version": 4,
+        "pattern_bundle_id": pattern_registry.bundle_id,
+        "pattern_bundle_digest": pattern_registry.bundle_digest,
         "rules_version": "shensha-2026.07-v2",
         "rules_registry_hash": registry_hash or statistics.bazi_rules_registry_hash(),
         "feature_catalog": catalog,
@@ -101,7 +115,7 @@ def _write_v5_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
 
 
 def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch) -> None:
-    _write_v5_baseline(tmp_path)
+    _write_v6_baseline(tmp_path)
     monkeypatch.setattr(statistics, "DATA_DIR", tmp_path)
     statistics.load_baseline.cache_clear()
 
@@ -129,7 +143,7 @@ def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch
 
 
 def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypatch) -> None:
-    _write_v5_baseline(tmp_path)
+    _write_v6_baseline(tmp_path)
     monkeypatch.setattr(statistics, "DATA_DIR", tmp_path)
     statistics.load_baseline.cache_clear()
 
@@ -158,6 +172,8 @@ def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypa
         {"value": 1, "weight": 6.0, "percentage": 60.0},
     ]
     assert comparison["resolution"] == "low"
+    assert comparison["display_mode"] == "common_value"
+    assert "%" not in comparison["display_label"]
 
     binary = statistics.apply_theme_comparisons(
         [{"theme": "事业", "structure_metrics": [{"metric_id": "metric", "label": "是否命中", "value": 1, "unit": "是否命中", "metric_type": "binary"}]}],
@@ -165,13 +181,150 @@ def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypa
         gender="male",
     )[0]["comparisons"][0]
     assert binary["comparison_mode"] == "incidence"
+    assert binary["display_mode"] == "incidence"
+    assert binary["display_label"] == "出现率 60.00%"
     assert binary["hit_percentage"] == 60.0
     assert "rank_interval" not in binary
     assert "lower_percentage" not in binary
 
 
-def test_v5_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path, monkeypatch) -> None:
-    _write_v5_baseline(tmp_path)
+def _theme_comparison(
+    *,
+    theme: str,
+    metric_id: str,
+    value: int,
+    histogram: dict[str, float],
+    metric_type: str = "ordinal",
+) -> dict:
+    definition = statistics.METRIC_DEFINITIONS[f"{theme}.{metric_id}"]
+    baseline = {
+        "id": "test-semantic-baseline",
+        "sample_weight": sum(histogram.values()),
+        "theme_metric_weights_by_gender": {
+            "neutral": {theme: {metric_id: histogram}},
+        },
+    }
+    profile = {
+        "theme": theme,
+        "structure_metrics": [{
+            "definition_id": definition["id"],
+            "metric_id": metric_id,
+            "label": definition["label"],
+            "value": value,
+            "unit": "是否命中" if metric_type == "binary" else "项",
+            "metric_type": metric_type,
+        }],
+    }
+    return statistics.apply_theme_comparisons(
+        [profile],
+        baseline,
+        gender="neutral",
+    )[0]["comparisons"][0]
+
+
+def test_ordered_metrics_expose_inclusive_tail_only_at_high_resolution() -> None:
+    histogram = {
+        "0": 15,
+        "1": 15,
+        "2": 15,
+        "3": 15,
+        "4": 15,
+        "5": 10,
+        "6": 5,
+        "7": 10,
+    }
+
+    high = _theme_comparison(
+        theme="财富",
+        metric_id="visible_wealth_count",
+        value=6,
+        histogram=histogram,
+    )
+    assert high["resolution"] == "high"
+    assert high["display_mode"] == "exact_tail"
+    assert high["display_direction"] == "high"
+    assert high["semantic_pole"] == "财富表达更外显"
+    assert high["tail_side"] == "upper"
+    assert high["tail_percentage"] == 15.0
+    assert high["upper_tail_percentage"] == 15.0
+    assert high["display_label"] == "财富表达更外显 · 前约 15.00%"
+
+    low = _theme_comparison(
+        theme="财富",
+        metric_id="visible_wealth_count",
+        value=0,
+        histogram={"0": 5, "1": 15, "2": 15, "3": 15, "4": 15, "5": 15, "6": 10, "7": 10},
+    )
+    assert low["resolution"] == "high"
+    assert low["display_mode"] == "exact_tail"
+    assert low["display_direction"] == "low"
+    assert low["semantic_pole"] == "财富表达偏潜藏"
+    assert low["tail_side"] == "lower"
+    assert low["tail_percentage"] == 5.0
+    assert low["lower_tail_percentage"] == 5.0
+    assert low["display_label"] == "财富表达偏潜藏 · 低位约 5.00%"
+
+
+def test_ordered_metrics_suppress_precision_at_medium_and_low_resolution() -> None:
+    threshold = _theme_comparison(
+        theme="事业",
+        metric_id="relation_count",
+        value=9,
+        histogram={str(value): 10 for value in range(10)},
+    )
+    assert threshold["resolution"] == "medium"
+    assert threshold["display_mode"] == "directional"
+    assert "tail_percentage" not in threshold
+    assert "%" not in threshold["display_label"]
+
+    directional = _theme_comparison(
+        theme="事业",
+        metric_id="relation_count",
+        value=4,
+        histogram={str(value): 20 for value in range(5)},
+    )
+    assert directional["resolution"] == "medium"
+    assert directional["display_mode"] == "directional"
+    assert directional["display_direction"] == "high"
+    assert directional["display_label"] == "事业互动更密集 · 相对偏高"
+    assert "tail_percentage" not in directional
+    assert "%" not in directional["display_label"]
+    # The exact distribution remains available to the professional view.
+    assert directional["upper_tail_percentage"] == 20.0
+    assert directional["rank_interval"] == {"lower": 80.0, "upper": 100.0}
+
+    common = _theme_comparison(
+        theme="五行与承压结构",
+        metric_id="pressure_relation_count",
+        value=0,
+        histogram={"0": 35, "1": 30, "2": 35},
+    )
+    assert common["resolution"] == "low"
+    assert common["display_mode"] == "common_value"
+    assert common["display_direction"] == "low"
+    assert common["semantic_pole"] == "结构张力较低"
+    assert common["display_label"] == "结构张力较低 · 常见区间"
+    assert "tail_percentage" not in common
+    assert "%" not in common["display_label"]
+
+
+def test_every_ordered_metric_has_three_neutral_semantic_poles() -> None:
+    ordered = [
+        definition
+        for definition in statistics.METRIC_DEFINITIONS.values()
+        if definition["metric_type"] == "ordinal"
+    ]
+
+    assert ordered
+    assert all(set(definition["semantic_poles"]) == {"low", "typical", "high"} for definition in ordered)
+    assert all(
+        all(definition["semantic_poles"][pole] for pole in ("low", "typical", "high"))
+        for definition in ordered
+    )
+
+
+def test_v6_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path, monkeypatch) -> None:
+    _write_v6_baseline(tmp_path)
     path = tmp_path / f"{BASELINE_ID}.json"
     payload = json.loads(path.read_text())
     payload["sample_weight"] = 11
@@ -191,7 +344,7 @@ def test_v5_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path,
     assert "完整性校验失败" in unavailable["unavailable_reason"]
     assert "完整性校验失败" in unavailable["disclaimer"]
 
-    _write_v5_baseline(tmp_path, registry_hash="sha256:" + "0" * 64)
+    _write_v6_baseline(tmp_path, registry_hash="sha256:" + "0" * 64)
     statistics.load_baseline.cache_clear()
     with pytest.raises(statistics.BaselineCompatibilityError, match="规则注册表不兼容"):
         statistics.load_baseline(BASELINE_ID)
@@ -213,8 +366,8 @@ def test_generator_metadata_declares_current_grain_without_full_regeneration() -
         text=True,
     )
     bazi_metadata = json.loads(bazi.stdout)
-    assert bazi_metadata["schema_version"] == 5
-    assert bazi_metadata["baseline_generation_version"] == 3
+    assert bazi_metadata["schema_version"] == 6
+    assert bazi_metadata["baseline_generation_version"] == 4
     assert bazi_metadata["weighted_unit"] == "minute"
     assert bazi_metadata["config_ids"] == {
         "current": "bazi-canonical-calendar-1-asia-shanghai-current",
@@ -222,6 +375,9 @@ def test_generator_metadata_declares_current_grain_without_full_regeneration() -
     }
     assert bazi_metadata["feature_catalog_hash"]
     assert bazi_metadata["rules_registry_hash"] == statistics.bazi_rules_registry_hash()
+    pattern_registry = load_packaged_shen_registry()
+    assert bazi_metadata["pattern_bundle_id"] == pattern_registry.bundle_id
+    assert bazi_metadata["pattern_bundle_digest"] == pattern_registry.bundle_digest
     assert bazi_metadata["theme_comparison_method"] == "transparent_metric_distributions"
 
     ziwei = subprocess.run(
@@ -240,6 +396,71 @@ def test_generator_metadata_declares_current_grain_without_full_regeneration() -
     assert ziwei_metadata["sample_weight"] == 43829 * 24
     assert ziwei_metadata["weighted_unit"] == "civil_hour"
     assert ziwei_metadata["rules_registry_hash"] == statistics.ziwei_rules_registry_hash()
+
+
+def test_legacy_baseline_without_current_pattern_bundle_cannot_be_promoted() -> None:
+    source = {
+        "id": "bazi-calendar-1924-2044-g3-forward",
+        "chart_type": "bazi",
+        "schema_version": 5,
+        "baseline_generation_version": 3,
+        "day_boundary": "forward",
+        "config_id": "bazi-canonical-calendar-1-asia-shanghai-forward",
+    }
+    source["hash"] = statistics.payload_hash(source)
+
+    with pytest.raises(ValueError, match="full baseline regeneration"):
+        promote_g3_payload(source, "forward")
+
+
+def _current_rule_promotion_source() -> dict:
+    feature_catalog = _feature_catalog()
+    metric_catalog = [METRIC_DEFINITIONS[key] for key in sorted(METRIC_DEFINITIONS)]
+    source = {
+        "id": "bazi-calendar-1924-2044-g3-forward",
+        "chart_type": "bazi",
+        "schema_version": 5,
+        "baseline_generation_version": 3,
+        "day_boundary": "forward",
+        "config_id": _config_id("forward"),
+        "rules_version": RULES_VERSION,
+        "rules_registry_hash": statistics.bazi_rules_registry_hash(),
+        **_pattern_bundle_identity(),
+        "feature_catalog": feature_catalog,
+        "feature_catalog_hash": statistics.feature_catalog_hash(feature_catalog),
+        "metric_catalog": metric_catalog,
+        "metric_catalog_hash": statistics.metric_catalog_hash(metric_catalog),
+        "consumer_features": {
+            "rules_version": CONSUMER_RULES_VERSION,
+            "catalog": [],
+            "hit_weights": {},
+        },
+    }
+    source["hash"] = statistics.payload_hash(source)
+    return source
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("registry", "Rule formulas changed"),
+        ("metric", "Metric formulas changed"),
+        ("consumer", "Consumer feature formulas changed"),
+    ),
+)
+def test_promotion_requires_exact_rule_formulas(mutation: str, message: str) -> None:
+    source = _current_rule_promotion_source()
+    if mutation == "registry":
+        source["rules_registry_hash"] = "sha256:" + "0" * 64
+    elif mutation == "metric":
+        source["metric_catalog"][0] = {**source["metric_catalog"][0], "label": "旧公式"}
+        source["metric_catalog_hash"] = statistics.metric_catalog_hash(source["metric_catalog"])
+    else:
+        source["consumer_features"]["rules_version"] = "legacy-consumer-rules"
+    source["hash"] = statistics.payload_hash(source)
+
+    with pytest.raises(ValueError, match=message):
+        _validate_promotion_source(source, "forward")
 
 
 def test_statistics_endpoint_accepts_only_normalized_features() -> None:

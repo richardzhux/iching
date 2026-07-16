@@ -8,22 +8,24 @@ from math import exp, log
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from iching.core.bazi_rules.registry import load_packaged_shen_registry
 from iching.core.bazi_structure import METRIC_DEFINITIONS, METRIC_REGISTRY_VERSION
 from iching.core.metaphysics_consumer import CONSUMER_RULES_VERSION
 from iching.core.shensha import REGISTRY_DIGEST
 
 
 DATA_DIR = Path(__file__).with_name("data")
-BASELINE_ID = "bazi-calendar-1924-2044-g3-forward"
+BASELINE_ID = "bazi-calendar-1924-2044-g4-forward"
 BASELINE_IDS = {
     "bazi": {
         "forward": BASELINE_ID,
-        "current": "bazi-calendar-1924-2044-g3-current",
+        "current": "bazi-calendar-1924-2044-g4-current",
     },
     "ziwei": {"default": "ziwei-calendar-1924-2044-v1"},
 }
 FEATURE_ID_RE = re.compile(r"^(bazi|ziwei)\.[a-z0-9_.-]{1,96}$")
-BASELINE_SCHEMA_VERSION = 5
+BASELINE_SCHEMA_VERSION = 6
+BASELINE_GENERATION_VERSION = 4
 ZIWEI_RULES_VERSION = "ziwei-structural-2026.07-v2.1"
 ZIWEI_CONSUMER_RULES_VERSION = "ziwei-consumer-c1"
 ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"
@@ -81,10 +83,13 @@ def feature_catalog_hash(feature_ids: Iterable[str]) -> str:
 
 
 def bazi_rules_registry_hash() -> str:
+    pattern_registry = load_packaged_shen_registry()
     return _sha256_json({
         "shensha_registry_digest": REGISTRY_DIGEST,
         "metric_registry_version": METRIC_REGISTRY_VERSION,
         "metric_definitions": METRIC_DEFINITIONS,
+        "pattern_bundle_id": pattern_registry.bundle_id,
+        "pattern_bundle_digest": pattern_registry.bundle_digest,
     })
 
 
@@ -138,7 +143,13 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
         "hash",
     }
     if baseline.get("chart_type") == "bazi":
-        required.update({"baseline_generation_version", "metric_catalog", "metric_catalog_hash"})
+        required.update({
+            "baseline_generation_version",
+            "metric_catalog",
+            "metric_catalog_hash",
+            "pattern_bundle_id",
+            "pattern_bundle_digest",
+        })
     missing = sorted(required - baseline.keys())
     if missing:
         raise BaselineCompatibilityError(f"统计基线缺少 schema v3 字段: {', '.join(missing)}")
@@ -150,6 +161,14 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
     if baseline["feature_catalog_hash"] != feature_catalog_hash(catalog):
         raise BaselineCompatibilityError("统计基线特征目录完整性校验失败，请重新生成基线。")
     if baseline.get("chart_type") == "bazi":
+        if int(baseline.get("baseline_generation_version", 0)) != BASELINE_GENERATION_VERSION:
+            raise BaselineVersionMismatchError("统计基线生成版本与当前运行时不兼容，请重新生成基线。")
+        pattern_registry = load_packaged_shen_registry()
+        if (
+            baseline.get("pattern_bundle_id") != pattern_registry.bundle_id
+            or baseline.get("pattern_bundle_digest") != pattern_registry.bundle_digest
+        ):
+            raise BaselineVersionMismatchError("统计基线格局规则包与当前运行时不兼容，请重新生成基线。")
         metric_catalog = baseline.get("metric_catalog")
         if not isinstance(metric_catalog, list) or any(not isinstance(item, dict) for item in metric_catalog):
             raise BaselineCompatibilityError("统计基线指标目录无效，请重新生成基线。")
@@ -322,6 +341,7 @@ def frequency_label(percentage: float) -> str:
 def _baseline_public(baseline: dict[str, Any]) -> dict[str, Any]:
     public = {key: baseline[key] for key in (
         "schema_version", "baseline_generation_version", "config_id", "feature_catalog_hash", "metric_catalog_hash", "rules_registry_hash",
+        "pattern_bundle_id", "pattern_bundle_digest",
         "unique_state_count", "weighted_unit", "time_index_weights", "gender_scope", "interval_semantics",
         "id", "chart_type", "kind", "label", "start", "end", "timezone", "day_boundary",
         "engine", "rules_version", "sample_unit", "sample_weight", "method", "hash",
@@ -459,6 +479,108 @@ def select_consumer_feature_metrics(
     return result
 
 
+def _metric_semantic_poles(
+    *,
+    theme: str,
+    metric: Mapping[str, Any],
+) -> dict[str, str]:
+    """Return neutral labels for both ends of an ordered metric.
+
+    A low ordered value is not an inferior score.  The registry therefore
+    names both observable forms (for example, ``潜藏`` and ``外显``) instead
+    of letting a percentile silently become a value judgment.
+    """
+
+    supplied = metric.get("semantic_poles")
+    if isinstance(supplied, Mapping) and all(
+        isinstance(supplied.get(key), str) and supplied.get(key)
+        for key in ("low", "typical", "high")
+    ):
+        return {key: str(supplied[key]) for key in ("low", "typical", "high")}
+    definition_id = str(metric.get("definition_id") or f"{theme}.{metric.get('metric_id', '')}")
+    registered = METRIC_DEFINITIONS.get(definition_id, {}).get("semantic_poles")
+    if isinstance(registered, Mapping) and all(
+        isinstance(registered.get(key), str) and registered.get(key)
+        for key in ("low", "typical", "high")
+    ):
+        return {key: str(registered[key]) for key in ("low", "typical", "high")}
+    label = str(metric.get("label", "该结构"))
+    return {
+        "low": f"{label}偏少",
+        "typical": f"{label}处于常见范围",
+        "high": f"{label}偏多",
+    }
+
+
+def _ordered_display_contract(
+    *,
+    status: str,
+    resolution: str,
+    lower_percentage: float,
+    exact_percentage: float,
+    higher_percentage: float,
+    semantic_poles: Mapping[str, str],
+) -> dict[str, Any]:
+    """Build consumer copy while retaining the full professional distribution.
+
+    The tail is inclusive of the live value.  Exact percentages are exposed
+    only for genuinely high-resolution tails; common values receive no rank.
+    """
+
+    if lower_percentage > 50:
+        direction = "high"
+        tail_side = "upper"
+        inclusive_tail = higher_percentage + exact_percentage
+    elif higher_percentage > 50:
+        direction = "low"
+        tail_side = "lower"
+        inclusive_tail = lower_percentage + exact_percentage
+    else:
+        direction = "typical"
+        tail_side = None
+        inclusive_tail = None
+    semantic_label = str(semantic_poles[direction])
+
+    common = {
+        "display_direction": direction,
+        "semantic_pole": semantic_label,
+    }
+    if status == "zero":
+        return {
+            **common,
+            "display_mode": "reference_zero",
+            "display_label": f"{semantic_label} · 本参考周期未出现",
+        }
+    if direction == "typical":
+        return {
+            **common,
+            "display_mode": "common_value",
+            "display_label": f"{semantic_label} · 常见位置",
+        }
+    if resolution == "high" and inclusive_tail is not None:
+        tail_label = frequency_label(inclusive_tail)
+        direction_label = "前约" if direction == "high" else "低位约"
+        return {
+            **common,
+            "display_mode": "exact_tail",
+            "display_label": f"{semantic_label} · {direction_label} {tail_label}",
+            "tail_side": tail_side,
+            "tail_percentage": round(inclusive_tail, 4),
+        }
+    if resolution == "medium":
+        direction_label = "相对偏高" if direction == "high" else "相对偏低"
+        return {
+            **common,
+            "display_mode": "directional",
+            "display_label": f"{semantic_label} · {direction_label}",
+        }
+    return {
+        **common,
+        "display_mode": "common_value",
+        "display_label": f"{semantic_label} · 常见区间",
+    }
+
+
 def apply_theme_comparisons(
     profiles: Iterable[Mapping[str, Any]],
     baseline: Mapping[str, Any],
@@ -498,7 +620,7 @@ def apply_theme_comparisons(
                 support_size = len(probabilities)
                 normalized_entropy = entropy / log(support_size) if support_size > 1 else 0.0
                 effective_support = exp(entropy) if probabilities else 0.0
-                if exact_percentage <= 10 and normalized_entropy >= 0.70 and effective_support >= 6:
+                if exact_percentage < 10 and normalized_entropy >= 0.70 and effective_support >= 6:
                     resolution = "high"
                 elif exact_percentage <= 25 and normalized_entropy >= 0.45 and effective_support >= 3:
                     resolution = "medium"
@@ -507,6 +629,7 @@ def apply_theme_comparisons(
                 lower_percentage = lower / total * 100
                 higher_percentage = higher / total * 100
                 metric_type = str(metric.get("metric_type", "ordinal"))
+                semantic_poles = _metric_semantic_poles(theme=theme, metric=metric)
                 common_distribution = {
                     **dict(metric),
                     "metric_type": metric_type,
@@ -526,25 +649,51 @@ def apply_theme_comparisons(
                 }
                 if metric_type == "binary":
                     hit_weight = float(histogram.get("1", 0))
+                    hit_percentage = hit_weight / total * 100
                     comparisons.append({
                         **common_distribution,
                         "comparison_mode": "incidence",
-                        "hit_percentage": round(hit_weight / total * 100, 4),
+                        "display_mode": "incidence",
+                        "display_label": f"出现率 {frequency_label(hit_percentage)}",
+                        "hit_percentage": round(hit_percentage, 4),
                     })
                     continue
+                display_contract = _ordered_display_contract(
+                    status=str(common_distribution["status"]),
+                    resolution=resolution,
+                    lower_percentage=lower_percentage,
+                    exact_percentage=exact_percentage,
+                    higher_percentage=higher_percentage,
+                    semantic_poles=semantic_poles,
+                )
                 comparisons.append({
                     **common_distribution,
                     "comparison_mode": "rank_interval",
+                    "semantic_poles": semantic_poles,
                     "lower_percentage": round(lower_percentage, 4),
                     "same_percentage": round(exact_percentage, 4),
                     "higher_percentage": round(higher_percentage, 4),
+                    "lower_tail_percentage": round(lower_percentage + exact_percentage, 4),
+                    "upper_tail_percentage": round(higher_percentage + exact_percentage, 4),
                     "rank_interval": {
                         "lower": round(lower_percentage, 4),
                         "upper": round(lower_percentage + exact_percentage, 4),
                     },
+                    **display_contract,
                 })
             else:
-                comparisons.append({**dict(metric), "status": "unsupported", "display_percentage": "—", "lower_percentage": 0.0, "same_percentage": 0.0, "higher_percentage": 0.0, "baseline_id": baseline.get("id"), "method": "weighted_empirical_metric_distribution"})
+                comparisons.append({
+                    **dict(metric),
+                    "status": "unsupported",
+                    "display_percentage": "—",
+                    "display_mode": "unavailable",
+                    "display_label": "暂无可比基线",
+                    "lower_percentage": 0.0,
+                    "same_percentage": 0.0,
+                    "higher_percentage": 0.0,
+                    "baseline_id": baseline.get("id"),
+                    "method": "weighted_empirical_metric_distribution",
+                })
         item["comparisons"] = comparisons
         result.append(item)
     return result

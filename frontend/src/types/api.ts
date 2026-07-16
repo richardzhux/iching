@@ -162,8 +162,18 @@ export type LifeKlineMonth = {
   ganzhi: string
   value: number
   delta: number
-  drivers: string[]
+  drivers: Array<string | LifeKlineDriver>
   intensity?: number
+}
+
+export type LifeKlineDriver = {
+  id: string
+  layer: "natal" | "dayun" | "liunian" | "liuyue" | string
+  role: "formation" | "rescue" | "support" | "damage" | "conflict" | "neutral" | string
+  label: string
+  delta: number
+  evidenceIds?: string[]
+  ruleIds?: string[]
 }
 
 export type LifeKlinePoint = {
@@ -176,19 +186,38 @@ export type LifeKlinePoint = {
   ma3: number | null
   ma5: number | null
   ma10: number | null
+  drivers?: Array<string | LifeKlineDriver>
   months: LifeKlineMonth[]
 }
 
 export type LifeKlineSeries = {
   default_window: { start_year: number; end_year: number }
   series: Array<{
-    key: "overall" | "career" | "wealth" | "relationship" | "health" | string
+    key: "career" | "wealth" | "relationship" | "rhythm" | "health" | string
     label: string
     color: string
     points: LifeKlinePoint[]
   }>
   period_bands: Array<{ label: string; start_year: number; end_year: number }>
-  stages: Array<{ key: string; label: string; year: number; score: number; theme: string; summary: string }>
+  stages: Array<{
+    key: string
+    label: string
+    year: number
+    relative_index?: number
+    theme: string
+    summary: string
+    drivers?: Array<string | LifeKlineDriver>
+    /** @deprecated Old snapshots used a quality-like score field. */
+    score?: number
+  }>
+  baseline?: {
+    normalized_value: 100
+    scope: string
+    start_year: number
+    end_year: number
+    method: string
+    series: Record<string, { raw_value: number }>
+  }
   method: string
 }
 
@@ -315,6 +344,13 @@ export type ThemeComparison = ThemeStructureMetric & {
   normalized_entropy?: number
   effective_support?: number
   resolution?: "high" | "medium" | "low"
+  display_mode?: "incidence" | "exact_tail" | "directional" | "common_value" | "reference_zero" | "unavailable"
+  display_label?: string
+  display_direction?: "low" | "typical" | "high"
+  semantic_pole?: string
+  semantic_poles?: { low: string; typical: string; high: string }
+  tail_side?: "lower" | "upper"
+  tail_percentage?: number
   histogram?: Array<{ value: number | string; weight: number; percentage: number }>
   baseline_id: string
   method: "weighted_empirical_metric_distribution"

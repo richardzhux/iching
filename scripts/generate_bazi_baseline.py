@@ -4,13 +4,15 @@ import argparse
 import json
 from bisect import bisect_right
 from collections import Counter
+from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 from zoneinfo import ZoneInfo
 
 import sxtwl
 
+from iching.core.bazi_rules.registry import load_packaged_shen_registry
 from iching.core.bazi_structure import METRIC_DEFINITIONS, THEME_ORDER, build_structure_profile
 from iching.core.bazi_patterns import assess_patterns
 from iching.core.calendar_engine import (
@@ -38,8 +40,15 @@ from iching.core.shensha_effects import evaluate_shensha_effects
 
 
 DEFAULT_OUTPUT = Path(__file__).parents[1] / "src" / "iching" / "core" / "data"
-BASELINE_VERSION = "calendar-1924-2044-g3"
-BASELINE_GENERATION_VERSION = 3
+BASELINE_VERSION = "calendar-1924-2044-g4"
+BASELINE_GENERATION_VERSION = 4
+PROMOTION_SOURCE_VERSION = "calendar-1924-2044-g3"
+
+_RETAINED_DISTRIBUTION_KEYS = (
+    "features",
+    "feature_catalog",
+    "theme_metric_weights_by_gender",
+)
 
 
 def _config_id(day_boundary: str) -> str:
@@ -54,6 +63,14 @@ def _feature_catalog() -> list[str]:
     )
 
 
+def _pattern_bundle_identity() -> dict[str, str]:
+    registry = load_packaged_shen_registry()
+    return {
+        "pattern_bundle_id": registry.bundle_id,
+        "pattern_bundle_digest": registry.bundle_digest,
+    }
+
+
 def generator_metadata() -> dict[str, object]:
     catalog = _feature_catalog()
     metric_catalog = [METRIC_DEFINITIONS[key] for key in sorted(METRIC_DEFINITIONS)]
@@ -64,10 +81,110 @@ def generator_metadata() -> dict[str, object]:
         "feature_catalog_hash": feature_catalog_hash(catalog),
         "metric_catalog_hash": metric_catalog_hash(metric_catalog),
         "rules_registry_hash": bazi_rules_registry_hash(),
+        **_pattern_bundle_identity(),
         "weighted_unit": "minute",
         "theme_comparison_method": "transparent_metric_distributions",
         "consumer_rules_version": CONSUMER_RULES_VERSION,
     }
+
+
+def _validate_promotion_source(source: Mapping[str, Any], day_boundary: str) -> None:
+    expected_id = f"bazi-{PROMOTION_SOURCE_VERSION}-{day_boundary}"
+    if source.get("id") != expected_id:
+        raise ValueError(f"Expected promotion source {expected_id}, got {source.get('id')!r}")
+    if source.get("chart_type") != "bazi":
+        raise ValueError("Only bazi baselines can be promoted")
+    if int(source.get("schema_version", 0)) != 5:
+        raise ValueError("Only schema v5 baselines can be promoted to g4")
+    if int(source.get("baseline_generation_version", 0)) != 3:
+        raise ValueError("Only generation g3 baselines can be promoted to g4")
+    if source.get("day_boundary") != day_boundary:
+        raise ValueError("Promotion source day-boundary metadata does not match its filename")
+    if source.get("config_id") != _config_id(day_boundary):
+        raise ValueError("Promotion source config is not the canonical calendar config")
+    if source.get("hash") != payload_hash(source):
+        raise ValueError("Promotion source payload hash is invalid")
+
+    current_pattern_bundle = _pattern_bundle_identity()
+    if any(source.get(key) != value for key, value in current_pattern_bundle.items()):
+        raise ValueError(
+            "Promotion source predates the current pattern bundle; "
+            "a full baseline regeneration is required"
+        )
+    if source.get("rules_version") != RULES_VERSION or source.get("rules_registry_hash") != bazi_rules_registry_hash():
+        raise ValueError("Rule formulas changed; a full baseline regeneration is required")
+
+    source_features = source.get("feature_catalog")
+    if not isinstance(source_features, list):
+        raise ValueError("Promotion source feature catalog is missing")
+    if source.get("feature_catalog_hash") != feature_catalog_hash(source_features):
+        raise ValueError("Promotion source feature catalog hash is invalid")
+    if source_features != _feature_catalog():
+        raise ValueError("Feature formulas changed; a full baseline regeneration is required")
+
+    source_metrics = source.get("metric_catalog")
+    if not isinstance(source_metrics, list):
+        raise ValueError("Promotion source metric catalog is missing")
+    if source.get("metric_catalog_hash") != metric_catalog_hash(source_metrics):
+        raise ValueError("Promotion source metric catalog hash is invalid")
+    current_metric_catalog = [METRIC_DEFINITIONS[key] for key in sorted(METRIC_DEFINITIONS)]
+    if source_metrics != current_metric_catalog:
+        raise ValueError("Metric formulas changed; a full baseline regeneration is required")
+
+    consumer_features = source.get("consumer_features")
+    if not isinstance(consumer_features, Mapping):
+        raise ValueError("Promotion source consumer feature frequencies are missing")
+    catalog = consumer_features.get("catalog")
+    weights = consumer_features.get("hit_weights")
+    if not isinstance(catalog, list) or not isinstance(weights, Mapping):
+        raise ValueError("Promotion source consumer feature frequencies are invalid")
+    if consumer_features.get("rules_version") != CONSUMER_RULES_VERSION:
+        raise ValueError("Consumer feature formulas changed; a full baseline regeneration is required")
+    catalog_ids = {
+        str(item.get("id", ""))
+        for item in catalog
+        if isinstance(item, Mapping) and item.get("id")
+    }
+    if catalog_ids != set(weights):
+        raise ValueError("Promotion source consumer feature catalog and weights differ")
+
+
+def promote_g3_payload(source: Mapping[str, Any], day_boundary: str) -> dict[str, Any]:
+    """Promote only distributions already generated by the exact rule bundle.
+
+    A legacy baseline without the same pattern bundle ID and digest is rejected
+    because its pattern incidence cannot be relabeled as current-rule data.
+    """
+
+    _validate_promotion_source(source, day_boundary)
+    promoted = {
+        key: deepcopy(value)
+        for key, value in source.items()
+        if key not in {"consumer_score_distributions", "hash"}
+    }
+    metric_catalog = [METRIC_DEFINITIONS[key] for key in sorted(METRIC_DEFINITIONS)]
+    promoted.update({
+        "schema_version": BASELINE_SCHEMA_VERSION,
+        "baseline_generation_version": BASELINE_GENERATION_VERSION,
+        "id": f"bazi-{BASELINE_VERSION}-{day_boundary}",
+        "rules_version": RULES_VERSION,
+        "rules_registry_hash": bazi_rules_registry_hash(),
+        "metric_catalog": metric_catalog,
+        "metric_catalog_hash": metric_catalog_hash(metric_catalog),
+        **_pattern_bundle_identity(),
+    })
+    consumer_features = dict(promoted["consumer_features"])
+    consumer_features["rules_version"] = CONSUMER_RULES_VERSION
+    promoted["consumer_features"] = consumer_features
+
+    for key in _RETAINED_DISTRIBUTION_KEYS:
+        if promoted[key] != source[key]:
+            raise AssertionError(f"Promotion unexpectedly changed retained distribution: {key}")
+    for key in ("catalog", "hit_weights"):
+        if promoted["consumer_features"][key] != source["consumer_features"][key]:
+            raise AssertionError(f"Promotion unexpectedly changed consumer feature {key}")
+    promoted["hash"] = payload_hash(promoted)
+    return promoted
 
 
 def _jieqi_datetime(item, zone: ZoneInfo) -> datetime:
@@ -253,6 +370,7 @@ def generate(day_boundary: str) -> dict:
         "engine": "canonical-calendar-1 (sxtwl 2.0.7 ephemeris)",
         "rules_version": RULES_VERSION,
         "rules_registry_hash": bazi_rules_registry_hash(),
+        **_pattern_bundle_identity(),
         "feature_catalog": catalog,
         "feature_catalog_hash": feature_catalog_hash(catalog),
         "metric_catalog": metric_catalog,
@@ -297,13 +415,25 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--metadata", action="store_true")
     parser.add_argument("--mode", choices=("forward", "current", "all"), default="all")
+    parser.add_argument(
+        "--promote-from",
+        type=Path,
+        help="Directory containing g3 baselines generated by the exact current pattern bundle",
+    )
     args = parser.parse_args()
     if args.metadata:
         print(json.dumps(generator_metadata(), ensure_ascii=False, sort_keys=True))
         return
     args.output.mkdir(parents=True, exist_ok=True)
     modes = ("forward", "current") if args.mode == "all" else (args.mode,)
-    payloads = [generate(mode) for mode in modes]
+    if args.promote_from:
+        payloads = []
+        for mode in modes:
+            source_path = args.promote_from / f"bazi-{PROMOTION_SOURCE_VERSION}-{mode}.json"
+            source = json.loads(source_path.read_text())
+            payloads.append(promote_g3_payload(source, mode))
+    else:
+        payloads = [generate(mode) for mode in modes]
     for payload in payloads:
         path = args.output / f"{payload['id']}.json"
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
