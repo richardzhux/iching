@@ -36,7 +36,7 @@ function tierClass(tier: string) {
 function stateClass(state: string) {
   if (state === "发力") return "bg-primary text-primary-foreground"
   if (state === "有力") return "bg-primary/[0.14] text-primary"
-  if (state === "受制") return "bg-destructive/10 text-destructive"
+  if (state === "受制") return "bg-[hsl(var(--imperial-metal)/0.12)] text-[hsl(var(--imperial-metal))]"
   return "bg-muted text-foreground"
 }
 
@@ -46,8 +46,6 @@ const englishState: Record<AchievementState, string> = {
   可见: "Visible",
   受制: "Constrained",
 }
-
-const achievementStates = new Set(["发力", "有力", "可见", "Activated", "Effective", "Visible"])
 
 function stateLabel(state: string, locale: AchievementLocale) {
   if (locale === "zh") return state
@@ -67,15 +65,15 @@ export function MetaphysicsAchievements({
   className,
 }: MetaphysicsAchievementsProps) {
   const headingId = `${useId()}-metaphysics-achievements-title`
-  const visibleAchievements = achievements.filter((achievement) => achievementStates.has(achievement.state))
-  const heading = title ?? (locale === "zh" ? "已解锁的命盘成就" : "Unlocked chart achievements")
-  const supportingCopy = description ?? (locale === "zh" ? "这里只收录得到原局支持或清晰可见的结构。出现率表示少见程度，不代表吉凶或人生高低。" : "Only supported or clearly visible structures appear here. Incidence describes rarity, not fortune or life quality.")
+  const visibleAchievements = achievements
+  const heading = title ?? (locale === "zh" ? "稀有结构组合" : "Rare structure combinations")
+  const supportingCopy = description ?? (locale === "zh" ? "这些组合由同一命盘中同时成立的结构组成；状态说明它当前的作用条件，出现率表示历法样本中的同值频率。" : "These combinations group structures that occur together in the same chart. State describes their current operating conditions, while incidence is their same-value frequency in calendar samples.")
 
   return (
     <section className={cn("min-w-0", className)} aria-labelledby={headingId}>
       <header className="flex min-w-0 flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="kicker">{locale === "zh" ? "命盘成就" : "CHART ACHIEVEMENTS"}</p>
+          <p className="kicker">{locale === "zh" ? "结构组合" : "STRUCTURE COMBINATIONS"}</p>
           <h2 id={headingId} className="mt-2 text-2xl font-semibold">{heading}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{supportingCopy}</p>
         </div>
@@ -88,7 +86,12 @@ export function MetaphysicsAchievements({
             <li key={achievement.id} className="min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-surface px-4 py-5 shadow-[var(--surface-shadow-soft)] sm:px-5">
               <article className="min-w-0">
                 <div className="flex items-center justify-between gap-3">
-                  <span className={cn("inline-flex min-h-9 min-w-14 items-center justify-center rounded-xl border px-2.5 py-1.5 text-sm font-black tracking-[0.08em]", tierClass(achievement.tier))}>{achievement.tier}</span>
+                  <span
+                    className={cn("inline-flex min-h-9 min-w-14 items-center justify-center rounded-xl border px-2.5 py-1.5 text-sm font-black tracking-[0.08em]", tierClass(achievement.tier))}
+                    aria-label={locale === "zh" ? `稀有度层级 ${achievement.tier}` : `Rarity tier ${achievement.tier}`}
+                  >
+                    {achievement.tier}
+                  </span>
                   <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", stateClass(achievement.state))}>{stateLabel(achievement.state, locale)}</span>
                 </div>
                 <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-5 gap-y-2">
@@ -101,14 +104,14 @@ export function MetaphysicsAchievements({
                     <dt className="inline font-semibold text-foreground">{locale === "zh" ? "落位：" : "Position: "}</dt>
                     <dd className="inline break-words text-muted-foreground">{achievement.position}</dd>
                   </div>
-                  {achievement.member_ids.length > 1 ? <div className="ml-auto"><dt className="sr-only">{locale === "zh" ? "组合数量" : "Combination size"}</dt><dd className="font-semibold text-primary">{locale === "zh" ? `${achievement.member_ids.length} 项结构共振` : `${achievement.member_ids.length}-part resonance`}</dd></div> : null}
+                  {achievement.member_ids.length > 1 ? <div className="ml-auto"><dt className="sr-only">{locale === "zh" ? "组合数量" : "Combination size"}</dt><dd className="font-semibold text-primary">{locale === "zh" ? `${achievement.member_ids.length} 项结构共同出现` : `${achievement.member_ids.length} structures occur together`}</dd></div> : null}
                 </dl>
               </article>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-5 rounded-2xl border border-border/60 bg-muted/30 px-5 py-6 text-sm leading-6 text-muted-foreground">{emptyMessage ?? (locale === "zh" ? "当前没有需要单独展示的命盘成就；受制结构仍会保留在完整命盘中。" : "No chart achievement needs a separate highlight right now; constrained structures remain available in the full chart.")}</p>
+        <p className="mt-5 rounded-2xl border border-border/60 bg-muted/30 px-5 py-6 text-sm leading-6 text-muted-foreground">{emptyMessage ?? (locale === "zh" ? "当前没有多项结构同时成立的稀有组合；单项结构仍保留在完整命盘中。" : "No rare multi-structure combination is present in this chart; individual structures remain available in the full chart.")}</p>
       )}
     </section>
   )

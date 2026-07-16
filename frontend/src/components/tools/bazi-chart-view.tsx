@@ -1,10 +1,15 @@
 "use client"
 
-import { useEffect, useId, useState } from "react"
-import { ChevronRight } from "lucide-react"
+import { useEffect, useId, useState, type ReactNode } from "react"
+import { ChevronRight, Share2 } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
-import { ConsumerIdentity } from "@/components/tools/consumer-identity"
+import {
+  ConsumerIdentity,
+  type ConsumerIdentityProfile,
+  type ConsumerMonthPreview,
+  type ConsumerSubjectScore,
+} from "@/components/tools/consumer-identity"
 import { LifeKlineChart } from "@/components/tools/life-kline-chart"
 import { MetaphysicsAchievements, type MetaphysicsAchievement } from "@/components/tools/metaphysics-achievements"
 import { buildBaziMarkdown } from "@/lib/chart-markdown"
@@ -14,6 +19,7 @@ import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodYear, RarityMetri
 type Locale = "en" | "zh"
 type DisplayMode = "simple" | "study" | "professional"
 type SolarTerm = NonNullable<MetaphysicsChart["next_solar_term"]>
+type ConsumerLifeKline = NonNullable<MetaphysicsChart["consumer"]>["life_kline"]
 type BaziChartViewProps =
   | { chart: MetaphysicsChart; locale: Locale; mode: "current"; generatedAt?: never; onCompare?: never }
   | { chart: MetaphysicsChart; locale: Locale; mode: "birth"; generatedAt: string; subjectName: string; onCompare?: () => void }
@@ -24,6 +30,190 @@ function formatChartTimestamp(timestamp: string, locale: Locale, timeZone: strin
 
 function currentYearInTimeZone(timeZone: string) {
   return Number(new Intl.DateTimeFormat("en", { timeZone, year: "numeric" }).format(new Date()))
+}
+
+const PATTERN_STATUS_LABELS: Record<string, { zh: string; en: string }> = {
+  formed: { zh: "成格", en: "Formed" },
+  candidate: { zh: "主导", en: "Dominant" },
+  effective: { zh: "得用", en: "Effective" },
+  broken: { zh: "受制", en: "Constrained" },
+  rescued: { zh: "救成", en: "Restored" },
+  mixed: { zh: "混杂", en: "Mixed" },
+  transformed: { zh: "转化", en: "Transformed" },
+}
+
+const PATTERN_SELECTION_LABELS: Record<string, { zh: string; en: string }> = {
+  month_main_qi: { zh: "月令本气", en: "Month-command main qi" },
+  month_hidden_exposed: { zh: "藏气透干", en: "Exposed hidden qi" },
+  month_meeting: { zh: "合会取格", en: "Combination-led selection" },
+  strict_special_gates: { zh: "特殊格成立", en: "Special-pattern gates" },
+}
+
+const PATTERN_INTEGRITY_LABELS: Record<string, { zh: string; en: string }> = {
+  complete: { zh: "结构完整", en: "Complete structure" },
+  minor_damage: { zh: "局部牵制", en: "Local tension" },
+  rescued: { zh: "破而有救", en: "Restored after tension" },
+  broken: { zh: "结构受制", en: "Constrained structure" },
+}
+
+const PATTERN_PURITY_LABELS: Record<string, { zh: string; en: string }> = {
+  clear: { zh: "格局清", en: "Clear pattern" },
+  combined: { zh: "兼见", en: "Combined" },
+  mixed: { zh: "混杂", en: "Mixed" },
+}
+
+const THEME_PROFILE_KEYS: Record<string, string> = {
+  career: "事业",
+  wealth: "财富",
+  relationship: "感情",
+  health: "五行与承压结构",
+  rhythm: "五行与承压结构",
+}
+
+function localizedValue(value: string | undefined, labels: Record<string, { zh: string; en: string }>, locale: Locale) {
+  if (!value) return null
+  return labels[value]?.[locale] ?? value
+}
+
+function uniqueNonEmpty(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.filter((value): value is string => Boolean(value))))
+}
+
+function comparisonPriority(item: ThemeComparison) {
+  if (item.display_mode === "exact_tail") return item.tail_percentage ?? 0
+  if (item.display_mode === "directional") return 100 + (item.same_mass ?? 100)
+  if (item.display_mode === "common_value" && item.display_direction !== "typical") return 220 + (item.same_mass ?? 100)
+  if (item.display_mode === "incidence" && (item.hit_percentage ?? 100) <= 20) return 340 + (item.hit_percentage ?? 100)
+  if (item.display_mode === "common_value") return 500 + (item.same_mass ?? 100)
+  if (item.display_mode === "incidence") return 700 + (item.hit_percentage ?? 100)
+  if (item.display_mode === "reference_zero") return 900
+  return 1000
+}
+
+function subjectComparisonLabel(subject: ConsumerSubjectScore, profiles: ThemeProfile[]) {
+  const themeName = THEME_PROFILE_KEYS[subject.key] ?? subject.label
+  const profile = profiles.find((item) => item.theme === themeName)
+  const comparison = [...(profile?.comparisons ?? [])]
+    .filter((item) => item.status !== "unsupported" && item.display_mode !== "unavailable" && Boolean(item.display_label))
+    .sort((left, right) => comparisonPriority(left) - comparisonPriority(right))[0]
+  if (!comparison) return null
+  return comparison.display_label || null
+}
+
+function lifeKlineSeriesKey(subjectKey: string) {
+  return subjectKey === "health" ? "rhythm" : subjectKey
+}
+
+function relativeKlineValue(
+  lifeKline: ConsumerLifeKline,
+  series: ConsumerLifeKline["series"][number],
+  value: number,
+) {
+  const baseline = lifeKline.baseline as (typeof lifeKline.baseline & { values_are_relative?: boolean; by_series?: Record<string, number | { raw_value?: number; value?: number }> }) | undefined
+  if (baseline?.values_are_relative || baseline?.normalized_value === 100) return value
+  const entry = baseline?.by_series?.[series.key] ?? baseline?.series?.[series.key]
+  const entryRecord = typeof entry === "number" ? null : entry as { raw_value?: number; value?: number } | undefined
+  const entryValue = typeof entry === "number" ? entry : entryRecord?.raw_value ?? entryRecord?.value
+  const closes = series.points.map((point) => point.close).filter(Number.isFinite)
+  const fallback = closes.length ? closes.reduce((total, item) => total + item, 0) / closes.length : 100
+  const divisor = typeof entryValue === "number" && entryValue > 0 ? entryValue : fallback
+  return divisor > 0 ? (value / divisor) * 100 : value
+}
+
+function activationLabel(subject: ConsumerSubjectScore, lifeKline: ConsumerLifeKline, currentYear: number, currentMonthIndex: number, locale: Locale) {
+  const series = lifeKline.series.find((item) => item.key === lifeKlineSeriesKey(subject.key))
+  if (!series) return null
+  const futureMonths = series.points
+    .filter((point) => point.year >= currentYear)
+    .sort((left, right) => left.year - right.year)
+    .flatMap((point) => point.months
+      .filter((month) => point.year > currentYear || month.index > currentMonthIndex)
+      .map((month) => ({ year: point.year, month, value: relativeKlineValue(lifeKline, series, month.value) })))
+  const nextMonth = futureMonths.find((item) => item.value >= 110 || item.value <= 92)
+  if (nextMonth) {
+    const state = nextMonth.value >= 110
+      ? (locale === "zh" ? "高光窗口" : "high window")
+      : (locale === "zh" ? "调整窗口" : "adjustment window")
+    return `${nextMonth.year} ${nextMonth.month.label} · ${state}`
+  }
+  const canonicalKey = lifeKlineSeriesKey(subject.key)
+  const stage = lifeKline.stages.find((item) => item.year >= currentYear && item.key === canonicalKey)
+  if (stage) return `${stage.year} · ${stage.label}`
+  const point = series.points.find((item) => item.year >= currentYear)
+  if (!point) return null
+  const value = relativeKlineValue(lifeKline, series, point.close)
+  const state = value >= 110
+    ? (locale === "zh" ? "高光窗口" : "high window")
+    : value >= 104
+      ? (locale === "zh" ? "升温窗口" : "warming window")
+      : value <= 92
+        ? (locale === "zh" ? "调整窗口" : "adjustment window")
+        : (locale === "zh" ? "节奏变化" : "rhythm shift")
+  return `${point.year} · ${state}`
+}
+
+function buildMonthPreview(lifeKline: ConsumerLifeKline, currentYear: number, currentMonthIndex: number): ConsumerMonthPreview[] {
+  const candidates = lifeKline.series.map((series) => ({
+    series,
+    months: series.points
+      .filter((point) => point.year >= currentYear)
+      .sort((left, right) => left.year - right.year)
+      .flatMap((point) => point.months
+        .filter((month) => point.year > currentYear || month.index >= currentMonthIndex)
+        .map((month) => ({ year: point.year, month, value: relativeKlineValue(lifeKline, series, month.value) })))
+      .slice(0, 12),
+  }))
+  const monthCount = Math.min(12, Math.max(0, ...candidates.map(({ months }) => months.length)))
+  return Array.from({ length: monthCount }, (_, index) => index).flatMap((index) => {
+    const options = candidates.flatMap(({ series, months }) => months[index] ? [{ series, ...months[index] }] : [])
+    const selected = options.sort((left, right) => Math.abs(right.value - 100) - Math.abs(left.value - 100))[0]
+    if (!selected) return []
+    const theme = selected.series.key === "health" || selected.series.key === "rhythm" ? "身心节奏" : selected.series.label
+    return [{
+      label: selected.month.label,
+      ganzhi: selected.month.ganzhi,
+      value: selected.value,
+      theme,
+      state: selected.value >= 108 ? "high" : selected.value <= 92 ? "adjustment" : "steady",
+    } satisfies ConsumerMonthPreview]
+  })
+}
+
+function buildConsumerIdentityProfile(chart: MetaphysicsChart, lifeKline: ConsumerLifeKline, currentYear: number, locale: Locale): ConsumerIdentityProfile {
+  const consumer = chart.consumer!
+  const primary = chart.structure.patterns?.primary
+  const hero = consumer.claims?.find((claim) => claim.slot === "hero")
+  const firstTheme = consumer.claims?.find((claim) => claim.slot === "theme")
+  const signatures = consumer.claims?.filter((claim) => claim.slot === "signature") ?? []
+  const formationPath = primary?.formation_path?.title
+  const heroTags = uniqueNonEmpty([
+    localizedValue(primary?.selection, PATTERN_SELECTION_LABELS, locale),
+    formationPath,
+    localizedValue(primary?.integrity, PATTERN_INTEGRITY_LABELS, locale),
+    localizedValue(primary?.purity, PATTERN_PURITY_LABELS, locale),
+    ...signatures.slice(0, 2).map((claim) => claim.title),
+  ]).slice(0, 3)
+  const memorable = firstTheme?.summary ?? hero?.summary ?? consumer.identity.archetype_subtitle
+  const profiles = chart.theme_profiles ?? chart.structure?.theme_profiles ?? []
+  const currentMonthIndex = chart.birth_profile.dayun.current?.month?.index ?? 0
+  return {
+    identity: {
+      ...consumer.identity,
+      pattern_title: primary?.title ?? hero?.title ?? consumer.identity.archetype_title,
+      pattern_status: localizedValue(primary?.status, PATTERN_STATUS_LABELS, locale),
+      formation_path: formationPath ?? null,
+      memorable_line: memorable,
+      hero_tags: heroTags,
+    },
+    subjects: consumer.subjects.map((subject) => ({
+      ...subject,
+      comparison_label: subjectComparisonLabel(subject, profiles),
+      next_activation: activationLabel(subject, lifeKline, currentYear, currentMonthIndex, locale),
+    })),
+    fingerprints: consumer.fingerprints,
+    twin: consumer.twin,
+    month_preview: buildMonthPreview(lifeKline, currentYear, currentMonthIndex),
+  }
 }
 
 export function BaziChartView(props: BaziChartViewProps) {
@@ -247,23 +437,18 @@ function BaziConsumerResult({
     setLifeKline(consumer.life_kline)
     setFullLifeError(null)
   }, [consumer.life_kline])
-  const profile = {
-    identity: consumer.identity,
-    subjects: consumer.subjects,
-    fingerprints: consumer.fingerprints,
-    twin: consumer.twin,
-  }
+  const profile = buildConsumerIdentityProfile(chart, lifeKline, currentYear, locale)
   const achievementStates = new Set(["发力", "有力", "可见", "受制"])
   const achievements = consumer.achievements
-    .filter((item) => achievementStates.has(item.state)) as MetaphysicsAchievement[]
+    .filter((item) => achievementStates.has(item.state) && item.member_ids.length > 1) as MetaphysicsAchievement[]
   const tabs: Array<{ key: ConsumerTab; label: string; description: string }> = locale === "zh"
     ? [
-      { key: "identity", label: "我是谁", description: "称号、路径与命盘成就" },
+      { key: "identity", label: "我是谁", description: "命格、路径与稀有结构" },
       { key: "kline", label: "人生 K 线", description: "未来十年与月份节奏" },
       { key: "chart", label: "完整命盘", description: "四柱、运限与全部依据" },
     ]
     : [
-      { key: "identity", label: "Identity", description: "Archetype, paths, achievements" },
+      { key: "identity", label: "Identity", description: "Pattern, paths, rare structures" },
       { key: "kline", label: "Life K-line", description: "Ten-year and monthly rhythm" },
       { key: "chart", label: "Full chart", description: "Pillars, periods, all details" },
     ]
@@ -285,31 +470,35 @@ function BaziConsumerResult({
   }
 
   return <section className="chart-report min-w-0 space-y-6" aria-label={locale === "zh" ? "八字命盘结果" : "BaZi result"}>
-    <div data-export-exclude className="flex justify-end">
-      <ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "一键导出" : "Export"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated."} safeBaseFilename={`bazi-${chart.birth_profile.input_date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败，请改用下载。" : "Copy failed."} />
-    </div>
+    <ShareExportMenu
+      chart={chart}
+      locale={locale}
+      markdown={markdown}
+      identityCardId={identityCardId}
+      achievementCardId={achievementCardId}
+      klineCardId={klineCardId}
+      fullReportId={exportTargetId}
+      pillarTableId={tableExportTargetId}
+    />
 
     <nav data-export-exclude aria-label={locale === "zh" ? "八字结果主导航" : "BaZi result navigation"} className="sticky top-20 z-20 grid grid-cols-3 gap-1 rounded-2xl border border-border/60 bg-background/90 p-1.5 shadow-sm backdrop-blur">
       {tabs.map((item) => <button key={item.key} type="button" aria-pressed={tab === item.key} onClick={() => setTab(item.key)} className={`min-w-0 rounded-xl px-2 py-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${tab === item.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-primary/8 hover:text-foreground"}`}><span className="block text-sm font-semibold sm:text-base">{item.label}</span><span className={`mt-1 hidden text-[0.68rem] sm:block ${tab === item.key ? "text-primary-foreground/75" : "text-muted-foreground"}`}>{item.description}</span></button>)}
     </nav>
 
     {tab === "identity" ? <div className="space-y-9">
-      <div data-export-exclude className="flex flex-wrap justify-end gap-2"><ChartAssetExportButton targetId={identityCardId} label={locale === "zh" ? "分享身份卡" : "Share identity card"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "身份卡生成失败。" : "Identity card could not be generated."} safeBaseFilename={`bazi-identity-${chart.birth_profile.input_date}`} /></div>
-      <div id={identityCardId}><ConsumerIdentity profile={profile} locale={locale} comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined} /></div>
-      <div data-export-exclude className="flex flex-wrap justify-end gap-2"><ChartAssetExportButton targetId={achievementCardId} label={locale === "zh" ? "分享成就卡" : "Share achievements"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "成就卡生成失败。" : "Achievement card could not be generated."} safeBaseFilename={`bazi-achievements-${chart.birth_profile.input_date}`} /></div>
-      <div id={achievementCardId}><MetaphysicsAchievements achievements={achievements} locale={locale} /></div>
+      <ConsumerIdentity profile={profile} locale={locale} comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined} />
+      <MetaphysicsAchievements achievements={achievements} locale={locale} />
     </div> : null}
 
     {tab === "kline" ? <div className="space-y-8">
-      <div data-export-exclude className="flex justify-end"><ChartAssetExportButton targetId={klineCardId} label={locale === "zh" ? "分享人生 K 线" : "Share Life K-line"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "K 线图片生成失败。" : "K-line image could not be generated."} safeBaseFilename={`bazi-kline-${chart.birth_profile.input_date}`} /></div>
-      <div id={klineCardId}><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYear} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} /></div>
+      <LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYear} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} />
       {fullLifeError ? <p role="alert" className="text-sm text-destructive">{fullLifeError}</p> : null}
       <section className="rounded-3xl border border-border/60 bg-surface p-5 sm:p-7"><h2 className="text-xl font-semibold">{locale === "zh" ? "点开阶段看细节" : "Open a period"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "选择大运、流年和流月，查看这一阶段新增、联动和冲突的具体结构。" : "Choose a cycle, year, and month to inspect its activated structures."}</p><div className="mt-5"><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></div></section>
     </div> : null}
 
     {tab === "chart" ? <div className="space-y-9">
       <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
-      <ReportChapter title={locale === "zh" ? "四柱命盘" : "Four pillars"} intro={locale === "zh" ? "四柱、十神、藏干、神煞与状态集中在同一张专业表。" : "Pillars, Ten Gods, hidden stems, and Shen Sha in one table."}><div data-export-exclude className="mb-3 flex justify-end"><ChartAssetExportButton targetId={tableExportTargetId} label={locale === "zh" ? "单独导出四柱表" : "Export pillar table"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "四柱表导出失败。" : "Pillar table export failed."} safeBaseFilename={`bazi-pillars-${chart.birth_profile.input_date}`} /></div><div id={tableExportTargetId}><BaziProfessionalTable chart={chart} locale={locale} /></div></ReportChapter>
+      <ReportChapter title={locale === "zh" ? "四柱命盘" : "Four pillars"} intro={locale === "zh" ? "四柱、十神、藏干、神煞与状态集中在同一张专业表。" : "Pillars, Ten Gods, hidden stems, and Shen Sha in one table."}><BaziProfessionalTable chart={chart} locale={locale} /></ReportChapter>
       <ReportChapter title={locale === "zh" ? "格局与核心判断" : "Pattern and findings"}><BaziPatternSummary chart={chart} locale={locale} /><div className="mt-7"><BaziSynthesisPanel chart={chart} locale={locale} /></div></ReportChapter>
       <ReportChapter title={locale === "zh" ? "运限" : "Periods"}><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></ReportChapter>
       <ReportChapter title={locale === "zh" ? "结构对照" : "Structure comparisons"}><ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /></ReportChapter>
@@ -317,14 +506,114 @@ function BaziConsumerResult({
       <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看排盘规则与原始统计" : "Chart rules and raw statistics"}</summary><div className="mt-6 space-y-7"><BaziStatistics chart={chart} locale={locale} currentYear={currentYear} /><p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {chart.rules_version} · {chart.statistics.baseline.id}</p></div></details>
     </div> : null}
 
-    <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />
+    <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} consumerProfile={profile} lifeKline={lifeKline} periodCycles={periodCycles} />
+    <BaziConsumerShareCanvases
+      chart={chart}
+      locale={locale}
+      profile={profile}
+      achievements={achievements}
+      lifeKline={lifeKline}
+      currentYear={currentYear}
+      identityCardId={identityCardId}
+      achievementCardId={achievementCardId}
+      klineCardId={klineCardId}
+      pillarTableId={tableExportTargetId}
+    />
   </section>
+}
+
+function ShareExportMenu({
+  chart,
+  locale,
+  markdown,
+  identityCardId,
+  achievementCardId,
+  klineCardId,
+  fullReportId,
+  pillarTableId,
+}: {
+  chart: MetaphysicsChart
+  locale: Locale
+  markdown: string
+  identityCardId: string
+  achievementCardId: string
+  klineCardId: string
+  fullReportId: string
+  pillarTableId: string
+}) {
+  const date = chart.birth_profile.input_date
+  return (
+    <details data-export-exclude className="relative ml-auto w-fit max-w-full">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-xl border border-border/60 bg-surface px-4 py-2.5 text-sm font-semibold shadow-sm transition hover:border-primary/45 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+        <Share2 aria-hidden="true" className="size-4" />
+        {locale === "zh" ? "分享与导出" : "Share & export"}
+      </summary>
+      <div className="custom-scrollbar absolute right-0 z-30 mt-2 max-h-[min(70vh,42rem)] w-[min(92vw,32rem)] space-y-4 overflow-y-auto rounded-2xl border border-border/70 bg-background p-4 shadow-xl">
+        <ExportMenuRow title={locale === "zh" ? "身份卡" : "Identity card"} description={locale === "zh" ? "命格、四条路径与十二月预览" : "Pattern, four paths, and the 12-month preview"}>
+          <ChartAssetExportButton targetId={identityCardId} label={locale === "zh" ? "导出身份卡" : "Export identity card"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "身份卡生成失败。" : "Identity card could not be generated."} safeBaseFilename={`bazi-identity-${date}`} />
+        </ExportMenuRow>
+        <ExportMenuRow title={locale === "zh" ? "稀有结构组合" : "Rare combinations"} description={locale === "zh" ? "可分享的组合、状态与出现率" : "Shareable combinations, state, and incidence"}>
+          <ChartAssetExportButton targetId={achievementCardId} label={locale === "zh" ? "导出组合卡" : "Export combination card"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "组合卡生成失败。" : "Combination card could not be generated."} safeBaseFilename={`bazi-combinations-${date}`} />
+        </ExportMenuRow>
+        <ExportMenuRow title={locale === "zh" ? "未来窗口" : "Future window"} description={locale === "zh" ? "当前十年走势与月份驱动" : "Current ten-year trend and monthly drivers"}>
+          <ChartAssetExportButton targetId={klineCardId} label={locale === "zh" ? "导出 K 线" : "Export K-line"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "K 线图片生成失败。" : "K-line image could not be generated."} safeBaseFilename={`bazi-kline-${date}`} />
+        </ExportMenuRow>
+        <ExportMenuRow title={locale === "zh" ? "四柱表" : "Four-pillar table"} description={locale === "zh" ? "适合单独保存的专业排盘表" : "A standalone professional pillar table"}>
+          <ChartAssetExportButton targetId={pillarTableId} label={locale === "zh" ? "导出四柱表" : "Export pillar table"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "四柱表导出失败。" : "Pillar table export failed."} safeBaseFilename={`bazi-pillars-${date}`} />
+        </ExportMenuRow>
+        <ExportMenuRow title={locale === "zh" ? "完整报告" : "Full report"} description={locale === "zh" ? "长图、PDF 或 Markdown" : "Long image, PDF, or Markdown"}>
+          <ChartExportButton targetId={fullReportId} markdown={markdown} label={locale === "zh" ? "导出完整报告" : "Export full report"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "完整报告生成失败，请重试。" : "Full report could not be generated."} safeBaseFilename={`bazi-${date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败，请改用下载。" : "Copy failed."} />
+        </ExportMenuRow>
+      </div>
+    </details>
+  )
+}
+
+function ExportMenuRow({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+  return (
+    <section className="grid min-w-0 gap-3 border-b border-border/50 pb-4 last:border-b-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+      <div className="min-w-0"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p></div>
+      <div className="min-w-0">{children}</div>
+    </section>
+  )
+}
+
+function BaziConsumerShareCanvases({
+  chart,
+  locale,
+  profile,
+  achievements,
+  lifeKline,
+  currentYear,
+  identityCardId,
+  achievementCardId,
+  klineCardId,
+  pillarTableId,
+}: {
+  chart: MetaphysicsChart
+  locale: Locale
+  profile: ConsumerIdentityProfile
+  achievements: MetaphysicsAchievement[]
+  lifeKline: ConsumerLifeKline
+  currentYear: number
+  identityCardId: string
+  achievementCardId: string
+  klineCardId: string
+  pillarTableId: string
+}) {
+  return (
+    <div aria-hidden="true" inert className="chart-export-stage">
+      <article id={identityCardId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><ConsumerIdentity profile={profile} locale={locale} /></article>
+      <article id={achievementCardId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><MetaphysicsAchievements achievements={achievements} locale={locale} /></article>
+      <article id={klineCardId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYear} /></article>
+      <article id={pillarTableId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><BaziProfessionalTable chart={chart} locale={locale} /></article>
+    </div>
+  )
 }
 
 function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
   const primary = chart.structure.patterns?.primary
   if (!primary) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "这张命盘以主导结构呈现，不强贴单一格局标签。" : "This chart is described by its dominant structure rather than a forced pattern label."}</p>
-  const statusLabels: Record<string, string> = { formed: "成格", candidate: "候选", effective: "得用", broken: "受制", rescued: "救成", mixed: "混杂", transformed: "转化" }
   const selectionLabels: Record<string, string> = { month_main_qi: "月令本气", month_hidden_exposed: "藏气透干", month_meeting: "合会取格", strict_special_gates: "特殊格严格成立" }
   const integrityLabels: Record<string, string> = { complete: "完整", minor_damage: "有局部牵制", rescued: "破而有救", broken: "受损" }
   const purityLabels: Record<string, string> = { clear: "清", combined: "兼见", mixed: "混杂" }
@@ -332,6 +621,29 @@ function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale
   const allEvidence = (chart.structure.patterns?.evidence ?? []) as Array<{ id?: string; kind?: string; detail?: string }>
   const evidence = allEvidence.filter((item) => item.id && primary.evidence_ids?.includes(item.id))
   const pathTitle = primary.formation_path?.title
+  const pathDetails = primary.formation_path?.details ?? []
+  const factDetails = uniqueNonEmpty([
+    evidence.find((item) => item.kind === "month_command")?.detail,
+    pathDetails[0],
+    evidence.find((item) => item.kind === "formation_path")?.detail,
+  ]).slice(0, 2)
+  const sourceRefs = chart.structure.patterns?.source_refs ?? []
+  const scanProgress = locale === "zh"
+    ? `已完成月令候选、成格条件、制约与救应核验，共串联 ${evidence.length} 条有效证据。`
+    : `Month-command selection, formation, constraints, and rescue checks completed across ${evidence.length} active evidence items.`
+  const decisionSteps = locale === "zh"
+    ? [
+      { label: "命盘事实", title: factDetails[0] ?? primary.summary, detail: factDetails.slice(1).join("；") },
+      { label: "命中规则", title: [selectionLabels[primary.selection ?? ""] ?? primary.selection, pathTitle].filter(Boolean).join(" → "), detail: "由月令候选进入成格、制约与救应判断。" },
+      { label: "古籍命题", title: primary.summary, detail: primary.tensions?.[0] ?? primary.rescues?.[0] ?? "主导结构按当前原局条件成立。" },
+      { label: "核验进程", title: scanProgress, detail: sourceRefs.length ? `出处索引：${sourceRefs.join("；")}` : "出处索引将在规则详情中按需显示。" },
+    ]
+    : [
+      { label: "Chart facts", title: factDetails[0] ?? primary.summary, detail: factDetails.slice(1).join("; ") },
+      { label: "Matched rule", title: [primary.selection, pathTitle].filter(Boolean).join(" → "), detail: "The month-command candidate proceeds through formation, constraint, and rescue checks." },
+      { label: "Classical proposition", title: primary.summary, detail: primary.tensions?.[0] ?? primary.rescues?.[0] ?? "The dominant structure is active under the current natal conditions." },
+      { label: "Verification path", title: scanProgress, detail: sourceRefs.length ? `Source index: ${sourceRefs.join("; ")}` : "Source references are available on demand in rule details." },
+    ]
   const dimensions = [
     [locale === "zh" ? "取格" : "Selection", selectionLabels[primary.selection ?? ""] ?? primary.selection],
     [locale === "zh" ? "成格路径" : "Formation path", pathTitle],
@@ -343,9 +655,19 @@ function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale
     <section className="rounded-2xl bg-primary/[0.06] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-2xl font-semibold">{primary.title || `${primary.name}格`}</h3>
-        <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{statusLabels[primary.status] || primary.status}</span>
+        <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{localizedValue(primary.status, PATTERN_STATUS_LABELS, locale)}</span>
       </div>
       <p className="mt-3 text-sm leading-7 text-muted-foreground">{primary.summary}</p>
+      <ol className="mt-5 grid min-w-0 gap-2 lg:grid-cols-4" aria-label={locale === "zh" ? "格局判断链" : "Pattern decision chain"}>
+        {decisionSteps.map((step, index) => (
+          <li key={step.label} className="relative min-w-0 rounded-xl border border-border/55 bg-surface p-4">
+            <p className="text-[0.68rem] font-semibold tracking-[0.12em] text-primary">{String(index + 1).padStart(2, "0")} · {step.label}</p>
+            <p className="mt-2 text-sm font-semibold leading-6">{step.title}</p>
+            {step.detail ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{step.detail}</p> : null}
+            {index < decisionSteps.length - 1 ? <ChevronRight aria-hidden="true" className="absolute -right-3 top-1/2 z-10 hidden size-5 -translate-y-1/2 rounded-full bg-background text-primary lg:block" /> : null}
+          </li>
+        ))}
+      </ol>
       {dimensions.length ? <dl className="mt-5 grid gap-px overflow-hidden rounded-xl border border-border/50 bg-border/50 sm:grid-cols-3 lg:grid-cols-5">{dimensions.map(([label, value]) => <div key={label} className="bg-surface px-3 py-3"><dt className="text-[0.68rem] font-semibold text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-semibold text-foreground">{value}</dd></div>)}</dl> : null}
       {primary.rescues?.length ? <p className="mt-4 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{primary.rescues.join(" · ")}</p> : null}
       {primary.tensions?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "结构张力" : "Structural tension"}：</strong>{primary.tensions.join(" · ")}</p> : null}
@@ -719,15 +1041,38 @@ function HistoricalSolarTerm({ term, calculationTimestamp, locale, timeZone }: {
   return <div className="mt-2 text-xs leading-5 text-muted-foreground"><p>{locale === "zh" ? `距排盘时刻 ${distance}（${term.days_away.toFixed(2)} 天）` : `${distance} after chart time (${term.days_away.toFixed(2)} days)`}</p><p>{locale === "zh" ? "排盘时刻" : "Chart time"}: <time dateTime={calculationTimestamp}>{formatChartTimestamp(calculationTimestamp, locale, timeZone)}</time></p><p>{locale === "zh" ? "节气准确时刻" : "Exact term time"}: <time dateTime={term.timestamp}>{exactTimestamp}</time></p></div>
 }
 
-function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculationRule, currentCycleText, generatedAt, trustNote }: { exportTargetId: string; chart: MetaphysicsChart; locale: Locale; subjectName: string; calculationRule: string; currentCycleText: string; generatedAt: string; trustNote: string }) {
-  const consumerProfile = chart.consumer?.twin ? { identity: chart.consumer.identity, subjects: chart.consumer.subjects, fingerprints: chart.consumer.fingerprints, twin: chart.consumer.twin } : null
+function BaziPeriodExportSummary({ cycles, chart, locale }: { cycles: DayunCycle[]; chart: MetaphysicsChart; locale: Locale }) {
+  const current = chart.birth_profile.dayun.current
   return (
-    <div aria-hidden="true" className="chart-export-stage">
+    <section>
+      <h2 className="text-2xl font-semibold">{locale === "zh" ? "运限时间轴" : "Period timeline"}</h2>
+      <div className="mt-4 grid grid-cols-5 gap-2">
+        {cycles.map((cycle) => <div key={cycle.index} className={`rounded-xl border p-3 ${cycle.is_current ? "border-primary bg-primary/[0.07]" : "border-border/55 bg-surface"}`}><p className="text-xs text-muted-foreground">{cycle.start_year}–{cycle.end_year}</p><p className="mt-1 text-lg font-semibold">{cycle.ganzhi}</p><p className="mt-1 text-xs text-muted-foreground">{cycle.start_age}–{cycle.end_age} {locale === "zh" ? "岁" : "yrs"}</p></div>)}
+      </div>
+      {current?.year ? <p className="mt-4 rounded-xl bg-primary/[0.06] px-4 py-3 text-sm"><strong>{locale === "zh" ? "当前定位" : "Current position"}：</strong>{current.year.year} · {current.year.ganzhi}{current.month ? ` · ${current.month.label} ${current.month.ganzhi}` : ""}</p> : null}
+    </section>
+  )
+}
+
+function ExportSection({ title, children }: { title: string; children: ReactNode }) {
+  return <section className="mt-9 border-t border-border/60 pt-8"><h2 className="mb-5 text-2xl font-semibold">{title}</h2>{children}</section>
+}
+
+function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculationRule, currentCycleText, generatedAt, trustNote, consumerProfile, lifeKline, periodCycles }: { exportTargetId: string; chart: MetaphysicsChart; locale: Locale; subjectName: string; calculationRule: string; currentCycleText: string; generatedAt: string; trustNote: string; consumerProfile?: ConsumerIdentityProfile; lifeKline?: ConsumerLifeKline; periodCycles?: DayunCycle[] }) {
+  const exportedConsumerProfile = consumerProfile ?? (chart.consumer?.identity ? { identity: chart.consumer.identity, subjects: chart.consumer.subjects, fingerprints: chart.consumer.fingerprints, twin: chart.consumer.twin } : null)
+  return (
+    <div aria-hidden="true" inert className="chart-export-stage">
       <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
-        {consumerProfile ? <><ConsumerIdentity profile={consumerProfile} locale={locale} /><div className="mt-8"><MetaphysicsAchievements achievements={chart.consumer?.achievements ?? []} locale={locale} /></div></> : <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />}
-        <div className="mt-8"><ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /></div>
-        <div className="mt-8"><BaziStatistics chart={chart} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></div>
-        <div className="mt-8"><BaziProfessionalTable chart={chart} locale={locale} /></div>
+        {exportedConsumerProfile ? <ConsumerIdentity profile={exportedConsumerProfile} locale={locale} /> : <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />}
+        {chart.consumer?.achievements?.some((item) => item.member_ids.length > 1) ? <ExportSection title={locale === "zh" ? "稀有结构组合" : "Rare structure combinations"}><MetaphysicsAchievements achievements={chart.consumer.achievements.filter((item) => item.member_ids.length > 1)} locale={locale} /></ExportSection> : null}
+        <ExportSection title={locale === "zh" ? "格局判断链" : "Pattern reasoning"}><BaziPatternSummary chart={chart} locale={locale} /></ExportSection>
+        {lifeKline ? <ExportSection title={locale === "zh" ? "人生 K 线" : "Life K-line"}><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></ExportSection> : null}
+        <ExportSection title={locale === "zh" ? "四柱命盘" : "Four pillars"}><BaziProfessionalTable chart={chart} locale={locale} /></ExportSection>
+        <ExportSection title={locale === "zh" ? "核心判断" : "Key findings"}><BaziSynthesisPanel chart={chart} locale={locale} /></ExportSection>
+        {periodCycles?.length ? <ExportSection title={locale === "zh" ? "运限" : "Periods"}><BaziPeriodExportSummary cycles={periodCycles} chart={chart} locale={locale} /></ExportSection> : null}
+        <ExportSection title={locale === "zh" ? "结构对照" : "Structure comparisons"}><ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /></ExportSection>
+        <ExportSection title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ExportSection>
+        <ExportSection title={locale === "zh" ? "结构统计" : "Structure statistics"}><BaziStatistics chart={chart} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></ExportSection>
       </article>
     </div>
   )

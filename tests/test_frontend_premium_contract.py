@@ -1268,6 +1268,59 @@ def test_task8_review_uses_bilingual_saved_reading_copy_once_and_no_internal_fal
         assert f'name: "{control}"' in e2e
 
 
+def test_task8_bazi_consumer_os_exposes_one_clear_identity_and_share_contract():
+    identity = read("frontend/src/components/tools/consumer-identity.tsx")
+    achievements = read("frontend/src/components/tools/metaphysics-achievements.tsx")
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+
+    for field in ("pattern_title", "pattern_status", "formation_path", "memorable_line", "hero_tags"):
+        assert field in identity
+    for field in ("comparison_label", "next_activation", "month_preview"):
+        assert field in identity
+    assert "overflow-x-auto" in identity, "the twelve-month preview should scroll inside its own region"
+
+    assert "稀有结构组合" in achievements
+    assert "命盘成就" not in achievements
+    assert "命盘成就" not in chart
+    assert "分享成就卡" not in chart
+    assert chart.count("分享与导出") == 1
+    for decision_step in ("命盘事实", "命中规则", "古籍命题", "核验进程"):
+        assert decision_step in chart
+
+
+def test_task8_markdown_uses_consumer_display_semantics_not_raw_percentile_buckets():
+    markdown = read("frontend/src/lib/chart-markdown.ts")
+
+    assert "display_label" in markdown
+    assert "display_mode" in markdown
+    for internal_bucket in ("lower_percentage", "same_percentage", "higher_percentage"):
+        assert internal_bucket not in markdown
+    assert "稀有结构组合" in markdown
+    assert "命盘成就" not in markdown
+
+
+def test_task8_chart_report_contains_wide_content_at_390px_without_page_overflow():
+    css = read("frontend/src/app/globals.css")
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    identity = read("frontend/src/components/tools/consumer-identity.tsx")
+
+    report_rule_start = css.index(".chart-report {")
+    report_rule = css[report_rule_start : css.index("}", report_rule_start)]
+    scroll_rule_start = css.index(".chart-report .overflow-x-auto {")
+    scroll_rule = css[scroll_rule_start : css.index("}", scroll_rule_start)]
+    mobile_rule_start = css.index("@media (max-width: 390px)")
+    mobile_rule = css[mobile_rule_start:]
+
+    for declaration in ("width: 100%", "min-width: 0", "max-width: 100%", "overflow-x: clip"):
+        assert declaration in report_rule
+    for declaration in ("max-width: 100%", "overflow-x: auto", "overscroll-behavior-inline: contain"):
+        assert declaration in scroll_rule
+    assert "overflow-wrap: anywhere" in mobile_rule
+    assert "overflow-wrap: normal" in mobile_rule
+    assert "overflow-x-auto" in chart, "professional tables should retain internal horizontal scrolling"
+    assert "overflow-x-auto" in identity, "the month preview should retain internal horizontal scrolling"
+
+
 def test_e2e_review_uses_one_source_trust_resolver_in_passages_and_chart_preview():
     resolver_path = ROOT / "frontend/src/lib/source-labels.ts"
     assert resolver_path.exists(), "source labels need one shared trust boundary"
