@@ -13,8 +13,8 @@ import {
 import { LifeKlineChart } from "@/components/tools/life-kline-chart"
 import { MetaphysicsAchievements, type MetaphysicsAchievement } from "@/components/tools/metaphysics-achievements"
 import { baziRuleVersionSummary, buildBaziMarkdown } from "@/lib/chart-markdown"
-import { calculateMetaphysicsChart, fetchMetaphysicsPeriod } from "@/lib/api"
-import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeComparison, ThemeProfile } from "@/types/api"
+import { calculateMetaphysicsChart, fetchMetaphysicsPeriod, fetchPatternRuleSummary } from "@/lib/api"
+import type { DayunCycle, MetaphysicsChart, PatternRuleSourceLocator, PatternRuleSummary, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeComparison, ThemeProfile } from "@/types/api"
 
 type Locale = "en" | "zh"
 type DisplayMode = "simple" | "study" | "professional"
@@ -48,26 +48,6 @@ const PATTERN_STATUS_LABELS: Record<string, { zh: string; en: string }> = {
   rescued: { zh: "救成", en: "Restored" },
   mixed: { zh: "混杂", en: "Mixed" },
   transformed: { zh: "转化", en: "Transformed" },
-}
-
-const PATTERN_SELECTION_LABELS: Record<string, { zh: string; en: string }> = {
-  month_main_qi: { zh: "月令本气", en: "Month-command main qi" },
-  month_hidden_exposed: { zh: "藏气透干", en: "Exposed hidden qi" },
-  month_meeting: { zh: "合会取格", en: "Combination-led selection" },
-  strict_special_gates: { zh: "特殊格成立", en: "Special-pattern gates" },
-}
-
-const PATTERN_INTEGRITY_LABELS: Record<string, { zh: string; en: string }> = {
-  complete: { zh: "结构完整", en: "Complete structure" },
-  minor_damage: { zh: "局部牵制", en: "Local tension" },
-  rescued: { zh: "破而有救", en: "Restored after tension" },
-  broken: { zh: "结构受制", en: "Constrained structure" },
-}
-
-const PATTERN_PURITY_LABELS: Record<string, { zh: string; en: string }> = {
-  clear: { zh: "格局清", en: "Clear pattern" },
-  combined: { zh: "兼见", en: "Combined" },
-  mixed: { zh: "混杂", en: "Mixed" },
 }
 
 const THEME_PROFILE_KEYS: Record<string, string> = {
@@ -193,13 +173,12 @@ function buildConsumerIdentityProfile(chart: MetaphysicsChart, lifeKline: Consum
   const hero = consumer.claims?.find((claim) => claim.slot === "hero")
   const firstTheme = consumer.claims?.find((claim) => claim.slot === "theme")
   const signatures = consumer.claims?.filter((claim) => claim.slot === "signature") ?? []
-  const formationPath = primary?.formation_path?.title
+  const formationClaim = signatures.find((claim) => claim.classicalRole === "formation_path" && claim.ruleIds.length && claim.sourceIds.length)
+  const formationPath = formationClaim?.title
   const heroTags = uniqueNonEmpty([
-    localizedValue(primary?.selection, PATTERN_SELECTION_LABELS, locale),
     formationPath,
-    localizedValue(primary?.integrity, PATTERN_INTEGRITY_LABELS, locale),
-    localizedValue(primary?.purity, PATTERN_PURITY_LABELS, locale),
-    ...signatures.slice(0, 2).map((claim) => claim.title),
+    ...signatures.filter((claim) => claim.classicalRole !== "formation_path").slice(0, 2).map((claim) => claim.title),
+    firstTheme?.title,
   ]).slice(0, 3)
   const memorable = firstTheme?.summary ?? hero?.summary ?? consumer.identity.archetype_subtitle
   const profiles = chart.theme_profiles ?? chart.structure?.theme_profiles ?? []
@@ -207,8 +186,8 @@ function buildConsumerIdentityProfile(chart: MetaphysicsChart, lifeKline: Consum
   return {
     identity: {
       ...consumer.identity,
-      pattern_title: primary?.title ?? hero?.title ?? consumer.identity.archetype_title,
-      pattern_status: localizedValue(primary?.status, PATTERN_STATUS_LABELS, locale),
+      pattern_title: hero?.title ?? primary?.title ?? consumer.identity.archetype_title,
+      pattern_status: hero ? null : localizedValue(primary?.status, PATTERN_STATUS_LABELS, locale),
       formation_path: formationPath ?? null,
       memorable_line: memorable,
       hero_tags: heroTags,
@@ -619,54 +598,132 @@ function BaziConsumerShareCanvases({
   )
 }
 
+function PatternSourceDisclosure({ bundleId, ruleIds, sourceIds, locale }: { bundleId: string; ruleIds: string[]; sourceIds: string[]; locale: Locale }) {
+  const requestKey = `${bundleId}:${ruleIds.join(",")}:${sourceIds.join(",")}`
+  const requestedSources = new Set(sourceIds)
+  const [loadedKey, setLoadedKey] = useState<string | null>(null)
+  const [summaries, setSummaries] = useState<PatternRuleSummary[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const activeSummaries = loadedKey === requestKey ? summaries : []
+  const isVerifiedLocator = (locator: PatternRuleSourceLocator) => locator.review_state === "scan_verified"
+    && locator.visually_verified
+    && Boolean(locator.quote)
+    && Boolean(locator.url || locator.pdf_page || locator.printed_page || locator.column_line)
+
+  async function loadSources() {
+    if (loading || loadedKey === requestKey) return
+    setLoading(true)
+    setError(null)
+    const results = await Promise.allSettled(ruleIds.map((ruleId) => fetchPatternRuleSummary(bundleId, ruleId)))
+    const loaded = results
+      .flatMap((result) => result.status === "fulfilled" ? [result.value] : [])
+      .filter((rule) => rule.sources.some((source) =>
+        requestedSources.has(source.proposition_id)
+        && source.locators.some(isVerifiedLocator)))
+    setSummaries(loaded)
+    setLoadedKey(requestKey)
+    if (!loaded.length) setError(locale === "zh" ? "古籍依据暂时无法载入，请稍后重试。" : "Source evidence could not be loaded. Try again later.")
+    setLoading(false)
+  }
+
+  return (
+    <details
+      className="mt-5 border-t border-border/50 pt-4"
+      onToggle={(event) => {
+        if (event.currentTarget.open) void loadSources()
+      }}
+    >
+      <summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看古籍依据" : "View source evidence"}</summary>
+      {loading ? <p role="status" className="mt-3 text-sm text-muted-foreground">{locale === "zh" ? "正在读取规则与影印定位…" : "Loading rules and scan locators…"}</p> : null}
+      {error ? <p role="alert" className="mt-3 text-sm text-destructive">{error}</p> : null}
+      {activeSummaries.length ? <div className="mt-4 space-y-3">{activeSummaries.map((rule) => {
+        const sources = rule.sources.filter((source) => requestedSources.has(source.proposition_id) && source.locators.some(isVerifiedLocator))
+        return <article key={rule.rule_id} className="rounded-xl border border-border/55 bg-surface p-4">
+          <p className="text-xs font-semibold text-primary">{locale === "zh" ? "规则" : "Rule"} · <code className="break-all font-mono font-medium">{rule.rule_id}</code></p>
+          <h4 className="mt-2 text-sm font-semibold">{rule.title}</h4>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{rule.summary}</p>
+          {sources.length ? <div className="mt-3 space-y-3">{sources.map((source) => {
+            const verifiedLocators = source.locators.filter(isVerifiedLocator)
+            return <div key={source.proposition_id} className="rounded-lg bg-muted/35 px-3 py-3">
+              <p className="text-xs font-semibold">{locale === "zh" ? "命题" : "Proposition"} · <code className="break-all font-mono font-medium">{source.proposition_id}</code></p>
+              {verifiedLocators.length ? <div className="mt-2">
+                <p className="text-[0.7rem] font-semibold text-muted-foreground">{locale === "zh" ? "已核验影印定位" : "Verified scan locators"}</p>
+                <ul className="mt-2 space-y-3">{verifiedLocators.map((locator) => {
+                  const position = [
+                    locator.pdf_page ? `${locale === "zh" ? "PDF 第" : "PDF p."}${locator.pdf_page}${locale === "zh" ? "页" : ""}` : null,
+                    locator.printed_page ? `${locale === "zh" ? "书页" : "Print"} ${locator.printed_page}` : null,
+                    locator.column_line,
+                  ].filter(Boolean).join(" · ")
+                  return <li key={locator.id} className="text-xs leading-5 text-muted-foreground">
+                    <blockquote className="border-l-2 border-primary/35 pl-3 text-foreground/85">{locator.quote}</blockquote>
+                    <p className="mt-1.5">{position || locator.id}<span aria-hidden="true"> · </span>{locale === "zh" ? "底本" : "Witness"} <code className="break-all font-mono">{locator.witness_id}</code></p>
+                    {locator.url ? <a href={locator.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex font-semibold text-primary underline-offset-4 hover:underline">{locale === "zh" ? "打开影印页" : "Open scanned page"}</a> : null}
+                  </li>
+                })}</ul>
+              </div> : null}
+            </div>
+          })}</div> : null}
+        </article>
+      })}</div> : null}
+    </details>
+  )
+}
+
 function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
   const primary = chart.structure.patterns?.primary
-  if (!primary) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "这张命盘以主导结构呈现，不强贴单一格局标签。" : "This chart is described by its dominant structure rather than a forced pattern label."}</p>
+  const claims = chart.consumer?.claims ?? []
+  const hero = claims.find((claim) => claim.slot === "hero")
+  if (!primary && !hero) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "这张命盘以主导结构呈现，不强贴单一格局标签。" : "This chart is described by its dominant structure rather than a forced pattern label."}</p>
   const selectionLabels: Record<string, string> = { month_main_qi: "月令本气", month_hidden_exposed: "藏气透干", month_meeting: "合会取格", strict_special_gates: "特殊格严格成立" }
   const integrityLabels: Record<string, string> = { complete: "完整", minor_damage: "有局部牵制", rescued: "破而有救", broken: "受损" }
   const purityLabels: Record<string, string> = { clear: "清", combined: "兼见", mixed: "混杂" }
   const strengthLabels: Record<string, string> = { effective: "有力", ordinary: "可用", weak: "偏弱", none: "未定" }
   const allEvidence = (chart.structure.patterns?.evidence ?? []) as Array<{ id?: string; kind?: string; detail?: string }>
-  const evidence = allEvidence.filter((item) => item.id && primary.evidence_ids?.includes(item.id))
-  const pathTitle = primary.formation_path?.title
-  const pathDetails = primary.formation_path?.details ?? []
-  const factDetails = uniqueNonEmpty([
-    evidence.find((item) => item.kind === "month_command")?.detail,
-    pathDetails[0],
-    evidence.find((item) => item.kind === "formation_path")?.detail,
-  ]).slice(0, 2)
-  const sourceRefs = chart.structure.patterns?.source_refs ?? []
-  const scanProgress = locale === "zh"
-    ? `已完成月令候选、成格条件、制约与救应核验，共串联 ${evidence.length} 条有效证据。`
-    : `Month-command selection, formation, constraints, and rescue checks completed across ${evidence.length} active evidence items.`
-  const decisionSteps = locale === "zh"
+  const evidence = primary ? allEvidence.filter((item) => item.id && primary.evidence_ids?.includes(item.id)) : []
+  const heroRuleIds = uniqueNonEmpty(hero ? hero.ruleIds : [])
+  const heroSourceIds = uniqueNonEmpty(hero ? hero.sourceIds : [])
+  const patternBundleId = chart.rule_versions?.pattern_bundle
+  const hasCanonicalSourceChain = Boolean(hero && patternBundleId && heroRuleIds.length && heroSourceIds.length)
+  const formationClaim = claims.find((claim) => claim.slot === "signature" && claim.classicalRole === "formation_path" && claim.ruleIds.length && claim.sourceIds.length)
+  const damageClaim = claims.find((claim) => claim.slot === "signature" && claim.classicalRole === "damage" && claim.ruleIds.length && claim.sourceIds.length)
+  const rescueClaim = claims.find((claim) => claim.slot === "signature" && claim.classicalRole === "rescue" && claim.ruleIds.length && claim.sourceIds.length)
+  const decisionSteps = hasCanonicalSourceChain && hero
+    ? (locale === "zh"
+      ? [
+        { label: "主导结构", title: hero.title, detail: hero.summary },
+        { label: "命中规则", title: formationClaim?.title ?? `${heroRuleIds.length} 条规则共同确认`, detail: formationClaim?.summary ?? "候选、成格、制约与救应按同一套古籍规则核验。" },
+        { label: "已核验命题", title: `${heroSourceIds.length} 条古籍命题`, detail: "展开下方古籍依据，可查看对应规则、命题与影印底本定位。" },
+      ]
+      : [
+        { label: "Dominant structure", title: hero.title, detail: hero.summary },
+        { label: "Matched rules", title: formationClaim?.title ?? `${heroRuleIds.length} verified rules`, detail: formationClaim?.summary ?? "Candidate, formation, constraint, and rescue are checked under one source-backed rule set." },
+        { label: "Verified propositions", title: `${heroSourceIds.length} classical propositions`, detail: "Open the source evidence below to inspect the rules, propositions, and scan witnesses." },
+      ])
+    : []
+  const dimensions = hero
     ? [
-      { label: "命盘事实", title: factDetails[0] ?? primary.summary, detail: factDetails.slice(1).join("；") },
-      { label: "命中规则", title: [selectionLabels[primary.selection ?? ""] ?? primary.selection, pathTitle].filter(Boolean).join(" → "), detail: "由月令候选进入成格、制约与救应判断。" },
-      { label: "古籍命题", title: primary.summary, detail: primary.tensions?.[0] ?? primary.rescues?.[0] ?? "主导结构按当前原局条件成立。" },
-      { label: "核验进程", title: scanProgress, detail: sourceRefs.length ? `出处索引：${sourceRefs.join("；")}` : "出处索引将在规则详情中按需显示。" },
-    ]
+      [locale === "zh" ? "成格路径" : "Formation path", formationClaim?.title],
+      [locale === "zh" ? "结构制约" : "Constraint", damageClaim?.title],
+      [locale === "zh" ? "救应" : "Rescue", rescueClaim?.title],
+    ].filter((item): item is [string, string] => Boolean(item[1]))
     : [
-      { label: "Chart facts", title: factDetails[0] ?? primary.summary, detail: factDetails.slice(1).join("; ") },
-      { label: "Matched rule", title: [primary.selection, pathTitle].filter(Boolean).join(" → "), detail: "The month-command candidate proceeds through formation, constraint, and rescue checks." },
-      { label: "Classical proposition", title: primary.summary, detail: primary.tensions?.[0] ?? primary.rescues?.[0] ?? "The dominant structure is active under the current natal conditions." },
-      { label: "Verification path", title: scanProgress, detail: sourceRefs.length ? `Source index: ${sourceRefs.join("; ")}` : "Source references are available on demand in rule details." },
-    ]
-  const dimensions = [
-    [locale === "zh" ? "取格" : "Selection", selectionLabels[primary.selection ?? ""] ?? primary.selection],
-    [locale === "zh" ? "成格路径" : "Formation path", pathTitle],
-    [locale === "zh" ? "完整性" : "Integrity", integrityLabels[primary.integrity ?? ""] ?? primary.integrity],
-    [locale === "zh" ? "清浊" : "Purity", purityLabels[primary.purity ?? ""] ?? primary.purity],
-    [locale === "zh" ? "力度" : "Strength", typeof primary.strength === "string" ? (strengthLabels[primary.strength] ?? primary.strength) : undefined],
-  ].filter((item): item is [string, string] => Boolean(item[1]))
+      [locale === "zh" ? "取格" : "Selection", selectionLabels[primary?.selection ?? ""] ?? primary?.selection],
+      [locale === "zh" ? "成格路径" : "Formation path", primary?.formation_path?.title],
+      [locale === "zh" ? "完整性" : "Integrity", integrityLabels[primary?.integrity ?? ""] ?? primary?.integrity],
+      [locale === "zh" ? "清浊" : "Purity", purityLabels[primary?.purity ?? ""] ?? primary?.purity],
+      [locale === "zh" ? "力度" : "Strength", typeof primary?.strength === "string" ? (strengthLabels[primary.strength] ?? primary.strength) : undefined],
+    ].filter((item): item is [string, string] => Boolean(item[1]))
+  const displayTitle = hero?.title ?? primary?.title ?? (primary?.name ? `${primary.name}格` : locale === "zh" ? "主导结构" : "Dominant structure")
+  const displaySummary = hero?.summary ?? primary?.summary
   return (
     <section className="rounded-2xl bg-primary/[0.06] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-2xl font-semibold">{primary.title || `${primary.name}格`}</h3>
-        <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{localizedValue(primary.status, PATTERN_STATUS_LABELS, locale)}</span>
+        <h3 className="text-2xl font-semibold">{displayTitle}</h3>
+        {!hero && primary ? <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{localizedValue(primary.status, PATTERN_STATUS_LABELS, locale)}</span> : null}
       </div>
-      <p className="mt-3 text-sm leading-7 text-muted-foreground">{primary.summary}</p>
-      <ol className="mt-5 grid min-w-0 gap-2 lg:grid-cols-4" aria-label={locale === "zh" ? "格局判断链" : "Pattern decision chain"}>
+      {displaySummary ? <p className="mt-3 text-sm leading-7 text-muted-foreground">{displaySummary}</p> : null}
+      {decisionSteps.length ? <ol className="mt-5 grid min-w-0 gap-2 lg:grid-cols-3" aria-label={locale === "zh" ? "格局判断链" : "Pattern decision chain"}>
         {decisionSteps.map((step, index) => (
           <li key={step.label} className="relative min-w-0 rounded-xl border border-border/55 bg-surface p-4">
             <p className="text-[0.68rem] font-semibold tracking-[0.12em] text-primary">{String(index + 1).padStart(2, "0")} · {step.label}</p>
@@ -675,12 +732,13 @@ function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale
             {index < decisionSteps.length - 1 ? <ChevronRight aria-hidden="true" className="absolute -right-3 top-1/2 z-10 hidden size-5 -translate-y-1/2 rounded-full bg-background text-primary lg:block" /> : null}
           </li>
         ))}
-      </ol>
+      </ol> : null}
+      {hasCanonicalSourceChain && patternBundleId ? <PatternSourceDisclosure key={`${patternBundleId}:${heroRuleIds.join(",")}:${heroSourceIds.join(",")}`} bundleId={patternBundleId} ruleIds={heroRuleIds} sourceIds={heroSourceIds} locale={locale} /> : null}
       {dimensions.length ? <dl className="mt-5 grid gap-px overflow-hidden rounded-xl border border-border/50 bg-border/50 sm:grid-cols-3 lg:grid-cols-5">{dimensions.map(([label, value]) => <div key={label} className="bg-surface px-3 py-3"><dt className="text-[0.68rem] font-semibold text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-semibold text-foreground">{value}</dd></div>)}</dl> : null}
-      {primary.rescues?.length ? <p className="mt-4 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{primary.rescues.join(" · ")}</p> : null}
-      {primary.tensions?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "结构张力" : "Structural tension"}：</strong>{primary.tensions.join(" · ")}</p> : null}
-      {primary.constraints?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "制约" : "Constraints"}：</strong>{primary.constraints.join(" · ")}</p> : null}
-      {evidence.length ? <details className="mt-5 border-t border-border/50 pt-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "为什么这样判断" : "Why this pattern"}</summary><ol className="mt-3 space-y-2">{evidence.map((item, index) => <li key={item.id ?? index} className="flex gap-2 text-sm leading-6 text-muted-foreground"><span aria-hidden="true" className="font-semibold text-primary">{item.kind === "tension" ? "△" : "✓"}</span><span>{item.detail}</span></li>)}</ol></details> : null}
+      {hero && rescueClaim ? <p className="mt-4 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{rescueClaim.summary}</p> : !hero && primary?.rescues?.length ? <p className="mt-4 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{primary.rescues.join(" · ")}</p> : null}
+      {hero && damageClaim ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "结构张力" : "Structural tension"}：</strong>{damageClaim.summary}</p> : !hero && primary?.tensions?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "结构张力" : "Structural tension"}：</strong>{primary.tensions.join(" · ")}</p> : null}
+      {!hero && primary?.constraints?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "制约" : "Constraints"}：</strong>{primary.constraints.join(" · ")}</p> : null}
+      {!hero && evidence.length ? <details className="mt-5 border-t border-border/50 pt-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "为什么这样判断" : "Why this pattern"}</summary><ol className="mt-3 space-y-2">{evidence.map((item, index) => <li key={item.id ?? index} className="flex gap-2 text-sm leading-6 text-muted-foreground"><span aria-hidden="true" className="font-semibold text-primary">{item.kind === "tension" ? "△" : "✓"}</span><span>{item.detail}</span></li>)}</ol></details> : null}
     </section>
   )
 }

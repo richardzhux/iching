@@ -1,6 +1,6 @@
 {
   "authority_layer": "shen_core",
-  "bundle_digest": "8c41b4f22b8461526651b364d95144a74036c9e9a8606f1088eb53c4d356a523",
+  "bundle_digest": "27a01e7fd9c87896259718252f107ad3b4ca95762bfb94d6580eb4e62483516d",
   "bundle_id": "zzq-shen-canonical-v1",
   "exclusions": [
     {
@@ -2743,8 +2743,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.blade.79-opening",
+          "pdf_page": 79,
+          "quote": "陽刃者劫我正財之神",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -2771,8 +2775,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.blade.79-opening",
+          "pdf_page": 79,
+          "quote": "陽刃者劫我正財之神",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -2805,16 +2813,24 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.food.69",
+          "pdf_page": 69,
+          "quote": "透財以解",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "paragraph opening anchor, visually verified in audit",
           "id": "loc.gc.food.audit-f5",
+          "pdf_page": 69,
+          "quote": "若不用財而就煞印",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -2847,16 +2863,24 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.food.69",
+          "pdf_page": 69,
+          "quote": "透財以解",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "paragraph opening anchor, visually verified in audit",
           "id": "loc.gc.food.audit-f5",
+          "pdf_page": 69,
+          "quote": "若不用財而就煞印",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -2889,16 +2913,24 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.food.68",
+          "pdf_page": 68,
+          "quote": "食神本屬洩氣以其能生正財所以喜之",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "paragraph opening anchor, visually verified in audit",
           "id": "loc.gc.food.audit-f1",
+          "pdf_page": 68,
+          "quote": "食神本屬洩氣",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -2925,8 +2957,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns",
           "id": "loc.gc.hurting.76-wealth-path",
+          "pdf_page": 76,
+          "quote": "有傷官用財者",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -2953,8 +2989,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns",
           "id": "loc.gc.hurting.76-wealth-path",
+          "pdf_page": 76,
+          "quote": "有傷官用財者",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -2981,8 +3021,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.kill.73-blade-path",
+          "pdf_page": 73,
+          "quote": "有煞無食制而用刃當者",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=73",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3009,8 +3053,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.kill.71",
+          "pdf_page": 71,
+          "quote": "七煞之格局亦不一煞用食制者上也",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=71",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3037,8 +3085,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.lu-robbery.83-killing",
+          "pdf_page": 83,
+          "quote": "祿劫用煞必須制伏",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3071,16 +3123,24 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.lu-robbery.82-officer-base",
+          "pdf_page": 82,
+          "quote": "祿劫用官干頭透出為奇又要財印相隨不可孤官無輔",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.lu-robbery.82-officer-resource",
+          "pdf_page": 82,
+          "quote": "有用官而印護者",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3113,16 +3173,24 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.lu-robbery.82-officer-base",
+          "pdf_page": 82,
+          "quote": "祿劫用官干頭透出為奇又要財印相隨不可孤官無輔",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.lu-robbery.83-officer-wealth",
+          "pdf_page": 83,
+          "quote": "有用官而財助者",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3149,8 +3217,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.lu-robbery.83-wealth",
+          "pdf_page": 83,
+          "quote": "祿劫用財須帶傷食",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3177,8 +3249,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, heading column",
           "id": "loc.gc.lu-robbery.82-heading",
+          "pdf_page": 82,
+          "quote": "論建祿月劫",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3205,8 +3281,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, heading column",
           "id": "loc.gc.lu-robbery.82-heading",
+          "pdf_page": 82,
+          "quote": "論建祿月劫",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3233,8 +3313,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3261,8 +3345,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3289,8 +3377,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3317,8 +3409,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns 1-4",
           "id": "loc.gc.officer.57",
+          "pdf_page": 57,
+          "quote": "官以尅身雖與七煞有別終受彼制",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=57",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3345,8 +3441,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3373,8 +3473,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3401,8 +3505,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3435,8 +3543,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3463,8 +3575,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns 1-4",
           "id": "loc.gc.officer.57",
+          "pdf_page": 57,
+          "quote": "官以尅身雖與七煞有別終受彼制",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=57",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3497,16 +3613,24 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.resource.64-opening",
+          "pdf_page": 64,
+          "quote": "印綬喜其生身正偏同為美格",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "paragraph opening anchor, visually verified in audit",
           "id": "loc.gc.resource.audit-r2",
+          "pdf_page": 64,
+          "quote": "印綬之格局亦不一",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3539,16 +3663,24 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.resource.64-opening",
+          "pdf_page": 64,
+          "quote": "印綬喜其生身正偏同為美格",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "paragraph opening anchor, visually verified in audit",
           "id": "loc.gc.resource.audit-r1",
+          "pdf_page": 64,
+          "quote": "印綬喜其生身",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3575,8 +3707,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns",
           "id": "loc.gc.special.86",
+          "pdf_page": 86,
+          "quote": "雜格者月令無用取外格而用之",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3603,8 +3739,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns",
           "id": "loc.gc.special.86",
+          "pdf_page": 86,
+          "quote": "雜格者月令無用取外格而用之",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3631,8 +3771,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns",
           "id": "loc.gc.special.86",
+          "pdf_page": 86,
+          "quote": "雜格者月令無用取外格而用之",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3659,8 +3803,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns",
           "id": "loc.gc.special.86",
+          "pdf_page": 86,
+          "quote": "雜格者月令無用取外格而用之",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3687,16 +3835,24 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "left folio, right-to-left columns 1-4",
           "id": "loc.gc.useful.18",
+          "pdf_page": 18,
+          "quote": "用神專尋月令然以四柱配之有成敗",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=18",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.useful.19",
+          "pdf_page": 19,
+          "quote": "成中有敗必是帶忌敗中有成全凭救應",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=19",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3723,8 +3879,12 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "right folio through left folio, right-to-left columns",
           "id": "loc.gc.useful.20",
+          "pdf_page": 20,
+          "quote": "何謂救應如官逢傷而透印以解之",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=20",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3769,24 +3929,36 @@
       "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
       "support_locators": [
         {
+          "column_line": "both folios, right-to-left columns",
           "id": "loc.gc.wealth.61-officer-path",
+          "pdf_page": 61,
+          "quote": "有財旺生官者身強而不透傷官不混七煞",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "paragraph opening anchor, visually verified in audit",
           "id": "loc.gc.wealth.audit-w3",
+          "pdf_page": 61,
+          "quote": "財格之貴局亦不一",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
           "witness_rights_status": "public_domain"
         },
         {
+          "column_line": "paragraph opening anchor, visually verified in audit",
           "id": "loc.gc.wealth.audit-w4",
+          "pdf_page": 61,
+          "quote": "有財用食生者",
           "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61",
           "visually_verified": true,
           "witness_id": "gengcun-ji-ncl-06599",
           "witness_production_allowed": true,
@@ -3796,7 +3968,7 @@
       "text_type": "formation"
     }
   ],
-  "source_provenance_digest": "fa4db7467ae627da9b9b7873954f889e5123cffc1ccafeea1a7ee7de8197b061",
+  "source_provenance_digest": "3860b30ffc685cbfe0caf5fe7e6429f3dd9b9c045c430f45fab76753a5f683cb",
   "special_review_gate": {
     "double_wealth_source_id": "zzq.prop.special.gate-double-wealth",
     "id": "zzq.special-review-gate-v1",

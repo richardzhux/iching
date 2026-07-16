@@ -40,8 +40,21 @@ _PERIOD_ROLE_WEIGHTS = {
     "conflict": -6.0,
     "neutral": 0.0,
 }
-_TEN_GOD_TOKENS = ("比肩", "劫财", "食神", "伤官", "偏财", "正财", "七杀", "正官", "偏印", "正印")
 _SHENSHA_STATE_IDS = {"发力": "activated", "有力": "supported", "可见": "visible", "受制": "constrained"}
+_LIFECYCLE_TRANSITIONS = {
+    "formation": (
+        frozenset(("inactive", "superseded", "undetermined")),
+        frozenset(("formed", "rescued", "mixed", "transformed")),
+    ),
+    "damage": (
+        frozenset(("formed", "rescued", "transformed")),
+        frozenset(("broken", "mixed")),
+    ),
+    "rescue": (
+        frozenset(("broken", "mixed")),
+        frozenset(("rescued",)),
+    ),
+}
 
 
 def _clamp(value: float, minimum: float = 0, maximum: float = 100) -> float:
@@ -84,8 +97,12 @@ def consumer_feature_records(
     return list(unique.values())
 
 
-def _driver_from_event(event: Mapping[str, Any]) -> dict[str, Any]:
+def _driver_from_event(event: Mapping[str, Any]) -> dict[str, Any] | None:
     role = str(event.get("role", "neutral"))
+    # Formation, damage, and rescue are lifecycle verdicts, not generic period
+    # labels. They are admitted only through the exact provenance matcher below.
+    if role in {"formation", "damage", "rescue"}:
+        return None
     raw_delta = event.get("delta", _PERIOD_ROLE_WEIGHTS.get(role, 0.0))
     try:
         delta = float(raw_delta)
@@ -117,8 +134,37 @@ def _pattern_driver_context(
         role = role_weights.get(classical_role)
         if not role:
             continue
-        searchable = f"{claim.get('title', '')} {claim.get('summary', '')}"
-        tokens = [token for token in _TEN_GOD_TOKENS if token in searchable]
+        path_ids = _unique_driver_strings(
+            (
+                claim.get("pathId", ""),
+                *_unique_driver_strings(claim.get("pathIds", ())),
+            )
+        )
+        rule_ids = _unique_driver_strings(claim.get("ruleIds", ()))
+        source_ids = _unique_driver_strings(claim.get("sourceIds", ()))
+        pattern_id = str(claim.get("patternId", ""))
+        provenance: list[dict[str, Any]] = []
+        for value in claim.get("lifecycleProvenance", ()):
+            if not isinstance(value, Mapping):
+                continue
+            binding_path_id = str(value.get("pathId", ""))
+            binding_rule_id = str(value.get("ruleId", ""))
+            binding_source_ids = _unique_driver_strings(value.get("sourceIds", ()))
+            if (
+                not binding_path_id
+                or not binding_rule_id
+                or not binding_source_ids
+                or binding_path_id not in path_ids
+                or binding_rule_id not in rule_ids
+                or not set(binding_source_ids).issubset(source_ids)
+            ):
+                continue
+            provenance.append({
+                "pathId": binding_path_id,
+                "ruleId": binding_rule_id,
+                "sourceIds": binding_source_ids,
+            })
+        source_backed = bool(pattern_id and provenance)
         explicit_theme = str(claim.get("theme", ""))
         themes = [explicit_theme] if explicit_theme in result else list(THEME_ORDER)
         for theme in themes:
@@ -130,12 +176,26 @@ def _pattern_driver_context(
                 # Natal facts define the personal baseline. Only an actual
                 # period match receives a signed delta below.
                 "delta": 0.0,
-                "tokens": tokens,
-                "searchable": searchable,
                 "evidenceIds": [str(item) for item in claim.get("evidenceIds", ()) if item],
-                "ruleIds": [str(item) for item in claim.get("ruleIds", ()) if item],
+                "ruleIds": rule_ids,
+                "sourceIds": source_ids,
+                "patternId": pattern_id,
+                "pathIds": path_ids,
+                "lifecycleProvenance": provenance,
+                "_sourceBackedLifecycle": source_backed,
             })
     return result
+
+
+def _unique_driver_strings(values: Any) -> list[str]:
+    if values is None:
+        return []
+    if isinstance(values, (str, bytes)):
+        values = (values,)
+    try:
+        return list(dict.fromkeys(str(value) for value in values if str(value)))
+    except TypeError:
+        return []
 
 
 def _matched_pattern_drivers(
@@ -144,19 +204,66 @@ def _matched_pattern_drivers(
 ) -> list[dict[str, Any]]:
     matches: list[dict[str, Any]] = []
     for event in events:
-        feature = str(event.get("feature", ""))
-        if feature not in _TEN_GOD_TOKENS:
+        lifecycle = event.get("lifecycle")
+        if not isinstance(lifecycle, Mapping):
             continue
+        before = str(lifecycle.get("before", ""))
+        after = str(lifecycle.get("after", ""))
+        event_pattern_id = str(lifecycle.get("patternId", ""))
+        event_path_id = str(lifecycle.get("pathId", ""))
+        event_rule_ids = set(_unique_driver_strings(lifecycle.get("ruleIds", ())))
+        event_source_ids = set(_unique_driver_strings(lifecycle.get("sourceIds", ())))
         for driver in pattern_drivers:
-            if feature not in driver.get("tokens", ()):
+            if not driver.get("_sourceBackedLifecycle"):
                 continue
             role = str(driver.get("role", "neutral"))
+            if str(event.get("role", "neutral")) != role:
+                continue
+            transition = _LIFECYCLE_TRANSITIONS.get(role)
+            if (
+                transition is None
+                or before not in transition[0]
+                or after not in transition[1]
+            ):
+                continue
+            if event_pattern_id != str(driver.get("patternId", "")):
+                continue
+            matching_bindings = [
+                binding
+                for binding in driver.get("lifecycleProvenance", ())
+                if isinstance(binding, Mapping)
+                and str(binding.get("pathId", "")) == event_path_id
+                and str(binding.get("ruleId", "")) in event_rule_ids
+            ]
+            matched_rule_ids = {
+                str(binding.get("ruleId", "")) for binding in matching_bindings
+            }
+            matched_source_ids = {
+                source_id
+                for binding in matching_bindings
+                for source_id in _unique_driver_strings(binding.get("sourceIds", ()))
+            }
+            if (
+                not event_rule_ids
+                or not event_source_ids
+                or matched_rule_ids != event_rule_ids
+                or matched_source_ids != event_source_ids
+            ):
+                continue
             matches.append({
                 **dict(driver),
-                "id": f"{driver.get('id', 'bazi.claim')}.{event.get('layer', 'period')}.{feature}",
+                "id": f"{driver.get('id', 'bazi.claim')}.{event.get('id', event.get('layer', 'period'))}",
                 "layer": str(event.get("layer", "period")),
-                "label": f"{event.get('label', feature)}呼应{driver.get('label', '原局结构')}",
+                "label": f"{event.get('label', '运限变化')}呼应{driver.get('label', '原局结构')}",
                 "delta": _PERIOD_ROLE_WEIGHTS.get(role, 0.0),
+                "lifecycle": {
+                    "before": before,
+                    "after": after,
+                    "patternId": event_pattern_id,
+                    "pathId": event_path_id,
+                    "ruleIds": sorted(event_rule_ids),
+                    "sourceIds": sorted(event_source_ids),
+                },
             })
     return matches
 
@@ -166,7 +273,14 @@ def _event_delta(
     pattern_drivers: Iterable[Mapping[str, Any]] = (),
 ) -> tuple[float, list[dict[str, Any]], float]:
     event_list = [dict(event) for event in events]
-    drivers = [*(_driver_from_event(event) for event in event_list), *_matched_pattern_drivers(event_list, pattern_drivers)]
+    drivers = [
+        *(
+            driver
+            for event in event_list
+            if (driver := _driver_from_event(event)) is not None
+        ),
+        *_matched_pattern_drivers(event_list, pattern_drivers),
+    ]
     positive = 0.0
     negative = 0.0
     unique: list[dict[str, Any]] = []
@@ -252,14 +366,15 @@ def build_life_kline(
                     raw_month_values.append(raw_value)
                     all_raw_months.append(raw_value)
                     named_drivers = []
-                    for driver in [*cycle_drivers, *year_drivers, *month_drivers, *pattern_context[key]]:
+                    for driver in [*cycle_drivers, *year_drivers, *month_drivers]:
                         identity = (driver.get("id"), driver.get("layer"), driver.get("label"))
                         if any((item.get("id"), item.get("layer"), item.get("label")) == identity for item in named_drivers):
                             continue
                         named_drivers.append({
                             key: value
                             for key, value in driver.items()
-                            if key not in {"tokens", "searchable"} and value not in ([], (), None, "")
+                            if not key.startswith("_")
+                            and value not in ([], (), None, "")
                         })
                     named_drivers.sort(
                         key=lambda driver: (
@@ -296,7 +411,8 @@ def build_life_kline(
                     point_drivers.append({
                         key: value
                         for key, value in driver.items()
-                        if key not in {"tokens", "searchable"} and value not in ([], (), None, "")
+                        if not key.startswith("_")
+                        and value not in ([], (), None, "")
                     })
                 points.append({
                     "year": year_number,

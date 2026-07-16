@@ -12,7 +12,10 @@ from lunar_python import Lunar as LunarCalendar
 from lunar_python import Solar as SolarCalendar
 
 from iching.core.bazi_patterns import assess_patterns
-from iching.core.bazi_rules.adapter import build_source_backed_shadow
+from iching.core.bazi_rules.adapter import (
+    build_source_backed_shadow,
+    canonical_authority_from_shadow,
+)
 from iching.core.bazi_rules.registry import load_packaged_shen_registry
 from iching.core.bazi_rules.fact_graph import (
     build_bazi_fact_envelope_from_graphs,
@@ -596,13 +599,15 @@ def _build_uncertain_metaphysics_chart(
     })
     base["birth_profile"].pop("period_query", None)
     envelope = build_bazi_fact_envelope_from_graphs(candidate_graphs)
-    base["structure"]["patterns"]["source_backed_shadow"] = (
-        build_source_backed_shadow(
-            (),
-            base["structure"]["patterns"],
-            envelope,
-            include_attestations=False,
-        )
+    uncertain_shadow = build_source_backed_shadow(
+        (),
+        base["structure"]["patterns"],
+        envelope,
+        include_attestations=False,
+    )
+    base["structure"]["patterns"]["source_backed_shadow"] = uncertain_shadow
+    base["structure"]["patterns"]["source_backed_authority"] = (
+        canonical_authority_from_shadow(uncertain_shadow)
     )
     return base
 
@@ -1097,18 +1102,30 @@ def build_metaphysics_chart(
     profiles_by_theme = {str(profile.get("theme", "")): profile for profile in theme_profiles}
     for conclusion in synthesis.get("conclusions", []):
         comparisons = profiles_by_theme.get(str(conclusion.get("theme", "")), {}).get("comparisons", [])
-        supported = [item for item in comparisons if item.get("status") in {"observed", "zero"}]
+        supported = [
+            item
+            for item in comparisons
+            if item.get("status") in {"observed", "zero"}
+            and item.get("display_label")
+        ]
         if not supported:
             continue
-        most_distinctive = min(supported, key=lambda item: float(item.get("same_mass", item.get("exact_percentage", 100))))
-        same_mass = float(most_distinctive.get("same_mass", most_distinctive.get("exact_percentage", 100)))
-        if same_mass <= 10:
-            context = f"较少见 · 同值样本 {same_mass:.1f}%"
-        elif same_mass <= 25:
-            context = f"辨识度中等 · 同值样本 {same_mass:.1f}%"
-        else:
-            context = f"较常见 · 同值样本 {same_mass:.1f}%"
-        conclusion["distribution_context"] = context
+        display_priority = {
+            "exact_tail": 0,
+            "directional": 1,
+            "reference_zero": 2,
+            "common_value": 3,
+            "incidence": 4,
+        }
+        most_distinctive = min(
+            supported,
+            key=lambda item: (
+                display_priority.get(str(item.get("display_mode", "")), 5),
+                float(item.get("tail_percentage", 101) or 101),
+                str(item.get("metric_id", "")),
+            ),
+        )
+        conclusion["distribution_context"] = str(most_distinctive["display_label"])
     consumer = build_bazi_consumer_profile(
         pillars=pillars,
         structure=structure,

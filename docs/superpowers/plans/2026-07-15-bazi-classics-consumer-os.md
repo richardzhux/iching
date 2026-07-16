@@ -144,12 +144,13 @@ def compile_rule_bundle(
 
 **Interfaces:**
 - Shen core is the only default authority.
-- Xu and *Yuanhai* are separately executable overlays with `agrees | adds_condition | disagrees | different_terminology`; neither can silently overwrite the default result.
+- Xu and *Yuanhai* remain separately loadable overlays; only scan-verified propositions with complete operational predicates may become executable relations, and neither can silently overwrite the default result.
+- **Reviewed scope correction (2026-07-16):** the first *Yuanhai* tranche is a source-bound, zero-executable overlay. Weak/follow, education, and life/death passages are preserved as non-predictive source records until a complete formation/damage/rescue predicate can be justified. This is an intentional fail-closed milestone, not a completed *Yuanhai* doctrine engine.
 
 - [ ] Expand the Shen bundle through seven killings, wealth, resource, output, month prosperity/robbery, yang blade, and strict special patterns.
 - [ ] Give every rule a positive case, missing-condition case, damage case, rescue case where applicable, precedence case, and traceable proposition.
 - [ ] Compile Xu commentary only where a dated witness can be verified; exclude later annotations and unresolved attribution.
-- [ ] Compile the first *Yuanhai* tranche for month command, ordinary patterns, weak/follow structures, education/achievement passages, and pattern life/death concepts from scan-verified text.
+- [x] Compile the first *Yuanhai* source tranche for month command, ordinary patterns, weak/follow structures, education/achievement passages, and pattern life/death concepts from scan-verified text; bind it as zero-executable until operational predicates are source-complete.
 - [ ] Preserve author claims separately from current engine expectations in classical examples.
 - [ ] Commit `feat: complete independent ziping classical rule layers`.
 

@@ -139,6 +139,24 @@ def test_consumer_synthesis_is_traceable_and_uses_consumer_theme_names() -> None
     assert 4 <= len(conclusions) <= 7
     assert all(item["headline"] and item["body"] for item in conclusions)
     assert all(set(item["supporting_evidence_ids"]) <= evidence_ids for item in conclusions)
+    comparison_labels_by_theme = {
+        profile["theme"]: {
+            comparison.get("display_label")
+            for comparison in profile.get("comparisons", [])
+            if comparison.get("display_label")
+        }
+        for profile in chart["theme_profiles"]
+    }
+    assert all(
+        item.get("distribution_context")
+        in comparison_labels_by_theme.get(item["theme"], set())
+        for item in conclusions
+        if item.get("distribution_context")
+    )
+    assert all(
+        "同值样本" not in item.get("distribution_context", "")
+        for item in conclusions
+    )
 
 
 def test_heavenly_stem_combinations_take_precedence_over_element_control() -> None:

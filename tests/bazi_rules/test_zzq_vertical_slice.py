@@ -345,7 +345,35 @@ def test_packaged_registry_rejects_provenance_tampering_with_blank_seals() -> No
 
     from iching.core.bazi_rules.registry import registry_from_data
 
-    with pytest.raises(ValueError, match="source_provenance_digest must be a non-blank"):
+    with pytest.raises(
+        ValueError, match="source_provenance_digest must be a non-blank"
+    ):
+        registry_from_data(payload)
+
+
+@pytest.mark.parametrize("field_name", ["quote", "url", "pdf_page"])
+def test_packaged_registry_digest_binds_display_source_locator_fields(
+    field_name: str,
+) -> None:
+    package = resources.files("iching.core.bazi_rules")
+    payload = json.loads(
+        package.joinpath("bundles/zzq-shen-canonical-v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    locator = payload["source_provenance"][0]["support_locators"][0]
+    locator[field_name] = (
+        locator[field_name] + " altered"
+        if isinstance(locator[field_name], str)
+        else locator[field_name] + 1
+    )
+
+    from iching.core.bazi_rules.registry import registry_from_data
+
+    with pytest.raises(
+        ValueError,
+        match="source_provenance_digest does not bind source eligibility facts",
+    ):
         registry_from_data(payload)
 
 

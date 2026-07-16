@@ -230,6 +230,11 @@ class RegistrySupportLocator:
     witness_id: str
     witness_rights_status: str
     witness_production_allowed: bool
+    quote: str | None = None
+    pdf_page: int | None = None
+    printed_page: str | None = None
+    column_line: str | None = None
+    url: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", _identifier(self.id, "support locator id"))
@@ -245,9 +250,23 @@ class RegistrySupportLocator:
             or self.witness_production_allowed is not True
         ):
             raise ValueError("production provenance has rights-ineligible witness")
+        if self.quote is not None and (
+            not isinstance(self.quote, str) or not self.quote.strip()
+        ):
+            raise ValueError("support locator quote must be a non-blank string")
+        if self.pdf_page is not None and (
+            type(self.pdf_page) is not int or self.pdf_page <= 0
+        ):
+            raise ValueError("support locator pdf_page must be a positive integer")
+        for field_name in ("printed_page", "column_line", "url"):
+            value = getattr(self, field_name)
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise ValueError(f"support locator {field_name} must be non-blank")
+        if self.url is not None and not self.url.startswith(("https://", "http://")):
+            raise ValueError("support locator url must use HTTP or HTTPS")
 
     def canonical_data(self) -> dict[str, Any]:
-        return {
+        result = {
             "id": self.id,
             "review_state": self.review_state,
             "visually_verified": True,
@@ -255,6 +274,16 @@ class RegistrySupportLocator:
             "witness_rights_status": self.witness_rights_status,
             "witness_production_allowed": True,
         }
+        for field_name in ("quote", "pdf_page", "printed_page", "column_line", "url"):
+            value = getattr(self, field_name)
+            if value is not None:
+                result[field_name] = value
+        return result
+
+    def packaged_data(self) -> dict[str, Any]:
+        """Serialize the digest-bound source locator for the packaged bundle."""
+
+        return self.canonical_data()
 
 
 @dataclass(frozen=True)
@@ -335,6 +364,13 @@ class RegistrySourceProvenance:
             ],
         }
 
+    def packaged_data(self) -> dict[str, Any]:
+        result = self.canonical_data()
+        result["support_locators"] = [
+            item.packaged_data() for item in self.support_locators
+        ]
+        return result
+
 
 def _source_provenance(proposition: Proposition) -> RegistrySourceProvenance:
     witnesses = {item.id: item for item in proposition.witnesses}
@@ -366,6 +402,11 @@ def _source_provenance(proposition: Proposition) -> RegistrySourceProvenance:
                 witness_production_allowed=witnesses[
                     item.witness_id
                 ].production_use_allowed,
+                quote=item.quote,
+                pdf_page=item.pdf_page,
+                printed_page=item.printed_page,
+                column_line=item.column_line,
+                url=item.url,
             )
             for item in proposition.locators
         ),
@@ -875,7 +916,9 @@ class RuleRegistry:
                     "empty production registry cannot declare executable provenance"
                 )
             if self.special_review_gate is not None:
-                raise ValueError("empty production registry cannot declare a special gate")
+                raise ValueError(
+                    "empty production registry cannot declare a special gate"
+                )
         elif (
             self.source_bundle_digest
             or self.source_provenance
@@ -1191,6 +1234,21 @@ def _source_provenance_from_data(
             "witness_id",
             "witness_rights_status",
             "witness_production_allowed",
+            "quote",
+            "pdf_page",
+            "printed_page",
+            "column_line",
+            "url",
+        )
+    )
+    required_locator_fields = frozenset(
+        (
+            "id",
+            "review_state",
+            "visually_verified",
+            "witness_id",
+            "witness_rights_status",
+            "witness_production_allowed",
         )
     )
     support_locators = tuple(
@@ -1202,6 +1260,7 @@ def _source_provenance_from_data(
                         f"source_provenance[{index}].support_locators[{item_index}]"
                     ),
                     allowed=locator_fields,
+                    required=required_locator_fields,
                 )
             )
         )
@@ -1351,7 +1410,7 @@ def registry_to_data(registry: RuleRegistry) -> dict[str, Any]:
         "bundle_digest": registry.bundle_digest,
         "source_bundle_digest": registry.source_bundle_digest,
         "source_provenance": [
-            item.canonical_data() for item in registry.source_provenance
+            item.packaged_data() for item in registry.source_provenance
         ],
         "source_provenance_digest": registry.source_provenance_digest,
         "rules": [item.canonical_data() for item in registry.rules],

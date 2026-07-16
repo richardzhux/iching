@@ -207,9 +207,30 @@ def build_source_backed_shadow(
     return result
 
 
+def canonical_authority_from_shadow(shadow: Mapping[str, Any]) -> dict[str, Any]:
+    """Promote the reviewed pattern set while retaining legacy diagnostics.
+
+    ``generic_result`` remains a compatibility probe, but the independently
+    compiled Shen pattern set is the only production authority exposed here.
+    """
+
+    pattern_set = shadow.get("pattern_set")
+    if not isinstance(pattern_set, Mapping):
+        raise ValueError("source-backed shadow is missing its canonical pattern set")
+    return {
+        "mode": "canonical",
+        "authoritative": True,
+        "bundle_id": str(pattern_set.get("bundle_id", "")),
+        "bundle_digest": str(pattern_set.get("bundle_digest", "")),
+        "authority_layer": str(pattern_set.get("authority_layer", "")),
+        "pattern_set": dict(pattern_set),
+    }
+
+
 __all__ = [
     "SHADOW_DIFF_REASONS",
     "build_source_backed_shadow",
+    "canonical_authority_from_shadow",
     "evaluate_example_attestations",
     "fact_graph_matches_pillars",
 ]

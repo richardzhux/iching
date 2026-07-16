@@ -109,7 +109,7 @@ def test_public_pattern_signature_keeps_two_positional_arguments() -> None:
     assert all(item.kind is inspect.Parameter.KEYWORD_ONLY for item in parameters[2:])
 
 
-def test_shadow_adds_one_key_and_every_legacy_value_deep_equals() -> None:
+def test_canonical_authority_is_added_without_mutating_legacy_values() -> None:
     pillars, structure = _chart(*FIXTURES["li"])
     legacy = _assess_patterns_legacy(pillars, structure)
 
@@ -119,11 +119,22 @@ def test_shadow_adds_one_key_and_every_legacy_value_deep_equals() -> None:
         fact_graph=build_bazi_fact_graph(pillars),
     )
 
-    assert set(result) == {*legacy, "source_backed_shadow"}
+    assert set(result) == {
+        *legacy,
+        "source_backed_shadow",
+        "source_backed_authority",
+    }
     assert {
-        key: value for key, value in result.items() if key != "source_backed_shadow"
+        key: value
+        for key, value in result.items()
+        if key not in {"source_backed_shadow", "source_backed_authority"}
     } == legacy
     assert result["source_backed_shadow"]["authoritative"] is False
+    assert result["source_backed_authority"]["authoritative"] is True
+    assert (
+        result["source_backed_authority"]["bundle_digest"]
+        == result["source_backed_shadow"]["pattern_set"]["bundle_digest"]
+    )
 
 
 def test_supplied_graph_is_reused_and_incomplete_input_is_guarded(

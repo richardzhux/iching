@@ -199,12 +199,12 @@ def test_claims_are_deterministic_and_every_trace_array_is_present() -> None:
     )
 
 
-def test_shadow_adds_ids_but_cannot_override_legacy_hero() -> None:
+def test_canonical_authority_controls_the_consumer_hero() -> None:
     claims, patterns = _compiled()
     changed = deepcopy(patterns)
     canonical = next(
         item
-        for item in changed["source_backed_shadow"]["pattern_set"]["patterns"]
+        for item in changed["source_backed_authority"]["pattern_set"]["patterns"]
         if item["pattern_id"] == "direct_officer"
     )
     canonical["status"] = "broken"
@@ -217,17 +217,100 @@ def test_shadow_adds_ids_but_cannot_override_legacy_hero() -> None:
     original_hero = next(claim for claim in claims if claim["slot"] == "hero")
     rebuilt_hero = next(claim for claim in rebuilt if claim["slot"] == "hero")
 
-    assert original_hero["title"] == rebuilt_hero["title"] == "正官格 · 救成"
-    # Equal status is insufficient: the legacy `officer_wealth` formation path
-    # differs from the canonical `seal_support` path.
-    assert original_hero["ruleIds"] == []
-    assert original_hero["sourceIds"] == []
+    assert original_hero["title"] == "正官格 · 救成"
+    assert rebuilt_hero["title"] == "正官格 · 受制"
+    assert original_hero["ruleIds"]
+    assert original_hero["sourceIds"]
     assert rebuilt_hero["patternId"] == "direct_officer"
-    assert rebuilt_hero["ruleIds"] == []
-    assert rebuilt_hero["sourceIds"] == []
+    assert rebuilt_hero["ruleIds"]
+    assert rebuilt_hero["sourceIds"]
+
+
+def test_ambiguous_canonical_result_never_falls_back_to_legacy_verdict() -> None:
+    _, patterns = _compiled()
+    changed = deepcopy(patterns)
+    authority = changed["source_backed_authority"]["pattern_set"]
+    authority["active_pattern_ids"] = []
+    authority["ambiguous_pattern_ids"] = ["direct_officer"]
+    canonical = next(
+        item
+        for item in authority["patterns"]
+        if item["pattern_id"] == "direct_officer"
+    )
+    canonical["candidate"] = "unknown"
+    canonical["status"] = "undetermined"
+    changed["primary"]["status"] = "rescued"
+    changed["primary"]["title"] = "不应显示的旧格局结论"
+
+    claims = compile_consumer_claims(
+        patterns=changed,
+        theme_profiles=_chart("丁卯", "癸酉", "甲午", "辛未")[1]["theme_profiles"],
+        shensha_effects=_effects(),
+        cycles=_cycles(),
+    )
+    hero = next(claim for claim in claims if claim["slot"] == "hero")
+
+    assert hero["title"] == "正官格 · 待定"
+    assert "旧格局" not in hero["title"]
+    assert hero["ruleIds"] == []
+    assert hero["sourceIds"] == []
+    assert "patternId" not in hero
     assert not [
-        claim for claim in rebuilt if claim["classicalRole"] in {"damage", "rescue"}
+        claim
+        for claim in claims
+        if claim["classicalRole"] in {"formation_path", "damage", "rescue"}
     ]
+
+
+def test_multiple_active_canonical_patterns_are_not_reduced_by_sort_order() -> None:
+    _, patterns = _compiled()
+    changed = deepcopy(patterns)
+    authority = changed["source_backed_authority"]["pattern_set"]
+    second = next(
+        item
+        for item in authority["patterns"]
+        if item["pattern_id"] == "seven_killings"
+    )
+    second["candidate"] = "true"
+    second["status"] = "candidate"
+    authority["active_pattern_ids"] = ["direct_officer", "seven_killings"]
+    authority["ambiguous_pattern_ids"] = []
+
+    claims = compile_consumer_claims(
+        patterns=changed,
+        theme_profiles=_chart("丁卯", "癸酉", "甲午", "辛未")[1]["theme_profiles"],
+        shensha_effects=_effects(),
+        cycles=_cycles(),
+    )
+    hero = next(claim for claim in claims if claim["slot"] == "hero")
+
+    assert hero["title"] == "多重主导结构 · 并见"
+    assert "正官格" in hero["summary"]
+    assert "七杀格" in hero["summary"]
+    assert "patternId" not in hero
+    assert hero["ruleIds"] == []
+    assert hero["sourceIds"] == []
+
+
+def test_empty_canonical_result_uses_neutral_undetermined_hero() -> None:
+    _, patterns = _compiled()
+    changed = deepcopy(patterns)
+    authority = changed["source_backed_authority"]["pattern_set"]
+    authority["active_pattern_ids"] = []
+    authority["ambiguous_pattern_ids"] = []
+    changed["primary"]["title"] = "不应显示的旧格局结论"
+
+    claims = compile_consumer_claims(
+        patterns=changed,
+        theme_profiles=_chart("丁卯", "癸酉", "甲午", "辛未")[1]["theme_profiles"],
+        shensha_effects=_effects(),
+        cycles=_cycles(),
+    )
+    hero = next(claim for claim in claims if claim["slot"] == "hero")
+
+    assert hero["title"] == "主导结构 · 待定"
+    assert hero["ruleIds"] == []
+    assert hero["sourceIds"] == []
 
 
 def test_exact_formation_path_binds_hero_damage_and_rescue_provenance() -> None:
@@ -253,9 +336,10 @@ def test_exact_formation_path_binds_hero_damage_and_rescue_provenance() -> None:
                 {"id": "legacy.officer.constraint", "kind": "constraint"},
                 {"id": "legacy.officer.rescue", "kind": "rescue"},
             ],
-            "source_backed_shadow": {
-                "authoritative": False,
+            "source_backed_authority": {
+                "authoritative": True,
                 "pattern_set": {
+                    "active_pattern_ids": ["direct_officer"],
                     "patterns": [
                         {
                             "pattern_id": "direct_officer",
@@ -340,15 +424,72 @@ def test_exact_formation_path_binds_hero_damage_and_rescue_provenance() -> None:
         "zzq.prop.officer.damage",
         "zzq.prop.officer.rescue",
     ]
+    formation = next(
+        claim for claim in claims if claim["classicalRole"] == "formation_path"
+    )
+    assert formation["lifecycleProvenance"] == [
+        {
+            "pathId": "wealth_support",
+            "ruleId": "zzq.rule.officer.form-wealth",
+            "sourceIds": ["zzq.prop.officer.form-wealth"],
+        }
+    ]
     damage = next(claim for claim in claims if claim["classicalRole"] == "damage")
     rescue = next(claim for claim in claims if claim["classicalRole"] == "rescue")
     assert damage["ruleIds"] == ["zzq.rule.officer.damage"]
     assert damage["sourceIds"] == ["zzq.prop.officer.damage"]
+    assert damage["pathIds"] == ["wealth_support"]
+    assert damage["lifecycleProvenance"] == [
+        {
+            "pathId": "wealth_support",
+            "ruleId": "zzq.rule.officer.damage",
+            "sourceIds": ["zzq.prop.officer.damage"],
+        }
+    ]
     assert rescue["ruleIds"] == ["zzq.rule.officer.rescue"]
     assert rescue["sourceIds"] == ["zzq.prop.officer.rescue"]
+    assert rescue["pathIds"] == ["wealth_support"]
+    assert rescue["lifecycleProvenance"] == [
+        {
+            "pathId": "wealth_support",
+            "ruleId": "zzq.rule.officer.rescue",
+            "sourceIds": ["zzq.prop.officer.rescue"],
+        }
+    ]
 
 
-def test_legacy_and_canonical_path_ids_are_never_guessed_across() -> None:
+def test_canonical_damage_and_rescue_do_not_depend_on_legacy_copy_arrays() -> None:
+    claims, patterns = _compiled()
+    baseline_roles = {
+        claim["classicalRole"]
+        for claim in claims
+        if claim["classicalRole"] in {"damage", "rescue"}
+    }
+    changed = deepcopy(patterns)
+    changed["primary"]["constraints"] = []
+    changed["primary"]["rescues"] = []
+
+    rebuilt = compile_consumer_claims(
+        patterns=changed,
+        theme_profiles=_chart("丁卯", "癸酉", "甲午", "辛未")[1]["theme_profiles"],
+        shensha_effects=_effects(),
+        cycles=_cycles(),
+    )
+    rebuilt_roles = {
+        claim["classicalRole"]
+        for claim in rebuilt
+        if claim["classicalRole"] in {"damage", "rescue"}
+    }
+
+    assert rebuilt_roles == baseline_roles
+    assert all(
+        claim["ruleIds"] and claim["sourceIds"]
+        for claim in rebuilt
+        if claim["classicalRole"] in {"damage", "rescue"}
+    )
+
+
+def test_consumer_formation_path_comes_from_canonical_authority() -> None:
     claims, _ = _compiled()
     formation = next(
         claim
@@ -356,10 +497,10 @@ def test_legacy_and_canonical_path_ids_are_never_guessed_across() -> None:
         if claim["slot"] == "signature" and claim["classicalRole"] == "formation_path"
     )
 
-    assert formation["title"] == "官逢财生"
-    assert "pathId" not in formation
-    assert formation["ruleIds"] == []
-    assert formation["sourceIds"] == []
+    assert formation["title"] == "官印相生"
+    assert formation["pathId"] == "seal_support"
+    assert formation["ruleIds"]
+    assert formation["sourceIds"]
     assert all(
         "pathId" not in claim and claim["expressionPathId"].startswith("bazi.path.")
         for claim in claims
@@ -367,12 +508,14 @@ def test_legacy_and_canonical_path_ids_are_never_guessed_across() -> None:
     )
 
 
-def test_mismatched_formation_path_suppresses_damage_and_rescue_provenance() -> None:
+def test_canonical_damage_and_rescue_keep_exact_provenance() -> None:
     claims, _ = _compiled()
 
-    assert not [
+    lifecycle_claims = [
         claim for claim in claims if claim["classicalRole"] in {"damage", "rescue"}
     ]
+    assert {claim["classicalRole"] for claim in lifecycle_claims} == {"damage", "rescue"}
+    assert all(claim["ruleIds"] and claim["sourceIds"] for claim in lifecycle_claims)
 
 
 def test_special_pattern_without_canonical_match_does_not_fabricate_ids() -> None:

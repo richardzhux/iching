@@ -6,6 +6,7 @@ from typing import Any, Iterable, Mapping
 
 from iching.core.bazi_rules.adapter import (
     build_source_backed_shadow,
+    canonical_authority_from_shadow,
     fact_graph_matches_pillars,
 )
 from iching.core.bazi_rules.fact_graph import build_bazi_fact_graph
@@ -863,10 +864,9 @@ def _assess_patterns_legacy(
         "formed": [item["id"] for item in (*ordinary, *special) if item["status"] in {"formed", "rescued"}],
         "evidence": all_evidence,
         "effective_structure": facts.effective_god_summary(),
-        "source_refs": [
-            "三命通会·卷六·论阳刃/论建禄/论杂气",
-            "渊海子平·神趣八法及月令取用",
-        ],
+        # Legacy heuristic output has no proposition-level provenance.  Source
+        # labels are attached only by the canonical authority/claim compiler.
+        "source_refs": [],
     }
 
 
@@ -877,7 +877,7 @@ def assess_patterns(
     fact_graph: BaziFactGraph | None = None,
     include_attestations: bool = True,
 ) -> dict[str, Any]:
-    """Preserve legacy pattern output and attach a non-authoritative shadow."""
+    """Preserve legacy output while attaching the canonical source-backed authority."""
 
     pillar_list = list(pillars)
     legacy = _assess_patterns_legacy(pillar_list, structure)
@@ -899,10 +899,12 @@ def assess_patterns(
         graph = fact_graph
         if not fact_graph_matches_pillars(pillar_list, graph):
             return legacy
-    legacy["source_backed_shadow"] = build_source_backed_shadow(
+    shadow = build_source_backed_shadow(
         pillar_list,
         legacy,
         graph,
         include_attestations=include_attestations,
     )
+    legacy["source_backed_shadow"] = shadow
+    legacy["source_backed_authority"] = canonical_authority_from_shadow(shadow)
     return legacy

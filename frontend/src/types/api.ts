@@ -111,6 +111,48 @@ export type PatternAssessment = {
   source_refs?: string[]
 }
 
+export type PatternRuleSourceSegment = {
+  id: string
+  text_type: string
+  review_state: string
+}
+
+export type PatternRuleSourceLocator = {
+  id: string
+  witness_id: string
+  rights_status: string
+  review_state: string
+  visually_verified: boolean
+  quote?: string | null
+  pdf_page?: number | null
+  printed_page?: string | null
+  column_line?: string | null
+  url?: string | null
+}
+
+export type PatternRuleSourceSummary = {
+  proposition_id: string
+  authority_layer: string
+  text_type: string
+  review_state: string
+  segments: PatternRuleSourceSegment[]
+  locators: PatternRuleSourceLocator[]
+}
+
+export type PatternRuleSummary = {
+  bundle_id: string
+  bundle_digest: string
+  rule_id: string
+  pattern_id: string
+  title: string
+  summary: string
+  stage: string
+  effect: string
+  path_id: string | null
+  authority_layer: string
+  sources: PatternRuleSourceSummary[]
+}
+
 export type ConsumerSubjectPath = {
   key: "career" | "wealth" | "relationship" | "health"
   label: string
@@ -232,6 +274,12 @@ export type ConsumerClaim = {
   /** Canonical Task 5 IDs are present only after an exact source-backed match. */
   patternId?: string
   pathId?: string
+  pathIds?: string[]
+  lifecycleProvenance?: Array<{
+    pathId: string
+    ruleId: string
+    sourceIds: string[]
+  }>
   /** Stable consumer expression path; distinct from a classical formation path. */
   expressionPathId?: string
   evidenceHighlights?: string[]

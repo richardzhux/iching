@@ -27,6 +27,36 @@ _PATTERN_STATUS_LABELS = {
     "mixed": "混杂",
     "transformed": "转化",
     "candidate": "主导",
+    "undetermined": "待定",
+    "coexisting": "并见",
+}
+_CANONICAL_PATTERN_TITLES = {
+    "direct_officer": "正官格",
+    "seven_killings": "七杀格",
+    "direct_wealth": "正财格",
+    "indirect_wealth": "偏财格",
+    "eating_god": "食神格",
+    "hurting_officer": "伤官格",
+    "direct_resource": "正印格",
+    "indirect_resource": "偏印格",
+    "month_prosperity": "建禄格",
+    "month_robbery": "月劫格",
+    "yang_blade": "阳刃格",
+}
+_CANONICAL_PATH_TITLES = {
+    "wealth_support": "财星扶官",
+    "seal_support": "官印相生",
+    "dual_support": "财印并见",
+    "officer_resource": "官印相生",
+    "killing_resource_no_wealth": "食神制杀兼印",
+    "single_exposed_killing_no_resource_wealth": "食神制杀",
+    "hurting_wealth": "伤官生财",
+    "killing_control": "制杀成用",
+    "officer_resource_support": "官印相扶",
+    "officer_wealth_support": "财官相扶",
+    "wealth_output": "食伤生财",
+    "killing_blade_no_output": "杀刃相济",
+    "officer_killing_support": "官杀制刃",
 }
 _CAREER_PATHS = {
     "direct_resource": (
@@ -148,7 +178,8 @@ def _unique_strings(values: Iterable[Any]) -> list[str]:
 
 
 def _primary_pattern(patterns: Mapping[str, Any]) -> Mapping[str, Any]:
-    return _mapping(patterns.get("primary"))
+    canonical = _canonical_primary_pattern(patterns)
+    return canonical or _mapping(patterns.get("primary"))
 
 
 def _pattern_key(primary: Mapping[str, Any]) -> str:
@@ -160,12 +191,12 @@ def _source_backed_pattern(
     patterns: Mapping[str, Any],
     pattern_key: str,
 ) -> Mapping[str, Any]:
-    """Return the matching non-authoritative trace, never a replacement verdict."""
+    """Return the matching pattern from the promoted canonical authority."""
 
-    shadow = _mapping(patterns.get("source_backed_shadow"))
-    if shadow.get("authoritative") is not False:
+    authority = _mapping(patterns.get("source_backed_authority"))
+    if authority.get("authoritative") is not True:
         return {}
-    pattern_set = _mapping(shadow.get("pattern_set"))
+    pattern_set = _mapping(authority.get("pattern_set"))
     for item in pattern_set.get("patterns", ()):
         candidate = _mapping(item)
         if (
@@ -175,6 +206,139 @@ def _source_backed_pattern(
         ):
             return candidate
     return {}
+
+
+def _canonical_primary_pattern(patterns: Mapping[str, Any]) -> Mapping[str, Any]:
+    authority = _mapping(patterns.get("source_backed_authority"))
+    if authority.get("authoritative") is not True:
+        return {}
+    pattern_set = _mapping(authority.get("pattern_set"))
+    active_ids = {
+        str(value) for value in pattern_set.get("active_pattern_ids", ()) if value
+    }
+    ambiguous_ids = {
+        str(value) for value in pattern_set.get("ambiguous_pattern_ids", ()) if value
+    }
+    active_candidates = [
+        _mapping(value)
+        for value in pattern_set.get("patterns", ())
+        if str(_mapping(value).get("pattern_id", "")) in active_ids
+    ]
+    ambiguous_candidates = [
+        _mapping(value)
+        for value in pattern_set.get("patterns", ())
+        if str(_mapping(value).get("pattern_id", "")) in ambiguous_ids
+    ]
+    if len(active_candidates) > 1:
+        titles = _unique_strings(
+            _CANONICAL_PATTERN_TITLES.get(
+                str(item.get("pattern_id", "")),
+                str(item.get("pattern_id", "")),
+            )
+            for item in sorted(
+                active_candidates,
+                key=lambda item: str(item.get("pattern_id", "")),
+            )
+        )
+        return {
+            "id": "bazi.pattern.canonical.coexisting",
+            "name": "多重主导结构",
+            "title": "多重主导结构",
+            "status": "coexisting",
+            "summary": f"{'、'.join(titles)}同时达到当前成立条件，不强行指定唯一格局。",
+            "evidence_ids": [],
+        }
+    if not active_candidates and len(ambiguous_candidates) > 1:
+        return {
+            "id": "bazi.pattern.canonical.undetermined",
+            "name": "主导结构",
+            "title": "主导结构",
+            "status": "undetermined",
+            "summary": "存在多个月令候选，但当前条件不足以确认唯一主导格局。",
+            "evidence_ids": [],
+        }
+    candidates = active_candidates or ambiguous_candidates
+    if not candidates:
+        return {
+            "id": "bazi.pattern.canonical.undetermined",
+            "name": "主导结构",
+            "title": "主导结构",
+            "status": "undetermined",
+            "summary": "已完成月令候选核验，当前没有足够条件确认单一主导格局。",
+            "evidence_ids": [],
+        }
+    status_order = {
+        "formed": 0,
+        "rescued": 1,
+        "transformed": 2,
+        "mixed": 3,
+        "broken": 4,
+        "candidate": 5,
+        "undetermined": 6,
+    }
+    canonical = min(
+        candidates,
+        key=lambda item: (
+            status_order.get(str(item.get("status", "")), 9),
+            str(item.get("pattern_id", "")),
+        ),
+    )
+    pattern_id = str(canonical.get("pattern_id", ""))
+    is_ambiguous = not active_candidates
+    legacy_candidates = [
+        _mapping(value)
+        for value in (
+            patterns.get("primary"),
+            *patterns.get("ordinary", ()),
+            *patterns.get("special", ()),
+        )
+        if value
+    ]
+    legacy = (
+        next(
+            (item for item in legacy_candidates if _pattern_key(item) == pattern_id),
+            {},
+        )
+        if not is_ambiguous
+        else {}
+    )
+    active_paths = [
+        _mapping(value)
+        for value in canonical.get("paths", ())
+        if not is_ambiguous
+        and str(_mapping(value).get("status", ""))
+        not in {"inactive", "superseded", "undetermined"}
+    ]
+    path = (
+        sorted(active_paths, key=lambda item: str(item.get("path_id", "")))[0]
+        if active_paths
+        else {}
+    )
+    path_id = str(path.get("path_id", ""))
+    title = _CANONICAL_PATTERN_TITLES.get(
+        pattern_id,
+        str(legacy.get("title") or legacy.get("name") or pattern_id or "主导结构"),
+    )
+    status = str(canonical.get("status", "candidate"))
+    return {
+        **dict(legacy),
+        "id": f"bazi.pattern.canonical.{pattern_id}",
+        "name": title.removesuffix("格"),
+        "title": title,
+        "status": status,
+        "summary": f"{title}按已核验规则进入{_PATTERN_STATUS_LABELS.get(status, status)}阶段。",
+        "formation_path": (
+            {
+                "id": path_id,
+                "title": _CANONICAL_PATH_TITLES.get(path_id, path_id),
+                "details": [],
+            }
+            if path_id
+            else None
+        ),
+        "evidence_ids": _unique_strings(legacy.get("evidence_ids", ())),
+        **({"constraints": [], "rescues": [], "tensions": []} if is_ambiguous else {}),
+    }
 
 
 def _true_stage_traces(
@@ -212,6 +376,41 @@ def _trace_ids(traces: Iterable[Mapping[str, Any]]) -> tuple[list[str], list[str
             )
         ),
     )
+
+
+def _lifecycle_provenance(
+    traces: Iterable[Mapping[str, Any]],
+    *,
+    path_ids_by_rule: Mapping[str, Iterable[str]] | None = None,
+) -> list[dict[str, Any]]:
+    bindings: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, tuple[str, ...]]] = set()
+    for trace in traces:
+        rule_id = str(trace.get("rule_id", ""))
+        source_ids = _unique_strings(
+            (*trace.get("source_ids", ()), *trace.get("supporting_source_ids", ()))
+        )
+        if not rule_id or not source_ids:
+            continue
+        if path_ids_by_rule is None:
+            path_ids = _unique_strings(
+                (trace.get("path_id", ""), *trace.get("targets_path_ids", ()))
+            )
+        else:
+            path_ids = _unique_strings(path_ids_by_rule.get(rule_id, ()))
+        for path_id in path_ids:
+            identity = (path_id, rule_id, tuple(source_ids))
+            if identity in seen:
+                continue
+            seen.add(identity)
+            bindings.append(
+                {
+                    "pathId": path_id,
+                    "ruleId": rule_id,
+                    "sourceIds": source_ids,
+                }
+            )
+    return bindings
 
 
 def _canonical_verdict_traces(pattern: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -275,6 +474,10 @@ def _verdict_provenance_matches(
 
 
 def _hero_summary(primary: Mapping[str, Any]) -> str:
+    if str(primary.get("status", "")) == "coexisting":
+        return str(primary.get("summary", "多个主导结构同时成立。"))
+    if str(primary.get("status", "")) == "undetermined":
+        return "月令候选已经识别，成格路径仍需更多原局条件确认。"
     selection = {
         "month_main_qi": "月令本气形成主导结构",
         "month_hidden_exposed": "月令藏气透出，形成主导结构",
@@ -515,6 +718,7 @@ def _signature_claims(
             else []
         )
         rule_ids, source_ids = _trace_ids(traces)
+        lifecycle_provenance = _lifecycle_provenance(traces)
         details = _unique_strings(formation_path.get("details", ()))
         claim = {
             "id": f"bazi.claim.signature.{pattern_key}.formation.{path_id}",
@@ -525,22 +729,30 @@ def _signature_claims(
             "classicalRole": "formation_path",
             **({"patternId": pattern_key} if source_backed else {}),
             **({"pathId": path_id} if canonical_path_matches else {}),
+            **(
+                {"lifecycleProvenance": lifecycle_provenance}
+                if lifecycle_provenance
+                else {}
+            ),
             "evidenceIds": _pattern_evidence_ids(patterns, primary, "formation_path"),
             "ruleIds": rule_ids,
             "sourceIds": source_ids,
         }
         candidates.append(((0, 0.0, claim["id"]), claim))
 
-    constraints = _unique_strings(primary.get("constraints", ()))
-    if constraints:
-        active_damage_ids = {
-            str(rule_id)
-            for path in source_backed.get("paths", ())
-            if isinstance(path, Mapping)
-            and str(path.get("status", ""))
-            not in {"inactive", "superseded", "undetermined"}
-            for rule_id in path.get("actual_damage_ids", ())
-        }
+    active_paths = [
+        path
+        for path in source_backed.get("paths", ())
+        if isinstance(path, Mapping)
+        and str(path.get("status", ""))
+        not in {"inactive", "superseded", "undetermined"}
+    ]
+    active_damage_ids = {
+        str(rule_id)
+        for path in active_paths
+        for rule_id in path.get("actual_damage_ids", ())
+    }
+    if active_damage_ids:
         traces = (
             [
                 trace
@@ -551,32 +763,49 @@ def _signature_claims(
             else []
         )
         rule_ids, source_ids = _trace_ids(traces)
+        damage_paths_by_rule = {
+            rule_id: _unique_strings(
+                path.get("path_id", "")
+                for path in active_paths
+                if rule_id in set(_unique_strings(path.get("actual_damage_ids", ())))
+            )
+            for rule_id in rule_ids
+        }
+        lifecycle_provenance = _lifecycle_provenance(
+            traces,
+            path_ids_by_rule=damage_paths_by_rule,
+        )
+        path_ids = _unique_strings(
+            binding.get("pathId", "") for binding in lifecycle_provenance
+        )
         evidence_ids = _pattern_evidence_ids(patterns, primary, "constraint")
-        if evidence_ids or rule_ids or source_ids:
+        if rule_ids and source_ids:
             claim = {
                 "id": f"bazi.claim.signature.{pattern_key}.damage",
                 "slot": "signature",
                 "title": "格局中的制约",
-                "summary": f"{'、'.join(constraints)}会牵制主导结构的直接发挥。",
+                "summary": "已命中的古籍规则对当前成格路径形成制约。",
                 "importance": "major",
                 "classicalRole": "damage",
                 **({"patternId": pattern_key} if source_backed else {}),
+                **({"pathIds": path_ids} if path_ids else {}),
+                **(
+                    {"lifecycleProvenance": lifecycle_provenance}
+                    if lifecycle_provenance
+                    else {}
+                ),
                 "evidenceIds": evidence_ids,
                 "ruleIds": rule_ids,
                 "sourceIds": source_ids,
             }
             candidates.append(((1, 0.0, claim["id"]), claim))
 
-    rescues = _unique_strings(primary.get("rescues", ()))
-    if rescues:
-        active_rescue_ids = {
-            str(rule_id)
-            for path in source_backed.get("paths", ())
-            if isinstance(path, Mapping)
-            and str(path.get("status", ""))
-            not in {"inactive", "superseded", "undetermined"}
-            for rule_id in path.get("active_rescue_ids", ())
-        }
+    active_rescue_ids = {
+        str(rule_id)
+        for path in active_paths
+        for rule_id in path.get("active_rescue_ids", ())
+    }
+    if active_rescue_ids:
         traces = (
             [
                 trace
@@ -587,16 +816,37 @@ def _signature_claims(
             else []
         )
         rule_ids, source_ids = _trace_ids(traces)
+        rescue_paths_by_rule = {
+            rule_id: _unique_strings(
+                path.get("path_id", "")
+                for path in active_paths
+                if rule_id in set(_unique_strings(path.get("active_rescue_ids", ())))
+            )
+            for rule_id in rule_ids
+        }
+        lifecycle_provenance = _lifecycle_provenance(
+            traces,
+            path_ids_by_rule=rescue_paths_by_rule,
+        )
+        path_ids = _unique_strings(
+            binding.get("pathId", "") for binding in lifecycle_provenance
+        )
         evidence_ids = _pattern_evidence_ids(patterns, primary, "rescue")
-        if evidence_ids or rule_ids or source_ids:
+        if rule_ids and source_ids:
             claim = {
                 "id": f"bazi.claim.signature.{pattern_key}.rescue",
                 "slot": "signature",
                 "title": "制约得到回应",
-                "summary": f"{'、'.join(rescues)}让原局中的制约得到具体回应。",
+                "summary": "已命中的古籍规则让当前成格路径中的制约得到具体回应。",
                 "importance": "major",
                 "classicalRole": "rescue",
                 **({"patternId": pattern_key} if source_backed else {}),
+                **({"pathIds": path_ids} if path_ids else {}),
+                **(
+                    {"lifecycleProvenance": lifecycle_provenance}
+                    if lifecycle_provenance
+                    else {}
+                ),
                 "evidenceIds": evidence_ids,
                 "ruleIds": rule_ids,
                 "sourceIds": source_ids,

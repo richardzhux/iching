@@ -1350,8 +1350,46 @@ def test_task8_bazi_consumer_os_exposes_one_clear_identity_and_share_contract():
     assert "命盘成就" not in chart
     assert "分享成就卡" not in chart
     assert chart.count("分享与导出") == 1
-    for decision_step in ("命盘事实", "命中规则", "古籍命题", "核验进程"):
+    for decision_step in ("主导结构", "命中规则", "已核验命题"):
         assert decision_step in chart
+
+
+def test_bazi_pattern_source_chain_uses_only_canonical_claim_ids_and_fetches_real_sources_on_demand():
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    api = read("frontend/src/lib/api.ts")
+    types = read("frontend/src/types/api.ts")
+
+    assert 'claim.slot === "hero"' in chart
+    assert "hero.ruleIds" in chart
+    assert "hero.sourceIds" in chart
+    assert 'claim.ruleIds.length && claim.sourceIds.length' in chart
+    assert "PatternSourceDisclosure" in chart
+    assert "fetchPatternRuleSummary" in chart
+    assert "命题索引" not in chart
+    assert "Classical proposition" not in chart
+    assert "已核验影印定位" in chart
+    assert "visually_verified" in chart
+    assert 'key={`${patternBundleId}:${heroRuleIds.join(",")}:${heroSourceIds.join(",")}`}' in chart
+    assert "requestedSources.has(source.proposition_id)" in chart
+    assert 'locator.review_state === "scan_verified"' in chart
+    assert "Boolean(locator.quote)" in chart
+    assert "Boolean(locator.url || locator.pdf_page || locator.printed_page || locator.column_line)" in chart
+    assert "打开影印页" in chart
+    assert 'target="_blank"' in chart
+
+    assert "export async function fetchPatternRuleSummary" in api
+    assert "/api/tools/metaphysics/pattern-rules/" in api
+    assert "encodeURIComponent(bundleId)" in api
+    assert "encodeURIComponent(ruleId)" in api
+
+    for type_name in (
+        "PatternRuleSourceLocator",
+        "PatternRuleSourceSummary",
+        "PatternRuleSummary",
+    ):
+        assert f"export type {type_name}" in types
+    for field in ("proposition_id", "witness_id", "visually_verified", "quote", "pdf_page", "url"):
+        assert field in types
 
 
 def test_task8_markdown_uses_consumer_display_semantics_not_raw_percentile_buckets():
