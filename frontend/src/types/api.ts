@@ -398,6 +398,8 @@ export type MetaphysicsStatistics = {
     sample_weight: number
     unique_state_count?: number
     config_id?: string
+    pattern_bundle_id?: string
+    pattern_bundle_digest?: string
     schema_version?: number
     feature_catalog_hash?: string
     registry_hash?: string
@@ -413,6 +415,14 @@ export type MetaphysicsStatistics = {
   disclaimer: string
   status?: "available" | "unavailable" | "version_mismatch"
   unavailable_reason?: string
+}
+
+export type RuleVersions = {
+  calendar: string
+  pattern_bundle: string
+  pattern_digest: string
+  shensha: string
+  consumer: string
 }
 
 export type PeriodMonth = {
@@ -507,6 +517,8 @@ export type MetaphysicsChart = {
   boundary_flags: { near_solar_term?: boolean; nearest_solar_term_seconds?: number }
   derived_schema_version: number
   rules_version: string
+  /** Present on schema 7 live charts; absent from readable schema 6 archives. */
+  rule_versions?: RuleVersions
   shen_sha: ShenShaHit[]
   structure: {
     day_master: { stem: string; element: string; rooted: boolean; root_pillars: string[]; month_status: string }

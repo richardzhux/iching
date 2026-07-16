@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 
 from iching.integrations.supabase_client import SupabaseAuthError
+from iching.core.bazi_rules.registry import load_packaged_shen_registry
 from iching.core.metaphysics import build_metaphysics_chart
 from iching.core.metaphysics_statistics import lookup_statistics
 from iching.web.chat_service import ChatRateLimitError
@@ -23,6 +25,7 @@ from iching.web.models import (
     MetaphysicsChartResponse,
     MetaphysicsPeriodRequest,
     MetaphysicsPeriodResponse,
+    PatternRuleSummaryResponse,
     MetaphysicsStatisticsRequest,
     MetaphysicsStatisticsResponse,
     MetaphysicsChartSaveRequest,
@@ -41,6 +44,30 @@ from iching.web.service import (
 
 router = APIRouter(prefix="/api", tags=["api"])
 logger = logging.getLogger(__name__)
+
+_RULE_PATH_ID = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,159}$")
+_PATTERN_LABELS = {
+    "direct_officer": "正官格", "seven_killings": "七杀格",
+    "direct_wealth": "正财格", "indirect_wealth": "偏财格",
+    "direct_resource": "正印格", "indirect_resource": "偏印格",
+    "eating_god": "食神格", "hurting_officer": "伤官格",
+    "month_prosperity": "建禄格", "month_robbery": "月劫格", "yang_blade": "阳刃格",
+}
+_STAGE_LABELS = {
+    "candidate": "格局候选", "formation": "成格路径", "damage": "破格因素",
+    "rescue": "救应条件", "transformation": "转化条件",
+    "special_gate": "特别格门槛", "resolution": "路径裁决",
+}
+_EFFECT_SUMMARIES = {
+    "candidate_confirm": "确认这一月令格局候选",
+    "candidate_possible": "保留这一格局候选",
+    "formation": "建立一条成格路径",
+    "damage": "记录一项对成格路径的制约",
+    "officer_killing_mixture": "记录官杀混杂对路径的影响",
+    "rescue_invalidation": "记录救应条件受制", "rescue": "记录针对已命中制约的救应",
+    "transformation": "记录格局转化路径", "require": "确认特别格所需条件",
+    "reject": "排除未通过门槛的特别格", "source_precedence": "裁决重叠路径",
+}
 
 
 def _get_runner() -> SessionRunner:
@@ -143,6 +170,60 @@ def read_metaphysics_statistics(payload: MetaphysicsStatisticsRequest) -> Metaph
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return MetaphysicsStatisticsResponse(**result)
+
+
+@router.get(
+    "/tools/metaphysics/pattern-rules/{bundle_id}/{rule_id}",
+    response_model=PatternRuleSummaryResponse,
+)
+def read_metaphysics_pattern_rule(bundle_id: str, rule_id: str) -> PatternRuleSummaryResponse:
+    """Return one compact, source-backed rule explanation on demand."""
+    if not _RULE_PATH_ID.fullmatch(bundle_id) or not _RULE_PATH_ID.fullmatch(rule_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未找到该格局规则。")
+    registry = load_packaged_shen_registry()
+    if bundle_id != registry.bundle_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未找到该格局规则包。")
+    rule = registry.rules_by_id.get(rule_id)
+    if rule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未找到该格局规则。")
+
+    provenance_by_id = {item.proposition_id: item for item in registry.source_provenance}
+    sources = []
+    for source_id in (*rule.source_ids, *rule.supporting_source_ids):
+        provenance = provenance_by_id.get(source_id)
+        if provenance is None:
+            continue
+        sources.append({
+            "proposition_id": provenance.proposition_id,
+            "authority_layer": provenance.layer,
+            "text_type": provenance.text_type,
+            "review_state": provenance.review_state,
+            "segments": [{"id": item.id, "text_type": item.text_type, "review_state": item.review_state} for item in provenance.segments],
+            "locators": [{
+                "id": item.id,
+                "witness_id": item.witness_id,
+                "rights_status": item.witness_rights_status,
+                "review_state": item.review_state,
+                "visually_verified": item.visually_verified,
+            } for item in provenance.support_locators],
+        })
+
+    pattern_title = _PATTERN_LABELS.get(rule.pattern_id, rule.pattern_id)
+    stage_title = _STAGE_LABELS.get(rule.stage, rule.stage)
+    effect_summary = _EFFECT_SUMMARIES.get(rule.effect, "记录该格局阶段的命中结果")
+    return PatternRuleSummaryResponse(
+        bundle_id=registry.bundle_id,
+        bundle_digest=registry.bundle_digest,
+        rule_id=rule.id,
+        pattern_id=rule.pattern_id,
+        title=f"{pattern_title} · {stage_title}",
+        summary=f"该条规则用于{effect_summary}，并与已核验的《子平真诠》命题绑定。",
+        stage=rule.stage,
+        effect=rule.effect,
+        path_id=rule.path_id,
+        authority_layer=rule.authority_layer,
+        sources=sources,
+    )
 
 
 @router.post(

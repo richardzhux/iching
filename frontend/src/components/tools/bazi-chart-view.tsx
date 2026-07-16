@@ -12,7 +12,7 @@ import {
 } from "@/components/tools/consumer-identity"
 import { LifeKlineChart } from "@/components/tools/life-kline-chart"
 import { MetaphysicsAchievements, type MetaphysicsAchievement } from "@/components/tools/metaphysics-achievements"
-import { buildBaziMarkdown } from "@/lib/chart-markdown"
+import { baziRuleVersionSummary, buildBaziMarkdown } from "@/lib/chart-markdown"
 import { calculateMetaphysicsChart, fetchMetaphysicsPeriod } from "@/lib/api"
 import type { DayunCycle, MetaphysicsChart, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeComparison, ThemeProfile } from "@/types/api"
 
@@ -23,6 +23,14 @@ type ConsumerLifeKline = NonNullable<MetaphysicsChart["consumer"]>["life_kline"]
 type BaziChartViewProps =
   | { chart: MetaphysicsChart; locale: Locale; mode: "current"; generatedAt?: never; onCompare?: never }
   | { chart: MetaphysicsChart; locale: Locale; mode: "birth"; generatedAt: string; subjectName: string; onCompare?: () => void }
+
+function hasAvailableStatistics(chart: MetaphysicsChart) {
+  return !chart.statistics.status || chart.statistics.status === "available"
+}
+
+function StatisticsUnavailable({ locale }: { locale: Locale }) {
+  return <div role="status" className="rounded-2xl border border-border/55 bg-muted/25 px-5 py-4"><p className="font-semibold">{locale === "zh" ? "历法样本对照暂时不可用" : "Calendar-sample comparisons are temporarily unavailable"}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "命盘、格局与运限不受影响，稍后可再查看结构频率。" : "The chart, pattern, and periods are unaffected. Structural frequencies can be checked again later."}</p></div>
+}
 
 function formatChartTimestamp(timestamp: string, locale: Locale, timeZone: string) {
   return new Date(timestamp).toLocaleString(locale === "zh" ? "zh-CN" : "en-US", { timeZone })
@@ -364,7 +372,7 @@ export function BaziChartView(props: BaziChartViewProps) {
 
       {displayMode !== "simple" ? <ReportChapter id="bazi-statistics" title={locale === "zh" ? "结构统计" : "Structure statistics"} intro={locale === "zh" ? "看看哪些结构更有辨识度，以及它们在历法样本中的分布位置。" : "See which structures are more distinctive and where they sit in the calendar-sample distribution."}>
         <div className="space-y-8">
-          <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} />
+          {hasAvailableStatistics(chart) ? <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /> : <StatisticsUnavailable locale={locale} />}
           <BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />
         </div>
       </ReportChapter> : null}
@@ -384,8 +392,8 @@ export function BaziChartView(props: BaziChartViewProps) {
           </div>
           {chart.birth_profile.hour_uncertain ? <HourCandidates candidates={chart.birth_profile.hour_candidates} locale={locale} /> : null}
           <div><h3 className="text-sm font-semibold">{locale === "zh" ? "原始大运周期" : "Raw Da Yun cycles"}</h3><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{dayun.cycles.map((cycle) => <p key={cycle.index} className="text-xs leading-5 text-muted-foreground">{cycle.index}. {cycle.ganzhi} · {cycle.start_age}–{cycle.end_age} · {cycle.start_year}–{cycle.end_year}</p>)}</div></div>
-          <p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {chart.rules_version} · {chart.statistics.baseline.id}</p>
-          <p className="text-xs leading-5 text-muted-foreground">{chart.statistics.disclaimer}</p>
+          <p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {baziRuleVersionSummary(chart, locale)}</p>
+          {hasAvailableStatistics(chart) ? <p className="text-xs leading-5 text-muted-foreground">{chart.statistics.baseline.id} · {chart.statistics.disclaimer}</p> : <StatisticsUnavailable locale={locale} />}
         </div>
       </ReportChapter> : null}
 
@@ -501,9 +509,9 @@ function BaziConsumerResult({
       <ReportChapter title={locale === "zh" ? "四柱命盘" : "Four pillars"} intro={locale === "zh" ? "四柱、十神、藏干、神煞与状态集中在同一张专业表。" : "Pillars, Ten Gods, hidden stems, and Shen Sha in one table."}><BaziProfessionalTable chart={chart} locale={locale} /></ReportChapter>
       <ReportChapter title={locale === "zh" ? "格局与核心判断" : "Pattern and findings"}><BaziPatternSummary chart={chart} locale={locale} /><div className="mt-7"><BaziSynthesisPanel chart={chart} locale={locale} /></div></ReportChapter>
       <ReportChapter title={locale === "zh" ? "运限" : "Periods"}><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></ReportChapter>
-      <ReportChapter title={locale === "zh" ? "结构对照" : "Structure comparisons"}><ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /></ReportChapter>
+      <ReportChapter title={locale === "zh" ? "结构对照" : "Structure comparisons"}>{hasAvailableStatistics(chart) ? <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /> : <StatisticsUnavailable locale={locale} />}</ReportChapter>
       <ReportChapter title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ReportChapter>
-      <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看排盘规则与原始统计" : "Chart rules and raw statistics"}</summary><div className="mt-6 space-y-7"><BaziStatistics chart={chart} locale={locale} currentYear={currentYear} /><p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {chart.rules_version} · {chart.statistics.baseline.id}</p></div></details>
+      <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看排盘规则与原始统计" : "Chart rules and raw statistics"}</summary><div className="mt-6 space-y-7"><BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />{hasAvailableStatistics(chart) ? null : <StatisticsUnavailable locale={locale} />}<p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {baziRuleVersionSummary(chart, locale)}</p></div></details>
     </div> : null}
 
     <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} consumerProfile={profile} lifeKline={lifeKline} periodCycles={periodCycles} />
@@ -1070,9 +1078,10 @@ function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculat
         <ExportSection title={locale === "zh" ? "四柱命盘" : "Four pillars"}><BaziProfessionalTable chart={chart} locale={locale} /></ExportSection>
         <ExportSection title={locale === "zh" ? "核心判断" : "Key findings"}><BaziSynthesisPanel chart={chart} locale={locale} /></ExportSection>
         {periodCycles?.length ? <ExportSection title={locale === "zh" ? "运限" : "Periods"}><BaziPeriodExportSummary cycles={periodCycles} chart={chart} locale={locale} /></ExportSection> : null}
-        <ExportSection title={locale === "zh" ? "结构对照" : "Structure comparisons"}><ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /></ExportSection>
+        <ExportSection title={locale === "zh" ? "结构对照" : "Structure comparisons"}>{hasAvailableStatistics(chart) ? <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /> : <StatisticsUnavailable locale={locale} />}</ExportSection>
         <ExportSection title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ExportSection>
         <ExportSection title={locale === "zh" ? "结构统计" : "Structure statistics"}><BaziStatistics chart={chart} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></ExportSection>
+        <p className="mt-8 border-t border-border/60 pt-5 text-xs leading-5 text-muted-foreground">{baziRuleVersionSummary(chart, locale)}</p>
       </article>
     </div>
   )

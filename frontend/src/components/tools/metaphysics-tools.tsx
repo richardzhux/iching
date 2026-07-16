@@ -740,7 +740,8 @@ export function MetaphysicsTools() {
       if (!snapshot.chart) throw new Error(locale === "zh" ? "八字命盘快照不完整。" : "The BaZi snapshot is incomplete.")
       let chart = snapshot.chart
       const calculationRequest = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
-      if ((chart.derived_schema_version ?? 0) < 6 || !chart.shen_sha || !chart.statistics || !chart.period_layers || !chart.structure || !chart.theme_profiles || (!chart.birth_profile?.hour_uncertain && !chart.consumer) || (chart.birth_profile?.hour_uncertain && !chart.birth_profile?.stability)) {
+      const snapshotSchemaVersion = Math.max(record.schema_version ?? 0, chart.derived_schema_version ?? 0)
+      if (snapshotSchemaVersion < 6) {
         if (!calculationRequest && chart.birth_profile?.hour_uncertain) {
           setBirthResult(null)
           setIncompleteBaziRecord({ subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
@@ -753,8 +754,6 @@ export function MetaphysicsTools() {
         if (!calculationRequest) throw new Error(locale === "zh" ? "旧命盘缺少可重算的原始参数。" : "This legacy chart lacks the original calculation inputs.")
         chart = await calculateMetaphysicsChart({ ...calculationRequest, reference_timestamp: new Date().toISOString(), include_period_details: false })
         toast.info(locale === "zh" ? "已按新版规则临时补算；原档案仍保留旧结果，重新保存后升级。" : "Recomputed with the new rules for this view. The stored legacy result remains unchanged until you save again.")
-      } else if (calculationRequest) {
-        chart = await calculateMetaphysicsChart({ ...calculationRequest, reference_timestamp: new Date().toISOString(), include_period_details: false })
       }
       setBirthResult({ chart, generatedAt: snapshot.generated_at ?? record.updated_at, subjectName: snapshot.subject_name ?? subjectName })
       setIncompleteBaziRecord(null)
@@ -1018,6 +1017,7 @@ export function MetaphysicsTools() {
         fold_choice: foldOverride ?? baziFoldChoice,
       } as const
       const chart = await calculateMetaphysicsChart(calculationRequest)
+      const snapshotSchemaVersion = chart.rule_versions ? 7 : 6
       const subjectName = baziSubjectName.trim()
       const nextBirthResult = { chart, generatedAt: new Date().toISOString(), subjectName }
       const generatedAt = nextBirthResult.generatedAt
@@ -1033,11 +1033,18 @@ export function MetaphysicsTools() {
         birth_date: (chart.birth_profile.converted_solar_date ?? chart.calculation_timestamp).slice(0, 10),
         day_pillar: chart.calendar_facts.day_pillar,
         input_snapshot: { form: formSnapshot(), calculation_request: calculationRequest },
-        result_snapshot: { chart, generated_at: generatedAt, subject_name: subjectName, derived_schema_version: 6, baseline_id: chart.statistics.baseline.id },
+        result_snapshot: {
+          chart,
+          generated_at: generatedAt,
+          subject_name: subjectName,
+          derived_schema_version: snapshotSchemaVersion,
+          rule_versions: chart.rule_versions,
+          baseline_id: chart.statistics.baseline.id,
+        },
         engine_name: "canonical-calendar",
         engine_version: "1+sxtwl-2.0.7+lunar-python-1.4.8",
         rules_version: `${chart.rules_version}:${baziDayBoundary}:${dayunAlgorithm}`,
-        schema_version: 6,
+        schema_version: snapshotSchemaVersion,
       })
       if (saved) persistBaziWorkspace(nextBirthResult, saved.id, saved.subject_id)
     } catch (error) {

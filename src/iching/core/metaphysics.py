@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timedelta
+import logging
 from math import cos, pi, sin
 from typing import Any, Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
@@ -12,12 +13,14 @@ from lunar_python import Solar as SolarCalendar
 
 from iching.core.bazi_patterns import assess_patterns
 from iching.core.bazi_rules.adapter import build_source_backed_shadow
+from iching.core.bazi_rules.registry import load_packaged_shen_registry
 from iching.core.bazi_rules.fact_graph import (
     build_bazi_fact_envelope_from_graphs,
     build_bazi_fact_graph,
 )
 from iching.core.bazi_structure import build_structure_profile, structured_relations
 from iching.core.calendar_engine import (
+    ENGINE_VERSION as CALENDAR_ENGINE_VERSION,
     JIE_MONTH_BRANCH,
     calculate_calendar_facts,
     normalize_local_datetime,
@@ -27,10 +30,12 @@ from iching.core.calendar_engine import (
     timezone_for,
 )
 from iching.core.najia import derive_six_gods
-from iching.core.metaphysics_statistics import statistics_for_shensha
-from iching.core.metaphysics_consumer import build_bazi_consumer_profile, consumer_feature_records
+from iching.core.metaphysics_statistics import BASELINE_ID, BASELINE_IDS, statistics_for_shensha, unavailable_bazi_statistics
+from iching.core.metaphysics_consumer import CONSUMER_RULES_VERSION, build_bazi_consumer_profile, consumer_feature_records
 from iching.core.shensha import RULES_VERSION, evaluate_shensha
 from iching.core.shensha_effects import evaluate_shensha_effects
+
+logger = logging.getLogger(__name__)
 
 STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
 BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
@@ -90,6 +95,54 @@ SEASONAL_ELEMENT_STATUS = {
     "winter": {"水": "旺", "木": "相", "金": "休", "土": "囚", "火": "死"},
     "earth": {"土": "旺", "金": "相", "火": "休", "木": "囚", "水": "死"},
 }
+
+
+def bazi_rule_versions() -> Dict[str, str]:
+    """Return the exact rule tuple bound to live BaZi schema-v7 results."""
+    registry = load_packaged_shen_registry()
+    return {
+        "calendar": CALENDAR_ENGINE_VERSION,
+        "pattern_bundle": registry.bundle_id,
+        "pattern_digest": registry.bundle_digest,
+        "shensha": RULES_VERSION,
+        "consumer": CONSUMER_RULES_VERSION,
+    }
+
+
+def _statistics_or_unavailable(
+    hits: Iterable[Dict[str, Any]],
+    day_boundary: str,
+    *,
+    theme_profiles: Iterable[Dict[str, Any]],
+    gender: Optional[str] = None,
+    day_master: str = "",
+    month_command: str = "",
+    consumer_feature_ids: Iterable[str] = (),
+) -> Dict[str, Any]:
+    """Isolate optional baseline failures from deterministic chart output."""
+    hit_list = list(hits)
+    profile_list = list(theme_profiles)
+    feature_ids = [str(hit.get("feature_id", "")) for hit in hit_list if hit.get("feature_id")]
+    try:
+        return statistics_for_shensha(
+            hit_list,
+            day_boundary,
+            theme_profiles=profile_list,
+            gender=gender,
+            day_master=day_master,
+            month_command=month_command,
+            consumer_feature_ids=consumer_feature_ids,
+        )
+    except (RuntimeError, OSError, ValueError) as exc:
+        logger.warning("BaZi statistics unavailable; returning chart without comparisons: %s", exc)
+        baseline_id = BASELINE_IDS["bazi"].get(day_boundary, BASELINE_ID)
+        return unavailable_bazi_statistics(
+            baseline_id=baseline_id,
+            feature_ids=feature_ids,
+            theme_profiles=profile_list,
+            reason=str(exc),
+            status=getattr(exc, "status", "unavailable"),
+        )
 
 
 def _timezone(name: str) -> ZoneInfo:
@@ -503,7 +556,7 @@ def _build_uncertain_metaphysics_chart(
         sensitivity.append({"label": "随时辰变化的神煞", "detail": f"{len(variable_rules)} 项会随候选时柱变化"})
     sensitivity.append({"label": "运限起点", "detail": "补充时辰后可精确定位大运、流年与流月交接"})
 
-    statistics = statistics_for_shensha(
+    statistics = _statistics_or_unavailable(
         stable_hits,
         day_boundary,
         theme_profiles=stable_theme_profiles,
@@ -1019,7 +1072,7 @@ def build_metaphysics_chart(
     shensha_effects = evaluate_shensha_effects(raw_shen_sha, pillars, structure)
     shen_sha = shensha_effects["hits"]
     consumer_features = consumer_feature_records(patterns, shensha_effects)
-    statistics = statistics_for_shensha(
+    statistics = _statistics_or_unavailable(
         shen_sha,
         day_boundary,
         theme_profiles=structure["theme_profiles"],
@@ -1028,7 +1081,7 @@ def build_metaphysics_chart(
         month_command=month_branch,
         consumer_feature_ids=[item["id"] for item in consumer_features],
     )
-    theme_profiles = statistics.get("theme_profiles", structure["theme_profiles"])
+    theme_profiles = statistics.get("theme_profiles") or structure["theme_profiles"]
     structure["theme_profiles"] = theme_profiles
     rarity_by_feature = {
         str(item.get("feature_id", "")): float(item.get("percentage", 0) or 0)
@@ -1094,10 +1147,11 @@ def build_metaphysics_chart(
             "six_spirits": six_gods,
         },
         "element_counts": {element: counts.get(element, 0) for element in ELEMENTS},
-        "derived_schema_version": 6,
+        "derived_schema_version": 7,
         "calculation_quality": calendar_facts.quality,
         "boundary_flags": calendar_facts.boundary_flags,
         "rules_version": RULES_VERSION,
+        "rule_versions": bazi_rule_versions(),
         "shen_sha": shen_sha,
         "structure": structure,
         "theme_profiles": theme_profiles,

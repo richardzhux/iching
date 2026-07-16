@@ -153,7 +153,7 @@ export function ZiweiChartView({ chart, horoscope, consumer, horoscopeDate, gene
       </details> : null}
 
       <ZiweiExportCanvas exportTargetId={exportTargetId} chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={`${trustNote}${statistics ? ` ${statistics.disclaimer}` : ""}`} subjectName={subjectName} statistics={statistics} statisticsStatus={statisticsStatus} statisticsError={statisticsError} archiveMode={archiveMode} provenance={provenance} />
-      <div aria-hidden="true" className="chart-export-stage"><article id={palaceExportTargetId} className="chart-share-canvas chart-export-canvas"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} /></article></div>
+      <div aria-hidden="true" inert className="chart-export-stage"><article id={palaceExportTargetId} className="chart-share-canvas chart-export-canvas"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} /></article></div>
     </section>
   )
 }
@@ -225,7 +225,7 @@ function ZiweiConsumerResult({ chart, horoscope, consumer, horoscopeDate, genera
       <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看原始统计与排盘数据" : "Raw statistics and chart data"}</summary><div className="mt-6 space-y-7"><ZiweiStatistics chart={chart} horoscope={horoscope} locale={locale} /><ZiweiRarityPanel chart={chart} statistics={statistics} status={statisticsStatus} error={statisticsError} locale={locale} /></div></details>
     </div> : null}
     <ZiweiExportCanvas exportTargetId={exportTargetId} chart={chart} horoscope={horoscope} consumer={consumer} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} statistics={statistics} statisticsStatus={statisticsStatus} statisticsError={statisticsError} archiveMode={archiveMode} provenance={provenance} />
-    <div aria-hidden="true" className="chart-export-stage"><article id={palaceExportTargetId} className="chart-share-canvas chart-export-canvas"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} /></article></div>
+    <div aria-hidden="true" inert className="chart-export-stage"><article id={palaceExportTargetId} className="chart-share-canvas chart-export-canvas"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} /></article></div>
   </section>
 }
 
@@ -374,7 +374,7 @@ function ziweiMetricLabel(featureId: string, chart: IFunctionalAstrolabe, locale
 function ZiweiExportCanvas({ exportTargetId, chart, horoscope, consumer, horoscopeDate, generatedAt, locale, trustNote, subjectName, statistics, statisticsStatus, statisticsError, archiveMode, provenance }: { exportTargetId: string; chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; consumer?: ZiweiConsumerProfile; horoscopeDate: string; generatedAt: string; locale: Locale; trustNote: string; subjectName: string; statistics: MetaphysicsStatistics | null; statisticsStatus: ZiweiStatisticsStatus; statisticsError?: string; archiveMode: ZiweiArchiveMode; provenance: ZiweiProvenance }) {
   const labels = getProvenanceLabels(provenance, locale)
   return (
-    <div aria-hidden="true" className="chart-export-stage">
+    <div aria-hidden="true" inert className="chart-export-stage">
       <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
         {consumer ? <><ConsumerIdentity profile={{ identity: consumer.identity, subjects: consumer.subjects, fingerprints: consumer.fingerprints, twin: consumer.twin }} locale={locale} /><div className="mt-8"><MetaphysicsAchievements achievements={consumer.achievements} locale={locale} /></div></> : <ZiweiIdentitySummary chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} />}
         {archiveMode !== "standard" ? <aside className="mt-6 rounded-xl border border-border/60 bg-surface p-4"><strong>{archiveMode === "legacy-nonstandard" ? (locale === "zh" ? "非标准旧规则档案" : "Legacy nonstandard chart") : (locale === "zh" ? "旧档案静态快照" : "Legacy static snapshot")}</strong><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "此导出保留原档案规则与锁定日期，不应视为统一通行法新版命盘。" : "This export retains the archive's original rules and locked date; it is not a new standard-config chart."}</p></aside> : null}

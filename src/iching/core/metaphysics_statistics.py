@@ -738,6 +738,36 @@ def _unavailable_statistics(
     }
 
 
+def unavailable_bazi_statistics(
+    *,
+    baseline_id: str,
+    feature_ids: Iterable[str],
+    theme_profiles: Iterable[Mapping[str, Any]] = (),
+    reason: str,
+    status: str = "unavailable",
+) -> dict[str, Any]:
+    """Return the complete non-blocking statistics contract for a BaZi chart."""
+
+    result = _unavailable_statistics(
+        chart_type="bazi",
+        baseline_id=baseline_id,
+        feature_ids=feature_ids,
+        reason=reason,
+        status=status if status in {"unavailable", "version_mismatch"} else "unavailable",
+    )
+    # The chart retains its deterministic theme profiles independently; the
+    # unavailable optional statistics surface stays visibly empty.
+    del theme_profiles
+    result.update({
+        "rarity_metrics": [],
+        "theme_profile": [],
+        "theme_profiles": [],
+        "consumer_distributions": {"status": "unavailable", "global": {}, "cohort": {}},
+        "consumer_feature_metrics": [],
+    })
+    return result
+
+
 def lookup_statistics(*, chart_type: str, baseline_id: str, feature_ids: Iterable[str]) -> dict[str, Any]:
     if chart_type not in BASELINE_IDS:
         raise ValueError(f"尚不支持的命盘统计类型: {chart_type}")
@@ -800,14 +830,33 @@ def statistics_for_shensha(
     consumer_feature_ids: Iterable[str] = (),
 ) -> dict[str, Any]:
     baseline_id = BASELINE_IDS["bazi"].get(day_boundary, BASELINE_ID)
-    result = lookup_statistics(
-        chart_type="bazi",
-        baseline_id=baseline_id,
-        feature_ids=[hit["feature_id"] for hit in hits],
-    )
+    hit_feature_ids = [hit["feature_id"] for hit in hits]
+    profile_list = list(theme_profiles)
+    try:
+        result = lookup_statistics(
+            chart_type="bazi",
+            baseline_id=baseline_id,
+            feature_ids=hit_feature_ids,
+        )
+    except (RuntimeError, OSError, ValueError) as exc:
+        return unavailable_bazi_statistics(
+            baseline_id=baseline_id,
+            feature_ids=hit_feature_ids,
+            theme_profiles=profile_list,
+            reason=str(exc),
+            status=getattr(exc, "status", "unavailable"),
+        )
+    if result.get("status") != "available":
+        return unavailable_bazi_statistics(
+            baseline_id=baseline_id,
+            feature_ids=hit_feature_ids,
+            theme_profiles=profile_list,
+            reason=str(result.get("unavailable_reason") or "统计基线暂不可用"),
+            status=str(result.get("status") or "unavailable"),
+        )
     try:
         baseline = load_baseline(baseline_id)
-        result["theme_profiles"] = apply_theme_comparisons(theme_profiles, baseline, gender=gender)
+        result["theme_profiles"] = apply_theme_comparisons(profile_list, baseline, gender=gender)
         result["consumer_distributions"] = select_consumer_distributions(
             baseline,
             gender=gender,
@@ -817,10 +866,10 @@ def statistics_for_shensha(
             baseline,
             consumer_feature_ids,
         )
-    except RuntimeError:
+    except (RuntimeError, OSError, ValueError):
         result["theme_profiles"] = [
             {**dict(profile), "comparisons": []}
-            for profile in theme_profiles
+            for profile in profile_list
         ]
         result["consumer_distributions"] = {"status": "unavailable", "global": {}, "cohort": {}}
         result["consumer_feature_metrics"] = []

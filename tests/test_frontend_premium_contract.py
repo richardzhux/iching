@@ -263,7 +263,11 @@ def test_p1_bazi_controls_separate_basic_and_professional_accessibly():
     assert 'aria-labelledby="bazi-gender-label"' in controls
     assert 'aria-labelledby="bazi-timezone-label"' in controls
     assert "BirthPlaceField" in controls
-    assert 'bazi-hour-uncertain' not in controls
+    assert 'id="bazi-hour-uncertain"' in controls
+    assert 'checked={hourUncertain}' in controls
+    assert 'onCheckedChange={setHourUncertain}' in controls
+    assert "先看不受时辰影响的部分" in controls
+    assert "Show the parts that stay stable across possible hours" in controls
     assert 'required' in controls
     assert 'htmlFor="bazi-true-solar"' in controls
     assert "trueSolar ?" in controls
@@ -285,8 +289,12 @@ def test_p1_bazi_results_lead_with_factual_digest_and_split_solar_term_modes():
     chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
 
     assert '<BaziChartView chart={currentChart} locale={locale} mode="current"' in tools
-    assert '<BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt}' in tools
+    assert 'chart={displayBirthChart ?? birthResult.chart}' in tools
+    assert 'generatedAt={birthResult.generatedAt}' in tools
     assert 'subjectName={birthResult.subjectName}' in tools
+    assert "function UncertainBaziView" in chart
+    assert "先看不受时辰影响的部分" in chart
+    assert "Start with what stays stable" in chart
     assert "日主" in chart
     assert "Day master" in chart
     assert "四柱" in chart
@@ -295,15 +303,16 @@ def test_p1_bazi_results_lead_with_factual_digest_and_split_solar_term_modes():
     assert "Calculation rule" in chart
     assert "当前大运" in chart
     assert "Current Da Yun" in chart
-    assert "当前（按年份）" in chart
-    assert "Current by year" in chart
+    assert "当前标记按精确交接时刻定位" in chart
+    assert "Current markers use exact handoff instants" in chart
+    assert "cycle.is_current" in chart
     assert "start_year <= currentYear" in chart
     assert "currentYear <= cycle.end_year" in chart
-    assert "精确交接以所选起运规则为准" in chart
-    assert "Exact handoff follows the configured start rule" in chart
+    assert "按精确起运与交接时刻定位" in chart
+    assert "Located from the exact start and handoff instant" in chart
     assert "element_season_status" in chart
-    assert "四主题结构画像" in chart
-    assert "Four-theme structure profile" in chart
+    assert "哪些结构更有辨识度" in chart
+    assert "Which structures are more distinctive" in chart
     assert "BaziProfessionalTable" in chart
     assert "LiveSolarTermCountdown" in chart
     assert "HistoricalSolarTerm" in chart
@@ -575,13 +584,19 @@ def test_task7_bazi_is_summary_first_share_ready_and_keeps_raw_facts_collapsed()
     tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
     css = read("frontend/src/app/globals.css")
 
-    assert chart.count("<ChartExportButton") == 1
+    consumer_result = chart[chart.index("function BaziConsumerResult") : chart.index("function ShareExportMenu")]
+    share_menu = chart[chart.index("function ShareExportMenu") : chart.index("function ExportMenuRow")]
+    assert consumer_result.count("<ShareExportMenu") == 1
+    assert share_menu.count("<ChartExportButton") == 1
+    assert share_menu.count("<ChartAssetExportButton") == 4
+    assert "分享与导出" in share_menu
+    assert "Share & export" in share_menu
     assert "useId" in chart
     assert 'id={exportTargetId}' in chart
     assert 'aria-hidden="true"' in chart
     assert "data-chart-export-root" in chart
     assert "chart-export-canvas" in chart
-    assert chart.index("<ChartExportButton") < chart.index('id={exportTargetId}')
+    assert consumer_result.index("<ShareExportMenu") < consumer_result.index("<BaziExportCanvas")
     assert 'generatedAt: new Date().toISOString()' in tools
     assert 'generatedAt={birthResult.generatedAt}' in tools
     assert "chart.calculation_timestamp, locale" not in chart[chart.index("function BaziExportCanvas") :]
@@ -590,15 +605,16 @@ def test_task7_bazi_is_summary_first_share_ready_and_keeps_raw_facts_collapsed()
     assert "chart.day_master" in chart
     assert "calculationRule" in chart
     assert "currentCycle" in chart
-    assert "确定性历法事实" in chart
-    assert "Deterministic calendar facts" in chart
+    assert "按出生地时间与精确节气排盘" in chart
+    assert "Calculated from local birth time and exact solar terms" in chart
     assert "data-element={row.elements?.[index]}" in chart
     assert "grid-cols-[3.75rem_repeat(4" in chart
     assert "buildBaziMarkdown" in chart
-    assert "DayunTimeline" in chart
+    assert "BaziPeriodNavigator" in chart
     assert "overflow-x-auto" in chart
-    assert 'aria-current={isCurrent ? "step" : undefined}' in chart
-    assert "Four-theme structure profile" in chart
+    assert 'aria-pressed={selected}' in chart
+    assert "current ?" in chart
+    assert "Which structures are more distinctive" in chart
     professional = chart[chart.index("function BaziProfessionalTable") :]
     for raw_fact in ("hidden_stems", "ten_god", "nayin", "xunkong", "di_shi", "self_seat"):
         assert raw_fact in professional
@@ -612,7 +628,11 @@ def test_task7_bazi_is_summary_first_share_ready_and_keeps_raw_facts_collapsed()
 def test_task7_ziwei_has_one_share_canvas_and_preserves_palace_interaction():
     chart = read("frontend/src/components/tools/ziwei-chart-view.tsx")
 
-    assert chart.count("<ChartExportButton") == 1
+    fallback_result = chart[: chart.index("type ZiweiConsumerTab")]
+    consumer_result = chart[chart.index("function ZiweiConsumerResult") : chart.index("function ZiweiArchiveBanner")]
+    assert fallback_result.count("<ChartExportButton") == 1
+    assert consumer_result.count("<ChartExportButton") == 1
+    assert "if (consumer)" in chart
     assert "useId" in chart
     assert 'id={exportTargetId}' in chart
     assert 'aria-hidden="true"' in chart
@@ -638,8 +658,10 @@ def test_task7_ziwei_has_one_share_canvas_and_preserves_palace_interaction():
     assert "palace.earthlyBranch" in palace_chart
     assert "palace.majorStars" in palace_chart
     assert "star.mutagen" in palace_chart
-    assert "确定性星盘事实" in chart
-    assert "Deterministic chart facts" in chart
+    assert "按统一通行法排盘" in chart
+    assert "Calculated with one standard method" in chart
+    assert "频率样本暂时不可用；命盘事实不受影响" in chart
+    assert "Frequency samples are temporarily unavailable; chart facts are unaffected" in chart
     assert 'type="button"' in chart
     assert "aria-pressed={isSelected}" in chart
     assert "horoscope?.decadal.index === palace.index" in chart
@@ -652,9 +674,20 @@ def test_task7_visible_summary_is_not_immediately_duplicated_and_details_are_fla
     bazi = read("frontend/src/components/tools/bazi-chart-view.tsx")
     ziwei = read("frontend/src/components/tools/ziwei-chart-view.tsx")
 
-    assert bazi.count("<BaziProfessionalTable chart={chart} locale={locale} />") == 2
+    bazi_consumer = bazi[bazi.index("function BaziConsumerResult") : bazi.index("function ShareExportMenu")]
+    bazi_share_stage = bazi[bazi.index("function BaziConsumerShareCanvases") : bazi.index("function BaziPatternSummary")]
+    bazi_full_export = bazi[bazi.index("function BaziExportCanvas") :]
+    assert bazi_consumer.count("<BaziProfessionalTable chart={chart} locale={locale} />") == 1
+    assert bazi_share_stage.count("<BaziProfessionalTable chart={chart} locale={locale} />") == 1
+    assert bazi_full_export.count("<BaziProfessionalTable chart={chart} locale={locale} />") == 1
+    assert 'aria-hidden="true" inert className="chart-export-stage"' in bazi_share_stage
     assert "ZiweiDigest" not in ziwei
-    assert ziwei.count("<ZiweiIdentitySummary") == 2  # visible once, export-only once
+    ziwei_fallback = ziwei[: ziwei.index("type ZiweiConsumerTab")]
+    ziwei_consumer = ziwei[ziwei.index("function ZiweiConsumerResult") : ziwei.index("function ZiweiArchiveBanner")]
+    ziwei_export = ziwei[ziwei.index("function ZiweiExportCanvas") : ziwei.index("type ChartStar")]
+    assert ziwei_fallback.count("<ZiweiIdentitySummary") == 1
+    assert ziwei_consumer.count("<ZiweiIdentitySummary") == 1
+    assert ziwei_export.count("<ZiweiIdentitySummary") == 1
     assert 'className="chart-share-canvas chart-export-canvas"' in ziwei
     assert "rounded-lg border" not in ziwei[ziwei.index("function SelectedPalaceDetail") :]
     assert "rounded-md border" not in ziwei[ziwei.index("function StarGroup") :]
@@ -662,9 +695,14 @@ def test_task7_visible_summary_is_not_immediately_duplicated_and_details_are_fla
 
 def test_task7_reduced_motion_is_checked_before_imperative_dayun_scroll():
     chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    css = read("frontend/src/app/globals.css")
 
-    assert 'window.matchMedia("(prefers-reduced-motion: reduce)").matches' in chart
-    assert 'behavior: reduceMotion ? "auto" : "smooth"' in chart
+    assert "scrollIntoView" not in chart
+    assert 'window.matchMedia("(prefers-reduced-motion: reduce)").matches' in tools
+    assert 'behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"' in tools
+    assert "@media (prefers-reduced-motion: reduce)" in css
+    assert "scroll-behavior: auto !important" in css
 
 
 def test_task7_playwright_covers_single_safe_png_download_and_failure_recovery():
@@ -689,7 +727,7 @@ def test_task7_export_target_is_unpositioned_inside_hidden_staging_wrapper():
         assert positioning in stage_rule
         assert positioning not in target_rule
     for chart in (bazi, ziwei):
-        assert 'aria-hidden="true" className="chart-export-stage"' in chart
+        assert chart.count('className="chart-export-stage"') == chart.count('aria-hidden="true" inert className="chart-export-stage"')
         assert chart.index('className="chart-export-stage"') < chart.index("data-chart-export-root")
         assert 'data-chart-export-root className="chart-share-canvas chart-export-canvas"' in chart
 
@@ -750,7 +788,9 @@ def test_p1_ziwei_controls_keep_basic_inputs_visible_and_name_every_control():
     assert 'htmlFor="ziwei-birth-time"' in tools
     assert 'htmlFor="ziwei-horoscope-date"' in tools
     assert 'const ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"' in tools
-    assert "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启" in tools
+    assert 'standardRulesBody: "已为你采用通行法排盘"' in tools
+    assert 'standardRulesBody: "The standard method is already selected for you"' in tools
+    assert "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启" not in tools
     assert 'role="status"' in tools
     assert "正在生成紫微星盘" in tools
     assert "Generating Zi Wei chart" in tools
@@ -1207,8 +1247,8 @@ def test_task8_primary_paths_use_consumer_copy_without_duplicate_or_internal_chr
     profile = read("frontend/src/components/profile/profile-page.tsx")
     results = read("frontend/src/components/workspace/results-panel.tsx")
 
-    assert 'title: "八字与紫微排盘"' in tools
-    assert 'title: "BaZi & Zi Wei Charts"' in tools
+    assert 'title: "命盘与人生走势"' in tools
+    assert 'title: "Charts & Life Timeline"' in tools
     assert 'calculate: "生成我的命盘"' in tools
     assert 'calculate: "Generate my chart"' in tools
     assert "出生地文本不会自动生成此数值" not in tools
@@ -1231,6 +1271,23 @@ def test_task8_primary_paths_use_consumer_copy_without_duplicate_or_internal_chr
     assert 'slot: "Slot"' not in results
     assert 'sourceDepth: "来源覆盖"' not in results
     assert 'sourceDepth: "Source coverage"' not in results
+
+
+def test_task9_frontend_reads_schema6_and_only_new_rule_versioned_charts_write_schema7():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    types = read("frontend/src/types/api.ts")
+    markdown = read("frontend/src/lib/chart-markdown.ts")
+
+    assert "const snapshotSchemaVersion = Math.max(record.schema_version ?? 0, chart.derived_schema_version ?? 0)" in tools
+    assert "if (snapshotSchemaVersion < 6)" in tools
+    assert "const snapshotSchemaVersion = chart.rule_versions ? 7 : 6" in tools
+    assert "derived_schema_version: snapshotSchemaVersion" in tools
+    assert "rule_versions: chart.rule_versions" in tools
+    assert "schema_version: snapshotSchemaVersion" in tools
+    assert "Present on schema 7 live charts; absent from readable schema 6 archives." in types
+    assert "rule_versions?: RuleVersions" in types
+    assert "if (!versions)" in markdown
+    assert "chart.rules_version" in markdown
 
 
 def test_task8_review_uses_bilingual_saved_reading_copy_once_and_no_internal_fallbacks():

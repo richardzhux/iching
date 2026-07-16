@@ -6,6 +6,11 @@ from fastapi.testclient import TestClient
 
 from iching.integrations.ai import AIResponseData
 from iching.integrations.supabase_client import SupabaseUser
+from iching.core.bazi_rules.registry import load_packaged_shen_registry
+from iching.core.calendar_engine import ENGINE_VERSION as CALENDAR_ENGINE_VERSION
+from iching.core.metaphysics_consumer import CONSUMER_RULES_VERSION
+from iching.core.metaphysics_statistics import BaselineVersionMismatchError
+from iching.core.shensha import RULES_VERSION as SHENSHA_RULES_VERSION
 from iching.web.api.main import app
 from iching.web.api import routes
 
@@ -57,6 +62,67 @@ def test_metaphysics_chart_endpoint() -> None:
     assert data["calendar_facts"]["month_command"] == "寅"
     assert data["calendar_facts"]["day_branch"] == "辰"
     assert data["calendar_facts"]["six_spirits"] == ["青龙", "朱雀", "勾陈", "腾蛇", "白虎", "玄武"]
+    registry = load_packaged_shen_registry()
+    assert data["derived_schema_version"] == 7
+    assert data["rule_versions"] == {
+        "calendar": CALENDAR_ENGINE_VERSION,
+        "pattern_bundle": registry.bundle_id,
+        "pattern_digest": registry.bundle_digest,
+        "shensha": SHENSHA_RULES_VERSION,
+        "consumer": CONSUMER_RULES_VERSION,
+    }
+
+
+def test_pattern_rule_endpoint_returns_compact_verified_source_summary() -> None:
+    registry = load_packaged_shen_registry()
+    rule = registry.rules[0]
+    response = client.get(f"/api/tools/metaphysics/pattern-rules/{registry.bundle_id}/{rule.id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["bundle_id"] == registry.bundle_id
+    assert data["bundle_digest"] == registry.bundle_digest
+    assert data["rule_id"] == rule.id
+    assert data["sources"]
+    assert all(source["review_state"] == "scan_verified" for source in data["sources"])
+    assert all(source["locators"] for source in data["sources"])
+    assert "corpus_artifact_digest" not in response.text
+    assert "predicate" not in response.text
+    assert "full_trace" not in response.text
+
+
+def test_pattern_rule_endpoint_rejects_unknown_bundle_and_rule() -> None:
+    registry = load_packaged_shen_registry()
+    assert client.get(f"/api/tools/metaphysics/pattern-rules/unknown-bundle/{registry.rules[0].id}").status_code == 404
+    assert client.get(f"/api/tools/metaphysics/pattern-rules/{registry.bundle_id}/unknown-rule").status_code == 404
+
+
+def test_metaphysics_chart_survives_statistics_version_failure(monkeypatch) -> None:
+    import iching.core.metaphysics as metaphysics
+
+    def unavailable_statistics(*args, **kwargs):
+        raise BaselineVersionMismatchError("测试基线版本不匹配")
+
+    monkeypatch.setattr(metaphysics, "statistics_for_shensha", unavailable_statistics)
+    response = client.post(
+        "/api/tools/metaphysics",
+        json={
+            "timestamp": "2024-02-10T12:00:00",
+            "timezone": "Asia/Shanghai",
+            "day_boundary": "forward",
+            "gender": "male",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["pillars"]) == 4
+    assert data["structure"]["patterns"]
+    assert data["period_layers"]["dayun"]
+    assert data["statistics"]["status"] == "version_mismatch"
+    assert data["statistics"]["unavailable_reason"] == "测试基线版本不匹配"
+    assert data["statistics"]["baseline"]["id"] == "bazi-calendar-1924-2044-g4-forward"
+    assert data["statistics"]["rarity_metrics"] == []
+    assert data["statistics"]["theme_profiles"] == []
+    assert data["theme_profiles"]
 
 
 def test_chat_stream_endpoint_emits_sse_events() -> None:

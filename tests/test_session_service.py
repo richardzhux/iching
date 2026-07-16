@@ -8,11 +8,13 @@ from iching.integrations.najia_repository import NajiaRepository
 from iching.services.session import SessionService, _build_najia_table
 
 
-def test_console_uses_user_chosen_timestamp_for_meihua_lines_and_session(monkeypatch):
+def test_console_uses_user_chosen_timestamp_for_meihua_lines_and_session(monkeypatch, tmp_path):
     cast_time = datetime(2026, 7, 12, 10, 30)
     time_calls = []
     captured = {}
     answers = iter(("1", "n", "m", "2", "2026.07.12.1030", "n", "n"))
+    monkeypatch.setenv("ICHING_ARCHIVE_COMPLETE", str(tmp_path / "archive" / "guilty"))
+    monkeypatch.setenv("ICHING_ARCHIVE_ACQUITTAL", str(tmp_path / "archive" / "acquittal"))
     service = SessionService(config=build_app_config(enable_ai=False))
 
     def fake_get_current_time():

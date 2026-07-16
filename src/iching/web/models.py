@@ -136,6 +136,18 @@ class MetaphysicsPeriodResponse(BaseModel):
     cycle: Dict[str, object]
 
 
+class RuleVersions(BaseModel):
+    """Version tuple required to reproduce a generated BaZi result."""
+
+    calendar: str = Field(min_length=1, max_length=80)
+    pattern_bundle: str = Field(min_length=1, max_length=120)
+    pattern_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    shensha: str = Field(min_length=1, max_length=80)
+    consumer: str = Field(min_length=1, max_length=80)
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class MetaphysicsChartResponse(BaseModel):
     timezone: str
     input_timestamp: str
@@ -158,8 +170,9 @@ class MetaphysicsChartResponse(BaseModel):
     previous_solar_term: Optional[Dict[str, object]] = None
     next_solar_term: Optional[Dict[str, object]] = None
     birth_profile: Dict[str, object]
-    derived_schema_version: int = 6
+    derived_schema_version: int = 7
     rules_version: str
+    rule_versions: RuleVersions
     shen_sha: List[Dict[str, object]] = Field(default_factory=list)
     structure: Dict[str, object] = Field(default_factory=dict)
     theme_profiles: List[Dict[str, object]] = Field(default_factory=list)
@@ -167,6 +180,29 @@ class MetaphysicsChartResponse(BaseModel):
     statistics: Dict[str, object]
     period_layers: Dict[str, object]
     consumer: Dict[str, object] = Field(default_factory=dict)
+
+
+class PatternRuleSourceSummary(BaseModel):
+    proposition_id: str
+    authority_layer: str
+    text_type: str
+    review_state: str
+    segments: List[Dict[str, object]] = Field(default_factory=list)
+    locators: List[Dict[str, object]] = Field(default_factory=list)
+
+
+class PatternRuleSummaryResponse(BaseModel):
+    bundle_id: str
+    bundle_digest: str
+    rule_id: str
+    pattern_id: str
+    title: str
+    summary: str
+    stage: str
+    effect: str
+    path_id: Optional[str] = None
+    authority_layer: str
+    sources: List[PatternRuleSourceSummary] = Field(default_factory=list)
 
 
 class MetaphysicsStatisticsRequest(BaseModel):
@@ -230,6 +266,14 @@ class MetaphysicsChartSaveRequest(BaseModel):
             raise ValueError("命盘输入快照不能超过 256 KB。")
         if result_bytes > 2_097_152:
             raise ValueError("命盘结果快照不能超过 2 MB。")
+        if self.chart_type == "bazi" and self.schema_version >= 7:
+            chart = self.result_snapshot.get("chart")
+            if not isinstance(chart, dict):
+                raise ValueError("schema 7 命盘快照缺少 chart。")
+            try:
+                RuleVersions.model_validate(chart.get("rule_versions"))
+            except (TypeError, ValueError) as exc:
+                raise ValueError("schema 7 命盘快照缺少完整的规则版本。") from exc
         return self
 
 

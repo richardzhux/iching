@@ -42,6 +42,21 @@ function comparisonMarkdown(item: ThemeComparison, zh: boolean) {
   return `- ${item.label} · ${value}：${comparisonDisplayLabel(item, zh)}`
 }
 
+export function baziRuleVersionSummary(chart: MetaphysicsChart, locale: Locale, fullDigest = false) {
+  const zh = locale === "zh"
+  const versions = chart.rule_versions
+  if (!versions) {
+    return zh ? `排盘规则 ${chart.rules_version}` : `Chart rules ${chart.rules_version}`
+  }
+  const patternLabel = versions.pattern_bundle === "zzq-shen-canonical-v1"
+    ? (zh ? "《子平真诠》沈氏格局规则" : "Shen's Zi Ping pattern rules")
+    : versions.pattern_bundle
+  const digest = fullDigest ? versions.pattern_digest : versions.pattern_digest.slice(0, 12)
+  return zh
+    ? `格局依据：${patternLabel} · 版本校验 ${digest} · 历法 ${versions.calendar} · 神煞 ${versions.shensha} · 解读 ${versions.consumer}`
+    : `Pattern basis: ${patternLabel} · verification ${digest} · calendar ${versions.calendar} · Shen Sha ${versions.shensha} · interpretation ${versions.consumer}`
+}
+
 function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
   if (!consumer?.identity) return []
   const identity = consumer.identity
@@ -125,6 +140,7 @@ function ziweiMetricMarkdownLabel(featureId: string, chart: IFunctionalAstrolabe
 
 export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, locale: Locale) {
   const zh = locale === "zh"
+  const statisticsAvailable = !chart.statistics.status || chart.statistics.status === "available"
   const title = subjectName.trim() || (zh ? "未命名命盘" : "Personal chart")
   if (chart.birth_profile.hour_uncertain) {
     const stability = chart.birth_profile.stability
@@ -209,7 +225,7 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
     "", `> ${zh ? "出现率只表示这项结构在历法样本中的少见程度，不代表吉凶或人生高低。" : "Incidence only describes how uncommon a structure is in calendar samples; it does not indicate fortune or life quality."}`,
     ...(legacyFindings.length ? ["", `## ${zh ? "核心判断" : "Key findings"}`, "", ...legacyFindings] : []),
     "", `## ${zh ? "四主题结构画像" : "Four-theme structure profile"}`, "", ...themes,
-    "", `> ${zh ? "规则版本" : "Rules"}: ${chart.rules_version} · ${zh ? "统计基线" : "Baseline"}: ${chart.statistics.baseline.id}`,
+    "", `> ${baziRuleVersionSummary(chart, locale, true)} · ${statisticsAvailable ? `${zh ? "统计基线" : "Baseline"} ${chart.statistics.baseline.id}` : (zh ? "历法样本对照暂时不可用" : "Calendar-sample comparisons temporarily unavailable")}`,
   ].join("\n")
 }
 
