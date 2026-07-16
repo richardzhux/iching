@@ -266,8 +266,16 @@ class MetaphysicsChartSaveRequest(BaseModel):
             raise ValueError("命盘输入快照不能超过 256 KB。")
         if result_bytes > 2_097_152:
             raise ValueError("命盘结果快照不能超过 2 MB。")
-        if self.chart_type == "bazi" and self.schema_version >= 7:
+        if self.chart_type == "bazi":
             chart = self.result_snapshot.get("chart")
+            derived_schema_version = chart.get("derived_schema_version") if isinstance(chart, dict) else None
+            if derived_schema_version is not None and (
+                not isinstance(derived_schema_version, int) or isinstance(derived_schema_version, bool)
+            ):
+                raise ValueError("八字命盘快照的 derived_schema_version 无效。")
+            requires_rule_versions = self.schema_version >= 7 or (derived_schema_version or 0) >= 7
+            if not requires_rule_versions:
+                return self
             if not isinstance(chart, dict):
                 raise ValueError("schema 7 命盘快照缺少 chart。")
             try:

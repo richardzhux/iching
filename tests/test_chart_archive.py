@@ -118,3 +118,49 @@ def test_schema_seven_snapshot_requires_and_preserves_rule_versions() -> None:
     missing_versions["result_snapshot"]["chart"].pop("rule_versions")
     with pytest.raises(ValidationError, match="schema 7"):
         MetaphysicsChartSaveRequest.model_validate(missing_versions)
+
+
+def test_derived_schema_seven_requires_rule_versions_even_when_outer_schema_is_six() -> None:
+    payload = {
+        "chart_type": "bazi",
+        "subject": {
+            "birth_local_timestamp": "2004-06-26T04:00",
+            "timezone": "Asia/Shanghai",
+            "calendar_type": "solar",
+        },
+        "birth_date": "2004-06-26",
+        "input_snapshot": {},
+        "result_snapshot": {"chart": {"derived_schema_version": 7}},
+        "engine_name": "canonical-bazi",
+        "engine_version": "1",
+        "rules_version": "shensha-2026.07-v2.1",
+        "schema_version": 6,
+    }
+
+    with pytest.raises(ValidationError, match="schema 7"):
+        MetaphysicsChartSaveRequest.model_validate(payload)
+
+    payload["result_snapshot"] = {"chart": {"derived_schema_version": 7, "rule_versions": RULE_VERSIONS}}
+    request = MetaphysicsChartSaveRequest.model_validate(payload)
+    assert request.schema_version == 6
+
+
+def test_ziwei_schema_seven_does_not_require_bazi_rule_versions() -> None:
+    request = MetaphysicsChartSaveRequest.model_validate(
+        {
+            "chart_type": "ziwei",
+            "subject": {
+                "birth_local_timestamp": "2004-06-26T04:00",
+                "timezone": "Asia/Shanghai",
+                "calendar_type": "solar",
+            },
+            "birth_date": "2004-06-26",
+            "input_snapshot": {},
+            "result_snapshot": {"chart": {"derived_schema_version": 7}},
+            "engine_name": "iztro",
+            "engine_version": "1",
+            "rules_version": "ziwei-standard-v1",
+            "schema_version": 7,
+        }
+    )
+    assert request.chart_type == "ziwei"

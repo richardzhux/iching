@@ -341,6 +341,25 @@ def test_v6_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path,
     )
     assert unavailable["status"] == "unavailable"
     assert unavailable["rarity_metrics"][0]["status"] == "unsupported"
+    assert unavailable["baseline"] == {
+        "schema_version": statistics.BASELINE_SCHEMA_VERSION,
+        "id": BASELINE_ID,
+        "chart_type": "bazi",
+        "kind": "calendar_sample_frequency",
+        "label": "统计基线不可用",
+        "start": "",
+        "end": "",
+        "timezone": "unavailable",
+        "day_boundary": "unavailable",
+        "engine": "unavailable",
+        "rules_version": "unavailable",
+        "sample_unit": "unavailable",
+        "weighted_unit": "unavailable",
+        "sample_weight": 0.0,
+        "unique_state_count": 0,
+        "method": "",
+        "hash": "",
+    }
     assert "完整性校验失败" in unavailable["unavailable_reason"]
     assert "完整性校验失败" in unavailable["disclaimer"]
 

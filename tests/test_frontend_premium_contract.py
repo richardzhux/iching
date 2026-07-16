@@ -1290,6 +1290,15 @@ def test_task9_frontend_reads_schema6_and_only_new_rule_versioned_charts_write_s
     assert "chart.rules_version" in markdown
 
 
+def test_task9_incomplete_schema6_archive_is_not_rendered_or_silently_recalculated():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+
+    assert "function hasCompleteBaziArchiveChart" in tools
+    assert "if (!hasCompleteBaziArchiveChart(chart))" in tools
+    assert 'kind: "corrupt"' in tools
+    assert "为避免显示残缺或错误内容，旧快照未被打开。请核对下方出生资料并重新排盘。" in tools
+
+
 def test_task8_review_uses_bilingual_saved_reading_copy_once_and_no_internal_fallbacks():
     profile = read("frontend/src/components/profile/profile-page.tsx")
     english = read("frontend/src/i18n/catalog/en.ts")

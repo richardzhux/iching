@@ -72,6 +72,33 @@ type BaziResultSnapshot = {
   subjectName: string
 }
 
+type IncompleteBaziRecord = {
+  kind: "hour-missing" | "corrupt"
+  subjectName: string
+  birthTimestamp: string
+}
+
+function hasCompleteBaziArchiveChart(chart: MetaphysicsChart) {
+  return Array.isArray(chart.pillars)
+    && chart.pillars.length === 4
+    && chart.pillars.every((pillar) => Array.isArray(pillar.hidden_stems))
+    && Array.isArray(chart.shen_sha)
+    && Boolean(chart.statistics?.baseline)
+    && Array.isArray(chart.statistics?.rarity_metrics)
+    && Boolean(chart.structure)
+    && Array.isArray(chart.structure?.structural_relations)
+    && Array.isArray(chart.structure?.theme_profiles)
+    && Array.isArray(chart.theme_profiles)
+    && Array.isArray(chart.synthesis?.conclusions)
+    && Boolean(chart.period_layers)
+    && Boolean(chart.calendar_facts)
+    && Boolean(chart.birth_profile)
+    && Array.isArray(chart.birth_profile?.hour_candidates)
+    && Array.isArray(chart.birth_profile?.dayun?.cycles)
+    && Boolean(chart.birth_profile?.engines)
+    && (chart.birth_profile.hour_uncertain ? Boolean(chart.birth_profile.stability) : Boolean(chart.consumer))
+}
+
 type PersistedChartForm = {
   subjectName: string
   timezone: string
@@ -271,7 +298,7 @@ export function MetaphysicsTools() {
   const [baziAmbiguousTime, setBaziAmbiguousTime] = useState(false)
   const [dayunAlgorithm, setDayunAlgorithm] = useState<"sect1" | "sect2">("sect2")
   const [birthResult, setBirthResult] = useState<BaziResultSnapshot | null>(null)
-  const [incompleteBaziRecord, setIncompleteBaziRecord] = useState<{ subjectName: string; birthTimestamp: string } | null>(null)
+  const [incompleteBaziRecord, setIncompleteBaziRecord] = useState<IncompleteBaziRecord | null>(null)
   const [birthLoading, setBirthLoading] = useState(false)
   const [baziEditorOpen, setBaziEditorOpen] = useState(true)
   const [gender, setGender] = useState<"男" | "女">("男")
@@ -549,11 +576,15 @@ export function MetaphysicsTools() {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).has("chart")) return
     const workspace = readPersistedWorkspace()
     const savedBazi = workspace.bazi
-    if (savedBazi && (savedBazi.result?.chart?.derived_schema_version ?? 0) >= 3) {
+    if (savedBazi && (savedBazi.result?.chart?.derived_schema_version ?? 0) >= 3 && hasCompleteBaziArchiveChart(savedBazi.result.chart)) {
       setBirthResult(savedBazi.result)
       setActiveBaziChartId(savedBazi.chartId)
       setActiveBaziSubjectId(savedBazi.subjectId)
       setBaziEditorOpen(false)
+    } else if (savedBazi) {
+      setBirthResult(null)
+      setIncompleteBaziRecord({ kind: "corrupt", subjectName: savedBazi.result?.subjectName ?? "", birthTimestamp: savedBazi.form.birthTime })
+      setBaziEditorOpen(true)
     }
     if (workspace.ziwei?.normalizedInput) {
       const saved = workspace.ziwei
@@ -744,7 +775,7 @@ export function MetaphysicsTools() {
       if (snapshotSchemaVersion < 6) {
         if (!calculationRequest && chart.birth_profile?.hour_uncertain) {
           setBirthResult(null)
-          setIncompleteBaziRecord({ subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
+          setIncompleteBaziRecord({ kind: "hour-missing", subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
           setActiveBaziSubjectId(record.subject_id)
           setActiveBaziChartId(record.id)
           setBaziEditorOpen(true)
@@ -754,6 +785,15 @@ export function MetaphysicsTools() {
         if (!calculationRequest) throw new Error(locale === "zh" ? "旧命盘缺少可重算的原始参数。" : "This legacy chart lacks the original calculation inputs.")
         chart = await calculateMetaphysicsChart({ ...calculationRequest, reference_timestamp: new Date().toISOString(), include_period_details: false })
         toast.info(locale === "zh" ? "已按新版规则临时补算；原档案仍保留旧结果，重新保存后升级。" : "Recomputed with the new rules for this view. The stored legacy result remains unchanged until you save again.")
+      }
+      if (!hasCompleteBaziArchiveChart(chart)) {
+        setBirthResult(null)
+        setIncompleteBaziRecord({ kind: "corrupt", subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
+        setActiveBaziSubjectId(record.subject_id)
+        setActiveBaziChartId(record.id)
+        setBaziEditorOpen(true)
+        setActiveTab("bazi")
+        return
       }
       setBirthResult({ chart, generatedAt: snapshot.generated_at ?? record.updated_at, subjectName: snapshot.subject_name ?? subjectName })
       setIncompleteBaziRecord(null)
@@ -1267,7 +1307,7 @@ export function MetaphysicsTools() {
           <Button asChild><Link href={castHref}>{copy.useToCast}</Link></Button>
         </TabsContent>
         <TabsContent value="bazi" className="mt-4 space-y-4">
-          {incompleteBaziRecord ? <aside className="rounded-xl border border-border/60 bg-surface p-4"><h2 className="text-sm font-semibold">{locale === "zh" ? "这份旧档案缺少准确时辰" : "This legacy record lacks an exact birth hour"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{incompleteBaziRecord.subjectName || (locale === "zh" ? "匿名命主" : "Anonymous")} · {incompleteBaziRecord.birthTimestamp}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "完整四柱、运限、神煞和统计暂不展示。请在下方补充准确出生时间后重新生成。" : "The full chart, periods, Shen Sha, and statistics are withheld. Add an exact birth time below to recalculate."}</p></aside> : null}
+          {incompleteBaziRecord ? <aside role="alert" className="rounded-xl border border-border/60 bg-surface p-4"><h2 className="text-sm font-semibold">{incompleteBaziRecord.kind === "corrupt" ? (locale === "zh" ? "这份命盘档案不完整" : "This chart archive is incomplete") : (locale === "zh" ? "这份旧档案缺少准确时辰" : "This legacy record lacks an exact birth hour")}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{incompleteBaziRecord.subjectName || (locale === "zh" ? "匿名命主" : "Anonymous")} · {incompleteBaziRecord.birthTimestamp}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">{incompleteBaziRecord.kind === "corrupt" ? (locale === "zh" ? "为避免显示残缺或错误内容，旧快照未被打开。请核对下方出生资料并重新排盘。" : "The saved snapshot was not opened to avoid showing partial or incorrect content. Check the birth details below and recalculate.") : (locale === "zh" ? "完整四柱、运限、神煞和统计暂不展示。请在下方补充准确出生时间后重新生成。" : "The full chart, periods, Shen Sha, and statistics are withheld. Add an exact birth time below to recalculate.")}</p></aside> : null}
           {birthResult ? (
             <>
               <ChartPersistenceBar copy={copy} isSaving={savingType === "bazi"} isSaved={Boolean(activeBaziChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => { const saved = readPersistedWorkspace().bazi; if (saved) applyPersistedForm(saved.form); setBaziEditorOpen(true) }} onNew={() => startNewChart("bazi")} />
