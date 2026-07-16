@@ -13,7 +13,7 @@ from typing import Any, Literal, Mapping
 from urllib.parse import urlparse
 
 
-SCHEMA_VERSION = "bazi-rule-schema-v1"
+SCHEMA_VERSION = "bazi-rule-schema-v2"
 
 
 class TruthValue(str, Enum):
@@ -89,6 +89,9 @@ class RelationMember:
     layer: Literal["stem", "branch"]
     value: str
     role: Literal["participant", "controller", "controlled"] = "participant"
+    occurrence_id: str | None = None
+    element: str | None = None
+    ten_god: str | None = None
 
 
 @dataclass(frozen=True)
@@ -98,6 +101,9 @@ class RelationFact:
     layer: Literal["stem", "branch"]
     members: tuple[RelationMember, ...]
     result_element: str | None = None
+    position_distance: int = 0
+    intervening_positions: tuple[PillarPosition, ...] = ()
+    adjacent: bool = False
 
 
 @dataclass(frozen=True)
@@ -142,6 +148,31 @@ class BaziFactEnvelope:
 
     worlds: tuple[BaziFactGraph, ...]
     digest: str
+
+
+@dataclass(frozen=True)
+class ActivationFact:
+    """A derived activation claim kept outside the judgment-free fact graph."""
+
+    subject_id: str
+    god: str | None
+    god_family: Literal["peer", "output", "wealth", "officer", "seal"]
+    origin: Literal[
+        "month_command_main",
+        "exposed_stem",
+        "source_rule",
+        "complete_combination_pending",
+    ]
+    truth: TruthValue
+
+
+@dataclass(frozen=True)
+class RuleEvaluationContext:
+    graph: BaziFactGraph | BaziFactEnvelope
+    activations: tuple[ActivationFact, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "activations", tuple(self.activations))
 
 
 @dataclass(frozen=True)
@@ -549,7 +580,7 @@ class CompiledRuleBundle:
     corpus_artifact_digests: tuple[str, ...]
 
     def evaluate(
-        self, graph: BaziFactGraph | BaziFactEnvelope
+        self, graph: BaziFactGraph | BaziFactEnvelope | RuleEvaluationContext
     ) -> tuple[RuleEvaluation, ...]:
         from iching.core.bazi_rules.predicates import evaluate_predicate
 

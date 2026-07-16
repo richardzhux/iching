@@ -4,6 +4,12 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
+from iching.core.bazi_rules.adapter import (
+    build_source_backed_shadow,
+    fact_graph_matches_pillars,
+)
+from iching.core.bazi_rules.fact_graph import build_bazi_fact_graph
+from iching.core.bazi_rules.schema import BaziFactGraph
 from iching.core.bazi_structure import (
     BRANCH_CLASHES,
     ELEMENT_CONTROLS,
@@ -25,6 +31,7 @@ SPECIAL_PATTERN_NAMES = (
 )
 
 _STEMS = "甲乙丙丁戊己庚辛壬癸"
+_BRANCHES = "子丑寅卯辰巳午未申酉戌亥"
 
 _LU_BRANCH = dict(zip(_STEMS, ("寅", "卯", "巳", "午", "巳", "午", "申", "酉", "亥", "子")))
 _YANG_STEMS = frozenset("甲丙戊庚壬")
@@ -749,7 +756,7 @@ def _special_patterns(facts: _ChartFacts) -> list[dict[str, Any]]:
     ]
 
 
-def assess_patterns(
+def _assess_patterns_legacy(
     pillars: Iterable[Mapping[str, Any]],
     structure: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
@@ -861,3 +868,41 @@ def assess_patterns(
             "渊海子平·神趣八法及月令取用",
         ],
     }
+
+
+def assess_patterns(
+    pillars: Iterable[Mapping[str, Any]],
+    structure: Mapping[str, Any] | None,
+    *,
+    fact_graph: BaziFactGraph | None = None,
+    include_attestations: bool = True,
+) -> dict[str, Any]:
+    """Preserve legacy pattern output and attach a non-authoritative shadow."""
+
+    pillar_list = list(pillars)
+    legacy = _assess_patterns_legacy(pillar_list, structure)
+    complete = len(pillar_list) == 4 and all(
+        _value(pillar, "stem") in STEM_ELEMENTS
+        and _value(pillar, "branch") in HIDDEN_STEMS
+        and _STEMS.index(_value(pillar, "stem")) % 2
+        == _BRANCHES.index(_value(pillar, "branch")) % 2
+        for pillar in pillar_list
+    )
+    if not complete:
+        return legacy
+    if fact_graph is None:
+        try:
+            graph = build_bazi_fact_graph(pillar_list)
+        except (TypeError, ValueError):
+            return legacy
+    else:
+        graph = fact_graph
+        if not fact_graph_matches_pillars(pillar_list, graph):
+            return legacy
+    legacy["source_backed_shadow"] = build_source_backed_shadow(
+        pillar_list,
+        legacy,
+        graph,
+        include_attestations=include_attestations,
+    )
+    return legacy

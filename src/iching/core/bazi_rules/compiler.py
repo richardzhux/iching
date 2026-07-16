@@ -28,7 +28,7 @@ from iching.core.bazi_rules.schema import (
 )
 
 
-COMPILER_VERSION = "bazi-rule-compiler-v1"
+COMPILER_VERSION = "bazi-rule-compiler-v2"
 
 PRODUCTION_PROPOSITION_LAYERS = frozenset(("shen_core",))
 PRODUCTION_PROPOSITION_TYPES = frozenset(("formation", "failure", "damage", "rescue"))
@@ -43,6 +43,9 @@ PRODUCTION_SEGMENT_TYPES = frozenset(
         "rescue_rule",
         "rescue_rules",
         "comparative_rule",
+        "conceptual_doctrine",
+        "formation_doctrine",
+        "rescue_doctrine",
         "transformation_rule",
         "doctrine_with_analogy",
     )

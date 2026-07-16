@@ -9,7 +9,9 @@ import pytest
 
 from iching.core.bazi_rules.fact_graph import (
     build_bazi_fact_envelope,
+    build_bazi_fact_envelope_from_graphs,
     build_bazi_fact_graph,
+    build_rule_evaluation_context,
 )
 from iching.core.bazi_rules.predicates import (
     COLLECTION_GLOBAL_MAXIMA,
@@ -18,6 +20,7 @@ from iching.core.bazi_rules.predicates import (
     parse_predicate,
 )
 from iching.core.bazi_rules.primitives import (
+    BRANCHES,
     BRANCH_ELEMENTS,
     BRANCH_SIX_COMBINATIONS,
     ELEMENT_CONTROLS,
@@ -106,6 +109,21 @@ def test_graph_digest_is_stable_for_explicit_positions_and_input_order() -> None
 
     assert first == second
     assert first.digest == second.digest
+
+
+def test_envelope_can_reuse_prebuilt_world_objects_by_identity() -> None:
+    first = build_bazi_fact_graph(OFFICER_CHART)
+    second = build_bazi_fact_graph(_chart("甲申", "壬申", "乙巳", "己卯"))
+
+    envelope = build_bazi_fact_envelope_from_graphs((first, second))
+
+    assert {id(item) for item in envelope.worlds} == {id(first), id(second)}
+    assert (
+        envelope.digest
+        == build_bazi_fact_envelope(
+            (OFFICER_CHART, _chart("甲申", "壬申", "乙巳", "己卯"))
+        ).digest
+    )
 
 
 def test_public_fact_graph_signature_and_boolean_are_strict() -> None:
@@ -358,11 +376,10 @@ def test_absent_relation_with_filtered_known_position_stays_unknown_until_worlds
     assert evaluate_predicate(predicate, worlds).truth is TruthValue.UNKNOWN
 
 
-def test_partial_count_uses_safe_global_bound_while_complete_worlds_can_be_exact() -> (
-    None
-):
-    base = _chart("甲申", "丙子", "甲午", "庚寅")
-    partial = build_bazi_fact_graph(base, hour_uncertain=True)
+def test_partial_count_uses_exact_legal_world_support() -> None:
+    base = ("甲申", "丙子", "甲午")
+    first_world = _chart(*base, "庚寅")
+    partial = build_bazi_fact_graph(first_world, hour_uncertain=True)
     predicate = {
         "op": "count_compare",
         "path": "relations",
@@ -371,11 +388,110 @@ def test_partial_count_uses_safe_global_bound_while_complete_worlds_can_be_exact
         "value": 20,
     }
     partial_result = evaluate_predicate(predicate, partial)
-    worlds = build_bazi_fact_envelope((base, _chart("甲申", "丙子", "甲午", "辛卯")))
+    complete_results = tuple(
+        evaluate_predicate(predicate, world) for world in _legal_hour_world_graphs(base)
+    )
+    support = {int(item.trace.details["interval"][0]) for item in complete_results}
+    worlds = build_bazi_fact_envelope((first_world, _chart(*base, "辛卯")))
 
-    assert partial_result.truth is TruthValue.UNKNOWN
-    assert partial_result.trace.details["interval"][1] == 30
+    assert {item.truth for item in complete_results} == {TruthValue.TRUE}
+    assert partial_result.truth is TruthValue.TRUE
+    assert partial_result.trace.details["support"] == tuple(sorted(support))
+    assert partial_result.trace.details["interval"] == (min(support), max(support))
     assert evaluate_predicate(predicate, worlds).truth is TruthValue.TRUE
+
+
+def _legal_hour_world_graphs(base: tuple[str, str, str]) -> tuple[Any, ...]:
+    return tuple(
+        build_bazi_fact_graph(_chart(*base, stem + branch))
+        for stem, branch in product(STEMS, BRANCHES)
+        if STEMS.index(stem) % 2 == BRANCHES.index(branch) % 2
+    )
+
+
+def test_unknown_hour_occurrence_count_equality_uses_exact_world_support() -> None:
+    base = ("甲申", "壬申", "乙巳")
+    partial = build_bazi_fact_graph(_chart(*base, "戊寅"), hour_uncertain=True)
+    predicate = {
+        "op": "count_compare",
+        "path": "occurrences",
+        "where": {},
+        "comparator": "==",
+        "value": 11,
+    }
+    complete_results = [
+        evaluate_predicate(predicate, world) for world in _legal_hour_world_graphs(base)
+    ]
+
+    assert {item.truth for item in complete_results} == {TruthValue.FALSE}
+    assert evaluate_predicate(predicate, partial).truth is TruthValue.FALSE
+
+
+@pytest.mark.parametrize(
+    "predicate",
+    [
+        {
+            "op": "count_compare",
+            "path": "occurrences",
+            "where": {"gods": ["比肩"], "positions": ["hour"]},
+            "comparator": "!=",
+            "value": 0,
+        },
+        {
+            "op": "count_compare",
+            "path": "roots",
+            "where": {"mode": "exact_stem", "positions": ["hour"]},
+            "comparator": ">",
+            "value": 0,
+        },
+        {
+            "op": "count_compare",
+            "path": "relations",
+            "where": {
+                "relation_types": ["stem_combine"],
+                "member_filters": [{"values": ["甲"]}],
+            },
+            "comparator": ">=",
+            "value": 1,
+        },
+        {
+            "op": "count_compare",
+            "path": "relations",
+            "where": {
+                "relation_types": ["branch_clash"],
+                "positions": ["hour"],
+            },
+            "comparator": "<",
+            "value": 1,
+        },
+        {
+            "op": "count_compare",
+            "path": "combinations",
+            "where": {"kinds": ["trine"], "result_elements": ["水"]},
+            "comparator": "<=",
+            "value": 2,
+        },
+    ],
+)
+def test_unknown_hour_count_support_matches_all_legal_worlds(
+    predicate: dict[str, Any],
+) -> None:
+    base = ("甲申", "壬申", "乙巳")
+    partial = build_bazi_fact_graph(_chart(*base, "戊寅"), hour_uncertain=True)
+    complete_results = tuple(
+        evaluate_predicate(predicate, world) for world in _legal_hour_world_graphs(base)
+    )
+    complete_truths = {item.truth for item in complete_results}
+    support = {int(item.trace.details["interval"][0]) for item in complete_results}
+    expected = (
+        next(iter(complete_truths)) if len(complete_truths) == 1 else TruthValue.UNKNOWN
+    )
+
+    result = evaluate_predicate(predicate, partial)
+
+    assert result.truth is expected
+    assert result.trace.details["support"] == tuple(sorted(support))
+    assert result.trace.details["interval"] == (min(support), max(support))
 
 
 def test_three_pillar_input_automatically_marks_hour_unknown() -> None:
@@ -430,6 +546,313 @@ def test_fact_envelope_requires_complete_worlds_and_caps_trace_growth() -> None:
         build_bazi_fact_envelope((OFFICER_CHART[:3],))
     with pytest.raises(ValueError, match="64"):
         build_bazi_fact_envelope([OFFICER_CHART for _ in range(65)])
+
+
+def test_relation_members_bind_identity_god_and_canonical_pillar_geometry() -> None:
+    graph = build_bazi_fact_graph(_chart("甲申", "壬申", "乙巳", "戊寅"))
+
+    month_hour = next(
+        item for item in graph.relations if item.id == "rel.stem_control.month.hour"
+    )
+    assert month_hour.position_distance == 2
+    assert month_hour.intervening_positions == ("day",)
+    assert month_hour.adjacent is False
+    assert [
+        (
+            member.position,
+            member.occurrence_id,
+            member.element,
+            member.ten_god,
+        )
+        for member in month_hour.members
+    ] == [
+        ("month", "occ.month.stem.壬", "水", "正印"),
+        ("hour", "occ.hour.stem.戊", "土", "正财"),
+    ]
+
+    adjacent = next(
+        item
+        for item in graph.relations
+        if item.id == "rel.branch_six_combine.month.day"
+    )
+    assert adjacent.position_distance == 1
+    assert adjacent.intervening_positions == ()
+    assert adjacent.adjacent is True
+
+
+def test_relation_member_filters_use_injective_non_greedy_same_relation_binding() -> (
+    None
+):
+    graph = build_bazi_fact_graph(_chart("甲子", "己巳", "丙午", "庚寅"))
+    flexible_then_specific = {
+        "op": "relation_exists",
+        "relation_types": ["stem_combine"],
+        "member_filters": [
+            {"values": ["甲", "己"]},
+            {"values": ["甲"]},
+        ],
+    }
+    duplicate_specific = {
+        **flexible_then_specific,
+        "member_filters": [
+            {"values": ["甲"]},
+            {"values": ["甲"]},
+        ],
+    }
+
+    assert evaluate_predicate(flexible_then_specific, graph).truth is TruthValue.TRUE
+    assert evaluate_predicate(duplicate_specific, graph).truth is TruthValue.FALSE
+    parsed = parse_predicate(
+        {
+            **flexible_then_specific,
+            "member_filters": list(reversed(flexible_then_specific["member_filters"])),
+        }
+    )
+    assert parsed == parse_predicate(flexible_then_specific)
+
+
+def test_relation_adjacency_and_member_filters_preserve_unknown_positions() -> None:
+    graph = build_bazi_fact_graph(_chart("甲申", "壬申", "乙巳", "戊寅"))
+    nonadjacent = {
+        "op": "relation_exists",
+        "relation_types": ["stem_control"],
+        "member_filters": [
+            {"positions": ["month"], "gods": ["正印"]},
+            {"positions": ["hour"], "gods": ["正财"]},
+        ],
+        "adjacent": True,
+    }
+    unknown_hour = {
+        "op": "relation_exists",
+        "relation_types": ["stem_combine"],
+        "member_filters": [{"positions": ["hour"]}],
+        "adjacent": True,
+    }
+    unknown_directional_alternatives = {
+        "op": "relation_exists",
+        "relation_types": ["stem_control"],
+        "layers": ["stem"],
+        "controller_gods": ["偏财", "正财"],
+        "controlled_gods": ["偏印", "正印"],
+    }
+
+    assert evaluate_predicate(nonadjacent, graph).truth is TruthValue.FALSE
+    assert (
+        evaluate_predicate(
+            unknown_hour,
+            build_bazi_fact_graph(OFFICER_CHART, hour_uncertain=True),
+        ).truth
+        is TruthValue.UNKNOWN
+    )
+    assert (
+        evaluate_predicate(
+            unknown_directional_alternatives,
+            build_bazi_fact_graph(OFFICER_CHART, hour_uncertain=True),
+        ).truth
+        is TruthValue.UNKNOWN
+    )
+    with pytest.raises(ValueError, match="adjacent"):
+        parse_predicate({**nonadjacent, "adjacent": 1})
+
+
+@pytest.mark.parametrize(
+    "predicate",
+    [
+        {
+            "op": "exists_occurrence",
+            "stems": ["甲"],
+            "elements": ["金"],
+            "gods": [],
+            "positions": ["hour"],
+            "layers": ["stem"],
+            "qi_levels": [],
+            "exposed": True,
+            "include_day_master": False,
+        },
+        {
+            "op": "relation_exists",
+            "relation_types": ["stem_control"],
+            "layers": ["stem"],
+            "controller_values": ["甲"],
+            "controlled_values": ["乙"],
+        },
+        {
+            "op": "relation_exists",
+            "relation_types": ["stem_combine"],
+            "layers": ["stem"],
+            "values": ["甲", "丙"],
+        },
+        {
+            "op": "relation_exists",
+            "relation_types": ["stem_combine"],
+            "layers": ["branch"],
+        },
+        {
+            "op": "relation_exists",
+            "relation_types": ["stem_control"],
+            "member_filters": [{"roles": ["participant"]}],
+        },
+        {
+            "op": "relation_exists",
+            "relation_types": ["stem_combine"],
+            "member_filters": [{"values": ["甲"], "gods": ["正官"]}],
+        },
+        {
+            "op": "relation_exists",
+            "relation_types": ["stem_combine"],
+            "values": ["甲", "己"],
+            "excluded_member_gods": ["劫财"],
+        },
+        {
+            "op": "relation_exists",
+            "relation_types": ["stem_combine"],
+            "member_filters": [
+                {
+                    "values": ["己"],
+                    "occurrence_ids": ["occ.hour.stem.甲"],
+                }
+            ],
+        },
+    ],
+)
+def test_incomplete_filter_feasibility_agrees_with_all_legal_hour_worlds(
+    predicate: dict[str, Any],
+) -> None:
+    base = ("甲申", "壬申", "乙巳")
+    incomplete = build_bazi_fact_graph(
+        _chart(*base, "戊寅"),
+        hour_uncertain=True,
+    )
+    complete_truths = {
+        evaluate_predicate(
+            predicate, build_bazi_fact_graph(_chart(*base, stem + branch))
+        ).truth
+        for stem, branch in product(STEMS, BRANCHES)
+        if STEMS.index(stem) % 2 == BRANCHES.index(branch) % 2
+    }
+
+    assert complete_truths == {TruthValue.FALSE}
+    assert evaluate_predicate(predicate, incomplete).truth is TruthValue.FALSE
+
+
+def test_directional_relation_god_lists_are_allowed_value_alternatives() -> None:
+    graph = build_bazi_fact_graph(_chart("癸卯", "己酉", "甲子", "丁卯"))
+    predicate = {
+        "op": "relation_exists",
+        "relation_types": ["stem_control"],
+        "layers": ["stem"],
+        "adjacent": True,
+        "controller_gods": ["偏财", "正财"],
+        "controlled_gods": ["偏印", "正印"],
+    }
+
+    assert evaluate_predicate(predicate, graph).truth is TruthValue.TRUE
+
+
+@pytest.mark.parametrize(
+    ("texts", "predicate", "expected"),
+    [
+        (
+            ("乙卯", "丁亥", "丁未", "庚戌"),
+            {
+                "op": "activation_exists",
+                "gods": ["伤官"],
+                "families": ["output"],
+                "positions": [],
+                "origins": [],
+                "scope": "generic",
+            },
+            TruthValue.FALSE,
+        ),
+        (
+            ("己卯", "辛未", "壬寅", "辛亥"),
+            {
+                "op": "activation_exists",
+                "gods": ["伤官"],
+                "families": ["output"],
+                "positions": [],
+                "origins": [],
+                "scope": "generic",
+            },
+            TruthValue.UNKNOWN,
+        ),
+        (
+            ("丁丑", "壬寅", "己巳", "丙寅"),
+            {
+                "op": "activation_exists",
+                "gods": ["伤官"],
+                "families": ["output"],
+                "positions": [],
+                "origins": [],
+                "scope": "generic",
+            },
+            TruthValue.FALSE,
+        ),
+        (
+            ("丁卯", "癸酉", "甲午", "辛未"),
+            {
+                "op": "activation_exists",
+                "gods": ["伤官"],
+                "families": ["output"],
+                "positions": ["year"],
+                "origins": ["exposed_stem"],
+                "scope": "generic",
+            },
+            TruthValue.TRUE,
+        ),
+    ],
+)
+def test_activation_exists_distinguishes_exposed_hidden_and_pending_groups(
+    texts: tuple[str, str, str, str],
+    predicate: dict[str, Any],
+    expected: TruthValue,
+) -> None:
+    context = build_rule_evaluation_context(build_bazi_fact_graph(_chart(*texts)))
+
+    result = evaluate_predicate(predicate, context)
+
+    assert result.truth is expected
+
+
+def test_relation_member_god_binding_cannot_be_faked_by_independent_facts() -> None:
+    predicate = {
+        "op": "relation_exists",
+        "relation_types": ["stem_combine"],
+        "adjacent": True,
+        "member_filters": [{"gods": ["七杀"]}],
+        "excluded_member_gods": ["正官"],
+    }
+    li = build_bazi_fact_graph(_chart("庚寅", "乙酉", "甲子", "戊辰"))
+    independent = build_bazi_fact_graph(_chart("庚寅", "丁亥", "甲子", "壬申"))
+
+    assert evaluate_predicate(predicate, li).truth is TruthValue.TRUE
+    assert evaluate_predicate(predicate, independent).truth is TruthValue.FALSE
+    counted = evaluate_predicate(
+        {
+            "op": "count_compare",
+            "path": "relations",
+            "where": {key: value for key, value in predicate.items() if key != "op"},
+            "comparator": ">=",
+            "value": 1,
+        },
+        li,
+    )
+    assert counted.truth is TruthValue.TRUE
+
+
+def test_activation_context_for_envelope_derives_each_world_before_consensus() -> None:
+    xuan = _chart("己卯", "辛未", "壬寅", "辛亥")
+    context = build_rule_evaluation_context(build_bazi_fact_envelope((xuan,)))
+    predicate = {
+        "op": "activation_exists",
+        "gods": ["伤官"],
+        "families": ["output"],
+        "positions": [],
+        "origins": [],
+        "scope": "generic",
+    }
+
+    assert evaluate_predicate(predicate, context).truth is TruthValue.UNKNOWN
 
 
 def test_public_closed_registries_cannot_be_mutated_or_extended() -> None:

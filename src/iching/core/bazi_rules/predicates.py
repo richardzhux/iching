@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
+from itertools import combinations as position_pairs
 from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
@@ -29,12 +31,14 @@ from iching.core.bazi_rules.schema import (
     OccurrenceFact,
     PredicateNode,
     RelationFact,
+    RelationMember,
     RootFact,
+    RuleEvaluationContext,
     TruthValue,
 )
 
 
-PREDICATE_VERSION = "bazi-predicates-v1"
+PREDICATE_VERSION = "bazi-predicates-v2"
 MAX_AST_DEPTH = 32
 MAX_AST_NODES = 1024
 
@@ -52,6 +56,7 @@ OPERATORS = frozenset(
         "month_command_equals",
         "god_exposed",
         "combination_complete",
+        "activation_exists",
     )
 )
 
@@ -136,12 +141,46 @@ _LEAF_KEYS: dict[str, frozenset[str]] = {
             "controller_values",
             "controlled_positions",
             "controlled_values",
+            "adjacent",
+            "member_filters",
+            "excluded_member_gods",
+            "excluded_occurrence_ids",
+            "controller_gods",
+            "controlled_gods",
         )
     ),
     "root_exists": frozenset(("op", "mode", "positions", "qi_levels")),
     "month_command_equals": frozenset(("op", "level", "stem", "element", "god")),
     "god_exposed": frozenset(("op", "gods", "positions", "include_day_master")),
     "combination_complete": frozenset(("op", "kinds", "members", "result_elements")),
+    "activation_exists": frozenset(
+        ("op", "gods", "families", "positions", "origins", "scope")
+    ),
+}
+
+_MEMBER_FILTER_KEYS = frozenset(
+    ("positions", "layers", "values", "roles", "gods", "elements", "occurrence_ids")
+)
+_ACTIVATION_FAMILIES = frozenset(("peer", "output", "wealth", "officer", "seal"))
+_ACTIVATION_ORIGINS = frozenset(
+    (
+        "month_command_main",
+        "exposed_stem",
+        "source_rule",
+        "complete_combination_pending",
+    )
+)
+_GOD_FAMILIES = {
+    "比肩": "peer",
+    "劫财": "peer",
+    "食神": "output",
+    "伤官": "output",
+    "偏财": "wealth",
+    "正财": "wealth",
+    "七杀": "officer",
+    "正官": "officer",
+    "偏印": "seal",
+    "正印": "seal",
 }
 
 
@@ -184,6 +223,21 @@ def _bool(value: Any, *, field: str, default: bool = False) -> bool:
     if not isinstance(value, bool):
         raise ValueError(f"{field} must be boolean")
     return value
+
+
+def _optional_bool(value: Any, *, field: str) -> bool | None:
+    if value is None:
+        return None
+    if type(value) is not bool:
+        raise ValueError(f"{field} must be boolean or null")
+    return value
+
+
+def _identifiers(value: Any, *, field: str) -> tuple[str, ...]:
+    result = _strings(value, field=field)
+    if any(not item.strip() for item in result):
+        raise ValueError(f"{field} cannot contain blank values")
+    return result
 
 
 def _json_scalar(value: Any, *, field: str) -> Any:
@@ -431,7 +485,62 @@ def _validate_leaf(operator: str, raw: Mapping[str, Any]) -> dict[str, Any]:
                 raw.get("result_elements"), field="result_elements", allowed=ELEMENTS
             ),
         }
+    if operator == "activation_exists":
+        scope = raw.get("scope")
+        if scope != "generic":
+            raise ValueError("activation_exists.scope must be generic")
+        gods = _strings(raw.get("gods"), field="gods", allowed=TEN_GODS)
+        families = _strings(
+            raw.get("families"),
+            field="families",
+            allowed=_ACTIVATION_FAMILIES,
+        )
+        if not gods and not families:
+            raise ValueError("activation_exists needs gods or families")
+        return {
+            "gods": gods,
+            "families": families,
+            "positions": _strings(
+                raw.get("positions"), field="positions", allowed=PILLAR_POSITIONS
+            ),
+            "origins": _strings(
+                raw.get("origins"), field="origins", allowed=_ACTIVATION_ORIGINS
+            ),
+            "scope": scope,
+        }
     raise AssertionError(operator)
+
+
+def _validate_member_filter(raw: Mapping[str, Any]) -> dict[str, Any]:
+    if not isinstance(raw, Mapping):
+        raise ValueError("relation member_filters must contain objects")
+    _strict_keys(raw, _MEMBER_FILTER_KEYS, "relation member filter")
+    result = {
+        "positions": _strings(
+            raw.get("positions"), field="member.positions", allowed=PILLAR_POSITIONS
+        ),
+        "layers": _strings(
+            raw.get("layers"), field="member.layers", allowed=("stem", "branch")
+        ),
+        "values": _strings(
+            raw.get("values"), field="member.values", allowed=(*STEMS, *BRANCHES)
+        ),
+        "roles": _strings(
+            raw.get("roles"),
+            field="member.roles",
+            allowed=("participant", "controller", "controlled"),
+        ),
+        "gods": _strings(raw.get("gods"), field="member.gods", allowed=TEN_GODS),
+        "elements": _strings(
+            raw.get("elements"), field="member.elements", allowed=ELEMENTS
+        ),
+        "occurrence_ids": _identifiers(
+            raw.get("occurrence_ids"), field="member.occurrence_ids"
+        ),
+    }
+    if not any(result.values()):
+        raise ValueError("relation member filter cannot be empty")
+    return result
 
 
 def _validate_relation_filter(
@@ -451,10 +560,25 @@ def _validate_relation_filter(
                     "controller_values",
                     "controlled_positions",
                     "controlled_values",
+                    "adjacent",
+                    "member_filters",
+                    "excluded_member_gods",
+                    "excluded_occurrence_ids",
+                    "controller_gods",
+                    "controlled_gods",
                 )
             ),
             "relation filter",
         )
+    raw_member_filters = raw.get("member_filters", ())
+    if isinstance(raw_member_filters, (str, bytes)) or not isinstance(
+        raw_member_filters, Sequence
+    ):
+        raise ValueError("member_filters must be a list of objects")
+    member_filters = tuple(_validate_member_filter(item) for item in raw_member_filters)
+    if len(member_filters) > 2:
+        raise ValueError("member_filters cannot require more than two relation members")
+    member_filters = tuple(sorted(member_filters, key=_canonical_text))
     return {
         "relation_types": _strings(
             raw.get("relation_types"), field="relation_types", allowed=RELATION_TYPES
@@ -486,6 +610,22 @@ def _validate_relation_filter(
         ),
         "controlled_values": _strings(
             raw.get("controlled_values"), field="controlled_values", allowed=STEMS
+        ),
+        "adjacent": _optional_bool(raw.get("adjacent"), field="adjacent"),
+        "member_filters": member_filters,
+        "excluded_member_gods": _strings(
+            raw.get("excluded_member_gods"),
+            field="excluded_member_gods",
+            allowed=TEN_GODS,
+        ),
+        "excluded_occurrence_ids": _identifiers(
+            raw.get("excluded_occurrence_ids"), field="excluded_occurrence_ids"
+        ),
+        "controller_gods": _strings(
+            raw.get("controller_gods"), field="controller_gods", allowed=TEN_GODS
+        ),
+        "controlled_gods": _strings(
+            raw.get("controlled_gods"), field="controlled_gods", allowed=TEN_GODS
         ),
     }
 
@@ -532,6 +672,17 @@ def predicate_to_canonical_data(node: PredicateNode) -> dict[str, Any]:
         return {"op": "not", "child": predicate_to_canonical_data(node.children[0])}
     arguments: dict[str, Any] = {}
     for key, value in node.arguments.items():
+        if key == "member_filters":
+            arguments[key] = [
+                {
+                    nested_key: list(nested_value)
+                    if isinstance(nested_value, tuple)
+                    else nested_value
+                    for nested_key, nested_value in item.items()
+                }
+                for item in value
+            ]
+            continue
         if isinstance(value, tuple):
             values = list(value)
             if key in {
@@ -550,6 +701,12 @@ def predicate_to_canonical_data(node: PredicateNode) -> dict[str, Any]:
                 "controller_values",
                 "controlled_positions",
                 "controlled_values",
+                "excluded_member_gods",
+                "excluded_occurrence_ids",
+                "controller_gods",
+                "controlled_gods",
+                "families",
+                "origins",
             }:
                 values.sort(key=_canonical_text)
             arguments[key] = values
@@ -644,6 +801,42 @@ def _matches_root(item: RootFact, where: Mapping[str, Any]) -> bool:
     return True
 
 
+def _matches_relation_member(member: RelationMember, where: Mapping[str, Any]) -> bool:
+    return not (
+        (where.get("positions") and member.position not in where["positions"])
+        or (where.get("layers") and member.layer not in where["layers"])
+        or (where.get("values") and member.value not in where["values"])
+        or (where.get("roles") and member.role not in where["roles"])
+        or (where.get("gods") and member.ten_god not in where["gods"])
+        or (where.get("elements") and member.element not in where["elements"])
+        or (
+            where.get("occurrence_ids")
+            and member.occurrence_id not in where["occurrence_ids"]
+        )
+    )
+
+
+def _member_filters_match(
+    members: Sequence[RelationMember], filters: Sequence[Mapping[str, Any]]
+) -> bool:
+    """Find an injective filter-to-member assignment without greedy bias."""
+
+    if len(filters) > len(members):
+        return False
+
+    def assign(index: int, used: frozenset[int]) -> bool:
+        if index == len(filters):
+            return True
+        return any(
+            assign(index + 1, used | {member_index})
+            for member_index, member in enumerate(members)
+            if member_index not in used
+            and _matches_relation_member(member, filters[index])
+        )
+
+    return assign(0, frozenset())
+
+
 def _matches_relation(item: RelationFact, where: Mapping[str, Any]) -> bool:
     if (
         where.get("relation_types")
@@ -663,6 +856,21 @@ def _matches_relation(item: RelationFact, where: Mapping[str, Any]) -> bool:
         and item.result_element not in where["result_elements"]
     ):
         return False
+    if where.get("adjacent") is not None and item.adjacent is not where["adjacent"]:
+        return False
+    if where.get("member_filters") and not _member_filters_match(
+        item.members, where["member_filters"]
+    ):
+        return False
+    if where.get("excluded_member_gods") and any(
+        member.ten_god in where["excluded_member_gods"] for member in item.members
+    ):
+        return False
+    if where.get("excluded_occurrence_ids") and any(
+        member.occurrence_id in where["excluded_occurrence_ids"]
+        for member in item.members
+    ):
+        return False
     controllers = {
         member.position for member in item.members if member.role == "controller"
     }
@@ -674,6 +882,12 @@ def _matches_relation(item: RelationFact, where: Mapping[str, Any]) -> bool:
     }
     controlled_values = {
         member.value for member in item.members if member.role == "controlled"
+    }
+    controller_gods = {
+        member.ten_god for member in item.members if member.role == "controller"
+    }
+    controlled_gods = {
+        member.ten_god for member in item.members if member.role == "controlled"
     }
     if (
         where.get("controller_positions")
@@ -693,6 +907,14 @@ def _matches_relation(item: RelationFact, where: Mapping[str, Any]) -> bool:
     if (
         where.get("controlled_values")
         and not set(where["controlled_values"]) <= controlled_values
+    ):
+        return False
+    if where.get("controller_gods") and not (
+        set(where["controller_gods"]) & controller_gods
+    ):
+        return False
+    if where.get("controlled_gods") and not (
+        set(where["controlled_gods"]) & controlled_gods
     ):
         return False
     return True
@@ -726,20 +948,95 @@ def _matcher(path: str) -> Callable[[Any, Mapping[str, Any]], bool]:
     }[path]
 
 
+@lru_cache(maxsize=16)
+def _legal_hour_worlds(
+    signature: tuple[tuple[str, str | None, str | None], ...],
+) -> tuple[BaziFactGraph, ...]:
+    """Materialize every sexagenary-valid completion for one unknown hour."""
+
+    from iching.core.bazi_rules.fact_graph import build_bazi_fact_graph
+
+    worlds: list[BaziFactGraph] = []
+    for stem in STEMS:
+        for branch in BRANCHES:
+            if STEMS.index(stem) % 2 != BRANCHES.index(branch) % 2:
+                continue
+            pillars = []
+            for position, known_stem, known_branch in signature:
+                candidate_stem = stem if position == "hour" else known_stem
+                candidate_branch = branch if position == "hour" else known_branch
+                assert candidate_stem is not None and candidate_branch is not None
+                pillars.append(
+                    {
+                        "position": position,
+                        "stem": candidate_stem,
+                        "branch": candidate_branch,
+                    }
+                )
+            worlds.append(build_bazi_fact_graph(pillars))
+    return tuple(worlds)
+
+
+def _exact_hour_worlds(graph: BaziFactGraph) -> tuple[BaziFactGraph, ...] | None:
+    if graph.completeness.uncertain_positions != frozenset(("hour",)):
+        return None
+    signature = tuple((item.position, item.stem, item.branch) for item in graph.pillars)
+    return _legal_hour_worlds(signature)
+
+
+def _uncertain_match_possible(
+    graph: BaziFactGraph,
+    path: str,
+    where: Mapping[str, Any],
+) -> bool | None:
+    worlds = _exact_hour_worlds(graph)
+    if worlds is None:
+        return None
+    match = _matcher(path)
+    return any(
+        any(match(item, where) for item in _collection(world, path)) for world in worlds
+    )
+
+
+def _uncertain_match_count_changes(
+    graph: BaziFactGraph,
+    path: str,
+    where: Mapping[str, Any],
+) -> bool | None:
+    support = _exact_hour_count_support(graph, path, where)
+    if support is None:
+        return None
+    match = _matcher(path)
+    current = sum(1 for item in _collection(graph, path) if match(item, where))
+    return support != (current,)
+
+
+def _exact_hour_count_support(
+    graph: BaziFactGraph,
+    path: str,
+    where: Mapping[str, Any],
+) -> tuple[int, ...] | None:
+    worlds = _exact_hour_worlds(graph)
+    if worlds is None:
+        return None
+    match = _matcher(path)
+    return tuple(
+        sorted(
+            {
+                sum(1 for item in _collection(world, path) if match(item, where))
+                for world in worlds
+            }
+        )
+    )
+
+
 def _relation_may_be_added(graph: BaziFactGraph, where: Mapping[str, Any]) -> bool:
     uncertain = graph.completeness.uncertain_positions
     if not uncertain:
         return False
-    required_positions = set(where.get("positions", ()))
-    required_positions.update(where.get("controller_positions", ()))
-    required_positions.update(where.get("controlled_positions", ()))
-    if len(required_positions) > 2:
-        return False
-    # A new pair containing an uncertain pillar cannot also contain two fixed
-    # requested pillars. One fixed plus one uncertain, or two uncertain, remain
-    # possible until candidate worlds prove otherwise.
-    if len(required_positions - uncertain) > 1:
-        return False
+    exact = _uncertain_match_possible(graph, "relations", where)
+    if exact is not None:
+        return exact
     if (
         len(where.get("controller_positions", ())) > 1
         or len(where.get("controlled_positions", ())) > 1
@@ -757,6 +1054,8 @@ def _relation_may_be_added(graph: BaziFactGraph, where: Mapping[str, Any]) -> bo
             "controller_values",
             "controlled_positions",
             "controlled_values",
+            "controller_gods",
+            "controlled_gods",
         )
     )
     if (
@@ -790,7 +1089,64 @@ def _relation_may_be_added(graph: BaziFactGraph, where: Mapping[str, Any]) -> bo
         return False
     if layers == {"branch"} and values - set(BRANCHES):
         return False
-    return True
+    if len(values) > 2 or len(where.get("member_filters", ())) > 2:
+        return False
+
+    def filter_positions(filter_: Mapping[str, Any]) -> set[str]:
+        positions = set(filter_.get("positions", ()))
+        occurrence_positions = {
+            occurrence_id.split(".")[1]
+            for occurrence_id in filter_.get("occurrence_ids", ())
+            if occurrence_id.startswith("occ.")
+            and len(occurrence_id.split(".")) > 2
+            and occurrence_id.split(".")[1] in PILLAR_POSITIONS
+        }
+        if positions and occurrence_positions:
+            return positions & occurrence_positions
+        return positions or occurrence_positions
+
+    member_filters = tuple(where.get("member_filters", ()))
+
+    def filters_fit_pair(pair: tuple[str, str]) -> bool:
+        candidates = []
+        for filter_ in member_filters:
+            allowed = filter_positions(filter_)
+            candidates.append(
+                tuple(
+                    index
+                    for index, position in enumerate(pair)
+                    if not allowed or position in allowed
+                )
+            )
+
+        def assign(index: int, used: frozenset[int]) -> bool:
+            if index == len(candidates):
+                return True
+            return any(
+                assign(index + 1, used | {candidate})
+                for candidate in candidates[index]
+                if candidate not in used
+            )
+
+        return assign(0, frozenset())
+
+    top_positions = set(where.get("positions", ()))
+    top_positions.update(where.get("controller_positions", ()))
+    top_positions.update(where.get("controlled_positions", ()))
+    for raw_pair in position_pairs(PILLAR_POSITIONS, 2):
+        pair = (str(raw_pair[0]), str(raw_pair[1]))
+        pair_set = set(pair)
+        if not pair_set & uncertain or not top_positions <= pair_set:
+            continue
+        distance = abs(
+            PILLAR_POSITIONS.index(pair[0]) - PILLAR_POSITIONS.index(pair[1])
+        )
+        adjacent = distance == 1
+        if where.get("adjacent") is not None and adjacent is not where["adjacent"]:
+            continue
+        if filters_fit_pair(pair):
+            return True
+    return False
 
 
 def _combination_templates(
@@ -898,6 +1254,9 @@ def _collection_may_change(
 ) -> bool:
     if not graph.completeness.uncertain_positions:
         return False
+    exact = _uncertain_match_count_changes(graph, path, where)
+    if exact is not None:
+        return exact
     if path in {"occurrences", "roots"}:
         return _filter_positions_may_include_unknown(
             graph, tuple(where.get("positions", ()))
@@ -918,10 +1277,95 @@ def _compare(left: int, comparator: str, right: int) -> bool:
     }[comparator]
 
 
-def _evaluate_graph(node: PredicateNode, graph: BaziFactGraph) -> EvaluationResult:
+def _activation_positions(
+    context: RuleEvaluationContext, subject_id: str, origin: str
+) -> frozenset[str]:
+    graph = context.graph
+    if not isinstance(graph, BaziFactGraph):
+        return frozenset()
+    if origin == "month_command_main":
+        return frozenset(("month",))
+    occurrence = next(
+        (item for item in graph.occurrences if item.id == subject_id), None
+    )
+    if occurrence is not None:
+        return frozenset((occurrence.position,))
+    combination = next(
+        (item for item in graph.combinations if item.id == subject_id), None
+    )
+    if combination is not None:
+        return frozenset(member.position for member in combination.members)
+    return frozenset()
+
+
+def _evaluate_activation(
+    args: Mapping[str, Any], context: RuleEvaluationContext
+) -> EvaluationResult:
+    graph = context.graph
+    if not isinstance(graph, BaziFactGraph):
+        raise TypeError("activation evaluation requires one fact-graph world")
+    requested_gods = set(args.get("gods", ()))
+    requested_families = set(args.get("families", ()))
+    requested_positions = set(args.get("positions", ()))
+    requested_origins = set(args.get("origins", ()))
+    matches: list[str] = []
+    pending: list[str] = []
+    for item in context.activations:
+        if requested_origins and item.origin not in requested_origins:
+            continue
+        positions = _activation_positions(context, item.subject_id, item.origin)
+        if requested_positions and not requested_positions & positions:
+            continue
+        if requested_families and item.god_family not in requested_families:
+            continue
+        if requested_gods:
+            if item.god is not None and item.god not in requested_gods:
+                continue
+            if item.god is None and not any(
+                _GOD_FAMILIES[god] == item.god_family for god in requested_gods
+            ):
+                continue
+        if item.truth is TruthValue.TRUE:
+            matches.append(item.subject_id)
+        elif item.truth is TruthValue.UNKNOWN:
+            pending.append(item.subject_id)
+    if matches:
+        return _trace(
+            "activation_exists",
+            TruthValue.TRUE,
+            matches=sorted(matches),
+            pending=sorted(pending),
+        )
+    if pending:
+        return _trace(
+            "activation_exists",
+            TruthValue.UNKNOWN,
+            matches=[],
+            pending=sorted(pending),
+            reason="matching_activation_pending_source_rule",
+        )
+    uncertain = set(graph.completeness.uncertain_positions)
+    if uncertain and (not requested_positions or uncertain & requested_positions):
+        return _trace(
+            "activation_exists",
+            TruthValue.UNKNOWN,
+            matches=[],
+            pending=[],
+            reason="uncertain_position_may_add_activation",
+        )
+    return _trace("activation_exists", TruthValue.FALSE, matches=[], pending=[])
+
+
+def _evaluate_graph(
+    node: PredicateNode,
+    graph: BaziFactGraph,
+    context: RuleEvaluationContext | None = None,
+) -> EvaluationResult:
     operator = node.operator
     if operator in {"all", "any"}:
-        results = tuple(_evaluate_graph(child, graph) for child in node.children)
+        results = tuple(
+            _evaluate_graph(child, graph, context) for child in node.children
+        )
         truths = tuple(item.truth for item in results)
         if operator == "all":
             truth = (
@@ -941,10 +1385,18 @@ def _evaluate_graph(node: PredicateNode, graph: BaziFactGraph) -> EvaluationResu
             )
         return _trace(operator, truth, children=tuple(item.trace for item in results))
     if operator == "not":
-        result = _evaluate_graph(node.children[0], graph)
+        result = _evaluate_graph(node.children[0], graph, context)
         return _trace("not", _kleene_not(result.truth), children=(result.trace,))
 
     args = node.arguments
+    if operator == "activation_exists":
+        if context is None:
+            from iching.core.bazi_rules.fact_graph import (
+                build_rule_evaluation_context,
+            )
+
+            context = build_rule_evaluation_context(graph)
+        return _evaluate_activation(args, context)
     if operator in {"fact_equals", "fact_in"}:
         path = str(args["path"])
         if _path_unknown(graph, path):
@@ -972,7 +1424,13 @@ def _evaluate_graph(node: PredicateNode, graph: BaziFactGraph) -> EvaluationResu
         ]
         if matches:
             return _trace(operator, TruthValue.TRUE, matches=matches)
-        if _filter_positions_may_include_unknown(graph, args.get("positions", ())):
+        exact = _uncertain_match_possible(graph, "occurrences", args)
+        may_add = (
+            exact
+            if exact is not None
+            else _filter_positions_may_include_unknown(graph, args.get("positions", ()))
+        )
+        if may_add:
             return _trace(
                 operator,
                 TruthValue.UNKNOWN,
@@ -984,29 +1442,41 @@ def _evaluate_graph(node: PredicateNode, graph: BaziFactGraph) -> EvaluationResu
         path = str(args["path"])
         where = args["where"]
         match = _matcher(path)
-        lower = sum(1 for item in _collection(graph, path) if match(item, where))
-        if path == "combinations":
-            upper = _combination_count_upper_bound(graph, where, lower)
+        exact_support = _exact_hour_count_support(graph, path, where)
+        if exact_support is not None:
+            support = exact_support
+            lower, upper = support[0], support[-1]
         else:
-            upper = (
-                COLLECTION_GLOBAL_MAXIMA[path]
-                if _collection_may_change(graph, path, where)
-                else lower
-            )
-        upper = max(lower, upper)
+            lower = sum(1 for item in _collection(graph, path) if match(item, where))
+            if path == "combinations":
+                upper = _combination_count_upper_bound(graph, where, lower)
+            else:
+                upper = (
+                    COLLECTION_GLOBAL_MAXIMA[path]
+                    if _collection_may_change(graph, path, where)
+                    else lower
+                )
+            upper = max(lower, upper)
+            support = tuple(range(lower, upper + 1))
         outcomes = {
             _compare(value, str(args["comparator"]), int(args["value"]))
-            for value in range(lower, upper + 1)
+            for value in support
         }
+        details: dict[str, Any] = {"path": path, "interval": [lower, upper]}
+        if exact_support is not None:
+            details["support"] = list(support)
         if len(outcomes) == 1:
             truth = TruthValue.TRUE if outcomes.pop() else TruthValue.FALSE
-            return _trace(operator, truth, path=path, interval=[lower, upper])
+            return _trace(operator, truth, **details)
         return _trace(
             operator,
             TruthValue.UNKNOWN,
-            path=path,
-            interval=[lower, upper],
-            reason="count_interval_crosses_threshold",
+            **details,
+            reason=(
+                "exact_count_support_crosses_threshold"
+                if exact_support is not None
+                else "count_interval_crosses_threshold"
+            ),
         )
     if operator == "relation_exists":
         matches = [item.id for item in graph.relations if _matches_relation(item, args)]
@@ -1024,7 +1494,13 @@ def _evaluate_graph(node: PredicateNode, graph: BaziFactGraph) -> EvaluationResu
         matches = [item.id for item in graph.roots if _matches_root(item, args)]
         if matches:
             return _trace(operator, TruthValue.TRUE, matches=matches)
-        if _filter_positions_may_include_unknown(graph, args.get("positions", ())):
+        exact = _uncertain_match_possible(graph, "roots", args)
+        may_add = (
+            exact
+            if exact is not None
+            else _filter_positions_may_include_unknown(graph, args.get("positions", ()))
+        )
+        if may_add:
             return _trace(
                 operator,
                 TruthValue.UNKNOWN,
@@ -1059,7 +1535,13 @@ def _evaluate_graph(node: PredicateNode, graph: BaziFactGraph) -> EvaluationResu
         ]
         if matches:
             return _trace(operator, TruthValue.TRUE, matches=matches)
-        if _filter_positions_may_include_unknown(graph, args.get("positions", ())):
+        exact = _uncertain_match_possible(graph, "occurrences", where)
+        may_add = (
+            exact
+            if exact is not None
+            else _filter_positions_may_include_unknown(graph, args.get("positions", ()))
+        )
+        if may_add:
             return _trace(
                 operator,
                 TruthValue.UNKNOWN,
@@ -1094,11 +1576,42 @@ def _evaluate_graph(node: PredicateNode, graph: BaziFactGraph) -> EvaluationResu
 
 def evaluate_predicate(
     predicate: PredicateNode | Mapping[str, Any],
-    graph: BaziFactGraph | BaziFactEnvelope,
+    graph: BaziFactGraph | BaziFactEnvelope | RuleEvaluationContext,
 ) -> EvaluationResult:
     """Evaluate a predicate with Kleene truth and a stable evidence trace."""
 
     node = parse_predicate(predicate)
+    if isinstance(graph, RuleEvaluationContext):
+        context = graph
+        if isinstance(context.graph, BaziFactGraph):
+            return _evaluate_graph(node, context.graph, context)
+        from iching.core.bazi_rules.fact_graph import build_rule_evaluation_context
+
+        source_activations = tuple(
+            item for item in context.activations if item.origin == "source_rule"
+        )
+        world_results = tuple(
+            _evaluate_graph(
+                node,
+                world,
+                build_rule_evaluation_context(
+                    world,
+                    source_activations=source_activations,
+                ),
+            )
+            for world in context.graph.worlds
+        )
+        truths = {item.truth for item in world_results}
+        truth = next(iter(truths)) if len(truths) == 1 else TruthValue.UNKNOWN
+        return _trace(
+            "possible_worlds",
+            truth,
+            children=tuple(item.trace for item in world_results),
+            world_digests=[world.digest for world in context.graph.worlds],
+            reason="candidate_worlds_disagree"
+            if len(truths) > 1
+            else "candidate_worlds_agree",
+        )
     if isinstance(graph, BaziFactGraph):
         return _evaluate_graph(node, graph)
     world_results = tuple(_evaluate_graph(node, world) for world in graph.worlds)

@@ -23,7 +23,7 @@
     },
     {
       "completeness": "complete",
-      "diplomatic_sha256": "946938df7205798755b3598c5aa57ce39783821b2786452d95cbcaa32503b729",
+      "diplomatic_sha256": "d25dba9864ba2d9ee2332e2b907acf594608960e603b132cd1ae5ef466613245",
       "files": {
         "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.direct-officer.jsonl",
         "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.direct-officer.jsonl",
@@ -34,10 +34,10 @@
       "id": "zzq.pattern.direct-officer",
       "record_counts": {
         "examples": 6,
-        "non_rules": 5,
+        "non_rules": 8,
         "propositions": 22,
-        "rule_candidates": 15,
-        "segments": 14
+        "rule_candidates": 12,
+        "segments": 29
       },
       "review_state": "scan_verified",
       "title_diplomatic": "論正官"
@@ -54,6 +54,57 @@
     "jsonl": "one object per line with no blank lines",
     "key_order": "lexicographic"
   },
+  "lifecycle_exclusions": [
+    {
+      "candidate_id": "zzq.rule-candidate.officer.form-transform-001",
+      "reason": "化官為印缺少已裁定的轉化事實，不從組合結果推斷轉化。",
+      "source_ids": [
+        "zzq.prop.officer.form-transform-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.rule-candidate.officer.damage-punishment-001",
+      "reason": "廣義刑沖破害尚不能把損害綁定到同一正官成格路徑，且會反駁薛例陽性夾具。",
+      "source_ids": [
+        "zzq.prop.officer.damage-punishment-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.rule-candidate.officer.rescue-branch-combination-001",
+      "reason": "廣義地支會合救應尚不能解析並解除同一個已發生的支關係損害。",
+      "source_ids": [
+        "zzq.prop.officer.rescue-branch-combination-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.variant-seal-effect-001",
+      "reason": "減官與洩官的底本異文未裁定，不編譯效果。",
+      "source_ids": [
+        "zzq.prop.officer.variant-seal-effect-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.damage-dual-support-001",
+      "reason": "匿名命例只進入精確四柱證言，不生成通用財印損害規則。",
+      "source_ids": [
+        "zzq.prop.officer.damage-dual-support-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.form-purity-001",
+      "reason": "金例的清配置保留為例證，不從原始藏干或歷史結果生成通用純度規則。",
+      "source_ids": [
+        "zzq.prop.officer.form-purity-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.rescue-fan-allocation-001",
+      "reason": "范例的部分巳丑會金與雙作用分配只進入精確四柱證言，不生成通用部分三合。",
+      "source_ids": [
+        "zzq.prop.officer.rescue-fan-allocation-001"
+      ]
+    }
+  ],
   "locators": [
     {
       "column_line": "left folio, right-to-left columns 1-4",

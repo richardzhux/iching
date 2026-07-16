@@ -11,6 +11,11 @@ from lunar_python import Lunar as LunarCalendar
 from lunar_python import Solar as SolarCalendar
 
 from iching.core.bazi_patterns import assess_patterns
+from iching.core.bazi_rules.adapter import build_source_backed_shadow
+from iching.core.bazi_rules.fact_graph import (
+    build_bazi_fact_envelope_from_graphs,
+    build_bazi_fact_graph,
+)
 from iching.core.bazi_structure import build_structure_profile, structured_relations
 from iching.core.calendar_engine import (
     JIE_MONTH_BRANCH,
@@ -391,6 +396,7 @@ def _build_uncertain_metaphysics_chart(
     candidates: list[Dict[str, Any]] = []
     candidate_profiles: list[Dict[str, Any]] = []
     candidate_hits: list[list[Dict[str, Any]]] = []
+    candidate_graphs = []
 
     for label, hour in zip(labels, hours):
         civil = local.replace(hour=hour, minute=0, second=0, microsecond=0)
@@ -408,11 +414,13 @@ def _build_uncertain_metaphysics_chart(
             _pillar("时", facts.hour_gz, day_stem),
         ]
         hits = evaluate_shensha(pillars)
+        fact_graph = build_bazi_fact_graph(pillars)
         profile = build_structure_profile(
             pillars,
             gender=gender,
             shensha_hits=hits,
             seasonal_status=_seasonal_status(pillars[1]["branch"]),
+            fact_graph=fact_graph,
         )
         candidates.append({
             "label": label,
@@ -423,6 +431,7 @@ def _build_uncertain_metaphysics_chart(
         })
         candidate_profiles.append(profile)
         candidate_hits.append(hits)
+        candidate_graphs.append(fact_graph)
 
     stable_pillars: list[Dict[str, Any]] = []
     for index, pillar_label in enumerate(("年", "月", "日", "时")):
@@ -533,6 +542,15 @@ def _build_uncertain_metaphysics_chart(
         },
     })
     base["birth_profile"].pop("period_query", None)
+    envelope = build_bazi_fact_envelope_from_graphs(candidate_graphs)
+    base["structure"]["patterns"]["source_backed_shadow"] = (
+        build_source_backed_shadow(
+            (),
+            base["structure"]["patterns"],
+            envelope,
+            include_attestations=False,
+        )
+    )
     return base
 
 
@@ -931,13 +949,15 @@ def build_metaphysics_chart(
         period_cycle_index=period_cycle_index,
     )
     raw_shen_sha = evaluate_shensha(pillars)
+    fact_graph = build_bazi_fact_graph(pillars)
     structure = build_structure_profile(
         pillars,
         gender=gender,
         shensha_hits=raw_shen_sha,
         seasonal_status=_seasonal_status(month_branch),
+        fact_graph=fact_graph,
     )
-    patterns = assess_patterns(pillars, structure)
+    patterns = assess_patterns(pillars, structure, fact_graph=fact_graph)
     structure["patterns"] = patterns
     shensha_effects = evaluate_shensha_effects(raw_shen_sha, pillars, structure)
     shen_sha = shensha_effects["hits"]

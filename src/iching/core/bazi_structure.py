@@ -253,6 +253,7 @@ def build_structure_profile(
     gender: str | None,
     shensha_hits: Iterable[Mapping[str, Any]],
     seasonal_status: Mapping[str, str],
+    fact_graph: Any | None = None,
 ) -> dict[str, Any]:
     if len(pillars) < 4 or any(str(pillar.get("stem", "")) not in STEM_ELEMENTS for pillar in pillars):
         raise ValueError("完整四柱结构分析需要准确出生时辰。")
@@ -509,9 +510,14 @@ def _theme_profiles(
             hit for hit in shensha_hits
             if theme in {TOPIC_TO_THEME.get(str(topic), str(topic)) for topic in hit.get("topic_tags", hit.get("theme_tags", ()))}
         ]
-        god_count = lambda names: sum(1 for god in all_gods if god in names)
-        visible_count = lambda names: sum(1 for god in visible_gods if god in names)
-        hidden_count = lambda names: sum(1 for god in hidden_gods if god in names)
+        def god_count(names: set[str]) -> int:
+            return sum(1 for god in all_gods if god in names)
+
+        def visible_count(names: set[str]) -> int:
+            return sum(1 for god in visible_gods if god in names)
+
+        def hidden_count(names: set[str]) -> int:
+            return sum(1 for god in hidden_gods if god in names)
         if theme == "事业":
             metrics = [
                 ("officer_count", "官杀出现", god_count({"正官", "七杀"})),
