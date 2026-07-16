@@ -208,14 +208,35 @@ export type LifeKlineMonth = {
   intensity?: number
 }
 
+export type PatternLifecycleBinding = {
+  pathId: string
+  ruleId: string
+  sourceIds: string[]
+}
+
+export type PatternLifecycleTransition = {
+  before: string
+  after: string
+  patternId: string
+  pathId: string
+  ruleIds: string[]
+  sourceIds: string[]
+}
+
 export type LifeKlineDriver = {
   id: string
   layer: "natal" | "dayun" | "liunian" | "liuyue" | string
   role: "formation" | "rescue" | "support" | "damage" | "conflict" | "neutral" | string
   label: string
   delta: number
+  activity?: number
   evidenceIds?: string[]
   ruleIds?: string[]
+  sourceIds?: string[]
+  patternId?: string
+  pathIds?: string[]
+  lifecycleProvenance?: PatternLifecycleBinding[]
+  lifecycle?: PatternLifecycleTransition
 }
 
 export type LifeKlinePoint = {
@@ -279,6 +300,16 @@ export type ConsumerClaim = {
     pathId: string
     ruleId: string
     sourceIds: string[]
+  }>
+  provenanceBindings?: Array<{
+    ruleId: string
+    sourceIds: string[]
+    factRefs: Array<{
+      operator: string
+      path?: string
+      value?: unknown
+      matchIds?: string[]
+    }>
   }>
   /** Stable consumer expression path; distinct from a classical formation path. */
   expressionPathId?: string
@@ -489,10 +520,20 @@ export type PeriodMonth = {
 }
 
 export type PeriodThemeActivation = {
+  id: string
+  layer: "dayun" | "liunian" | "liuyue" | "period" | string
   kind: "新增" | "联动" | "冲突" | "变化"
+  role: "activity" | "formation" | "rescue" | "support" | "damage" | "conflict" | "neutral" | string
+  delta: number
+  activity: number
+  feature: string
   label: string
   detail: string
   source: string
+  evidenceIds?: string[]
+  ruleIds?: string[]
+  sourceIds?: string[]
+  lifecycle?: PatternLifecycleTransition
 }
 
 export type PeriodThemeActivations = Record<"事业" | "财富" | "感情" | "五行与承压结构", PeriodThemeActivation[]>

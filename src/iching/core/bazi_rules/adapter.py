@@ -6,6 +6,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from iching.core.bazi_rules.engine import (
+    PatternLifecycleResult,
+    PatternSetResult,
     evaluate_pattern_lifecycle,
     evaluate_pattern_set,
 )
@@ -121,6 +123,129 @@ def _legacy_direct_officer_status(legacy_result: Mapping[str, Any]) -> str:
     return "not_candidate"
 
 
+def _legacy_patterns_by_id(
+    legacy_result: Mapping[str, Any],
+) -> tuple[dict[str, Mapping[str, Any]], frozenset[str]]:
+    """Index live legacy patterns by their explicit stable IDs.
+
+    The adapter deliberately does not fall back to array position or display
+    name. A duplicate stable ID is retained as a defect so the comparison
+    cannot silently choose whichever record happened to appear first.
+    """
+
+    indexed: dict[str, Mapping[str, Any]] = {}
+    duplicates: set[str] = set()
+    for collection_name in ("ordinary", "special"):
+        values = legacy_result.get(collection_name, ())
+        if isinstance(values, (str, bytes)) or not isinstance(values, Sequence):
+            continue
+        prefix = f"bazi.pattern.{collection_name}."
+        for value in values:
+            if not isinstance(value, Mapping):
+                continue
+            identifier = value.get("id")
+            if not isinstance(identifier, str) or not identifier.startswith(prefix):
+                continue
+            pattern_id = identifier.removeprefix(prefix)
+            if not pattern_id:
+                continue
+            if pattern_id in indexed:
+                duplicates.add(pattern_id)
+                continue
+            indexed[pattern_id] = value
+    return indexed, frozenset(duplicates)
+
+
+def _normalized_pattern_status(status: str) -> str:
+    """Normalize the one intentional inactive-status vocabulary difference."""
+
+    return "rejected" if status in {"not_candidate", "rejected"} else status
+
+
+def _canonical_structural_diff_reasons(
+    pattern: PatternLifecycleResult,
+    pattern_set: PatternSetResult,
+) -> set[str]:
+    """Classify source-engine mechanics that can explain a status mismatch."""
+
+    reasons: set[str] = set()
+    if pattern.candidate is TruthValue.UNKNOWN:
+        reasons.add("candidate_scope")
+    if pattern.status in {"candidate", "undetermined", "ambiguous"}:
+        reasons.add("activation_semantics")
+    if any(
+        path.actual_damage_ids or path.unknown_damage_ids or path.unresolved_damage_ids
+        for path in pattern.paths
+    ):
+        reasons.add("damage_binding")
+    if any(
+        path.resolved_damage_ids
+        or path.active_rescue_ids
+        or path.invalidated_rescue_ids
+        for path in pattern.paths
+    ):
+        reasons.add("rescue_binding")
+    if pattern.pattern_id in pattern_set.suppressed_pattern_ids or any(
+        path.superseded_by_rule_ids for path in pattern.paths
+    ):
+        reasons.add("source_precedence")
+    return reasons
+
+
+def _canonical_pattern_comparisons(
+    *,
+    pattern_set: PatternSetResult,
+    legacy_result: Mapping[str, Any],
+    uncertain_envelope: bool,
+) -> list[dict[str, Any]]:
+    """Compare every canonical result with the matching live legacy status."""
+
+    legacy_by_id, duplicate_ids = _legacy_patterns_by_id(legacy_result)
+    comparisons: list[dict[str, Any]] = []
+    for pattern in pattern_set.patterns:
+        legacy = legacy_by_id.get(pattern.pattern_id)
+        if pattern.pattern_id in duplicate_ids:
+            legacy_status = "duplicate"
+        elif legacy is None:
+            legacy_status = "missing"
+        else:
+            value = legacy.get("status")
+            legacy_status = value if isinstance(value, str) and value else "invalid"
+
+        is_difference = (
+            uncertain_envelope
+            or legacy_status in {"duplicate", "missing", "invalid"}
+            or _normalized_pattern_status(legacy_status)
+            != _normalized_pattern_status(pattern.status)
+        )
+        reasons: set[str] = set()
+        if is_difference:
+            if uncertain_envelope:
+                # The canonical result is a reduction across candidate worlds,
+                # while the legacy payload is a single representative chart.
+                reasons.add("scope_gap")
+            if legacy_status in {"duplicate", "missing", "invalid"}:
+                reasons.add("defect")
+            reasons.update(_canonical_structural_diff_reasons(pattern, pattern_set))
+            if not reasons:
+                # Only after candidate/path/precedence mechanics have been
+                # exhausted may the old heuristic thresholds explain the gap.
+                reasons.add("legacy_thresholds_shares")
+
+        comparisons.append(
+            {
+                "pattern_id": pattern.pattern_id,
+                "canonical_status": pattern.status,
+                "legacy_status": legacy_status,
+                "is_difference": is_difference,
+                "reasons": [
+                    reason for reason in SHADOW_DIFF_REASONS if reason in reasons
+                ],
+            }
+        )
+    return comparisons
+
+
 def _classified_diffs(
     *,
     generic_result: Any,
@@ -185,6 +310,28 @@ def build_source_backed_shadow(
     legacy_status = (
         "hour_uncertain" if uncertain else _legacy_direct_officer_status(legacy_result)
     )
+    pattern_comparisons = _canonical_pattern_comparisons(
+        pattern_set=pattern_set,
+        legacy_result=legacy_result,
+        uncertain_envelope=uncertain,
+    )
+    compatibility_reasons = _classified_diffs(
+        generic_result=generic,
+        legacy_status=legacy_status,
+        attestation_count=len(attestations),
+        uncertain_envelope=uncertain,
+    )
+    canonical_reasons = {
+        reason
+        for comparison in pattern_comparisons
+        if comparison["is_difference"]
+        for reason in comparison["reasons"]
+    }
+    aggregate_reasons = [
+        reason
+        for reason in SHADOW_DIFF_REASONS
+        if reason in set(compatibility_reasons) | canonical_reasons
+    ]
     result = {
         "mode": "shadow",
         "authoritative": False,
@@ -194,12 +341,14 @@ def build_source_backed_shadow(
         "example_attestations": attestations,
         "legacy_status": legacy_status,
         "diff": {
-            "reasons": _classified_diffs(
-                generic_result=generic,
-                legacy_status=legacy_status,
-                attestation_count=len(attestations),
-                uncertain_envelope=uncertain,
-            )
+            "reasons": aggregate_reasons,
+            "compared_pattern_count": len(pattern_comparisons),
+            "pattern_comparisons": pattern_comparisons,
+            "unclassified_count": sum(
+                not comparison["reasons"] or "unclassified" in comparison["reasons"]
+                for comparison in pattern_comparisons
+                if comparison["is_difference"]
+            ),
         },
     }
     result["pattern_set"] = pattern_set.as_dict()

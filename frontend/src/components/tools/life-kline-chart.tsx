@@ -15,6 +15,7 @@ export interface LifeKlineDriver {
   role?: string
   layer?: string
   delta?: number
+  activity?: number
 }
 
 export interface LifeKlineMonthPoint {
@@ -101,7 +102,7 @@ export interface LifeKlineChartProps {
   currentYear?: number
   initialSeriesKey?: LifeKlineKey
   fullLifeLoading?: boolean
-  onRequestFullLife?: () => void | Promise<void>
+  onRequestFullLife?: () => boolean | Promise<boolean>
   onSeriesChange?: (key: LifeKlineKey) => void
   onYearChange?: (year: number) => void
   className?: string
@@ -199,29 +200,29 @@ function canonicalSeriesKey(key: LifeKlineKey): CanonicalLifeKlineKey | null {
 
 function relativeState(value: number, locale: LifeKlineLocale) {
   if (locale === "zh") {
-    if (value >= 110) return "高光"
-    if (value >= 103) return "升温"
-    if (value <= 92) return "调整"
-    return "个人常态"
+    if (value >= 110) return "高活跃"
+    if (value >= 103) return "较活跃"
+    if (value <= 92) return "低活跃"
+    return "接近常态"
   }
-  if (value >= 110) return "High point"
-  if (value >= 103) return "Warming"
-  if (value <= 92) return "Adjustment"
-  return "Personal baseline"
+  if (value >= 110) return "High activity"
+  if (value >= 103) return "Above-baseline activity"
+  if (value <= 92) return "Low activity"
+  return "Near baseline"
 }
 
 function relativeSummary(value: number, locale: LifeKlineLocale) {
   const state = relativeState(value, locale)
   if (locale === "zh") {
-    if (state === "高光") return "相对个人常态明显升高，是这段窗口中值得重点关注的阶段。"
-    if (state === "升温") return "相对个人常态逐步升温，适合留意这一主题的变化。"
-    if (state === "调整") return "相对个人常态有所回落，更适合调整节奏与重新配置精力。"
-    return "接近个人长期常态，整体节奏较为平稳。"
+    if (state === "高活跃") return "这一主题出现的结构信号明显多于个人长期常态。"
+    if (state === "较活跃") return "这一主题出现的结构信号略多于个人长期常态。"
+    if (state === "低活跃") return "这一主题出现的结构信号少于个人长期常态。"
+    return "这一主题的结构信号密度接近个人长期常态。"
   }
-  if (state === "High point") return "Well above your personal baseline and a period worth watching closely."
-  if (state === "Warming") return "Rising above your personal baseline, with this theme becoming more active."
-  if (state === "Adjustment") return "Below your personal baseline, favoring recalibration and a steadier pace."
-  return "Close to your long-term personal baseline, with a relatively steady pace."
+  if (state === "High activity") return "This theme has substantially more structural signals than your long-term baseline."
+  if (state === "Above-baseline activity") return "This theme has somewhat more structural signals than your long-term baseline."
+  if (state === "Low activity") return "This theme has fewer structural signals than your long-term baseline."
+  return "This theme's structural-signal density is close to your long-term baseline."
 }
 
 function displaySeriesLabel(series: LifeKlineThemeSeries, locale: LifeKlineLocale) {
@@ -341,7 +342,7 @@ export function LifeKlineChart({
     return (
       <section className={cn("min-w-0 border-y border-border/60 py-7", className)} aria-label={locale === "zh" ? "人生 K 线" : "Life K-line"}>
         <h2 className="text-2xl font-semibold">{locale === "zh" ? "人生 K 线" : "Life K-line"}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "当前命盘尚无可展示的运势序列。" : "No life-series data is available for this chart."}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "当前命盘尚无可展示的主题活跃序列。" : "No theme-activity series is available for this chart."}</p>
       </section>
     )
   }
@@ -410,7 +411,7 @@ export function LifeKlineChart({
   const displayChartHeight = viewMode === "trend" ? 336 : CHART_HEIGHT
   const activeColor = activeSeries.color || "hsl(var(--primary))"
   const selectedDescription = selectedPoint
-    ? `${selectedPoint.year}, ${locale === "zh" ? "个人相对指数" : "personal relative index"}, ${locale === "zh" ? "开" : "open"} ${formatNumber(selectedPoint.open, locale)}, ${locale === "zh" ? "高" : "high"} ${formatNumber(selectedPoint.high, locale)}, ${locale === "zh" ? "低" : "low"} ${formatNumber(selectedPoint.low, locale)}, ${locale === "zh" ? "收" : "close"} ${formatNumber(selectedPoint.close, locale)}`
+    ? `${selectedPoint.year}, ${locale === "zh" ? "相对活跃指数" : "relative activity index"}, ${locale === "zh" ? "年初" : "open"} ${formatNumber(selectedPoint.open, locale)}, ${locale === "zh" ? "最高" : "high"} ${formatNumber(selectedPoint.high, locale)}, ${locale === "zh" ? "最低" : "low"} ${formatNumber(selectedPoint.low, locale)}, ${locale === "zh" ? "年末" : "close"} ${formatNumber(selectedPoint.close, locale)}`
     : ""
 
   function selectSeries(series: LifeKlineThemeSeries) {
@@ -436,8 +437,13 @@ export function LifeKlineChart({
     if (nextPoint) selectPoint(nextPoint)
   }
 
-  function selectWindowMode(fullLife: boolean) {
-    if (fullLife && !hasFullLifeData) void onRequestFullLife?.()
+  async function selectWindowMode(fullLife: boolean) {
+    if (fullLife && !hasFullLifeData) {
+      const loaded = await onRequestFullLife?.()
+      setShowFullLife(Boolean(loaded))
+      setHoveredYear(null)
+      return
+    }
     setShowFullLife(fullLife)
     setHoveredYear(null)
   }
@@ -474,13 +480,13 @@ export function LifeKlineChart({
       <header className="border-b border-border/60 px-4 py-5 sm:px-6 sm:py-6">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="kicker">{locale === "zh" ? "未来走势" : "YOUR TIMELINE"}</p>
+            <p className="kicker">{locale === "zh" ? "未来活跃节奏" : "YOUR ACTIVITY TIMELINE"}</p>
             <h2 id={titleId} className="mt-2 text-2xl font-semibold">{locale === "zh" ? "人生 K 线" : "Life K-line"}</h2>
-            <p id={descriptionId} className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{locale === "zh" ? "以你的长期常态为 100，展示每一年相对自己的升温、高光与调整；点开任一年可继续看十二个月。" : "Your long-term baseline is set to 100, showing when each year warms, peaks, or adjusts relative to you; open any year for its twelve-month story."}</p>
+            <p id={descriptionId} className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{locale === "zh" ? "以你的长期主题活跃常态为 100，展示每一年和每个月的结构信号密度变化。" : "Your long-term theme-activity baseline is set to 100, showing changes in structural-signal density by year and month."}</p>
           </div>
           <details className="shrink-0 text-xs text-muted-foreground">
             <summary className="min-h-11 cursor-pointer rounded-lg px-2 py-3 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "K 线怎么看" : "How to read it"}</summary>
-            <p className="max-w-xs break-words border-t border-border/55 pt-2 leading-5">{locale === "zh" ? "100 是你自己的长期常态，不是人生分数。每根年线汇总十二个月；高于 100 表示该主题相对升温，低于 100 表示进入调整节奏。" : "100 is your own long-term baseline, not a life score. Each candle summarizes twelve months; above 100 means this theme is warming, while below 100 marks an adjustment period."}</p>
+            <p className="max-w-xs break-words border-t border-border/55 pt-2 leading-5">{locale === "zh" ? "100 是你自己的长期活跃常态。每根年线汇总十二个月；高于 100 表示结构信号更密集，低于 100 表示结构信号更少。" : "100 is your own long-term activity baseline. Each candle summarizes twelve months; above 100 means denser structural signals, while below 100 means fewer signals."}</p>
           </details>
         </div>
 
@@ -516,8 +522,8 @@ export function LifeKlineChart({
           <section className="mb-5 min-w-0 rounded-2xl border border-border/60 bg-background/55 p-4 sm:p-5" aria-labelledby={`${id}-stages`}>
             <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="kicker">{locale === "zh" ? "未来三大阶段" : "THREE FUTURE WINDOWS"}</p>
-                <h3 id={`${id}-stages`} className="mt-2 text-xl font-semibold">{locale === "zh" ? "接下来最值得关注的时间点" : "The next moments to watch"}</h3>
+                <p className="kicker">{locale === "zh" ? "未来三个活跃窗口" : "THREE ACTIVITY WINDOWS"}</p>
+                <h3 id={`${id}-stages`} className="mt-2 text-xl font-semibold">{locale === "zh" ? "相对个人常态差异较大的阶段" : "Periods furthest from your activity baseline"}</h3>
               </div>
               <span className="text-xs text-muted-foreground">{locale === "zh" ? "全盘窗口 · 个人常态 100" : "All themes · baseline 100"}</span>
             </div>
@@ -551,8 +557,8 @@ export function LifeKlineChart({
 
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-1">
           <div className="inline-flex rounded-xl border border-border/60 bg-background p-1" role="group" aria-label={locale === "zh" ? "K 线时间范围" : "K-line time range"}>
-            <button type="button" aria-pressed={!showFullLife} onClick={() => selectWindowMode(false)} className={cn("min-h-10 rounded-lg px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", !showFullLife ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{locale === "zh" ? "十年窗口" : "10-year window"}</button>
-            {canShowFullLife ? <button type="button" aria-pressed={showFullLife} disabled={fullLifeLoading} onClick={() => selectWindowMode(true)} className={cn("min-h-10 rounded-lg px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50", showFullLife ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{fullLifeLoading ? (locale === "zh" ? "载入中…" : "Loading…") : (locale === "zh" ? "全人生" : "Full life")}</button> : null}
+            <button type="button" aria-pressed={!showFullLife} onClick={() => void selectWindowMode(false)} className={cn("min-h-10 rounded-lg px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", !showFullLife ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{locale === "zh" ? "十年窗口" : "10-year window"}</button>
+            {canShowFullLife ? <button type="button" aria-pressed={showFullLife} disabled={fullLifeLoading} onClick={() => void selectWindowMode(true)} className={cn("min-h-10 rounded-lg px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50", showFullLife ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{fullLifeLoading ? (locale === "zh" ? "载入中…" : "Loading…") : (locale === "zh" ? "全人生" : "Full life")}</button> : null}
           </div>
           <div className="inline-flex rounded-xl border border-border/60 bg-background p-1" role="group" aria-label={locale === "zh" ? "走势显示方式" : "Trend display mode"}>
             <button type="button" aria-pressed={viewMode === "trend"} onClick={() => setViewMode("trend")} className={cn("min-h-10 rounded-lg px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", viewMode === "trend" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{locale === "zh" ? "简明趋势" : "Simple trend"}</button>
@@ -568,13 +574,13 @@ export function LifeKlineChart({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 px-1 text-xs text-muted-foreground" aria-label={locale === "zh" ? "图例" : "Legend"}>
-          {viewMode === "trend" ? <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5" style={{ backgroundColor: activeColor }} />{locale === "zh" ? "年度趋势" : "Annual trend"}</span> : <>
+          {viewMode === "trend" ? <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5" style={{ backgroundColor: activeColor }} />{locale === "zh" ? "年度活跃趋势" : "Annual activity trend"}</span> : <>
             <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5" style={{ backgroundColor: activeColor }} />MA3</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 bg-[hsl(var(--imperial-metal))]" />MA5</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 bg-muted-foreground" />MA10</span>
           </>}
           <span className="inline-flex items-center gap-1.5"><span className="w-5 border-t border-dashed border-foreground/55" />{locale === "zh" ? "个人常态 100" : "Personal baseline 100"}</span>
-          {viewMode === "candles" ? <><span>{locale === "zh" ? "朱红 = 上行" : "Red = rising"}</span><span>{locale === "zh" ? "青绿 = 回落" : "Green = falling"}</span></> : null}
+          {viewMode === "candles" ? <><span>{locale === "zh" ? "朱红 = 年末活跃度高于年初" : "Red = year-end activity above year-open"}</span><span>{locale === "zh" ? "青绿 = 年末活跃度低于年初" : "Green = year-end activity below year-open"}</span></> : null}
         </div>
 
         <p id={interactionHintId} className="mt-3 px-1 text-xs text-muted-foreground">{locale === "zh" ? `点击或轻触${viewMode === "trend" ? "年份节点" : "年线"}查看详情；聚焦图表后可用左右方向键切换年份。` : `Click or tap a ${viewMode === "trend" ? "year point" : "candle"} for details. Focus the chart and use Left/Right Arrow to change year.`}</p>
@@ -622,7 +628,7 @@ export function LifeKlineChart({
                 const current = point.year === currentYear
                 return (
                   <g key={point.year} onPointerEnter={() => setHoveredYear(point.year)} onClick={() => selectPoint(point)} className="cursor-pointer">
-                    <title>{`${point.year}: ${locale === "zh" ? "个人相对指数" : "personal relative index"} ${formatNumber(point.close, locale)}`}</title>
+                    <title>{`${point.year}: ${locale === "zh" ? "相对活跃指数" : "relative activity index"} ${formatNumber(point.close, locale)}`}</title>
                     {selected ? <rect x={LEFT_GUTTER + index * slotWidth + 2} y={PRICE_TOP - 16} width={Math.max(1, slotWidth - 4)} height={PRICE_BOTTOM - PRICE_TOP + 42} rx="6" fill={activeColor} opacity="0.075" /> : null}
                     {current ? <><line x1={x} x2={x} y1={PRICE_TOP - 17} y2={PRICE_BOTTOM} stroke={activeColor} strokeWidth="1" strokeDasharray="4 4" opacity="0.85" /><text x={x} y={PRICE_TOP - 23} textAnchor="middle" fill={activeColor} fontSize="10" fontWeight="700">{locale === "zh" ? "当前" : "NOW"}</text></> : null}
                     <circle cx={x} cy={yAt(point.close)} r={selected ? 5 : 3.25} fill="hsl(var(--surface))" stroke={activeColor} strokeWidth={selected ? 3 : 2} />
@@ -647,15 +653,15 @@ export function LifeKlineChart({
                 const current = point.year === currentYear
                 return (
                   <g key={point.year} onPointerEnter={() => setHoveredYear(point.year)} onClick={() => selectPoint(point)} className="cursor-pointer">
-                    <title>{`${point.year}: ${locale === "zh" ? "个人相对指数" : "personal relative index"} O ${formatNumber(point.open, locale)} H ${formatNumber(point.high, locale)} L ${formatNumber(point.low, locale)} C ${formatNumber(point.close, locale)} V ${formatNumber(point.volume, locale)}`}</title>
+                    <title>{`${point.year}: ${locale === "zh" ? "相对活跃指数" : "relative activity index"} O ${formatNumber(point.open, locale)} H ${formatNumber(point.high, locale)} L ${formatNumber(point.low, locale)} C ${formatNumber(point.close, locale)} V ${formatNumber(point.volume, locale)}`}</title>
                     {selected ? <rect x={LEFT_GUTTER + index * slotWidth + 2} y={PRICE_TOP - 16} width={Math.max(1, slotWidth - 4)} height={VOLUME_BOTTOM - PRICE_TOP + 16} rx="6" fill={activeColor} opacity="0.075" /> : null}
                     {current ? <><line x1={x} x2={x} y1={PRICE_TOP - 17} y2={VOLUME_BOTTOM} stroke={activeColor} strokeWidth="1" strokeDasharray="4 4" opacity="0.85" /><text x={x} y={PRICE_TOP - 23} textAnchor="middle" fill={activeColor} fontSize="10" fontWeight="700">{locale === "zh" ? "当前" : "NOW"}</text></> : null}
                     <line x1={x} x2={x} y1={yAt(point.high)} y2={yAt(point.low)} stroke={candleColor} strokeWidth="1.5" />
                     <rect x={x - candleWidth / 2} y={bodyTop} width={candleWidth} height={bodyHeight} rx="1.5" fill={candleColor} stroke={candleColor} strokeWidth="1.5" />
                     <rect x={x - candleWidth / 2} y={volumeTop} width={candleWidth} height={Math.max(1, VOLUME_BOTTOM - volumeTop)} rx="1" fill={candleColor} opacity="0.28" />
                     {turning ? turning.kind === "peak"
-                      ? <><path d={`M ${x - 4} ${Math.max(PRICE_TOP - 4, yAt(turning.value) - 10)} L ${x + 4} ${Math.max(PRICE_TOP - 4, yAt(turning.value) - 10)} L ${x} ${Math.max(PRICE_TOP + 2, yAt(turning.value) - 3)} Z`} fill={activeColor} /><text x={x} y={Math.max(PRICE_TOP - 9, yAt(turning.value) - 14)} textAnchor="middle" fill={activeColor} fontSize="9">{locale === "zh" ? "峰" : "P"}</text></>
-                      : <><path d={`M ${x - 4} ${Math.min(PRICE_BOTTOM + 2, yAt(turning.value) + 10)} L ${x + 4} ${Math.min(PRICE_BOTTOM + 2, yAt(turning.value) + 10)} L ${x} ${Math.min(PRICE_BOTTOM - 4, yAt(turning.value) + 3)} Z`} fill="hsl(var(--imperial-metal))" /><text x={x} y={Math.min(PRICE_BOTTOM + 17, yAt(turning.value) + 21)} textAnchor="middle" fill="hsl(var(--imperial-metal))" fontSize="9">{locale === "zh" ? "谷" : "T"}</text></>
+                      ? <><path d={`M ${x - 4} ${Math.max(PRICE_TOP - 4, yAt(turning.value) - 10)} L ${x + 4} ${Math.max(PRICE_TOP - 4, yAt(turning.value) - 10)} L ${x} ${Math.max(PRICE_TOP + 2, yAt(turning.value) - 3)} Z`} fill={activeColor} /><text x={x} y={Math.max(PRICE_TOP - 9, yAt(turning.value) - 14)} textAnchor="middle" fill={activeColor} fontSize="9">{locale === "zh" ? "活跃高" : "HIGH"}</text></>
+                      : <><path d={`M ${x - 4} ${Math.min(PRICE_BOTTOM + 2, yAt(turning.value) + 10)} L ${x + 4} ${Math.min(PRICE_BOTTOM + 2, yAt(turning.value) + 10)} L ${x} ${Math.min(PRICE_BOTTOM - 4, yAt(turning.value) + 3)} Z`} fill="hsl(var(--imperial-metal))" /><text x={x} y={Math.min(PRICE_BOTTOM + 17, yAt(turning.value) + 21)} textAnchor="middle" fill="hsl(var(--imperial-metal))" fontSize="9">{locale === "zh" ? "活跃低" : "LOW"}</text></>
                       : null}
                     <text x={x} y={VOLUME_BOTTOM + 21} textAnchor="middle" fill={selected ? activeColor : "hsl(var(--muted-foreground))"} fontSize="10" fontWeight={selected ? "700" : "400"}>{point.year}</text>
                     <rect x={LEFT_GUTTER + index * slotWidth} y={PRICE_TOP - 24} width={slotWidth} height={VOLUME_BOTTOM - PRICE_TOP + 52} fill="transparent" />
@@ -679,14 +685,14 @@ export function LifeKlineChart({
             <div>
               <p className="kicker">{locale === "zh" ? "所选年份" : "SELECTED YEAR"}</p>
               <h3 id={`${id}-selected-year`} className="mt-2 text-2xl font-semibold tabular-nums">{selectedPoint.year} · {activeSeriesLabel}</h3>
-              <p className="mt-2 text-sm font-semibold text-primary">{relativeState(selectedPoint.close, locale)} · {locale === "zh" ? `相对个人常态 ${formatNumber(selectedPoint.close, locale)}` : `Personal baseline index ${formatNumber(selectedPoint.close, locale)}`}</p>
+              <p className="mt-2 text-sm font-semibold text-primary">{relativeState(selectedPoint.close, locale)} · {locale === "zh" ? `相对活跃指数 ${formatNumber(selectedPoint.close, locale)}` : `Relative activity index ${formatNumber(selectedPoint.close, locale)}`}</p>
             </div>
             <dl className="grid grid-cols-3 gap-x-5 gap-y-3 text-right text-sm sm:grid-cols-6">
               {([
-                [locale === "zh" ? "开局" : "O", selectedPoint.open],
-                [locale === "zh" ? "高点" : "H", selectedPoint.high],
-                [locale === "zh" ? "低点" : "L", selectedPoint.low],
-                [locale === "zh" ? "收尾" : "C", selectedPoint.close],
+                [locale === "zh" ? "年初活跃" : "Open activity", selectedPoint.open],
+                [locale === "zh" ? "最高活跃" : "Highest activity", selectedPoint.high],
+                [locale === "zh" ? "最低活跃" : "Lowest activity", selectedPoint.low],
+                [locale === "zh" ? "年末活跃" : "Close activity", selectedPoint.close],
                 ["MA5", selectedPoint.ma5],
                 [locale === "zh" ? "活跃" : "V", selectedPoint.volume],
               ] as Array<[string, number | null]>).map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold tabular-nums text-foreground">{value == null ? "—" : formatNumber(value, locale)}</dd></div>)}

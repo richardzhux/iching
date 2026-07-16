@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime
 from typing import Any, Mapping
 
 from iching.core.bazi_patterns import assess_patterns
@@ -17,6 +18,7 @@ from iching.core.consumer_claims import (
     compile_consumer_claims,
     project_consumer_claims,
 )
+from iching.core.metaphysics import build_metaphysics_chart
 
 
 def _chart(*texts: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -233,9 +235,7 @@ def test_ambiguous_canonical_result_never_falls_back_to_legacy_verdict() -> None
     authority["active_pattern_ids"] = []
     authority["ambiguous_pattern_ids"] = ["direct_officer"]
     canonical = next(
-        item
-        for item in authority["patterns"]
-        if item["pattern_id"] == "direct_officer"
+        item for item in authority["patterns"] if item["pattern_id"] == "direct_officer"
     )
     canonical["candidate"] = "unknown"
     canonical["status"] = "undetermined"
@@ -267,9 +267,7 @@ def test_multiple_active_canonical_patterns_are_not_reduced_by_sort_order() -> N
     changed = deepcopy(patterns)
     authority = changed["source_backed_authority"]["pattern_set"]
     second = next(
-        item
-        for item in authority["patterns"]
-        if item["pattern_id"] == "seven_killings"
+        item for item in authority["patterns"] if item["pattern_id"] == "seven_killings"
     )
     second["candidate"] = "true"
     second["status"] = "candidate"
@@ -514,7 +512,10 @@ def test_canonical_damage_and_rescue_keep_exact_provenance() -> None:
     lifecycle_claims = [
         claim for claim in claims if claim["classicalRole"] in {"damage", "rescue"}
     ]
-    assert {claim["classicalRole"] for claim in lifecycle_claims} == {"damage", "rescue"}
+    assert {claim["classicalRole"] for claim in lifecycle_claims} == {
+        "damage",
+        "rescue",
+    }
     assert all(claim["ruleIds"] and claim["sourceIds"] for claim in lifecycle_claims)
 
 
@@ -619,3 +620,25 @@ def test_compatibility_projection_comes_only_from_claims() -> None:
         for subject in projected["subjects"]
     )
     assert CONSUMER_CLAIMS_VERSION == "consumer-claims-2026.07-v1"
+
+
+def test_hero_provenance_binds_true_chart_facts_to_rules_and_sources() -> None:
+    chart = build_metaphysics_chart(
+        datetime(2004, 6, 26, 4, 33),
+        timezone_name="Asia/Shanghai",
+        gender="male",
+    )
+    hero = next(
+        claim for claim in chart["consumer"]["claims"] if claim["slot"] == "hero"
+    )
+
+    assert hero["provenanceBindings"]
+    assert {binding["ruleId"] for binding in hero["provenanceBindings"]} == set(
+        hero["ruleIds"]
+    )
+    for binding in hero["provenanceBindings"]:
+        assert binding["sourceIds"]
+        assert binding["factRefs"]
+        assert all(
+            fact.get("path") or fact.get("matchIds") for fact in binding["factRefs"]
+        )

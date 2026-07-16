@@ -12,9 +12,9 @@
   "config_id": "bazi-canonical-calendar-1-asia-shanghai-current",
   "engine": "canonical-calendar-1 (sxtwl 2.0.7 ephemeris)",
   "rules_version": "shensha-2026.07-v2.1",
-  "rules_registry_hash": "sha256:e59e91df098f6f556a4325863ffc99945ae75a708a1ef7952b3612b79941031f",
+  "rules_registry_hash": "sha256:f4c327d3ac5405abee1da87e587b8054062df05eb70e80593b5a8d5b3aa1db91",
   "pattern_bundle_id": "zzq-shen-canonical-v1",
-  "pattern_bundle_digest": "8c41b4f22b8461526651b364d95144a74036c9e9a8606f1088eb53c4d356a523",
+  "pattern_bundle_digest": "27a01e7fd9c87896259718252f107ad3b4ca95762bfb94d6580eb4e62483516d",
   "feature_catalog": [
     "bazi.shensha.ciguan",
     "bazi.shensha.dexiu",
@@ -1177,7 +1177,7 @@
     }
   },
   "consumer_features": {
-    "rules_version": "metaphysics-consumer-2026.07-v4",
+    "rules_version": "metaphysics-consumer-2026.07-v5",
     "weighted_unit": "minute",
     "method": "weighted_empirical_feature_incidence",
     "catalog": [
@@ -2109,5 +2109,5 @@
       "bazi.shensha.combination.xuetang_yima": 2943499.175965
     }
   },
-  "hash": "sha256:b2fbe397b54bb83caf6dda0d60f65dc37af4ba694fb88cd013cf155041280792"
+  "hash": "sha256:40c99469eb125eef8d62ab0610cbc8654cb5cbf088fb1113d2d9c85914ca2a08"
 }

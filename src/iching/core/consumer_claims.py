@@ -378,6 +378,68 @@ def _trace_ids(traces: Iterable[Mapping[str, Any]]) -> tuple[list[str], list[str
     )
 
 
+def _true_predicate_fact_refs(
+    predicate_trace: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Return only the chart facts that made a predicate branch true.
+
+    False siblings under ``any`` are deliberately excluded. This keeps the
+    consumer evidence trail causal instead of presenting the rule, source and
+    legacy evidence collections as if every member proved every other member.
+    """
+
+    trace = _mapping(predicate_trace)
+    if str(trace.get("truth", "")) != "true":
+        return []
+    children = [
+        _mapping(item)
+        for item in trace.get("children", ())
+        if isinstance(item, Mapping)
+    ]
+    if children:
+        return [
+            fact
+            for child in children
+            if str(child.get("truth", "")) == "true"
+            for fact in _true_predicate_fact_refs(child)
+        ]
+    details = _mapping(trace.get("details"))
+    path = str(details.get("path", ""))
+    matches = _unique_strings(details.get("matches", ()))
+    if not path and not matches:
+        return []
+    return [
+        {
+            "operator": str(trace.get("operator", "")),
+            **({"path": path} if path else {}),
+            **({"value": details.get("actual")} if "actual" in details else {}),
+            **({"matchIds": matches} if matches else {}),
+        }
+    ]
+
+
+def _provenance_bindings(
+    traces: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    bindings: list[dict[str, Any]] = []
+    for trace in traces:
+        rule_id = str(trace.get("rule_id", ""))
+        source_ids = _unique_strings(
+            (*trace.get("source_ids", ()), *trace.get("supporting_source_ids", ()))
+        )
+        fact_refs = _true_predicate_fact_refs(_mapping(trace.get("predicate_trace")))
+        if not rule_id or not source_ids or not fact_refs:
+            continue
+        bindings.append(
+            {
+                "ruleId": rule_id,
+                "sourceIds": source_ids,
+                "factRefs": fact_refs,
+            }
+        )
+    return bindings
+
+
 def _lifecycle_provenance(
     traces: Iterable[Mapping[str, Any]],
     *,
@@ -499,6 +561,7 @@ def _hero_claim(patterns: Mapping[str, Any]) -> dict[str, Any]:
     verdict_matches = _verdict_provenance_matches(primary, source_backed)
     traces = _canonical_verdict_traces(source_backed) if verdict_matches else []
     rule_ids, source_ids = _trace_ids(traces)
+    provenance_bindings = _provenance_bindings(traces)
     status = str(primary.get("status", "candidate"))
     title = str(primary.get("title", primary.get("name", "主导结构")))
     status_label = _PATTERN_STATUS_LABELS.get(status, status or "主导")
@@ -513,6 +576,7 @@ def _hero_claim(patterns: Mapping[str, Any]) -> dict[str, Any]:
         "evidenceIds": _unique_strings(primary.get("evidence_ids", ())),
         "ruleIds": rule_ids,
         "sourceIds": source_ids,
+        "provenanceBindings": provenance_bindings,
     }
 
 

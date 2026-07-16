@@ -38,15 +38,15 @@ FIXTURES = {
 }
 
 TASK4_SHADOW_PROJECTION_HASHES = {
-    "xue": (7973, "a82ef3d37d9063895368cb3224ccef4a0e5af9425d646e12060f3b6edd2aa8c6"),
+    "xue": (9571, "e64239d630044d1e35a608ac4a0feca478861cda6c4b954bb03adb9175d1ab90"),
     "anonymous": (
-        8350,
-        "2bc369faf0f47e0d0ad3ab23db2c81f663315c698d857e7a64570ef77236a088",
+        10003,
+        "87ea1d32abcafba1f342b2b5f89f670a2015d4554bd515d82f3d6f8810800c0b",
     ),
-    "jin": (7924, "bd55f2b0d5d5c3fe3e7835fcca9082073aad3ef128be70f5c6a47baaa18180ea"),
-    "xuan": (8265, "22df7b5f0eca3aaebbb87a90477f7718c0daa6e1c97729b945caf34762e1723b"),
-    "li": (7666, "2dd501636353d4299da12740599912bdd4d846d46ba4f0c7fe7f1cf445bc5be3"),
-    "fan": (8226, "d9cdea7371064997e348f9eebedc59d294797e909608ce21c155a0941a138b37"),
+    "jin": (9485, "11dafa97bbf34ea57a0880b1a9332034b913c3ee3030a7d359f307341ff70bca"),
+    "xuan": (9908, "cfbaed588f4c975eb9a9074db0bca1453e5c32c24780667598d814ed75f231dd"),
+    "li": (9182, "5bccaa767fd19fc0e90f1c3439cd97a33f4e2bc07402e7bc7d54b2ffb132c153"),
+    "fan": (9787, "3c1bbcdc57d73867d06288a36962613b31f1d9bd9b0d47d036bcadf86c15349c"),
 }
 
 TASK4_SHADOW_KEYS = (
@@ -241,11 +241,83 @@ def test_focused_shadow_diffs_use_closed_reasons(
     pillars, structure = _chart(*FIXTURES[fixture])
 
     shadow = assess_patterns(pillars, structure)["source_backed_shadow"]
-    reasons = set(shadow["diff"]["reasons"])
+    diff = shadow["diff"]
+    reasons = set(diff["reasons"])
+    comparisons = diff["pattern_comparisons"]
 
     assert required_reasons <= reasons
     assert reasons <= set(SHADOW_DIFF_REASONS)
     assert "unclassified" not in reasons
+    assert diff["compared_pattern_count"] == len(shadow["pattern_set"]["patterns"])
+    assert [item["pattern_id"] for item in comparisons] == [
+        item["pattern_id"] for item in shadow["pattern_set"]["patterns"]
+    ]
+    assert all(set(item["reasons"]) <= set(SHADOW_DIFF_REASONS) for item in comparisons)
+    assert all(item["reasons"] for item in comparisons if item["is_difference"])
+    assert all(not item["reasons"] for item in comparisons if not item["is_difference"])
+    assert diff["unclassified_count"] == 0
+
+
+def test_pattern_shadow_matching_uses_ids_not_legacy_list_order() -> None:
+    pillars, structure = _chart(*FIXTURES["anonymous"])
+    graph = build_bazi_fact_graph(pillars)
+    legacy = _assess_patterns_legacy(pillars, structure)
+    reordered = {
+        **legacy,
+        "ordinary": list(reversed(legacy["ordinary"])),
+        "special": list(reversed(legacy["special"])),
+    }
+
+    original = build_source_backed_shadow(pillars, legacy, graph)
+    changed = build_source_backed_shadow(pillars, reordered, graph)
+
+    assert changed["diff"] == original["diff"]
+    assert "legacy_list_order" not in changed["diff"]["reasons"]
+
+
+def test_missing_legacy_pattern_is_an_explicit_classified_defect() -> None:
+    pillars, structure = _chart(*FIXTURES["li"])
+    graph = build_bazi_fact_graph(pillars)
+    legacy = _assess_patterns_legacy(pillars, structure)
+    missing = {
+        **legacy,
+        "ordinary": [
+            item
+            for item in legacy["ordinary"]
+            if item["id"] != "bazi.pattern.ordinary.direct_officer"
+        ],
+    }
+
+    shadow = build_source_backed_shadow(pillars, missing, graph)
+    comparison = next(
+        item
+        for item in shadow["diff"]["pattern_comparisons"]
+        if item["pattern_id"] == "direct_officer"
+    )
+
+    assert comparison["legacy_status"] == "missing"
+    assert comparison["is_difference"] is True
+    assert "defect" in comparison["reasons"]
+    assert shadow["diff"]["unclassified_count"] == 0
+
+
+def test_threshold_fallback_is_used_only_when_no_structural_reason_applies() -> None:
+    pillars, structure = _chart(*FIXTURES["anonymous"])
+
+    shadow = assess_patterns(pillars, structure)["source_backed_shadow"]
+    comparison = next(
+        item
+        for item in shadow["diff"]["pattern_comparisons"]
+        if item["pattern_id"] == "month_robbery"
+    )
+
+    assert comparison == {
+        "pattern_id": "month_robbery",
+        "canonical_status": "rejected",
+        "legacy_status": "formed",
+        "is_difference": True,
+        "reasons": ["legacy_thresholds_shares"],
+    }
 
 
 def test_attestations_never_change_generic_canonical_result() -> None:
@@ -330,3 +402,11 @@ def test_unknown_hour_shadow_uses_candidate_world_envelope_not_noon() -> None:
     assert shadow["example_attestations"] == []
     assert generic["world_results"]
     assert generic["world_digest"] is None
+    assert shadow["diff"]["compared_pattern_count"] == len(
+        shadow["pattern_set"]["patterns"]
+    )
+    assert all(
+        item["is_difference"] and "scope_gap" in item["reasons"]
+        for item in shadow["diff"]["pattern_comparisons"]
+    )
+    assert shadow["diff"]["unclassified_count"] == 0

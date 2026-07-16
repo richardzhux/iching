@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useId, useState, type ReactNode } from "react"
+import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { ChevronRight, Share2 } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
@@ -210,6 +210,7 @@ export function BaziChartView(props: BaziChartViewProps) {
   const facts = chart.calendar_facts
   const currentYear = currentYearInTimeZone(chart.timezone)
   const dayun = chart.birth_profile.dayun
+  const periodRequestGeneration = useRef(0)
   const [periodCycles, setPeriodCycles] = useState(dayun.cycles)
   const [periodLoadingIndex, setPeriodLoadingIndex] = useState<number | null>(null)
   const [periodError, setPeriodError] = useState<string | null>(null)
@@ -227,21 +228,28 @@ export function BaziChartView(props: BaziChartViewProps) {
     return () => window.cancelAnimationFrame(frame)
   }, [])
   useEffect(() => {
+    periodRequestGeneration.current += 1
     const nextCurrent = dayun.cycles.find((cycle) => cycle.is_current) ?? dayun.cycles[0]
     setPeriodCycles(dayun.cycles)
     setSelectedCycleIndex(nextCurrent?.index ?? 0)
     setSelectedYear(dayun.current?.year?.year ?? nextCurrent?.years[0]?.year ?? currentYear)
     setSelectedMonthIndex(dayun.current?.month?.index ?? 0)
+    setPeriodLoadingIndex(null)
     setPeriodError(null)
+    return () => {
+      periodRequestGeneration.current += 1
+    }
   }, [chart.input_timestamp, currentYear, dayun])
   function changeDisplayMode(nextMode: DisplayMode) {
     setDisplayMode(nextMode)
     window.localStorage.setItem("iching:bazi-display-mode", nextMode)
   }
   async function selectCycle(cycle: DayunCycle) {
+    const requestGeneration = ++periodRequestGeneration.current
     setSelectedCycleIndex(cycle.index)
     setPeriodError(null)
     if (cycle.years.length || !chart.birth_profile.period_query) {
+      setPeriodLoadingIndex(null)
       setSelectedYear(cycle.years.find((year) => year.is_current)?.year ?? cycle.years[0]?.year ?? cycle.start_year)
       setSelectedMonthIndex(cycle.years.find((year) => year.is_current)?.months.find((month) => month.is_current)?.index ?? 0)
       return
@@ -249,13 +257,15 @@ export function BaziChartView(props: BaziChartViewProps) {
     setPeriodLoadingIndex(cycle.index)
     try {
       const loaded = await fetchMetaphysicsPeriod({ ...chart.birth_profile.period_query, cycle_index: cycle.index })
+      if (requestGeneration !== periodRequestGeneration.current) return
       setPeriodCycles((items) => items.map((item) => item.index === loaded.index ? loaded : item))
       setSelectedYear(loaded.years.find((year) => year.is_current)?.year ?? loaded.years[0]?.year ?? loaded.start_year)
       setSelectedMonthIndex(loaded.years.find((year) => year.is_current)?.months.find((month) => month.is_current)?.index ?? 0)
     } catch {
+      if (requestGeneration !== periodRequestGeneration.current) return
       setPeriodError(locale === "zh" ? "这一段运限暂时未载入，请重试。" : "This period could not be loaded. Try again.")
     } finally {
-      setPeriodLoadingIndex(null)
+      if (requestGeneration === periodRequestGeneration.current) setPeriodLoadingIndex(null)
     }
   }
   const calculationRule = [
@@ -417,14 +427,31 @@ function BaziConsumerResult({
   const achievementCardId = `bazi-achievements-${useId().replaceAll(":", "")}`
   const klineCardId = `bazi-kline-${useId().replaceAll(":", "")}`
   const consumer = chart.consumer!
+  const fullLifeRequestGeneration = useRef(0)
   const [lifeKline, setLifeKline] = useState(consumer.life_kline)
   const [fullLifeLoading, setFullLifeLoading] = useState(false)
   const [fullLifeError, setFullLifeError] = useState<string | null>(null)
   useEffect(() => {
+    fullLifeRequestGeneration.current += 1
     setLifeKline(consumer.life_kline)
+    setFullLifeLoading(false)
     setFullLifeError(null)
-  }, [consumer.life_kline])
+    return () => {
+      fullLifeRequestGeneration.current += 1
+    }
+  }, [chart.input_timestamp, consumer.life_kline])
   const profile = buildConsumerIdentityProfile(chart, lifeKline, currentYear, locale)
+  const klineChartIdentity = [
+    chart.input_timestamp,
+    chart.calculation_timestamp,
+    chart.timezone,
+    chart.day_boundary,
+    chart.calculation_mode,
+    chart.birth_profile.gender ?? "",
+    chart.birth_profile.dayun.direction ?? "",
+    chart.birth_profile.dayun.algorithm ?? "",
+    consumer.version,
+  ].join("|")
   const achievementStates = new Set(["发力", "有力", "可见", "受制"])
   const achievements = consumer.achievements
     .filter((item) => achievementStates.has(item.state) && item.member_ids.length > 1) as MetaphysicsAchievement[]
@@ -442,17 +469,22 @@ function BaziConsumerResult({
 
   async function loadFullLifeKline() {
     const request = chart.birth_profile.period_query
-    if (!request || fullLifeLoading) return
+    if (!request || fullLifeLoading) return false
+    const requestGeneration = ++fullLifeRequestGeneration.current
     setFullLifeLoading(true)
     setFullLifeError(null)
     try {
       const expanded = await calculateMetaphysicsChart({ ...request, include_period_details: true, period_cycle_index: null })
+      if (requestGeneration !== fullLifeRequestGeneration.current) return false
       if (!expanded.consumer?.life_kline.series.some((series) => series.points.length > 10)) throw new Error(locale === "zh" ? "完整人生走势暂时未生成。" : "The full-life series is not available yet.")
       setLifeKline(expanded.consumer.life_kline)
+      return true
     } catch (cause) {
+      if (requestGeneration !== fullLifeRequestGeneration.current) return false
       setFullLifeError((cause as Error).message)
+      return false
     } finally {
-      setFullLifeLoading(false)
+      if (requestGeneration === fullLifeRequestGeneration.current) setFullLifeLoading(false)
     }
   }
 
@@ -478,7 +510,7 @@ function BaziConsumerResult({
     </div> : null}
 
     {tab === "kline" ? <div className="space-y-8">
-      <LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYear} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} />
+      <LifeKlineChart key={klineChartIdentity} lifeKline={lifeKline} locale={locale} currentYear={currentYear} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} />
       {fullLifeError ? <p role="alert" className="text-sm text-destructive">{fullLifeError}</p> : null}
       <section className="rounded-3xl border border-border/60 bg-surface p-5 sm:p-7"><h2 className="text-xl font-semibold">{locale === "zh" ? "点开阶段看细节" : "Open a period"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "选择大运、流年和流月，查看这一阶段新增、联动和冲突的具体结构。" : "Choose a cycle, year, and month to inspect its activated structures."}</p><div className="mt-5"><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></div></section>
     </div> : null}
@@ -681,23 +713,31 @@ function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale
   const strengthLabels: Record<string, string> = { effective: "有力", ordinary: "可用", weak: "偏弱", none: "未定" }
   const allEvidence = (chart.structure.patterns?.evidence ?? []) as Array<{ id?: string; kind?: string; detail?: string }>
   const evidence = primary ? allEvidence.filter((item) => item.id && primary.evidence_ids?.includes(item.id)) : []
-  const heroRuleIds = uniqueNonEmpty(hero ? hero.ruleIds : [])
-  const heroSourceIds = uniqueNonEmpty(hero ? hero.sourceIds : [])
+  const heroBindings = (hero?.provenanceBindings ?? []).filter((binding) => binding.ruleId && binding.sourceIds.length && binding.factRefs.length)
+  const heroRuleIds = uniqueNonEmpty(heroBindings.map((binding) => binding.ruleId))
+  const heroSourceIds = uniqueNonEmpty(heroBindings.flatMap((binding) => binding.sourceIds))
+  const heroFacts = uniqueNonEmpty(heroBindings.flatMap((binding) => binding.factRefs.map((fact) => {
+    if (fact.path === "day_master.stem" && fact.value != null) return `${locale === "zh" ? "日主" : "Day Master"}${String(fact.value)}`
+    if (fact.path === "month_command.branch" && fact.value != null) return `${locale === "zh" ? "月令" : "Month command"}${String(fact.value)}`
+    if (fact.path && fact.value != null) return `${fact.path} = ${String(fact.value)}`
+    if (fact.matchIds?.length) return locale === "zh" ? `${fact.matchIds.length} 项原局条件命中` : `${fact.matchIds.length} chart conditions matched`
+    return ""
+  })))
   const patternBundleId = chart.rule_versions?.pattern_bundle
-  const hasCanonicalSourceChain = Boolean(hero && patternBundleId && heroRuleIds.length && heroSourceIds.length)
+  const hasCanonicalSourceChain = Boolean(hero && patternBundleId && heroFacts.length && heroRuleIds.length && heroSourceIds.length)
   const formationClaim = claims.find((claim) => claim.slot === "signature" && claim.classicalRole === "formation_path" && claim.ruleIds.length && claim.sourceIds.length)
   const damageClaim = claims.find((claim) => claim.slot === "signature" && claim.classicalRole === "damage" && claim.ruleIds.length && claim.sourceIds.length)
   const rescueClaim = claims.find((claim) => claim.slot === "signature" && claim.classicalRole === "rescue" && claim.ruleIds.length && claim.sourceIds.length)
   const decisionSteps = hasCanonicalSourceChain && hero
     ? (locale === "zh"
       ? [
-        { label: "主导结构", title: hero.title, detail: hero.summary },
-        { label: "命中规则", title: formationClaim?.title ?? `${heroRuleIds.length} 条规则共同确认`, detail: formationClaim?.summary ?? "候选、成格、制约与救应按同一套古籍规则核验。" },
+        { label: "原局事实", title: `${heroFacts.length} 条命盘事实`, detail: heroFacts.slice(0, 3).join("；") },
+        { label: "命中规则", title: `${heroRuleIds.length} 条规则逐项核验`, detail: "这里只展示真正令规则成立的原局条件；未命中的旁支不会进入判断链。" },
         { label: "已核验命题", title: `${heroSourceIds.length} 条古籍命题`, detail: "展开下方古籍依据，可查看对应规则、命题与影印底本定位。" },
       ]
       : [
-        { label: "Dominant structure", title: hero.title, detail: hero.summary },
-        { label: "Matched rules", title: formationClaim?.title ?? `${heroRuleIds.length} verified rules`, detail: formationClaim?.summary ?? "Candidate, formation, constraint, and rescue are checked under one source-backed rule set." },
+        { label: "Chart facts", title: `${heroFacts.length} matched chart facts`, detail: heroFacts.slice(0, 3).join("; ") },
+        { label: "Matched rules", title: `${heroRuleIds.length} rules checked these facts`, detail: "Only the chart conditions that actually made a rule true enter this decision chain." },
         { label: "Verified propositions", title: `${heroSourceIds.length} classical propositions`, detail: "Open the source evidence below to inspect the rules, propositions, and scan witnesses." },
       ])
     : []
@@ -723,7 +763,7 @@ function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale
         {!hero && primary ? <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{localizedValue(primary.status, PATTERN_STATUS_LABELS, locale)}</span> : null}
       </div>
       {displaySummary ? <p className="mt-3 text-sm leading-7 text-muted-foreground">{displaySummary}</p> : null}
-      {decisionSteps.length ? <ol className="mt-5 grid min-w-0 gap-2 lg:grid-cols-3" aria-label={locale === "zh" ? "格局判断链" : "Pattern decision chain"}>
+      {decisionSteps.length ? <ol className="mt-5 grid min-w-0 gap-2 lg:grid-cols-3" aria-label={locale === "zh" ? "原局事实到古籍影印的判断链" : "Chart-fact to scanned-source decision chain"}>
         {decisionSteps.map((step, index) => (
           <li key={step.label} className="relative min-w-0 rounded-xl border border-border/55 bg-surface p-4">
             <p className="text-[0.68rem] font-semibold tracking-[0.12em] text-primary">{String(index + 1).padStart(2, "0")} · {step.label}</p>

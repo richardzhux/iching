@@ -80,6 +80,32 @@ def test_metaphysics_chart_endpoint() -> None:
     }
 
 
+def test_metaphysics_period_endpoint_returns_typed_activity_cycle() -> None:
+    response = client.post(
+        "/api/tools/metaphysics/periods",
+        json={
+            "timestamp": "2004-06-26T04:30:00",
+            "timezone": "Asia/Shanghai",
+            "gender": "male",
+            "day_boundary": "forward",
+            "cycle_index": 2,
+        },
+    )
+
+    assert response.status_code == 200
+    cycle = response.json()["cycle"]
+    assert cycle["index"] == 2
+    assert cycle["years"] and cycle["years"][0]["months"]
+    activations = [
+        activation
+        for items in cycle["theme_activations"].values()
+        for activation in items
+    ]
+    assert activations
+    assert all(activation["role"] == "activity" for activation in activations)
+    assert all(activation["activity"] >= 0 for activation in activations)
+
+
 def test_pattern_rule_endpoint_returns_compact_verified_source_summary() -> None:
     registry = load_packaged_shen_registry()
     rule = registry.rules[0]

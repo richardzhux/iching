@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from math import sqrt, tanh
+from math import tanh
 from typing import Any, Iterable, Mapping
 
 from iching.core.consumer_claims import (
@@ -10,7 +10,7 @@ from iching.core.consumer_claims import (
 )
 
 
-CONSUMER_RULES_VERSION = "metaphysics-consumer-2026.07-v4"
+CONSUMER_RULES_VERSION = "metaphysics-consumer-2026.07-v5"
 
 THEME_ORDER = ("career", "wealth", "relationship", "rhythm")
 THEME_LABELS = {
@@ -32,15 +32,12 @@ THEME_COLORS = {
     "rhythm": "#059669",
 }
 
-_PERIOD_ROLE_WEIGHTS = {
-    "formation": 8.0,
-    "rescue": 7.0,
-    "support": 4.5,
-    "damage": -8.0,
-    "conflict": -6.0,
-    "neutral": 0.0,
+_SHENSHA_STATE_IDS = {
+    "发力": "activated",
+    "有力": "supported",
+    "可见": "visible",
+    "受制": "constrained",
 }
-_SHENSHA_STATE_IDS = {"发力": "activated", "有力": "supported", "可见": "visible", "受制": "constrained"}
 _LIFECYCLE_TRANSITIONS = {
     "formation": (
         frozenset(("inactive", "superseded", "undetermined")),
@@ -57,10 +54,6 @@ _LIFECYCLE_TRANSITIONS = {
 }
 
 
-def _clamp(value: float, minimum: float = 0, maximum: float = 100) -> float:
-    return max(minimum, min(maximum, value))
-
-
 def consumer_feature_records(
     patterns: Mapping[str, Any] | None,
     shensha_effects: Mapping[str, Any] | None,
@@ -70,27 +63,33 @@ def consumer_feature_records(
     pattern = patterns or {}
     primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
     if isinstance(primary, Mapping) and primary.get("id"):
-        records.append({
-            "id": str(primary["id"]),
-            "kind": "pattern",
-            "title": str(primary.get("title", primary.get("name", "主导格局"))),
-        })
+        records.append(
+            {
+                "id": str(primary["id"]),
+                "kind": "pattern",
+                "title": str(primary.get("title", primary.get("name", "主导格局"))),
+            }
+        )
     effects = shensha_effects or {}
     for hit in effects.get("hits", ()):
         state = str(hit.get("state", "可见"))
         state_id = _SHENSHA_STATE_IDS.get(state, "visible")
-        records.append({
-            "id": f"bazi.consumer.shensha.{hit.get('rule_id', 'unknown')}.state.{state_id}",
-            "kind": "shensha_state",
-            "title": f"{hit.get('name', '神煞')}·{state}",
-        })
+        records.append(
+            {
+                "id": f"bazi.consumer.shensha.{hit.get('rule_id', 'unknown')}.state.{state_id}",
+                "kind": "shensha_state",
+                "title": f"{hit.get('name', '神煞')}·{state}",
+            }
+        )
     for combination in effects.get("combinations", ()):
         if combination.get("id"):
-            records.append({
-                "id": str(combination["id"]),
-                "kind": "combination",
-                "title": str(combination.get("title", "结构组合")),
-            })
+            records.append(
+                {
+                    "id": str(combination["id"]),
+                    "kind": "combination",
+                    "title": str(combination.get("title", "结构组合")),
+                }
+            )
     unique: dict[str, dict[str, str]] = {}
     for record in records:
         unique.setdefault(record["id"], record)
@@ -103,17 +102,20 @@ def _driver_from_event(event: Mapping[str, Any]) -> dict[str, Any] | None:
     # labels. They are admitted only through the exact provenance matcher below.
     if role in {"formation", "damage", "rescue"}:
         return None
-    raw_delta = event.get("delta", _PERIOD_ROLE_WEIGHTS.get(role, 0.0))
+    raw_activity = event.get("activity", 1.0)
     try:
-        delta = float(raw_delta)
+        activity = max(0.0, float(raw_activity))
     except (TypeError, ValueError):
-        delta = float(_PERIOD_ROLE_WEIGHTS.get(role, 0.0))
+        activity = 1.0
     driver = {
-        "id": str(event.get("id", f"bazi.period.{role}.{event.get('label', 'change')}")),
+        "id": str(
+            event.get("id", f"bazi.period.{role}.{event.get('label', 'change')}")
+        ),
         "layer": str(event.get("layer", "period")),
-        "role": role,
+        "role": "activity",
         "label": str(event.get("label", "阶段变化")),
-        "delta": round(delta, 2),
+        "delta": 0.0,
+        "activity": round(activity, 2),
     }
     evidence_ids = [str(item) for item in event.get("evidenceIds", ()) if item]
     rule_ids = [str(item) for item in event.get("ruleIds", ()) if item]
@@ -128,7 +130,11 @@ def _pattern_driver_context(
     claims: Iterable[Mapping[str, Any]],
 ) -> dict[str, list[dict[str, Any]]]:
     result = {key: [] for key in THEME_ORDER}
-    role_weights = {"formation_path": "formation", "damage": "damage", "rescue": "rescue"}
+    role_weights = {
+        "formation_path": "formation",
+        "damage": "damage",
+        "rescue": "rescue",
+    }
     for claim in sorted(claims, key=lambda item: str(item.get("id", ""))):
         classical_role = str(claim.get("classicalRole", ""))
         role = role_weights.get(classical_role)
@@ -159,31 +165,37 @@ def _pattern_driver_context(
                 or not set(binding_source_ids).issubset(source_ids)
             ):
                 continue
-            provenance.append({
-                "pathId": binding_path_id,
-                "ruleId": binding_rule_id,
-                "sourceIds": binding_source_ids,
-            })
+            provenance.append(
+                {
+                    "pathId": binding_path_id,
+                    "ruleId": binding_rule_id,
+                    "sourceIds": binding_source_ids,
+                }
+            )
         source_backed = bool(pattern_id and provenance)
         explicit_theme = str(claim.get("theme", ""))
         themes = [explicit_theme] if explicit_theme in result else list(THEME_ORDER)
         for theme in themes:
-            result[theme].append({
-                "id": str(claim.get("id", f"bazi.claim.{role}")),
-                "layer": "natal",
-                "role": role,
-                "label": str(claim.get("title", "主导结构")),
-                # Natal facts define the personal baseline. Only an actual
-                # period match receives a signed delta below.
-                "delta": 0.0,
-                "evidenceIds": [str(item) for item in claim.get("evidenceIds", ()) if item],
-                "ruleIds": rule_ids,
-                "sourceIds": source_ids,
-                "patternId": pattern_id,
-                "pathIds": path_ids,
-                "lifecycleProvenance": provenance,
-                "_sourceBackedLifecycle": source_backed,
-            })
+            result[theme].append(
+                {
+                    "id": str(claim.get("id", f"bazi.claim.{role}")),
+                    "layer": "natal",
+                    "role": role,
+                    "label": str(claim.get("title", "主导结构")),
+                    # Natal facts define the personal baseline. Only an actual
+                    # period match receives a signed delta below.
+                    "delta": 0.0,
+                    "evidenceIds": [
+                        str(item) for item in claim.get("evidenceIds", ()) if item
+                    ],
+                    "ruleIds": rule_ids,
+                    "sourceIds": source_ids,
+                    "patternId": pattern_id,
+                    "pathIds": path_ids,
+                    "lifecycleProvenance": provenance,
+                    "_sourceBackedLifecycle": source_backed,
+                }
+            )
     return result
 
 
@@ -250,25 +262,28 @@ def _matched_pattern_drivers(
                 or matched_source_ids != event_source_ids
             ):
                 continue
-            matches.append({
-                **dict(driver),
-                "id": f"{driver.get('id', 'bazi.claim')}.{event.get('id', event.get('layer', 'period'))}",
-                "layer": str(event.get("layer", "period")),
-                "label": f"{event.get('label', '运限变化')}呼应{driver.get('label', '原局结构')}",
-                "delta": _PERIOD_ROLE_WEIGHTS.get(role, 0.0),
-                "lifecycle": {
-                    "before": before,
-                    "after": after,
-                    "patternId": event_pattern_id,
-                    "pathId": event_path_id,
-                    "ruleIds": sorted(event_rule_ids),
-                    "sourceIds": sorted(event_source_ids),
-                },
-            })
+            matches.append(
+                {
+                    **dict(driver),
+                    "id": f"{driver.get('id', 'bazi.claim')}.{event.get('id', event.get('layer', 'period'))}",
+                    "layer": str(event.get("layer", "period")),
+                    "label": f"{event.get('label', '运限变化')}呼应{driver.get('label', '原局结构')}",
+                    "delta": 0.0,
+                    "activity": 1.0,
+                    "lifecycle": {
+                        "before": before,
+                        "after": after,
+                        "patternId": event_pattern_id,
+                        "pathId": event_path_id,
+                        "ruleIds": sorted(event_rule_ids),
+                        "sourceIds": sorted(event_source_ids),
+                    },
+                }
+            )
     return matches
 
 
-def _event_delta(
+def _event_activity(
     events: Iterable[Mapping[str, Any]],
     pattern_drivers: Iterable[Mapping[str, Any]] = (),
 ) -> tuple[float, list[dict[str, Any]], float]:
@@ -281,31 +296,34 @@ def _event_delta(
         ),
         *_matched_pattern_drivers(event_list, pattern_drivers),
     ]
-    positive = 0.0
-    negative = 0.0
+    density = 0.0
     unique: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
     for driver in drivers:
-        identity = (str(driver.get("layer", "period")), str(driver.get("role", "neutral")), str(driver.get("label", "阶段变化")))
+        identity = (
+            str(driver.get("layer", "period")),
+            str(driver.get("role", "neutral")),
+            str(driver.get("label", "阶段变化")),
+        )
         if identity in seen:
             continue
         seen.add(identity)
         unique.append(driver)
-        weight = float(driver.get("delta", 0) or 0)
-        if weight >= 0:
-            positive += weight
-        else:
-            negative += abs(weight)
+        density += max(0.0, float(driver.get("activity", 1) or 0))
 
-    # Signed lifecycle signals use diminishing returns. Neutral Ten-God and
-    # ShenSha events contribute to volume only; they never become hidden points.
-    delta = sqrt(positive) * 2.8 - sqrt(negative) * 3.0
-    intensity = len(seen) * 4 + sqrt(positive + negative) * 3
+    # Every observed Ten-God, ShenSha, or relation is an unsigned unit of
+    # theme activity. Conflict and non-conflict relations are both structural
+    # participation; neither is converted into quality or direction here.
+    intensity = density
     ordered = sorted(
         unique,
-        key=lambda item: (-abs(float(item.get("delta", 0) or 0)), str(item.get("layer", "")), str(item.get("label", ""))),
+        key=lambda item: (
+            -float(item.get("activity", 1) or 0),
+            str(item.get("layer", "")),
+            str(item.get("label", "")),
+        ),
     )
-    return round(delta, 2), ordered[:5], round(intensity, 2)
+    return round(density, 2), ordered[:5], round(intensity, 2)
 
 
 def build_life_kline(
@@ -344,95 +362,142 @@ def build_life_kline(
     baseline_series: dict[str, dict[str, float]] = {}
     for key in THEME_ORDER:
         label = THEME_LABELS[key]
-        natal = 50.0
         points: list[dict[str, Any]] = []
         all_raw_months: list[float] = []
         for cycle in expanded_cycles:
             activations = cycle.get("theme_activations", {})
             profile_label = THEME_PROFILE_LABELS[key]
             cycle_theme = list(activations.get(profile_label, ()))
-            cycle_delta, cycle_drivers, cycle_intensity = _event_delta(cycle_theme, pattern_context[key])
-            for year in sorted(cycle.get("years", ()), key=lambda item: int(item.get("year", 0) or 0)):
+            cycle_activity, cycle_drivers, cycle_intensity = _event_activity(
+                cycle_theme, pattern_context[key]
+            )
+            for year in sorted(
+                cycle.get("years", ()), key=lambda item: int(item.get("year", 0) or 0)
+            ):
                 year_events_by_theme = year.get("theme_activations", {})
                 year_events = list(year_events_by_theme.get(profile_label, ()))
-                year_delta, year_drivers, year_intensity = _event_delta(year_events, pattern_context[key])
+                year_activity, year_drivers, year_intensity = _event_activity(
+                    year_events, pattern_context[key]
+                )
                 months = []
                 raw_month_values = []
-                for month in sorted(year.get("months", ()), key=lambda item: int(item.get("index", 0) or 0)):
+                for month in sorted(
+                    year.get("months", ()),
+                    key=lambda item: int(item.get("index", 0) or 0),
+                ):
                     month_by_theme = month.get("theme_activations", {})
                     month_events = list(month_by_theme.get(profile_label, ()))
-                    month_delta, month_drivers, month_intensity = _event_delta(month_events, pattern_context[key])
-                    raw_value = round(_clamp(natal + cycle_delta * 0.55 + year_delta + month_delta * 1.4, 8, 92), 3)
+                    month_activity, month_drivers, month_intensity = _event_activity(
+                        month_events, pattern_context[key]
+                    )
+                    # The raw value is a transparent stacked event count with
+                    # a one-unit floor for zero-activity months. Each layer is
+                    # counted equally; normalization later compares only with
+                    # this chart's own full-horizon monthly mean.
+                    raw_value = round(
+                        1.0 + cycle_activity + year_activity + month_activity,
+                        3,
+                    )
                     raw_month_values.append(raw_value)
                     all_raw_months.append(raw_value)
                     named_drivers = []
                     for driver in [*cycle_drivers, *year_drivers, *month_drivers]:
-                        identity = (driver.get("id"), driver.get("layer"), driver.get("label"))
-                        if any((item.get("id"), item.get("layer"), item.get("label")) == identity for item in named_drivers):
+                        identity = (
+                            driver.get("id"),
+                            driver.get("layer"),
+                            driver.get("label"),
+                        )
+                        if any(
+                            (item.get("id"), item.get("layer"), item.get("label"))
+                            == identity
+                            for item in named_drivers
+                        ):
                             continue
-                        named_drivers.append({
-                            key: value
-                            for key, value in driver.items()
-                            if not key.startswith("_")
-                            and value not in ([], (), None, "")
-                        })
+                        named_drivers.append(
+                            {
+                                key: value
+                                for key, value in driver.items()
+                                if not key.startswith("_")
+                                and value not in ([], (), None, "")
+                            }
+                        )
                     named_drivers.sort(
                         key=lambda driver: (
-                            -abs(float(driver.get("delta", 0) or 0)),
+                            -float(driver.get("activity", 1) or 0),
                             str(driver.get("layer", "")),
                             str(driver.get("label", "")),
                         )
                     )
-                    months.append({
-                        "index": int(month.get("index", len(months))),
-                        "label": str(month.get("label", f"{len(months) + 1}月")),
-                        "ganzhi": str(month.get("ganzhi", "")),
-                        "raw_value": raw_value,
-                        "drivers": named_drivers[:6],
-                        "intensity": round(cycle_intensity + year_intensity + month_intensity, 1),
-                    })
+                    months.append(
+                        {
+                            "index": int(month.get("index", len(months))),
+                            "label": str(month.get("label", f"{len(months) + 1}月")),
+                            "ganzhi": str(month.get("ganzhi", "")),
+                            "raw_value": raw_value,
+                            "drivers": named_drivers[:6],
+                            "intensity": round(
+                                cycle_intensity + year_intensity + month_intensity, 1
+                            ),
+                        }
+                    )
                 if not raw_month_values:
                     continue
                 year_number = int(year.get("year", 0) or 0)
                 all_years.add(year_number)
                 strongest_month_drivers = sorted(
-                    (
-                        driver
-                        for month in months
-                        for driver in month.get("drivers", ())
-                    ),
-                    key=lambda item: -abs(float(item.get("delta", 0) or 0)),
+                    (driver for month in months for driver in month.get("drivers", ())),
+                    key=lambda item: -float(item.get("activity", 1) or 0),
                 )
                 point_drivers: list[dict[str, Any]] = []
                 for driver in [*cycle_drivers, *year_drivers, *strongest_month_drivers]:
-                    identity = (driver.get("id"), driver.get("layer"), driver.get("label"))
-                    if any((item.get("id"), item.get("layer"), item.get("label")) == identity for item in point_drivers):
+                    identity = (
+                        driver.get("id"),
+                        driver.get("layer"),
+                        driver.get("label"),
+                    )
+                    if any(
+                        (item.get("id"), item.get("layer"), item.get("label"))
+                        == identity
+                        for item in point_drivers
+                    ):
                         continue
-                    point_drivers.append({
-                        key: value
-                        for key, value in driver.items()
-                        if not key.startswith("_")
-                        and value not in ([], (), None, "")
-                    })
-                points.append({
-                    "year": year_number,
-                    "is_current": bool(year.get("is_current")),
-                    "raw_open": raw_month_values[0],
-                    "raw_close": raw_month_values[-1],
-                    "raw_high": max(raw_month_values),
-                    "raw_low": min(raw_month_values),
-                    "volume": round(year_intensity + sum(float(item["intensity"]) for item in months), 1),
-                    "ma3": None,
-                    "ma5": None,
-                    "ma10": None,
-                    "drivers": point_drivers[:5],
-                    "months": months,
-                })
-        baseline_raw = sum(all_raw_months) / len(all_raw_months) if all_raw_months else natal
+                    point_drivers.append(
+                        {
+                            key: value
+                            for key, value in driver.items()
+                            if not key.startswith("_")
+                            and value not in ([], (), None, "")
+                        }
+                    )
+                points.append(
+                    {
+                        "year": year_number,
+                        "is_current": bool(year.get("is_current")),
+                        "raw_open": raw_month_values[0],
+                        "raw_close": raw_month_values[-1],
+                        "raw_high": max(raw_month_values),
+                        "raw_low": min(raw_month_values),
+                        "volume": round(
+                            year_intensity
+                            + sum(float(item["intensity"]) for item in months),
+                            1,
+                        ),
+                        "ma3": None,
+                        "ma5": None,
+                        "ma10": None,
+                        "drivers": point_drivers[:5],
+                        "months": months,
+                    }
+                )
+        baseline_raw = (
+            sum(all_raw_months) / len(all_raw_months) if all_raw_months else 1.0
+        )
         baseline_series[key] = {"raw_value": round(baseline_raw, 6)}
+
         def normalize(value: float) -> float:
             raw_distance = (value / baseline_raw - 1) * 100
             return round(100 + 35 * tanh(raw_distance / 35), 1)
+
         for point in points:
             point["open"] = normalize(float(point.pop("raw_open")))
             point["close"] = normalize(float(point.pop("raw_close")))
@@ -447,11 +512,19 @@ def build_life_kline(
         for point in points:
             closes.append(float(point["close"]))
             for window in (3, 5, 10):
-                point[f"ma{window}"] = round(sum(closes[-window:]) / window, 1) if len(closes) >= window else None
-        series.append({"key": key, "label": label, "color": THEME_COLORS[key], "points": points})
+                point[f"ma{window}"] = (
+                    round(sum(closes[-window:]) / window, 1)
+                    if len(closes) >= window
+                    else None
+                )
+        series.append(
+            {"key": key, "label": label, "color": THEME_COLORS[key], "points": points}
+        )
 
     years = sorted(year for year in all_years if year)
-    default_cycle = next((cycle for cycle in expanded_cycles if cycle.get("is_current")), None)
+    default_cycle = next(
+        (cycle for cycle in expanded_cycles if cycle.get("is_current")), None
+    )
     if default_cycle is None and expanded_cycles:
         default_cycle = expanded_cycles[0]
     current_year = next(
@@ -477,46 +550,37 @@ def build_life_kline(
                 continue
             high_distance = abs(float(point["high"]) - 100)
             low_distance = abs(float(point["low"]) - 100)
-            relative_index = float(point["high"]) if high_distance >= low_distance else float(point["low"])
+            relative_index = (
+                float(point["high"])
+                if high_distance >= low_distance
+                else float(point["low"])
+            )
             target_month = (
                 max(point["months"], key=lambda month: float(month["value"]))
                 if high_distance >= low_distance
                 else min(point["months"], key=lambda month: float(month["value"]))
             )
-            direction = 1 if relative_index >= 100 else -1
             ordered_drivers = sorted(
                 target_month.get("drivers", ()),
                 key=lambda driver: (
-                    0
-                    if float(driver.get("delta", 0) or 0) * direction > 0
-                    else 1
-                    if float(driver.get("delta", 0) or 0) == 0
-                    else 2,
-                    -abs(float(driver.get("delta", 0) or 0)),
+                    -float(driver.get("activity", 1) or 0),
                     str(driver.get("label", "")),
                 ),
             )
-            aligned_drivers = [
-                driver
-                for driver in ordered_drivers
-                if float(driver.get("delta", 0) or 0) * direction > 0
-            ]
-            neutral_drivers = [
-                driver
-                for driver in ordered_drivers
-                if float(driver.get("delta", 0) or 0) == 0
-            ]
-            stage_drivers = [*aligned_drivers, *neutral_drivers][:4]
-            candidates.append({
-                "key": item["key"],
-                "year": point["year"],
-                "theme": item["label"],
-                "relative_index": relative_index,
-                "volume": float(point["volume"]),
-                "drivers": stage_drivers,
-                "distance": max(high_distance, low_distance),
-            })
-    candidates.sort(key=lambda item: (item["distance"], item["volume"], -item["year"]), reverse=True)
+            candidates.append(
+                {
+                    "key": item["key"],
+                    "year": point["year"],
+                    "theme": item["label"],
+                    "relative_index": relative_index,
+                    "volume": float(point["volume"]),
+                    "drivers": ordered_drivers[:4],
+                    "distance": max(high_distance, low_distance),
+                }
+            )
+    candidates.sort(
+        key=lambda item: (item["distance"], item["volume"], -item["year"]), reverse=True
+    )
     selected: list[dict[str, Any]] = []
     used_years: set[int] = set()
     used_themes: set[str] = set()
@@ -539,35 +603,45 @@ def build_life_kline(
     stages = []
     for candidate in sorted(selected, key=lambda item: item["year"]):
         relative_index = float(candidate["relative_index"])
-        label = "上行窗口" if relative_index >= 105 else "调整窗口" if relative_index <= 95 else "活跃窗口"
-        stages.append({
-            "key": candidate["key"],
-            "label": label,
-            "year": candidate["year"],
-            "relative_index": round(relative_index, 1),
-            "theme": candidate["theme"],
-            "drivers": candidate["drivers"][:4],
-            "summary": f"{candidate['theme']}相对个人常态来到 {relative_index:.0f}，由当年与月份的结构变化共同形成。",
-        })
+        label = (
+            "高活跃窗口"
+            if relative_index >= 105
+            else "低活跃窗口"
+            if relative_index <= 95
+            else "常态活跃窗口"
+        )
+        stages.append(
+            {
+                "key": candidate["key"],
+                "label": label,
+                "year": candidate["year"],
+                "relative_index": round(relative_index, 1),
+                "theme": candidate["theme"],
+                "drivers": candidate["drivers"][:4],
+                "summary": f"{candidate['theme']}活跃度相对个人常态来到 {relative_index:.0f}，表示这一主题在当年与月份出现的结构信号密度。",
+            }
+        )
     horizon_start = years[0] if years else 0
     horizon_end = years[-1] if years else 0
     return {
         "default_window": {
             "start_year": current_year,
-            "end_year": min(current_year + 9, horizon_end) if current_year and horizon_end else horizon_end,
+            "end_year": min(current_year + 9, horizon_end)
+            if current_year and horizon_end
+            else horizon_end,
         },
         "baseline": {
             "normalized_value": 100,
             "scope": "full_horizon",
             "start_year": horizon_start,
             "end_year": horizon_end,
-            "method": "mean_monthly_activation_v1",
+            "method": "mean_monthly_activation_density_v2",
             "series": baseline_series,
         },
         "series": series,
         "period_bands": bands,
         "stages": stages,
-        "method": "deterministic-period-activation-ohlcv-v2",
+        "method": "deterministic-period-activation-density-ohlcv-v3",
     }
 
 
