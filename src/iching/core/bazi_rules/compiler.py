@@ -30,9 +30,11 @@ from iching.core.bazi_rules.schema import (
 
 COMPILER_VERSION = "bazi-rule-compiler-v2"
 
-PRODUCTION_PROPOSITION_LAYERS = frozenset(("shen_core",))
-PRODUCTION_PROPOSITION_TYPES = frozenset(("formation", "failure", "damage", "rescue"))
-PRODUCTION_SEGMENT_LAYERS = frozenset(("shen_core",))
+PRODUCTION_PROPOSITION_LAYERS = frozenset(("shen_core", "xu_commentary", "yuanhai"))
+PRODUCTION_PROPOSITION_TYPES = frozenset(
+    ("formation", "failure", "damage", "rescue", "commentary")
+)
+PRODUCTION_SEGMENT_LAYERS = PRODUCTION_PROPOSITION_LAYERS
 PRODUCTION_SEGMENT_TYPES = frozenset(
     (
         "formation_rule",
@@ -47,7 +49,9 @@ PRODUCTION_SEGMENT_TYPES = frozenset(
         "formation_doctrine",
         "rescue_doctrine",
         "transformation_rule",
+        "commentary_rule",
         "doctrine_with_analogy",
+        "paragraph_boundary_attestation",
     )
 )
 PRODUCTION_RIGHTS_STATUSES = frozenset(
@@ -626,28 +630,10 @@ def hydrate_propositions(
     return tuple(hydrated)
 
 
-def load_hydrated_propositions(
-    source_manifest_path: str | Path,
-    corpus_manifest_path: str | Path,
-) -> tuple[Proposition, ...]:
-    """Load, digest, and hydrate all proposition shards in one corpus manifest."""
-
-    source_path = Path(source_manifest_path)
-    corpus_path = Path(corpus_manifest_path)
-    source_manifest = _load_json(source_path)
-    corpus_manifest = _load_json(corpus_path)
-    if not isinstance(source_manifest, Mapping):
-        raise ValueError("source manifest must be an object")
-    if not isinstance(corpus_manifest, Mapping):
-        raise ValueError("corpus manifest must be an object")
-    source_digest = _semantic_manifest_digest(
-        _source_manifest_digest_payload(source_manifest),
-        id_addressed_fields=("witnesses", "search_aids"),
-    )
-    corpus_digest = _semantic_manifest_digest(
-        corpus_manifest,
-        id_addressed_fields=("locators", "chapters", "witness_variants"),
-    )
+def _corpus_artifacts(
+    corpus_path: Path,
+    corpus_manifest: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     root = (
         corpus_path.parents[3]
         if corpus_path.parts[-3:] == ("classics", "ziping_zhenquan", "manifest.json")
@@ -670,6 +656,9 @@ def load_hydrated_propositions(
         if not isinstance(files, Mapping):
             raise ValueError(f"chapter {chapter.get('id')} files must be an object")
         for role, relative in sorted(files.items()):
+            if relative is None:
+                artifact_records.append({"path": None, "role": role, "records": []})
+                continue
             path = root / str(relative)
             records = _load_jsonl(path)
             artifact_records.append(
@@ -679,8 +668,73 @@ def load_hydrated_propositions(
                 segment_records.extend(records)
             elif role == "propositions":
                 proposition_records.extend(records)
+    return artifact_records, segment_records, proposition_records
+
+
+def research_corpus_digest(
+    source_manifest_path: str | Path,
+    corpus_manifest_path: str | Path,
+) -> str:
+    """Bind one research corpus manifest and every declared shard into one digest."""
+
+    source_manifest = _load_json(Path(source_manifest_path))
+    corpus_path = Path(corpus_manifest_path)
+    corpus_manifest = _load_json(corpus_path)
+    if not isinstance(source_manifest, Mapping):
+        raise ValueError("source manifest must be an object")
+    if not isinstance(corpus_manifest, Mapping):
+        raise ValueError("corpus manifest must be an object")
+    source_digest = _semantic_manifest_digest(
+        _source_manifest_digest_payload(source_manifest),
+        id_addressed_fields=("witnesses", "search_aids"),
+    )
+    corpus_digest = _semantic_manifest_digest(
+        corpus_manifest,
+        id_addressed_fields=("locators", "chapters", "witness_variants"),
+    )
+    artifact_records, _, _ = _corpus_artifacts(corpus_path, corpus_manifest)
     artifact_digest = canonical_digest(
-        sorted(artifact_records, key=lambda item: (item["path"], item["role"]))
+        sorted(
+            artifact_records,
+            key=lambda item: (str(item["path"]), item["role"]),
+        )
+    )
+    return canonical_digest(
+        {
+            "source_manifest_digest": source_digest,
+            "corpus_manifest_digest": corpus_digest,
+            "corpus_artifact_digest": artifact_digest,
+        }
+    )
+
+
+def load_hydrated_propositions(
+    source_manifest_path: str | Path,
+    corpus_manifest_path: str | Path,
+) -> tuple[Proposition, ...]:
+    """Load, digest, and hydrate all proposition shards in one corpus manifest."""
+
+    source_path = Path(source_manifest_path)
+    corpus_path = Path(corpus_manifest_path)
+    source_manifest = _load_json(source_path)
+    corpus_manifest = _load_json(corpus_path)
+    if not isinstance(source_manifest, Mapping):
+        raise ValueError("source manifest must be an object")
+    if not isinstance(corpus_manifest, Mapping):
+        raise ValueError("corpus manifest must be an object")
+    source_digest = _semantic_manifest_digest(
+        _source_manifest_digest_payload(source_manifest),
+        id_addressed_fields=("witnesses", "search_aids"),
+    )
+    corpus_digest = _semantic_manifest_digest(
+        corpus_manifest,
+        id_addressed_fields=("locators", "chapters", "witness_variants"),
+    )
+    artifact_records, segment_records, proposition_records = _corpus_artifacts(
+        corpus_path, corpus_manifest
+    )
+    artifact_digest = canonical_digest(
+        sorted(artifact_records, key=lambda item: (str(item["path"]), item["role"]))
     )
     return hydrate_propositions(
         proposition_records,
@@ -842,7 +896,11 @@ def _validate_proposition(proposition: Proposition) -> None:
         raise ValueError(f"proposition {proposition.id} has duplicate locator_ids")
     if len(set(proposition.segment_ids)) != len(proposition.segment_ids):
         raise ValueError(f"proposition {proposition.id} has duplicate segment_ids")
-    if proposition.text_type in {"example_claim", "commentary"}:
+    if proposition.text_type == "commentary" and proposition.layer != "xu_commentary":
+        raise ValueError(
+            f"proposition {proposition.id} commentary requires xu_commentary layer"
+        )
+    if proposition.text_type == "example_claim":
         raise ValueError(f"proposition {proposition.id} is commentary/example-only")
     forbidden_segment_types = {
         "chapter_heading",
@@ -1270,6 +1328,32 @@ def compile_rule_bundle(
                 f"rule {rule.id} references missing proposition {rule.proposition_id}"
             )
         _validate_proposition(proposition)
+        metadata = dict(rule.metadata)
+        supporting_source_ids = tuple(
+            sorted(
+                _require_string_sequence(
+                    metadata.get("supporting_source_ids", ()),
+                    f"rule {rule.id} supporting_source_ids",
+                    identifier=True,
+                )
+            )
+        )
+        if len(set(supporting_source_ids)) != len(supporting_source_ids):
+            raise ValueError(f"rule {rule.id} supporting_source_ids must be unique")
+        if rule.proposition_id in supporting_source_ids:
+            raise ValueError(
+                f"rule {rule.id} supporting_source_ids must exclude proposition_id"
+            )
+        for source_id in supporting_source_ids:
+            supporting = proposition_map.get(source_id)
+            if supporting is None:
+                raise ValueError(
+                    f"rule {rule.id} references missing supporting proposition "
+                    f"{source_id}"
+                )
+            _validate_proposition(supporting)
+        if supporting_source_ids:
+            metadata["supporting_source_ids"] = list(supporting_source_ids)
         predicate = parse_predicate(rule.predicate)
         compiled.append(
             CompiledRule(
@@ -1282,7 +1366,7 @@ def compile_rule_bundle(
                 after=canonical_after[rule.id],
                 before=canonical_before[rule.id],
                 proposition=proposition,
-                metadata=dict(rule.metadata),
+                metadata=metadata,
             )
         )
     digest_payload = {
@@ -1301,6 +1385,10 @@ def compile_rule_bundle(
                 "before": list(rule.before),
                 "metadata": dict(rule.metadata),
                 "proposition": _proposition_digest_payload(rule.proposition),
+                "supporting_propositions": [
+                    _proposition_digest_payload(proposition_map[source_id])
+                    for source_id in rule.metadata.get("supporting_source_ids", ())
+                ],
             }
             for rule in sorted(compiled, key=lambda item: item.id)
         ],

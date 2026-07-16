@@ -144,6 +144,146 @@
         "status": "public_domain_source_jurisdiction_us_date_unresolved"
       },
       "sha256": "71402a780b0351b54edf121a51bc4a4a4ce5896496c35b954563ee06f1a6f620"
+    },
+    {
+      "authority_role": "canonical_textual_authority",
+      "authority_roles": [
+        "canonical_textual_authority",
+        "base_witness_part"
+      ],
+      "bibliography": {
+        "author_attribution": "館藏記錄作明李欽；本項目不以此解決全書成書歸屬。",
+        "date": "1573-1620",
+        "date_certainty": "catalogued_ming_wanli",
+        "edition_statement": "明萬曆刻本；十三行二十六字",
+        "repository": "National Library of China",
+        "shelfmark": "NLC892-2642-210287; CBM2206",
+        "title_diplomatic": "刻京臺增補淵海子平大全 第一冊"
+      },
+      "bytes": 14387365,
+      "catalog_url": "https://commons.wikimedia.org/wiki/File:NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf",
+      "completeness": "part_1_of_4_catalogue_juan_1_2",
+      "id": "yuanhai-ziping-nlc-wanli-v1",
+      "local_path": "references/classics/raw/yuanhai-ziping-nlc-wanli-v1.pdf",
+      "pages": 48,
+      "provenance_url": "https://upload.wikimedia.org/wikipedia/commons/2/24/NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf",
+      "relation": "base_witness_part",
+      "rights": {
+        "basis": [
+          "Wikimedia Commons PD-old-100",
+          "Wikimedia Commons PD-China",
+          "Wikimedia Commons PD-scan"
+        ],
+        "caveat": "Public-domain mechanical scan; the scan is the authority and web transcriptions remain search aids.",
+        "production_use_allowed": true,
+        "status": "public_domain"
+      },
+      "sha256": "17eb28b3a65d0b28908c4646017ebd409ef875366f48945071bb68675f737c82"
+    },
+    {
+      "authority_role": "canonical_textual_authority",
+      "authority_roles": [
+        "canonical_textual_authority",
+        "base_witness_part"
+      ],
+      "bibliography": {
+        "author_attribution": "館藏記錄作明李欽；本項目不以此解決全書成書歸屬。",
+        "date": "1573-1620",
+        "date_certainty": "catalogued_ming_wanli",
+        "edition_statement": "明萬曆刻本；十三行二十六字",
+        "repository": "National Library of China",
+        "shelfmark": "NLC892-2642-210288; CBM2206",
+        "title_diplomatic": "刻京臺增補淵海子平大全 第二冊"
+      },
+      "bytes": 8982462,
+      "catalog_url": "https://commons.wikimedia.org/wiki/File:NLC892-2642-210288_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC2%E5%86%8A.pdf",
+      "completeness": "part_2_of_4_juan_3",
+      "id": "yuanhai-ziping-nlc-wanli-v2",
+      "local_path": "references/classics/raw/yuanhai-ziping-nlc-wanli-v2.pdf",
+      "pages": 30,
+      "provenance_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/NLC892-2642-210288_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC2%E5%86%8A.pdf",
+      "relation": "base_witness_part",
+      "rights": {
+        "basis": [
+          "Wikimedia Commons PD-old-100",
+          "Wikimedia Commons PD-China",
+          "Wikimedia Commons PD-scan"
+        ],
+        "caveat": "Public-domain mechanical scan; the scan is the authority and web transcriptions remain search aids.",
+        "production_use_allowed": true,
+        "status": "public_domain"
+      },
+      "sha256": "de9973d1edf51f0e244863302a4c90b7eb13daea0aa53486f590e2039483f552"
+    },
+    {
+      "authority_role": "canonical_textual_authority",
+      "authority_roles": [
+        "canonical_textual_authority",
+        "base_witness_part"
+      ],
+      "bibliography": {
+        "author_attribution": "館藏記錄作明李欽；本項目不以此解決全書成書歸屬。",
+        "date": "1573-1620",
+        "date_certainty": "catalogued_ming_wanli",
+        "edition_statement": "明萬曆刻本；十三行二十六字",
+        "repository": "National Library of China",
+        "shelfmark": "NLC892-2642-210317; CBM2206",
+        "title_diplomatic": "刻京臺增補淵海子平大全 第三冊"
+      },
+      "bytes": 13845843,
+      "catalog_url": "https://commons.wikimedia.org/wiki/File:NLC892-2642-210317_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC3%E5%86%8A.pdf",
+      "completeness": "part_3_of_4_juan_4_5",
+      "id": "yuanhai-ziping-nlc-wanli-v3",
+      "local_path": "references/classics/raw/yuanhai-ziping-nlc-wanli-v3.pdf",
+      "pages": 46,
+      "provenance_url": "https://upload.wikimedia.org/wikipedia/commons/6/65/NLC892-2642-210317_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC3%E5%86%8A.pdf",
+      "relation": "base_witness_part",
+      "rights": {
+        "basis": [
+          "Wikimedia Commons PD-old-100",
+          "Wikimedia Commons PD-China",
+          "Wikimedia Commons PD-scan"
+        ],
+        "caveat": "Public-domain mechanical scan; the scan is the authority and web transcriptions remain search aids.",
+        "production_use_allowed": true,
+        "status": "public_domain"
+      },
+      "sha256": "854be327af4e5ca43056dc5c02dc1585a53b7d85de5e5270d4b48a97df2d73d2"
+    },
+    {
+      "authority_role": "canonical_textual_authority",
+      "authority_roles": [
+        "canonical_textual_authority",
+        "base_witness_part"
+      ],
+      "bibliography": {
+        "author_attribution": "館藏記錄作明李欽；本項目不以此解決全書成書歸屬。",
+        "date": "1573-1620",
+        "date_certainty": "catalogued_ming_wanli",
+        "edition_statement": "明萬曆刻本；十三行二十六字",
+        "repository": "National Library of China",
+        "shelfmark": "NLC892-2642-210318; CBM2206",
+        "title_diplomatic": "刻京臺增補淵海子平大全 第四冊"
+      },
+      "bytes": 12376070,
+      "catalog_url": "https://commons.wikimedia.org/wiki/File:NLC892-2642-210318_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC4%E5%86%8A.pdf",
+      "completeness": "part_4_of_4_juan_5_6",
+      "id": "yuanhai-ziping-nlc-wanli-v4",
+      "local_path": "references/classics/raw/yuanhai-ziping-nlc-wanli-v4.pdf",
+      "pages": 41,
+      "provenance_url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/NLC892-2642-210318_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC4%E5%86%8A.pdf",
+      "relation": "base_witness_part",
+      "rights": {
+        "basis": [
+          "Wikimedia Commons PD-old-100",
+          "Wikimedia Commons PD-China",
+          "Wikimedia Commons PD-scan"
+        ],
+        "caveat": "Public-domain mechanical scan; the scan is the authority and web transcriptions remain search aids.",
+        "production_use_allowed": true,
+        "status": "public_domain"
+      },
+      "sha256": "b2dee2c2140c843d0a4063f04c83a669c441a5453b62397b42ca3c0a293c6df0"
     }
   ]
 }

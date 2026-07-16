@@ -140,13 +140,72 @@ def test_checked_in_vertical_corpus_hydrates_all_propositions_with_artifact_dige
         ROOT / "research/classics/sources/manifest.json",
         ROOT / "research/classics/ziping_zhenquan/manifest.json",
     )
+    manifest = json.loads(
+        (ROOT / "research/classics/ziping_zhenquan/manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    expected_count = sum(
+        sum(
+            1
+            for line in (ROOT / chapter["files"]["propositions"])
+            .read_text(encoding="utf-8")
+            .splitlines()
+            if line
+        )
+        for chapter in manifest["chapters"]
+    )
 
-    assert len(propositions) == 85
-    assert len({item.id for item in propositions}) == 85
+    assert len(propositions) == expected_count
+    assert len({item.id for item in propositions}) == expected_count
     assert all(
         item.locators and item.segments and item.witnesses for item in propositions
     )
     assert all(len(item.corpus_artifact_digest) == 64 for item in propositions)
+
+
+def test_supporting_propositions_are_validated_and_bound_into_compiler_digest() -> None:
+    propositions, *_ = _source_fixture()
+    supporting = replace(
+        propositions[0],
+        id="prop.supporting",
+        atomic_claim="羊刃另有成格总论。",
+    )
+    primary = _rule()
+    cited = replace(
+        primary,
+        metadata={"supporting_source_ids": [supporting.id]},
+    )
+
+    primary_only = compile_rule_bundle((primary,), _prop_map(*propositions))
+    with_support = compile_rule_bundle(
+        (cited,),
+        _prop_map(*propositions, supporting),
+    )
+    revised_support = replace(
+        supporting,
+        atomic_claim="羊刃成格总论的校订文本。",
+    )
+    with_revised_support = compile_rule_bundle(
+        (cited,),
+        _prop_map(*propositions, revised_support),
+    )
+
+    assert with_support.rules[0].metadata["supporting_source_ids"] == (supporting.id,)
+    assert with_support.digest != primary_only.digest
+    assert with_revised_support.digest != with_support.digest
+    with pytest.raises(ValueError, match="missing supporting proposition"):
+        compile_rule_bundle((cited,), _prop_map(*propositions))
+    with pytest.raises(ValueError, match="exclude proposition_id"):
+        compile_rule_bundle(
+            (
+                replace(
+                    primary,
+                    metadata={"supporting_source_ids": [primary.proposition_id]},
+                ),
+            ),
+            _prop_map(*propositions),
+        )
 
 
 def test_compiler_is_deterministic_under_rule_ast_and_membership_reordering() -> None:

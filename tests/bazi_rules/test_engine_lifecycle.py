@@ -469,6 +469,84 @@ def test_effect_contract_rejects_no_op_invalidation_and_resolution_rules() -> No
 
 
 @pytest.mark.parametrize(
+    ("stage", "kwargs"),
+    [
+        ("formation", {"path_id": "wealth", "targets": ("wealth",)}),
+        (
+            "formation",
+            {"path_id": "wealth", "invalidates": ("rescue.any",)},
+        ),
+        ("damage", {"supersedes": ("wealth",)}),
+        ("damage", {"invalidates": ("rescue.any",)}),
+        (
+            "rescue",
+            {
+                "resolves": ("damage.any",),
+                "invalidates": ("rescue.any",),
+            },
+        ),
+        (
+            "resolution",
+            {
+                "effect": "source_precedence",
+                "path_id": "wealth",
+                "supersedes": ("seal",),
+                "invalidates": ("rescue.any",),
+            },
+        ),
+    ],
+)
+def test_lifecycle_stages_reject_foreign_side_effect_fields(
+    stage: str,
+    kwargs: dict[str, Any],
+) -> None:
+    with pytest.raises(ValueError, match="side effect|invalidate"):
+        _rule(f"foreign-side-effect.{stage}", stage, **kwargs)
+
+
+@pytest.mark.parametrize("stage", ["damage", "rescue"])
+def test_damage_and_rescue_use_only_one_path_binding_form(stage: str) -> None:
+    with pytest.raises(ValueError, match="only one path binding"):
+        _rule(
+            f"double-bound.{stage}",
+            stage,
+            path_id="wealth",
+            targets=("wealth",),
+            resolves=("damage.any",) if stage == "rescue" else (),
+        )
+
+
+def test_rescue_must_reference_an_actual_damage_on_a_shared_path() -> None:
+    wealth = _rule("form.wealth", "formation", path_id="wealth")
+    seal = _rule("form.seal", "formation", path_id="seal")
+    invalidator = _rule(
+        "damage.invalidate-rescue",
+        "damage",
+        effect="rescue_invalidation",
+        targets=("wealth",),
+        invalidates=("rescue.invalid",),
+    )
+    invalid_rescue = _rule(
+        "rescue.invalid",
+        "rescue",
+        targets=("wealth",),
+        resolves=(invalidator.id,),
+    )
+    with pytest.raises(ValueError, match="actual damage"):
+        _registry(wealth, invalidator, invalid_rescue)
+
+    damage = _rule("damage.wealth", "damage", targets=("wealth",))
+    wrong_path_rescue = _rule(
+        "rescue.seal",
+        "rescue",
+        targets=("seal",),
+        resolves=(damage.id,),
+    )
+    with pytest.raises(ValueError, match="share a formation path"):
+        _registry(wealth, seal, damage, wrong_path_rescue)
+
+
+@pytest.mark.parametrize(
     ("stage", "effect"),
     [
         ("transformation", "transformation"),
@@ -562,6 +640,8 @@ def test_packaged_registry_uses_only_closed_stage_effect_pairs() -> None:
     registry = load_packaged_registry()
 
     assert {(rule.stage, rule.effect) for rule in registry.rules} == {
+        ("candidate", "candidate_confirm"),
+        ("candidate", "candidate_possible"),
         ("formation", "formation"),
         ("damage", "damage"),
         ("damage", "officer_killing_mixture"),
@@ -667,9 +747,7 @@ def test_envelope_reduces_each_world_then_returns_consensus_or_ambiguity() -> No
     }
 
 
-def test_registry_rejects_unknown_targets_rescue_without_damage_cycles_and_metadata() -> (
-    None
-):
+def test_registry_rejects_unknown_targets_rescue_without_damage_and_metadata() -> None:
     formation = _rule("form", "formation", path_id="wealth")
     with pytest.raises(ValueError, match="unknown target path"):
         _registry(formation, _rule("damage", "damage", targets=("missing",)))
@@ -679,23 +757,14 @@ def test_registry_rejects_unknown_targets_rescue_without_damage_cycles_and_metad
             _rule("rescue", "rescue", targets=("wealth",), resolves=()),
         )
 
-    damage = _rule("damage", "damage", targets=("wealth",))
-    rescue_a = _rule(
-        "rescue.a",
-        "rescue",
-        targets=("wealth",),
-        resolves=("damage",),
-        invalidates=("rescue.b",),
-    )
-    rescue_b = _rule(
-        "rescue.b",
-        "rescue",
-        targets=("wealth",),
-        resolves=("damage",),
-        invalidates=("rescue.a",),
-    )
-    with pytest.raises(ValueError, match="invalidation cycle"):
-        _registry(formation, damage, rescue_a, rescue_b)
+    with pytest.raises(ValueError, match="unsupported lifecycle side effects"):
+        _rule(
+            "rescue.invalidates-another-rescue",
+            "rescue",
+            targets=("wealth",),
+            resolves=("damage",),
+            invalidates=("rescue.other",),
+        )
 
     record = {
         "id": "form",

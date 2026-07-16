@@ -1,0 +1,159 @@
+{
+  "authority_boundary": {
+    "default_authority": false,
+    "layer": "yuanhai",
+    "note": "This independent Yuanhai overlay is packaged as a corpus-bound, zero-executable partial registry descriptor. It contains no executable doctrine and cannot silently overwrite the Shen default result.",
+    "runtime_bundle_created": true,
+    "runtime_bundle_status": "bound_zero_executable_partial_registry"
+  },
+  "chapters": [
+    {
+      "completeness": "selected_contiguous_tranche_pages_37_42",
+      "files": {
+        "examples": null,
+        "non_rules": "research/classics/yuanhai_ziping/non_rules/yhzp.jishan.month-command-patterns.jsonl",
+        "propositions": "research/classics/yuanhai_ziping/propositions/yhzp.jishan.month-command-patterns.jsonl",
+        "rule_candidates": "research/classics/yuanhai_ziping/rules/yhzp.jishan.month-command-patterns.jsonl",
+        "segments": "research/classics/yuanhai_ziping/segments/yhzp.jishan.month-command-patterns.jsonl"
+      },
+      "file_sha256": {
+        "non_rules": "115ee18fb39cd9e2d38b5826c5e945a7cc3a53061ce8a3150f27bf4f2f2a4f6a",
+        "propositions": "0edf3df5b68c67e9e822d4f85ea51b0ec9c6e59b3e09f9c2dbd6b3829c605b4c",
+        "rule_candidates": "ca0138ec7de5a726c77626452746f10dcb2ed3f820511586947f3c2322ab2e68",
+        "segments": "6de424e1c3eb3f841425fd203c578c7c37a3e4712e052b27c5ff672f197c3312"
+      },
+      "id": "yhzp.jishan.month-command-patterns",
+      "record_counts": {
+        "examples": 0,
+        "non_rules": 6,
+        "propositions": 15,
+        "rule_candidates": 14,
+        "segments": 20
+      },
+      "review_state": "scan_verified_partial",
+      "title_diplomatic": "繼善篇"
+    }
+  ],
+  "corpus_id": "yuanhai-ziping-first-tranche-v1",
+  "coverage": {
+    "included": [
+      "month command as the first methodological priority",
+      "day master and whole-chart pattern formation",
+      "useful-god damage and relative-strength conditions as source propositions",
+      "ordinary direct-officer, seven-killings, wealth-to-officer, officer-seal, and hurting-officer concepts",
+      "pattern guards preventing single-star or single-god conclusions",
+      "strength-dependent officer/killing role change",
+      "one scan-located historical education claim, explicitly non-predictive"
+    ],
+    "known_gaps": [
+      "The separate 论月令 chapter has not yet been page-indexed in this Wanli witness.",
+      "The individual ordinary-pattern chapters have not yet been transcribed end to end.",
+      "身弱论 and 弃命从杀论 are deferred because exact pages were not visually located in this pass.",
+      "子平百章论科甲歌 is deferred; only the verified 继善篇 education line is present.",
+      "格局生死引用 is deferred; this tranche includes only the verified strength-dependent life/damage concepts in 继善篇.",
+      "Printed folio numbers and line-level bounding boxes remain to be indexed."
+    ],
+    "production_interpretation": "The source propositions are eligible for later overlay review. All rule candidates remain non-executable because compiling them now would invent definitions for useful god, depth, strength, excess, control effectiveness, or same-path damage."
+  },
+  "determinism": {
+    "encoding": "UTF-8",
+    "jsonl": "one object per line with no blank lines",
+    "key_order": "lexicographic",
+    "normalization": "Diplomatic text preserves the visually read witness form; normalized_search_text is a separate search field."
+  },
+  "locators": [
+    {
+      "column_line": "left folio, chapter heading and following right-to-left columns",
+      "id": "loc.yhzp.v1.37.jishan",
+      "pdf_page": 37,
+      "printed_page": null,
+      "quote": "欲知貴賤先觀月令乃提綱",
+      "quote_sha256": "449b18291aaf959b6b9c46c0679c7dbb822fc8df921de0bcb4dcb62d1531f60d",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf#page=37",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v1"
+    },
+    {
+      "column_line": "right folio continuing to left folio, right-to-left columns",
+      "id": "loc.yhzp.v1.38.core",
+      "pdf_page": 38,
+      "printed_page": null,
+      "quote": "專用日干為主本三元要成格局",
+      "quote_sha256": "5353e4afb9c1c39c8e6a59a1ab65f84903dde18c6ea5c3359eeb63a1646508d7",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf#page=38",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v1"
+    },
+    {
+      "column_line": "both folios, right-to-left columns",
+      "id": "loc.yhzp.v1.39.patterns",
+      "pdf_page": 39,
+      "printed_page": null,
+      "quote": "七殺偏官喜制伏不宜太過",
+      "quote_sha256": "964bb9c47f177780d7dad659922f807e0991047f3013b77579e340c056c876f3",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf#page=39",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v1"
+    },
+    {
+      "column_line": "both folios, right-to-left columns",
+      "id": "loc.yhzp.v1.40.formation",
+      "pdf_page": 40,
+      "printed_page": null,
+      "quote": "有官有印無破作廊廟之材",
+      "quote_sha256": "a3460d4b8f0b77840b3f7935930ee6be90877803e134dec1daf872ea2fcbeb67",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf#page=40",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v1"
+    },
+    {
+      "column_line": "right folio, right-to-left columns",
+      "id": "loc.yhzp.v1.41.guard",
+      "pdf_page": 41,
+      "printed_page": null,
+      "quote": "非格非局見之焉得為奇",
+      "quote_sha256": "16d7a571961ec30d84fa16223571a83f1202106ed24264c047c0aafbb4b87221",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf#page=41",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v1"
+    },
+    {
+      "column_line": "right folio, right-to-left columns",
+      "id": "loc.yhzp.v1.42.killing",
+      "pdf_page": 42,
+      "printed_page": null,
+      "quote": "衰則變官為鬼旺則化鬼為官",
+      "quote_sha256": "9102a6e5226ffbedec991d1a3aeb9a636256b538c1e70a0e61114147a0a0f023",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/NLC892-2642-210287_%E5%88%BB%E4%BA%AC%E8%87%BA%E5%A2%9E%E8%A3%9C%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3%E5%A4%A7%E5%85%A8_%E7%AC%AC1%E5%86%8A.pdf#page=42",
+      "visually_verified": true,
+      "witness_id": "yuanhai-ziping-nlc-wanli-v1"
+    }
+  ],
+  "schema": "iching.classics.yuanhai-corpus.v1",
+  "search_aids": [
+    {
+      "id": "wikisource-yuanhai-transcription",
+      "production_use_allowed": false,
+      "reason": "The page declares itself incomplete and source-unknown; it was used only to locate candidate phrases for scan review.",
+      "url": "https://zh.wikisource.org/wiki/%E6%B7%B5%E6%B5%B7%E5%AD%90%E5%B9%B3"
+    },
+    {
+      "id": "8bei8-yuanhai-transcription",
+      "production_use_allowed": false,
+      "reason": "Modern transcription without scan-level provenance; search aid only.",
+      "url": "https://www.8bei8.com/book/yuanhaiziping.html"
+    }
+  ],
+  "witness_ids": [
+    "yuanhai-ziping-nlc-wanli-v1",
+    "yuanhai-ziping-nlc-wanli-v2",
+    "yuanhai-ziping-nlc-wanli-v3",
+    "yuanhai-ziping-nlc-wanli-v4"
+  ]
+}

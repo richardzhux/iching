@@ -14,6 +14,15 @@ CORPUS_MANIFEST = PROJECT_ROOT / "research/classics/ziping_zhenquan/manifest.jso
 EXPECTED_CHAPTERS = {
     "zzq.useful-god.success-failure-rescue": "論用神成敗救應",
     "zzq.pattern.direct-officer": "論正官",
+    "zzq.pattern.wealth": "論財",
+    "zzq.pattern.resource": "論印",
+    "zzq.pattern.eating-god": "論食神",
+    "zzq.pattern.seven-killings": "論偏官",
+    "zzq.pattern.hurting-officer": "論傷官",
+    "zzq.pattern.yang-blade": "論陽刃",
+    "zzq.pattern.prosperity-robbery": "論建祿月劫",
+    "zzq.pattern.special-gate": "論雜格",
+    "zzq.appendix.pattern-plates": "格局命式附表",
 }
 
 DIRECT_OFFICER_SEGMENT_ORDER = [
@@ -46,13 +55,20 @@ DIRECT_OFFICER_SEGMENT_ORDER = [
     "zzq.seg.officer.example.fan.outcome",
     "zzq.seg.officer.closing.doctrine",
     "zzq.seg.officer.closing.cross-reference",
+    "zzq.seg.officer.period-heading",
+    "zzq.seg.officer.audit-ou1",
+    "zzq.seg.officer.audit-ou2",
+    "zzq.seg.officer.audit-ou3",
+    "zzq.seg.officer.audit-ou4",
+    "zzq.seg.officer.audit-ou5",
+    "zzq.seg.officer.audit-ou6",
 ]
 
 DIRECT_OFFICER_DIPLOMATIC_CONTENT_SHA256 = (
-    "2715723f5948aa2964d8acbdfed7262d262915e9e32add1b2fd998c3f28e0b47"
+    "f730b7f177b3f3b2567082bdeeaae1b3f4028e55bd9e275191c34dd0ded42225"
 )
 DIRECT_OFFICER_NORMALIZED_CONTENT_SHA256 = (
-    "c50b54803248803a01de5c1c77fe450073faeb8dc518b36290b458ae88a45cd7"
+    "11137d395107abd7087a0ec3f72903d3d8aa5467e412c1c6fad4616b0f9ffb66"
 )
 
 
@@ -90,11 +106,12 @@ def test_source_witnesses_freeze_identity_rights_and_raw_provenance() -> None:
     assert manifest["schema"] == "iching.classics.source-manifest.v1"
 
     witnesses = {item["id"]: item for item in manifest["witnesses"]}
-    assert set(witnesses) == {
+    core_witness_ids = {
         "gengcun-ji-ncl-06599",
         "qin-shenan-1926-ziping-zhenquan-v2",
         "world-library-ziping-zhenquan-nlc",
     }
+    assert core_witness_ids <= set(witnesses)
     gengcun = witnesses["gengcun-ji-ncl-06599"]
     qin = witnesses["qin-shenan-1926-ziping-zhenquan-v2"]
     world = witnesses["world-library-ziping-zhenquan-nlc"]
@@ -106,11 +123,13 @@ def test_source_witnesses_freeze_identity_rights_and_raw_provenance() -> None:
     assert world["authority_roles"] == ["search_aid", "comparison_only"]
     assert "independent_collation" not in world["authority_roles"]
 
-    for witness in witnesses.values():
+    for witness_id, witness in witnesses.items():
         assert witness["bytes"] > 0
         assert witness["pages"] > 0
         assert re.fullmatch(r"[0-9a-f]{64}", witness["sha256"])
-        assert witness["completeness"] == "complete"
+        assert witness["completeness"]
+        if witness_id in core_witness_ids:
+            assert witness["completeness"] == "complete"
         assert witness["provenance_url"].startswith("https://upload.wikimedia.org/")
         assert witness["local_path"].startswith("references/classics/raw/")
         assert witness["rights"]["status"] != "unknown"
@@ -186,6 +205,9 @@ def test_vertical_slice_is_complete_deterministic_and_scan_traceable() -> None:
         non_rules = _load_jsonl(chapter["files"]["non_rules"])
 
         assert chapter["completeness"] == "complete"
+        if chapter["id"] == "zzq.pattern.eating-god":
+            assert "homoeoteleuton" in chapter["completeness_note"]
+            assert "do not import absent wording" in chapter["completeness_note"]
         assert chapter["review_state"] == "scan_verified"
         assert {
             kind: len(records)
@@ -262,12 +284,13 @@ def test_vertical_slice_is_complete_deterministic_and_scan_traceable() -> None:
         unresolved = [
             item for item in rules if item["semantic_status"].startswith("requires_")
         ]
-        assert unresolved
-        assert all(item["execution_ready"] is False for item in unresolved)
-        assert all(
-            item["candidate_status"] == "source_verified_not_compiled"
-            for item in unresolved
-        )
+        if rules:
+            assert unresolved
+            assert all(item["execution_ready"] is False for item in unresolved)
+            assert all(
+                item["candidate_status"] == "source_verified_not_compiled"
+                for item in unresolved
+            )
         assert all(set(item["segment_ids"]) <= segment_ids for item in examples)
         assert all(set(item["segment_ids"]) <= segment_ids for item in non_rules)
 

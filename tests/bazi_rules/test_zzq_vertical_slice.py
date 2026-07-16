@@ -316,6 +316,39 @@ def test_packaged_schemas_do_not_coerce_identifier_types() -> None:
         attestation_bundle_from_data(attestation_payload)
 
 
+def test_packaged_registry_rejects_rule_tampering_with_a_blank_seal() -> None:
+    package = resources.files("iching.core.bazi_rules")
+    payload = json.loads(
+        package.joinpath("bundles/zzq-shen-canonical-v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    payload["rules"][0]["precedence"] += 1000
+    payload["bundle_digest"] = ""
+
+    from iching.core.bazi_rules.registry import registry_from_data
+
+    with pytest.raises(ValueError, match="bundle_digest must be a non-blank"):
+        registry_from_data(payload)
+
+
+def test_packaged_registry_rejects_provenance_tampering_with_blank_seals() -> None:
+    package = resources.files("iching.core.bazi_rules")
+    payload = json.loads(
+        package.joinpath("bundles/zzq-shen-canonical-v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    payload["source_provenance"][0]["corpus_artifact_digest"] = "0" * 64
+    payload["source_provenance_digest"] = ""
+    payload["bundle_digest"] = ""
+
+    from iching.core.bazi_rules.registry import registry_from_data
+
+    with pytest.raises(ValueError, match="source_provenance_digest must be a non-blank"):
+        registry_from_data(payload)
+
+
 def test_packaged_registry_loader_rejects_synthetic_fixture_rules() -> None:
     package = resources.files("iching.core.bazi_rules")
     payload = json.loads(

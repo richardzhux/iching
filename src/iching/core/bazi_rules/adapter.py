@@ -5,12 +5,16 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from iching.core.bazi_rules.engine import evaluate_pattern_lifecycle
+from iching.core.bazi_rules.engine import (
+    evaluate_pattern_lifecycle,
+    evaluate_pattern_set,
+)
 from iching.core.bazi_rules.fact_graph import build_rule_evaluation_context
 from iching.core.bazi_rules.registry import (
     ExampleAttestationBundle,
     load_packaged_attestation_bundle,
-    load_packaged_registry,
+    load_packaged_shen_registry,
+    load_packaged_task4_shadow_registry,
 )
 from iching.core.bazi_rules.primitives import LABEL_POSITIONS, PILLAR_POSITIONS
 from iching.core.bazi_rules.schema import BaziFactEnvelope, BaziFactGraph, TruthValue
@@ -164,10 +168,13 @@ def build_source_backed_shadow(
         raise ValueError("nonempty pillars require a single BaziFactGraph")
     if pillars and not fact_graph_matches_pillars(pillars, graph):
         raise ValueError("fact graph does not describe supplied pillars")
-    registry = load_packaged_registry()
-    generic = evaluate_pattern_lifecycle(
-        build_rule_evaluation_context(graph),
-        registry,
+    context = build_rule_evaluation_context(graph)
+    compatibility_registry = load_packaged_task4_shadow_registry()
+    canonical_registry = load_packaged_shen_registry()
+    generic = evaluate_pattern_lifecycle(context, compatibility_registry)
+    pattern_set = evaluate_pattern_set(
+        context,
+        canonical_registry,
     )
     uncertain = isinstance(graph, BaziFactEnvelope)
     attestations = (
@@ -178,11 +185,11 @@ def build_source_backed_shadow(
     legacy_status = (
         "hour_uncertain" if uncertain else _legacy_direct_officer_status(legacy_result)
     )
-    return {
+    result = {
         "mode": "shadow",
         "authoritative": False,
-        "bundle_id": registry.bundle_id,
-        "bundle_digest": registry.bundle_digest,
+        "bundle_id": compatibility_registry.bundle_id,
+        "bundle_digest": compatibility_registry.bundle_digest,
         "generic_result": generic.as_dict(),
         "example_attestations": attestations,
         "legacy_status": legacy_status,
@@ -195,6 +202,9 @@ def build_source_backed_shadow(
             )
         },
     }
+    result["pattern_set"] = pattern_set.as_dict()
+    result["overlay_results"] = []
+    return result
 
 
 __all__ = [

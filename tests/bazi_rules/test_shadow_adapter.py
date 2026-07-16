@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import inspect
+import json
 from datetime import datetime
 from typing import Any
 
@@ -34,6 +36,29 @@ FIXTURES = {
     "li": ("庚寅", "乙酉", "甲子", "戊辰"),
     "fan": ("丁丑", "壬寅", "己巳", "丙寅"),
 }
+
+TASK4_SHADOW_PROJECTION_HASHES = {
+    "xue": (7973, "a82ef3d37d9063895368cb3224ccef4a0e5af9425d646e12060f3b6edd2aa8c6"),
+    "anonymous": (
+        8350,
+        "2bc369faf0f47e0d0ad3ab23db2c81f663315c698d857e7a64570ef77236a088",
+    ),
+    "jin": (7924, "bd55f2b0d5d5c3fe3e7835fcca9082073aad3ef128be70f5c6a47baaa18180ea"),
+    "xuan": (8265, "22df7b5f0eca3aaebbb87a90477f7718c0daa6e1c97729b945caf34762e1723b"),
+    "li": (7666, "2dd501636353d4299da12740599912bdd4d846d46ba4f0c7fe7f1cf445bc5be3"),
+    "fan": (8226, "d9cdea7371064997e348f9eebedc59d294797e909608ce21c155a0941a138b37"),
+}
+
+TASK4_SHADOW_KEYS = (
+    "mode",
+    "authoritative",
+    "bundle_id",
+    "bundle_digest",
+    "generic_result",
+    "example_attestations",
+    "legacy_status",
+    "diff",
+)
 
 
 def _chart(*texts: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -223,6 +248,25 @@ def test_attestations_never_change_generic_canonical_result() -> None:
     assert enabled_shadow["generic_result"] == disabled_shadow["generic_result"]
     assert enabled_shadow["example_attestations"]
     assert disabled_shadow["example_attestations"] == []
+
+
+@pytest.mark.parametrize("fixture", tuple(FIXTURES))
+def test_task4_shadow_projection_remains_byte_compatible(fixture: str) -> None:
+    pillars, structure = _chart(*FIXTURES[fixture])
+
+    shadow = assess_patterns(pillars, structure)["source_backed_shadow"]
+    assert set(shadow) == {*TASK4_SHADOW_KEYS, "pattern_set", "overlay_results"}
+    assert tuple(shadow) == (*TASK4_SHADOW_KEYS, "pattern_set", "overlay_results")
+    projection = {key: shadow[key] for key in TASK4_SHADOW_KEYS}
+    payload = json.dumps(
+        projection,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+    assert (len(payload), hashlib.sha256(payload).hexdigest()) == (
+        TASK4_SHADOW_PROJECTION_HASHES[fixture]
+    )
 
 
 def test_metaphysics_passes_one_graph_by_identity_to_both_consumers(

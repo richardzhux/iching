@@ -1,4 +1,83 @@
 {
+  "chapter_page_map": [
+    {
+      "chapter_id": "zzq.useful-god.success-failure-rescue",
+      "end_pdf_page": 20,
+      "heading": "論用神成敗救應",
+      "start_pdf_page": 18,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.direct-officer",
+      "end_pdf_page": 60,
+      "heading": "論正官",
+      "start_pdf_page": 57,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.wealth",
+      "end_pdf_page": 64,
+      "heading": "論財",
+      "start_pdf_page": 60,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.resource",
+      "end_pdf_page": 68,
+      "heading": "論印",
+      "start_pdf_page": 64,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.eating-god",
+      "end_pdf_page": 71,
+      "heading": "論食神",
+      "start_pdf_page": 68,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.seven-killings",
+      "end_pdf_page": 75,
+      "heading": "論偏官",
+      "start_pdf_page": 71,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.hurting-officer",
+      "end_pdf_page": 79,
+      "heading": "論傷官",
+      "start_pdf_page": 75,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.yang-blade",
+      "end_pdf_page": 81,
+      "heading": "論陽刃",
+      "start_pdf_page": 79,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.prosperity-robbery",
+      "end_pdf_page": 86,
+      "heading": "論建祿月劫",
+      "start_pdf_page": 82,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.pattern.special-gate",
+      "end_pdf_page": 90,
+      "heading": "論雜格",
+      "start_pdf_page": 86,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "chapter_id": "zzq.appendix.pattern-plates",
+      "end_pdf_page": 102,
+      "heading": "格局命式附表",
+      "start_pdf_page": 91,
+      "witness_id": "gengcun-ji-ncl-06599"
+    }
+  ],
   "chapters": [
     {
       "completeness": "complete",
@@ -23,7 +102,8 @@
     },
     {
       "completeness": "complete",
-      "diplomatic_sha256": "d25dba9864ba2d9ee2332e2b907acf594608960e603b132cd1ae5ef466613245",
+      "completeness_note": "Complete canonical-witness transcription through the end of 論正官取運 on Gengcun Ji PDF page 60. The six period paragraphs are retained as full source attestations and explicitly excluded from natal lifecycle compilation.",
+      "diplomatic_sha256": "4db53ec195645ccb9db95144064becfbe54fc7a38e5323d21752e9ab3994db4f",
       "files": {
         "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.direct-officer.jsonl",
         "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.direct-officer.jsonl",
@@ -34,13 +114,204 @@
       "id": "zzq.pattern.direct-officer",
       "record_counts": {
         "examples": 6,
-        "non_rules": 8,
-        "propositions": 22,
-        "rule_candidates": 12,
-        "segments": 29
+        "non_rules": 9,
+        "propositions": 23,
+        "rule_candidates": 14,
+        "segments": 36
       },
       "review_state": "scan_verified",
       "title_diplomatic": "論正官"
+    },
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "68efdd5b8cdeb333c1541835bfaa723425266b860b31d5a400d982775e478284",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.wealth.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.wealth.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.wealth.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.wealth.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.wealth.jsonl"
+      },
+      "id": "zzq.pattern.wealth",
+      "record_counts": {
+        "examples": 1,
+        "non_rules": 20,
+        "propositions": 5,
+        "rule_candidates": 9,
+        "segments": 25
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論財"
+    },
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "62ffd1d8df1ecd5c6425faf1936848855e6cdb7fdbc803344a90865134edbb27",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.resource.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.resource.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.resource.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.resource.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.resource.jsonl"
+      },
+      "id": "zzq.pattern.resource",
+      "record_counts": {
+        "examples": 1,
+        "non_rules": 19,
+        "propositions": 4,
+        "rule_candidates": 8,
+        "segments": 25
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論印"
+    },
+    {
+      "completeness": "complete",
+      "completeness_note": "Complete transcription of the surviving canonical-witness text. Gengcun ji PDF page 69 contains a likely homoeoteleuton between the F7 and F8 audit slots; the diplomatic segments preserve that witness lacuna and do not import absent wording from other witnesses.",
+      "diplomatic_sha256": "c722a5e7a98f82dbde7f502c9f4fc293ff28e7e9f026da15b8ac1d7b6f3e1e8c",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.eating-god.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.eating-god.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.eating-god.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.eating-god.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.eating-god.jsonl"
+      },
+      "id": "zzq.pattern.eating-god",
+      "record_counts": {
+        "examples": 1,
+        "non_rules": 15,
+        "propositions": 6,
+        "rule_candidates": 8,
+        "segments": 21
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論食神"
+    },
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "3734a4b775ebc2f55a7c4b73c2d99989f95e479d53bfeaf369d2c02bc40e49ea",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.seven-killings.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.seven-killings.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.seven-killings.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.seven-killings.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.seven-killings.jsonl"
+      },
+      "id": "zzq.pattern.seven-killings",
+      "record_counts": {
+        "examples": 1,
+        "non_rules": 18,
+        "propositions": 5,
+        "rule_candidates": 6,
+        "segments": 24
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論偏官"
+    },
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "4606dd3347c7b10a52a5ade8880c0935b8ea589146d9c42750074eaa7e7ad0df",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.hurting-officer.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.hurting-officer.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.hurting-officer.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.hurting-officer.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.hurting-officer.jsonl"
+      },
+      "id": "zzq.pattern.hurting-officer",
+      "record_counts": {
+        "examples": 1,
+        "non_rules": 18,
+        "propositions": 5,
+        "rule_candidates": 6,
+        "segments": 24
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論傷官"
+    },
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "20ab3f52b187c2740bdf2969522dd969d4157a100f41d42c7d1524d422ae45fa",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.yang-blade.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.yang-blade.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.yang-blade.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.yang-blade.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.yang-blade.jsonl"
+      },
+      "id": "zzq.pattern.yang-blade",
+      "record_counts": {
+        "examples": 1,
+        "non_rules": 10,
+        "propositions": 6,
+        "rule_candidates": 7,
+        "segments": 19
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論陽刃"
+    },
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "bc7e28df948bae691f8a2e111b923131cfdc1c78ced3e0844cf9d4676a675049",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.prosperity-robbery.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.prosperity-robbery.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.prosperity-robbery.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.prosperity-robbery.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.prosperity-robbery.jsonl"
+      },
+      "id": "zzq.pattern.prosperity-robbery",
+      "record_counts": {
+        "examples": 1,
+        "non_rules": 17,
+        "propositions": 7,
+        "rule_candidates": 13,
+        "segments": 30
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論建祿月劫"
+    },
+    {
+      "completeness": "complete",
+      "diplomatic_sha256": "b73595d25b8a29fa5324826e09d82c3a2ba403c815e8085ac4b8d297ca908c91",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.pattern.special-gate.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.pattern.special-gate.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.pattern.special-gate.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.pattern.special-gate.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.pattern.special-gate.jsonl"
+      },
+      "id": "zzq.pattern.special-gate",
+      "record_counts": {
+        "examples": 0,
+        "non_rules": 12,
+        "propositions": 4,
+        "rule_candidates": 4,
+        "segments": 14
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "論雜格"
+    },
+    {
+      "completeness": "complete",
+      "completeness_note": "Complete pattern-label, chart-identity, and pillar transcription of all 93 visible plates on Gengcun Ji PDF pages 91-102. Working interpretations of the short plate annotations are excluded until separately verified, and no generic rule is inferred. Page 99 includes one residual plate outside the ruled frame. 格局命式附表 is an editorial catalogue title because the witness supplies no collective heading.",
+      "diplomatic_sha256": "5e8cb96fec946f44e37829ad3da24062de4d3ff747f46b542a1bb563320b0a40",
+      "files": {
+        "examples": "research/classics/ziping_zhenquan/examples/zzq.appendix.pattern-plates.jsonl",
+        "non_rules": "research/classics/ziping_zhenquan/non_rules/zzq.appendix.pattern-plates.jsonl",
+        "propositions": "research/classics/ziping_zhenquan/propositions/zzq.appendix.pattern-plates.jsonl",
+        "rule_candidates": "research/classics/ziping_zhenquan/rules/zzq.appendix.pattern-plates.jsonl",
+        "segments": "research/classics/ziping_zhenquan/segments/zzq.appendix.pattern-plates.jsonl"
+      },
+      "id": "zzq.appendix.pattern-plates",
+      "record_counts": {
+        "examples": 93,
+        "non_rules": 12,
+        "propositions": 0,
+        "rule_candidates": 0,
+        "segments": 93
+      },
+      "review_state": "scan_verified",
+      "title_diplomatic": "格局命式附表"
     }
   ],
   "commentary_boundary": {
@@ -54,9 +325,36 @@
     "jsonl": "one object per line with no blank lines",
     "key_order": "lexicographic"
   },
+  "engine_policies": {
+    "month_command_candidate_routing": {
+      "authority": "canonical_engine_ontology",
+      "description": "The engine confirms a main-qi month-command candidate and preserves a secondary/residual-qi match only as possible. This routing distinction is an ontology policy under the source-backed month-command framework, not wording asserted to be explicit in the scanned chapter prose.",
+      "scan_explicit": false,
+      "source_framework_ids": [
+        "zzq.seg.useful.formation"
+      ]
+    }
+  },
+  "errata": [
+    {
+      "classification": "publisher_end_matter",
+      "id": "err.qin.160-164",
+      "note": "Qin witness PDF pages 160-164 are publisher advertisements, accession material, and endpapers. They are not the 論建祿月劫 chapter and supply no production doctrine mapping.",
+      "pdf_pages": [
+        160,
+        161,
+        162,
+        163,
+        164
+      ],
+      "production_mapping": false,
+      "witness_id": "qin-shenan-1926-ziping-zhenquan-v2"
+    }
+  ],
   "lifecycle_exclusions": [
     {
       "candidate_id": "zzq.rule-candidate.officer.form-transform-001",
+      "pattern_id": "direct_officer",
       "reason": "化官為印缺少已裁定的轉化事實，不從組合結果推斷轉化。",
       "source_ids": [
         "zzq.prop.officer.form-transform-001"
@@ -64,6 +362,7 @@
     },
     {
       "candidate_id": "zzq.rule-candidate.officer.damage-punishment-001",
+      "pattern_id": "direct_officer",
       "reason": "廣義刑沖破害尚不能把損害綁定到同一正官成格路徑，且會反駁薛例陽性夾具。",
       "source_ids": [
         "zzq.prop.officer.damage-punishment-001"
@@ -71,6 +370,7 @@
     },
     {
       "candidate_id": "zzq.rule-candidate.officer.rescue-branch-combination-001",
+      "pattern_id": "direct_officer",
       "reason": "廣義地支會合救應尚不能解析並解除同一個已發生的支關係損害。",
       "source_ids": [
         "zzq.prop.officer.rescue-branch-combination-001"
@@ -78,6 +378,7 @@
     },
     {
       "candidate_id": "zzq.prop.officer.variant-seal-effect-001",
+      "pattern_id": "direct_officer",
       "reason": "減官與洩官的底本異文未裁定，不編譯效果。",
       "source_ids": [
         "zzq.prop.officer.variant-seal-effect-001"
@@ -85,6 +386,7 @@
     },
     {
       "candidate_id": "zzq.prop.officer.damage-dual-support-001",
+      "pattern_id": "direct_officer",
       "reason": "匿名命例只進入精確四柱證言，不生成通用財印損害規則。",
       "source_ids": [
         "zzq.prop.officer.damage-dual-support-001"
@@ -92,6 +394,7 @@
     },
     {
       "candidate_id": "zzq.prop.officer.form-purity-001",
+      "pattern_id": "direct_officer",
       "reason": "金例的清配置保留為例證，不從原始藏干或歷史結果生成通用純度規則。",
       "source_ids": [
         "zzq.prop.officer.form-purity-001"
@@ -99,6 +402,7 @@
     },
     {
       "candidate_id": "zzq.prop.officer.rescue-fan-allocation-001",
+      "pattern_id": "direct_officer",
       "reason": "范例的部分巳丑會金與雙作用分配只進入精確四柱證言，不生成通用部分三合。",
       "source_ids": [
         "zzq.prop.officer.rescue-fan-allocation-001"
@@ -239,6 +543,30 @@
       "witness_id": "gengcun-ji-ncl-06599"
     },
     {
+      "column_line": "left folio, heading and right-to-left columns 1-7",
+      "id": "loc.gc.officer.audit-ou1",
+      "pdf_page": 59,
+      "printed_page": null,
+      "quote": "取運之道一八字則有一八字之論其理甚精其法甚活",
+      "quote_sha256": "5d90176ab1041d48f4384a4b38ce81a5c8d782cf23f41c6ca25a994b75c3056d",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=59",
+      "visually_verified": true,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
+      "column_line": "right folio, right-to-left columns 1-8",
+      "id": "loc.gc.officer.audit-ou2",
+      "pdf_page": 60,
+      "printed_page": null,
+      "quote": "佩印運喜財鄉傷食反吉若官重身輕而佩印",
+      "quote_sha256": "d2b7031d601f9fbeb25fce170b3963ae5462ef78026e0fc36cf0fb6255b0a653",
+      "review_state": "scan_verified",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=60",
+      "visually_verified": true,
+      "witness_id": "gengcun-ji-ncl-06599"
+    },
+    {
       "column_line": "right-to-left columns 1-8",
       "id": "loc.qin.officer.136",
       "pdf_page": 136,
@@ -309,7 +637,170 @@
       "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/NLC416-11jh010455-35296_%E5%AD%90%E5%B9%B3%E7%9C%9F%E8%A9%AE.pdf#page=67",
       "visually_verified": true,
       "witness_id": "world-library-ziping-zhenquan-nlc"
-    }
+    },
+    {"column_line":"left folio, heading column","id":"loc.gc.wealth.60-heading","pdf_page":60,"printed_page":null,"quote":"論財","quote_sha256":"499d33ae715bfc2001bf1a9b4fb5127f74f143f6ac1e0d6d1dff96f226c2e99d","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=60","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.wealth.61-officer-path","pdf_page":61,"printed_page":null,"quote":"有財旺生官者身強而不透傷官不混七煞","quote_sha256":"6337354cbd9680992f974fb748bfed9451b83e4e3b15c68ca9474c64b7c588de","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.wealth.62-killing-paths","pdf_page":62,"printed_page":null,"quote":"有財帶七煞者或合煞存財或制煞生財","quote_sha256":"5b9110050ce163480c4f066b971f4b52850287171d132446cb202212e7c5b2ab","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=62","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.wealth.63-period","pdf_page":63,"printed_page":null,"quote":"財格取運卽以財格所就之局分而配之","quote_sha256":"face05dd17ab9da102db7a6357c0799b24661ad33ac17bda566a2a72418e1b96","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=63","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.resource.64-opening","pdf_page":64,"printed_page":null,"quote":"印綬喜其生身正偏同為美格","quote_sha256":"4e4b71a005aba9a64da8dbe5debcb327120f5cdfcd33befde95010556c277919","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.resource.65-wealth-path","pdf_page":65,"printed_page":null,"quote":"有印多而用財者印重身強透財以抑太過","quote_sha256":"63df4e770d82dfa6bc98eeead620a659118d1c1af22b37c8a03a6493ef527eb8","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=65","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.resource.67-period","pdf_page":67,"printed_page":null,"quote":"印格取運卽以印格所成之局分而配之","quote_sha256":"0d77c68cb991c5fb29006a6cf680e25eba2a5c6a3bf6cd029d8b19806630c0b8","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=67","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.food.68","pdf_page":68,"printed_page":null,"quote":"食神本屬洩氣以其能生正財所以喜之","quote_sha256":"2c0235f4f0da3fad811292aa49b3705ea621dc5fd7a2dcada98f9d57b2e94167","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.food.69","pdf_page":69,"printed_page":null,"quote":"透財以解","quote_sha256":"9c06b1e810a74aa54a72d14f13f7005f8d9f178399af1d59798c51395cada612","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.food.70","pdf_page":70,"printed_page":null,"quote":"食神取運卽以食神所成之局分而配之","quote_sha256":"e2daef994fb9f7a7faec46f466257bc33ba1b371fb8220ef2a8d967aaa2c2a1f","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=70","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.kill.71","pdf_page":71,"printed_page":null,"quote":"七煞之格局亦不一煞用食制者上也","quote_sha256":"685b2d279d55087c2b1e376f184e9d5e680852623d8e02e30c431eb939d359dc","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=71","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.kill.73-blade-path","pdf_page":73,"printed_page":null,"quote":"有煞無食制而用刃當者","quote_sha256":"95678f09add946fdf07d060f9eeed0524cd224d5e7a06814dc5c9ae69e34d0d5","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=73","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.kill.73-mixture","pdf_page":73,"printed_page":null,"quote":"有煞而襍官者或去官或去煞取清則貴","quote_sha256":"784352701f3c0e2195d12b7b270c63d09c4bece1f6b06cc3a05e59c6be624ab1","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=73","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.kill.74-period","pdf_page":74,"printed_page":null,"quote":"偏官取運卽以偏官所成之局分而配之","quote_sha256":"4a7211f1bc1591ed6de01df1663d12c622a715a8f50a50fb904e921252045036","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=74","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"left folio, heading column","id":"loc.gc.hurting.75-heading","pdf_page":75,"printed_page":null,"quote":"論傷官","quote_sha256":"4edb91eae92d8ed196e327a345adee1c3695eb9edfad42e99bb04502eaa69f8c","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=75","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"left folio, right-to-left columns","id":"loc.gc.hurting.76-wealth-path","pdf_page":76,"printed_page":null,"quote":"有傷官用財者","quote_sha256":"d15b61237054622094ae3543bda22c483025574efc3680afd5832e25a78c3d01","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.hurting.76-resource-path","pdf_page":76,"printed_page":null,"quote":"有傷官佩印者印能制傷","quote_sha256":"02353382e784ba350a833c9de386bb6653282b944fc7edb5519c8053b81177bd","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.hurting.77-killing","pdf_page":77,"printed_page":null,"quote":"有傷官用煞印者傷多身弱","quote_sha256":"4dc8c87f30c4d5b808364effbc1c9c6ab6fce2d5ded9dfbf24b66f9a7e35430c","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=77","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.hurting.77-officer-path","pdf_page":77,"printed_page":null,"quote":"有傷官用官者他格不用金水獨宜","quote_sha256":"b7d884a1cc2bc6a6e182e7bd1ecb8c361887ebb297e857c4901de8acd0a1619b","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=77","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.hurting.78-period","pdf_page":78,"printed_page":null,"quote":"傷官取運卽以傷官所成之局分而配之","quote_sha256":"eb58b11bf4e1fdb37c5173d25e379401d31c0dedbf4310885ecf8f33e5471817","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=78","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.blade.79-opening","pdf_page":79,"printed_page":null,"quote":"陽刃者劫我正財之神","quote_sha256":"49b99086e4463094e65958d3afa9029c6a30c1e8705e70512e6b033273e712b7","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.blade.80-output-alternatives","pdf_page":80,"printed_page":null,"quote":"然亦有官煞制刃帶傷食而貴者何也或是印護","quote_sha256":"02ec8b236190310eff8c3d7b5dafef798701e69d02fd778d24c70d05ca2a1d23","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=80","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.blade.81-wealth","pdf_page":81,"printed_page":null,"quote":"陽刃用財格所不喜然財根深而用傷食以轉刃生財","quote_sha256":"d4c16d28639b9ae753b9b5025cd676d4505827ffb86978922f03746b159b45ca","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=81","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.blade.81-period","pdf_page":81,"printed_page":null,"quote":"陽刃用官則運喜助官","quote_sha256":"350127fc04a210f157cd19a6008689150c79a87c59171ce27e00c3924ae2d706","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=81","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"left folio, heading column","id":"loc.gc.blade.81-heading","pdf_page":81,"printed_page":null,"quote":"論陽刃取運","quote_sha256":"a041b6c83a05dc69701e9417bbd2c7e94b588c5d1304667e5ca1d9f97611ae07","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=81","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"left folio, heading column","id":"loc.gc.lu-robbery.82-heading","pdf_page":82,"printed_page":null,"quote":"論建祿月劫","quote_sha256":"373836f76ada966cbb707eca4057cfac8367f9f48bf7a23a78c7de8d7802cbe2","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.lu-robbery.82-officer-base","pdf_page":82,"printed_page":null,"quote":"祿劫用官干頭透出為奇又要財印相隨不可孤官無輔","quote_sha256":"b59bb501b77925b085a554e6aac5c76b29a0a59558d5e3a5d396929f6472294a","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.lu-robbery.82-officer-resource","pdf_page":82,"printed_page":null,"quote":"有用官而印護者","quote_sha256":"df5c8a0645fc1a5014ef6da4721f60e7b7ff3f0b0d9dd5371931716c8643e6e1","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.lu-robbery.83-officer-wealth","pdf_page":83,"printed_page":null,"quote":"有用官而財助者","quote_sha256":"b8cd8a172fda2429f3b63d5477a214bf563d2f567620f019020d9930e0b418f9","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.lu-robbery.83-wealth","pdf_page":83,"printed_page":null,"quote":"祿劫用財須帶傷食","quote_sha256":"48bf9a5dcd62d66d3e1b15c744331329b3a711082d6ef7f3c769ecfa7d4b80d0","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.lu-robbery.83-killing","pdf_page":83,"printed_page":null,"quote":"祿劫用煞必須制伏","quote_sha256":"fa8c8fe1358f904415864581f33b7d6d005a013e942b2454cd68f24f618ca992","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"right folio, right-to-left columns","id":"loc.gc.lu-robbery.84-mixture","pdf_page":84,"printed_page":null,"quote":"更有祿劫而官煞競出必須取清方為貴格","quote_sha256":"f59be274c7d54da27239ea0ccac287d7a8e219ea690a365e6087578195983d6c","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=84","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"left folio, right-to-left columns","id":"loc.gc.lu-robbery.85-period","pdf_page":85,"printed_page":null,"quote":"祿劫取運卽以祿劫所成之局分而配之","quote_sha256":"9945306bef2222fe206ab125cd6114488e0479e83ac1f2c2b984b4fdf7f67769","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=85","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w1","pdf_page":60,"printed_page":null,"quote":"財為我尅使用之物也","quote_sha256":"574d53676de4cddec905b63dfbabab44c195f6cef01b3c5abafb76ed92361f4c","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=60","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w2","pdf_page":60,"printed_page":null,"quote":"財喜根深不宜太露","quote_sha256":"f92710125acfa41ba298fba9a1769d37a875fb677f11cd52fa8b1ca818837c61","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=60","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w3","pdf_page":61,"printed_page":null,"quote":"財格之貴局亦不一","quote_sha256":"354a405c1ceea95b57a099b7b8e7ef26e1f99053b89f3d3d748824f67f4e0bb6","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w4","pdf_page":61,"printed_page":null,"quote":"有財用食生者","quote_sha256":"5c5fde64c4b73e07f8c29638237794ae004e00494e9c6b43c04b879e884add2a","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w5","pdf_page":61,"printed_page":null,"quote":"有財格佩印者","quote_sha256":"725ea4bb94d4005e27d3d6f7b2a593c19c0fcf5182f018c9ed1730eaf33dc9df","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w6","pdf_page":61,"printed_page":null,"quote":"有用食而兼用印者","quote_sha256":"9a09dce4bec0f87b7726a0bbcdeb5646ca20a3638e10e09340f24595103d7ac4","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w7","pdf_page":62,"printed_page":null,"quote":"有財用傷官者","quote_sha256":"0e826929b2f82be341dc91e937b5aa1b1d0f6d08a24502274cf0047eb2136577","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=62","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w8","pdf_page":62,"printed_page":null,"quote":"有財帶七煞者","quote_sha256":"157795c9c9e53ff40e28cc078af8aeb1edce12b751a8f28bcf6a2d9afa7b7431","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=62","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w9","pdf_page":62,"printed_page":null,"quote":"有財用煞印者","quote_sha256":"f2700cb068f5dd1f4648510d6e1b294218d19ebb1c024ee4f3e95da8fafdbef9","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=62","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w10","pdf_page":62,"printed_page":null,"quote":"至於壬生午月","quote_sha256":"dfe0abb50dc8bc4200fceb789edd07737f1222c8f41530a6aa22364716881d62","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=62","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-w11","pdf_page":62,"printed_page":null,"quote":"至於劫刃太重","quote_sha256":"d900450fee67875f4d01fcf23a758aef29556c77d78bbd55080173c6f35998b6","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=62","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-wu1","pdf_page":63,"printed_page":null,"quote":"財格取運","quote_sha256":"2fcc65323a86b5acb7c85f39c8a85582e29f1324fb92b8313d364ead988c1382","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=63","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-wu2","pdf_page":63,"printed_page":null,"quote":"財用食生","quote_sha256":"57de7f180c78457116960850be408fc56582618aa8564fa1080ba4793f5b0e0c","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=63","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-wu3","pdf_page":63,"printed_page":null,"quote":"財格佩印","quote_sha256":"8760139d766d82fd2f3add2305c02086faae8b1e9225788d608510a065b9f9af","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=63","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-wu4","pdf_page":63,"printed_page":null,"quote":"財用食印","quote_sha256":"517119e2b3a02d34f69a7937705f6717add3c32c034efccb66b1117cafe64d7c","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=63","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-wu5","pdf_page":64,"printed_page":null,"quote":"財帶傷官","quote_sha256":"fbad80ffe399f91027164579f2e8f8bb6ccbfec753deca2929a32d282494ba3e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-wu6","pdf_page":64,"printed_page":null,"quote":"財帶七煞","quote_sha256":"cc401257c2f4d6a388982378d9f353c9b3573a758a42e539396de69566f7a862","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.wealth.audit-wu7","pdf_page":64,"printed_page":null,"quote":"財用煞印","quote_sha256":"fdbd447ef9445ab37c794548c8fbc6ca9dc5cbd57db917f593c2b03e90491f6e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r1","pdf_page":64,"printed_page":null,"quote":"印綬喜其生身","quote_sha256":"e19a2a6161c7cb0f6f676e8d3d5e611fa3bfb970fd2288c870c0dcc53aa14367","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r2","pdf_page":64,"printed_page":null,"quote":"印綬之格局亦不一","quote_sha256":"d9b8e8597a0342df925b26cb1e3ff92449e81742e4e73c2e6132ea0ec593bc9b","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r3","pdf_page":65,"printed_page":null,"quote":"有印而用傷食者","quote_sha256":"64c7f2c00c4f5bc6835403005b6bd78aa94dfc612b345f502ffcde4302680882","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=65","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r4","pdf_page":65,"printed_page":null,"quote":"有用偏官者","quote_sha256":"e4fd6f04e46b085e3d5afe05e32c5f1b75e31224e2ffaa1f7d30e60e5ab7c0fe","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=65","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r5","pdf_page":65,"printed_page":null,"quote":"有用煞而兼帶傷食者","quote_sha256":"20316a4ffddb77ed499fe2bc56d3ccec437c641dda7cba9ae9162dddcfeba26e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=65","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r6","pdf_page":65,"printed_page":null,"quote":"有印多而用財者","quote_sha256":"3263b766d961275d4d79a7192a2959d1ffa0266b2a3f13ccc961423bb880a65d","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=65","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r7","pdf_page":65,"printed_page":null,"quote":"或卽印重財輕","quote_sha256":"37b23e04e448c1459257819ecf084a848ea5be0bcab2464dd57f2366be30be53","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=65","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r8","pdf_page":66,"printed_page":null,"quote":"又有印而兼透官煞者","quote_sha256":"00a2d90e18f97aaf12d760e8633ce0930d04590656266176e24ed47091aadf61","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=66","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r9","pdf_page":66,"printed_page":null,"quote":"至於化印為劫","quote_sha256":"58e34cbb5ae5304483cd7e596fbc4d18988cbd0fbe0d5065e1a00ac3f44c6bec","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=66","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-r10","pdf_page":66,"printed_page":null,"quote":"更有印透七煞","quote_sha256":"80659cceb2964e26a474de7f57beb48bbec1e86e811bb68d583e2efd84931d9e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=66","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-ru1","pdf_page":67,"printed_page":null,"quote":"印格取運","quote_sha256":"31ed0840991f90a05e40b0c53860b34bd7dc52fd108e272bca9560eb6ed4de24","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=67","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-ru2","pdf_page":67,"printed_page":null,"quote":"若用官而兼帶傷食","quote_sha256":"aa88351f63a58a29ee95144b2c74c9d1589bf96ab86d1eea9475d2aee38b7969","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=67","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-ru3","pdf_page":67,"printed_page":null,"quote":"印綬而用傷食","quote_sha256":"1bb30123b0924f147d06f2a73b001a06839535921c108b852834e1158cc172b6","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=67","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-ru4","pdf_page":67,"printed_page":null,"quote":"印用七煞","quote_sha256":"f70cd19dbfa8e732ff592c37b0d7b5dd7edb656fe663288e8683ab058b85718e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=67","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-ru5","pdf_page":67,"printed_page":null,"quote":"若用煞而兼帶傷食","quote_sha256":"dcb913452a86f323d631b4da92e48656dd008972a26bc6b9a8ddfa38535eeca4","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=67","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-ru6","pdf_page":68,"printed_page":null,"quote":"印多遇財","quote_sha256":"8825710af42fe6f7933eaee5ef6cfbfad896c78ef9e431e6dc213085cf9b544d","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-ru7","pdf_page":68,"printed_page":null,"quote":"印格而官煞競透","quote_sha256":"9e53e99cbc66446e517b854f3c02d797c16dc599f1fc958fce52c3b5a0331e4a","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.resource.audit-ru8","pdf_page":68,"printed_page":null,"quote":"印用食傷","quote_sha256":"ee3e88f2d2ada0eb3676b9dc32c20840648a689b238d664413d1462bc4a4d5df","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-f1","pdf_page":68,"printed_page":null,"quote":"食神本屬洩氣","quote_sha256":"2b5bd5cdb147a1847bd267c6a3bfa571e2dc22f1702f59368166236d3d9ee5c7","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-f2","pdf_page":68,"printed_page":null,"quote":"藏食露傷","quote_sha256":"a85f15699d446f4cb85824687e91d49b70b3a940f06671cccce8305a98bf2ee1","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-f3","pdf_page":68,"printed_page":null,"quote":"偏正疊出","quote_sha256":"abd2735decdeaccdf8cc7155a40ffc61bd777ea440951fd4b598ab761efab06d","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-f4","pdf_page":69,"printed_page":null,"quote":"夏木用財","quote_sha256":"5dd6fcd4ae8c44afc9378a08253f2df96cfcb22bedaf4cd38a65439be8eff245","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-f5","pdf_page":69,"printed_page":null,"quote":"若不用財而就煞印","quote_sha256":"cc9a5dadf9a5c95cd1947a40b71e70621c445214bbe76f0f15391c50e859f1c2","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-f6","pdf_page":69,"printed_page":null,"quote":"若金水食神而用煞","quote_sha256":"f45d1731a24c540c381b491917d1a044d8385807950ed355b959fe334a14cead","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-f7","pdf_page":69,"printed_page":null,"quote":"至若單用食神","quote_sha256":"d34ec8c8fb63053e122e14a8ee5c5163652e7ffd5b7cba1db794d978b9997231","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor after the canonical-witness lacuna, visually verified in audit","id":"loc.gc.food.audit-f8","pdf_page":69,"printed_page":null,"quote":"透財以解","quote_sha256":"9c06b1e810a74aa54a72d14f13f7005f8d9f178399af1d59798c51395cada612","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-f9","pdf_page":69,"printed_page":null,"quote":"至若食神透煞","quote_sha256":"a2b0ec9a01eb29dc748ad50c7cab864241c0f542a104b57c8958a1dcb9bf0e84","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-fu1","pdf_page":70,"printed_page":null,"quote":"食神取運","quote_sha256":"823c4be36ba9f5fe4583a578b64b722a05f3c069e45660463ae29df9bdbfea96","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=70","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-fu2","pdf_page":70,"printed_page":null,"quote":"食用煞印","quote_sha256":"bb60de271ece9dff9a4cff36b0350089bceb09d454ffc16e7646b3a8ab5c4de8","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=70","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-fu3","pdf_page":70,"printed_page":null,"quote":"食神帶煞","quote_sha256":"d0417bcccdc0a60df8932466ecec3ffc09294c3d05e817131b6aa4d459202411","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=70","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-fu4","pdf_page":70,"printed_page":null,"quote":"食神太旺而帶印","quote_sha256":"7b0b108f383e3c02b8f80e0b38ede90f8a01e0fbe29b6c76638293f0413a408c","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=70","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.food.audit-fu5","pdf_page":70,"printed_page":null,"quote":"若食神帶印而透財以解","quote_sha256":"d3c6e5b911091a6b371bbc72ab88865f32cab994574107b20efc2ab56ca50910","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=70","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k1","pdf_page":71,"printed_page":null,"quote":"煞以攻身","quote_sha256":"0000080bdcad07bae61cc71c34183f149ef9d23bbd8083a1dfffb51ed1719a52","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=71","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k2","pdf_page":71,"printed_page":null,"quote":"七煞之格局亦不一","quote_sha256":"bcfcbac6312f82a0332f3d1b525769053aa79b2f43abf97bf9fbc03d06a48306","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=71","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k3","pdf_page":71,"printed_page":null,"quote":"煞用食制不宜露財透印","quote_sha256":"32a577b9607fc1d81d6e1e975b287ff3b3c81196196b4bb3bae21a8a919a1567","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=71","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k4","pdf_page":72,"printed_page":null,"quote":"有七煞用印者","quote_sha256":"10c4f63a3ba21e4c447afead2233c8d8194f971cbe9f01ff7cc031b208688c43","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=72","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k5","pdf_page":72,"printed_page":null,"quote":"亦有煞重身輕","quote_sha256":"2bec765f280c55e718c32da457ec0a32652281c80041b03f404de6edb48b4c81","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=72","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k6","pdf_page":72,"printed_page":null,"quote":"有煞而用財者","quote_sha256":"47b460978fb0fabf267b5ad756e7d5cd1994ad35c9ce90fd3afc3b0fbdda8b92","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=72","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k7","pdf_page":72,"printed_page":null,"quote":"又有身重煞輕","quote_sha256":"2da148a08ab79872d374dc4794181b6a084ea477917ec46539a63ff5c52b8273","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=72","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k8","pdf_page":72,"printed_page":null,"quote":"更有襍氣七煞","quote_sha256":"c10c47f6e1f8edb8b5a04981de02552e2533389e31ad696b2e7897e940d1607b","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=72","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k9","pdf_page":73,"printed_page":null,"quote":"有煞而襍官者","quote_sha256":"c5143260065850d33373784b778ed30ff5a18a1d71868918e950636afe854775","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=73","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k10","pdf_page":73,"printed_page":null,"quote":"有煞無食制而用刃當者","quote_sha256":"95678f09add946fdf07d060f9eeed0524cd224d5e7a06814dc5c9ae69e34d0d5","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=73","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-k11","pdf_page":73,"printed_page":null,"quote":"至書有制煞不可太過","quote_sha256":"9793e1b15ed249ab1e3ef27bc6d7ae5e40e42320b95039b9bb752ffe0f0c897d","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=73","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-ku1","pdf_page":74,"printed_page":null,"quote":"偏官取運","quote_sha256":"c95f276a524a8766de3802f03b6cfa5062c033241001b70059a7d01ef08f8da0","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=74","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-ku2","pdf_page":74,"printed_page":null,"quote":"煞用印綬","quote_sha256":"e34d79b1382ec3dc4477895e2a165e8960d679f6c41c9d68c946780b1fc15c19","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=74","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-ku3","pdf_page":74,"printed_page":null,"quote":"七煞用財","quote_sha256":"2e7bd8295f51dd044adcf1af5115af4188479f86a45550d3649f43dbd76050da","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=74","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-ku4","pdf_page":74,"printed_page":null,"quote":"其以財而助煞不及者","quote_sha256":"f7903a41a68af1fd856ad9169058be713127cba0f457bbaea1fce9a636496056","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=74","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-ku5","pdf_page":74,"printed_page":null,"quote":"煞帶正官","quote_sha256":"03f6e30128153fc02edfef7002d9c429635bf04132acbb205163acb80792a3f8","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=74","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.kill.audit-ku6","pdf_page":75,"printed_page":null,"quote":"煞無食制而用刃當煞","quote_sha256":"e3f1efd699053464308ed9435fce0acf0bfc692fe5efe1d15a12d2c2edd6aeef","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=75","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h1","pdf_page":75,"printed_page":null,"quote":"傷官雖非吉神","quote_sha256":"efc7b20d1ec871ee6e9537c1f3dd049e1aa3d63ce08319083cdc5ada9cebffa7","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=75","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h2","pdf_page":76,"printed_page":null,"quote":"故有傷官用財者","quote_sha256":"7edde3253089a39b00b51502ac28e325686fae2f8f7a9f8a1001761d70b144b2","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h3","pdf_page":76,"printed_page":null,"quote":"至于化傷為財","quote_sha256":"6646f63e3facf7f705064d25a69c27321c61f86884c7511cb320263b6fd25ec3","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h4","pdf_page":76,"printed_page":null,"quote":"至于財傷有情","quote_sha256":"2c000b7d5825a4f241644acb0bb86fd47d7a2e454919fdf466e2b347df9a53a3","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h5","pdf_page":76,"printed_page":null,"quote":"有傷官佩印者","quote_sha256":"95602dea9ff17899b9c837619a8f376ec7cbcbaa97c80273d7526bb0e7bd2393","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h6","pdf_page":76,"printed_page":null,"quote":"有傷官兼用財印者","quote_sha256":"f9c898a920072441ca6d05295d551af63b18ee803ceb1dbae2d4b7b9d793d990","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h7","pdf_page":77,"printed_page":null,"quote":"有傷官用煞印者","quote_sha256":"ef02357ded9024c47d195a0c06cba359814d5d8d3814906758392174d0aee608","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=77","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h8","pdf_page":77,"printed_page":null,"quote":"有傷官用官者","quote_sha256":"07e854241096527579ce2676aeccfca41ead64034e872051c42e8b572f65f999","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=77","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h9","pdf_page":77,"printed_page":null,"quote":"若冬金用官","quote_sha256":"913efee223f5f949f8a2e6403e608ecc23c43c08f8412596472b3af9ef332b37","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=77","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h10","pdf_page":77,"printed_page":null,"quote":"然亦有非金水而見官","quote_sha256":"7f11fedcc68968a018f8573c9f7841ff16ae6847475f39d6dcb0604034d6aba4","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=77","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-h11","pdf_page":78,"printed_page":null,"quote":"至于傷官而官煞並透","quote_sha256":"e8b7330e408a99c89ec6ec04afe5d8874b3be6f052ceebb8db119c210425e8c8","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=78","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-hu1","pdf_page":78,"printed_page":null,"quote":"傷官取運","quote_sha256":"edb55ee4171ff528d1fbb5d3c5d685741c4f2a84c39e2128e671a0aa085b852f","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=78","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-hu2","pdf_page":78,"printed_page":null,"quote":"傷官佩印","quote_sha256":"ee62f01579b54d7ff6c2c98ac58593295d5c6e5720c30c83d78d15b58ed4513e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=78","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-hu3","pdf_page":78,"printed_page":null,"quote":"傷官兼用財印","quote_sha256":"b6f5727ad29dd28351ea2019238d92e34acfb07d58b56cf9774255e2bacbf0f8","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=78","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-hu4","pdf_page":78,"printed_page":null,"quote":"傷官而用煞印","quote_sha256":"ec6acc4de56558a0288c00e83e384a45c268e44049179499bd8cf6685947b124","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=78","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-hu5","pdf_page":79,"printed_page":null,"quote":"傷官帶煞","quote_sha256":"c0936ece0423c63260d55fb36cb9c97d1492242b7a52fae28ef475203a78c582","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.hurting.audit-hu6","pdf_page":79,"printed_page":null,"quote":"傷官用官","quote_sha256":"bc5f9a687ccf5e5a94bbfbea752bed54a4fa7d30db85137f256336e782ad6a82","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-b1","pdf_page":79,"printed_page":null,"quote":"陽刃者劫我正財之神","quote_sha256":"49b99086e4463094e65958d3afa9029c6a30c1e8705e70512e6b033273e712b7","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-b2","pdf_page":79,"printed_page":null,"quote":"陽刃用官透刃不慮","quote_sha256":"521fef843d3280402fc6f2afbe01f5eb1ec283e93eb743611dcdf68ceb43b6d5","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-b3","pdf_page":80,"printed_page":null,"quote":"然同是官煞制刃","quote_sha256":"900dee4f2c914512097ba6504f4aeb6b6e8d6f2e916baf25b750d87819b66684","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=80","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-b4","pdf_page":80,"printed_page":null,"quote":"然亦有官煞制刃帶傷食","quote_sha256":"55cda4982fa012abcff44cdb4d826790020aedb243ef25342c8e0f8a8e902002","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=80","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-b5","pdf_page":80,"printed_page":null,"quote":"其於丙生午月","quote_sha256":"0e26448750532dfcdc12d4b6ec93af018926fbf240ab1dcb6a63a45953f9a694","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=80","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-b6","pdf_page":81,"printed_page":null,"quote":"更若陽刃用財","quote_sha256":"929281b9629da8ebb7bac1985447732a3b348565d05c56769937c4154410c36e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=81","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-bu1","pdf_page":81,"printed_page":null,"quote":"陽刃用官","quote_sha256":"b40e676408d7dc4ef5a8fea7240355477bf6a59586b7f7bb7a3b8a80c03ac91b","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=81","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-bu2","pdf_page":81,"printed_page":null,"quote":"陽刃用煞","quote_sha256":"9c3a8f4aacbbbe3658bf94db66f1148574e10a554e944f03630b5092c22c0b2f","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=81","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.blade.audit-bu3","pdf_page":81,"printed_page":null,"quote":"陽刃而官煞並出","quote_sha256":"c52e61d3d94ce3a77cf31b06950897df17654da52cb81bb96924c38847c2ac47","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=81","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l1","pdf_page":82,"printed_page":null,"quote":"建祿者月建而逢祿堂也","quote_sha256":"b22ff39afa2fe52355584e705353a9b04cb416eaa97a9247e1660f58e403e649","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l2","pdf_page":82,"printed_page":null,"quote":"祿劫用官干頭透出為奇","quote_sha256":"c42782833961f96c52981a71bf6bbb6d47c0eb97f0b2fceed01e129bae061713","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l3","pdf_page":83,"printed_page":null,"quote":"有用官而兼帶財印者","quote_sha256":"9ba173c1f9120f2c0477d4f3ae33d64a091f0e8fb7ae49849b92238d430958e7","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l4","pdf_page":83,"printed_page":null,"quote":"祿劫用財須帶傷食","quote_sha256":"48bf9a5dcd62d66d3e1b15c744331329b3a711082d6ef7f3c769ecfa7d4b80d0","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l5","pdf_page":83,"printed_page":null,"quote":"至於化劫為財","quote_sha256":"297dc4eb48825a9e21c8a7916f8368e4b17250ee92eb754df78a51e2eaa06f94","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l6","pdf_page":83,"printed_page":null,"quote":"祿劫用煞必須制伏","quote_sha256":"fa8c8fe1358f904415864581f33b7d6d005a013e942b2454cd68f24f618ca992","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l7","pdf_page":83,"printed_page":null,"quote":"至若用煞而又帶財","quote_sha256":"5b4ab7a3b0abc73747e91c6501ce2b120a53254ad9709dc2b42117829887fb24","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l8","pdf_page":84,"printed_page":null,"quote":"其祿劫之格無財官而用傷食","quote_sha256":"1442e32d7c7b96eefbc1fb9664aa6b638f9dc91484d0267219c7a99d91cd9430","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=84","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l9","pdf_page":84,"printed_page":null,"quote":"更有祿劫而官煞競出","quote_sha256":"426b12e537ca1bbeb445c49d9363ea852340ef1d4c2d06192d815ac0ea08d6ba","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=84","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l10","pdf_page":84,"printed_page":null,"quote":"倘或兩官競出","quote_sha256":"47b7a64b8a62a13f5476dc5022627b27a77a4300420c995a8d7d7e677354c75c","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=84","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l11","pdf_page":84,"printed_page":null,"quote":"若夫用官而孤官無輔","quote_sha256":"3a5aaaeeea1dea0a83547f09fd23eabf6594d81edfc42fa5cf2668aac73797bc","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=84","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l12","pdf_page":84,"printed_page":null,"quote":"用財而不透傷食","quote_sha256":"796e383d8c0ed392cf5ed8a4693ca673f5fb58ac6447157e80b7d8e2a6098c06","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=84","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-l13","pdf_page":84,"printed_page":null,"quote":"用官煞重而無制伏","quote_sha256":"35029fd46fa3641a3cd4dd242471f00e156da61a6125218eddcfe4eef4cf87d8","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=84","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-lu1","pdf_page":85,"printed_page":null,"quote":"祿劫取運","quote_sha256":"e4553cc246adcdf52c48042dff4c21a90bcc5365473b4cc4431ad23ce5da3ada","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=85","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-lu2","pdf_page":85,"printed_page":null,"quote":"財生者喜印","quote_sha256":"1433618944c3f3507d6af9cde19dfc85ecb2b33624599b54cb60f76037d06c3d","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=85","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-lu3","pdf_page":85,"printed_page":null,"quote":"祿劫用財而帶傷食","quote_sha256":"7e342c011ae0e116a89bcb2510718d02cb5a823b331309e3248a672c830a2589","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=85","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-lu4","pdf_page":85,"printed_page":null,"quote":"祿劫用煞以食制","quote_sha256":"00e1ebd09df7f3d3ded03e5a983b4e1c90ff9776c3a884d26b08c91441376f49","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=85","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-lu5","pdf_page":86,"printed_page":null,"quote":"若用煞而帶財","quote_sha256":"014cbefbfc92ebcd351c1cbed047acf47b0f469e6450e8095e65c0cb78971071","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-lu6","pdf_page":86,"printed_page":null,"quote":"祿劫而用傷食","quote_sha256":"f5c8695ded9e7ffa35affe8beee8979459fc78baa18e07f210b19065b9c49c37","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"paragraph opening anchor, visually verified in audit","id":"loc.gc.lu-robbery.audit-lu7","pdf_page":86,"printed_page":null,"quote":"祿劫官煞並出","quote_sha256":"94f8e7868348d0b1e85b5a93ec126fe65705144d69c0d51030b36a23d5061434","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"left folio, right-to-left columns","id":"loc.gc.special.86","pdf_page":86,"printed_page":null,"quote":"雜格者月令無用取外格而用之","quote_sha256":"de09abe6ffd5aeedc56e59ae34cc80d374bce939d298f980522a1644c505bf21","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.special.87","pdf_page":87,"printed_page":null,"quote":"有倒沖成格者","quote_sha256":"afd08ffb1babaa4e8c7313be1692044e4a6d96d8a0866132c18fb88dee50d4e2","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=87","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.special.88","pdf_page":88,"printed_page":null,"quote":"有棄命從財者","quote_sha256":"682f9aba5b1ca3d748b3ae9ace0dcc34407775e1c9dfd6f18fa7216932411123","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=88","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.special.89","pdf_page":89,"printed_page":null,"quote":"有遙合成格也","quote_sha256":"da3096bf452f489929b9b9527cb94d54b094425a0494a30cbf94cdb95d3ce498","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=89","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, right-to-left columns","id":"loc.gc.special.90","pdf_page":90,"printed_page":null,"quote":"然要之極賤者多不得不觀其人物以衡之矣","quote_sha256":"c34ec7d9513d6caad8ef3b14931fb6b0507a9b6dcf46110cf9ded876859ab24d","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=90","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"left folio, four chart plates; right folio blank","id":"loc.gc.appendix.91","pdf_page":91,"printed_page":null,"quote":"正官格薛相公命","quote_sha256":"de5b03486365cf18bad02be000b5e5e4fc041272db8cd607f630e2deafc29e99","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=91","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.92","pdf_page":92,"printed_page":null,"quote":"正官格李參政命","quote_sha256":"e7540b8fc2ecfb7266ff5fa94c2dc070ab151a81660f8118691eff34206e7868","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=92","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.93","pdf_page":93,"printed_page":null,"quote":"財格汪學士命","quote_sha256":"966e2e0324d3dabde61eaab58ea76c104aea6297d3d55ae1579b1e7b610ab00e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=93","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.94","pdf_page":94,"printed_page":null,"quote":"印格朱尚書命","quote_sha256":"b311b994bba93b5df5bc159cbff3f92a11958a8fc95dd751542f7b60e46abe40","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=94","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.95","pdf_page":95,"printed_page":null,"quote":"印格趙知府命","quote_sha256":"19fb7321e1b71c3e7de1842e3ce312749e70a859cc3fdf4b250b44214d21e77e","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=95","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.96","pdf_page":96,"printed_page":null,"quote":"食神格龔知縣命","quote_sha256":"7b9c4922871a9bc90506399386505f0cc56b2d5ff8fa85c5e5cee65422f1f99f","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=96","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.97","pdf_page":97,"printed_page":null,"quote":"偏官格脫脫丞相命","quote_sha256":"c4ffde652c08aeda8b5dfb576d73444658ddd86cf5093bfb01ea07e8f08a7b50","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=97","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.98","pdf_page":98,"printed_page":null,"quote":"傷官格羅狀元命","quote_sha256":"b46cd5d25127868d69a3b61808e045017bc8b14d3956510eb1ac5030b0d47a9a","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=98","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios plus one outside-frame residual plate; nine chart plates","id":"loc.gc.appendix.99","pdf_page":99,"printed_page":null,"quote":"陽刃格賈平章命","quote_sha256":"de54aa68521266138f80a5fd82879897d5e68c6b8752ab56a81bd615cb622a34","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=99","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.100","pdf_page":100,"printed_page":null,"quote":"祿劫格王少師命","quote_sha256":"5d7d7f3d208e0166a0344cc0f8bb74bc961c54bd3cf586645579cb6ec92cec3d","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=100","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.101","pdf_page":101,"printed_page":null,"quote":"祿劫格茹平章命","quote_sha256":"10e37512426e44d01855ae70d4beb87b105a85a77ef7f5caaa03b0f14c65e752","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=101","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"},
+    {"column_line":"both folios, eight chart plates","id":"loc.gc.appendix.102","pdf_page":102,"printed_page":null,"quote":"合祿格蜀王命","quote_sha256":"585a6e78d78d517f70fb0153dd508d0fa2d96f918713cc1937bd6ae6dca68fe4","review_state":"scan_verified","url":"https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=102","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599"}
   ],
   "normalization_policy": {
     "mapping": {
@@ -324,8 +815,2294 @@
     "method": "declared deterministic replacement mapping; multi-character editorial resolutions are applied before single-character mappings",
     "note": "No OpenCC dependency is used. Canonical lexical readings, marginal corrections, and witness variants remain in diplomatic_text; normalized_search_text never replaces diplomatic_text."
   },
+  "paragraph_dispositions": [
+    {
+      "adjudication": "PER methodological limit: period selection varies by the completed natal chart and is not a natal lifecycle rule.",
+      "audit_id": "OU1",
+      "chapter_id": "zzq.pattern.direct-officer",
+      "current_records": "S zzq.seg.officer.audit-ou1; N zzq.nonrule.officer.audit-period",
+      "disposition": "excluded_period_doctrine",
+      "locator_ids": [
+        "loc.gc.officer.audit-ou1"
+      ],
+      "non_rule_ids": [
+        "zzq.nonrule.officer.audit-period"
+      ],
+      "paragraph_text_status": "full_paragraph",
+      "pdf_pages": [
+        59
+      ],
+      "provenance": "period",
+      "required_coverage": "Full diplomatic source segment and an explicit period-versus-natal exclusion.",
+      "runtime_ids": [],
+      "segment_ids": [
+        "zzq.seg.officer.audit-ou1"
+      ],
+      "start_anchor": "取運之道一八字則有一八字之論"
+    },
+    {
+      "adjudication": "PER direct-officer/wealth period conditions; retained as period doctrine and excluded from natal formation, damage, and rescue compilation.",
+      "audit_id": "OU2",
+      "chapter_id": "zzq.pattern.direct-officer",
+      "current_records": "S zzq.seg.officer.audit-ou2; N zzq.nonrule.officer.audit-period",
+      "disposition": "excluded_period_doctrine",
+      "locator_ids": [
+        "loc.gc.officer.audit-ou1"
+      ],
+      "non_rule_ids": [
+        "zzq.nonrule.officer.audit-period"
+      ],
+      "paragraph_text_status": "full_paragraph",
+      "pdf_pages": [
+        59
+      ],
+      "provenance": "period",
+      "required_coverage": "Full diplomatic source segment and an explicit period-versus-natal exclusion.",
+      "runtime_ids": [],
+      "segment_ids": [
+        "zzq.seg.officer.audit-ou2"
+      ],
+      "start_anchor": "如正官取運卽以正官所就之格分而配之"
+    },
+    {
+      "adjudication": "PER direct-officer/resource period conditions spanning the page turn; not evidence for natal formation.",
+      "audit_id": "OU3",
+      "chapter_id": "zzq.pattern.direct-officer",
+      "current_records": "S zzq.seg.officer.audit-ou3; N zzq.nonrule.officer.audit-period",
+      "disposition": "excluded_period_doctrine",
+      "locator_ids": [
+        "loc.gc.officer.audit-ou1",
+        "loc.gc.officer.audit-ou2"
+      ],
+      "non_rule_ids": [
+        "zzq.nonrule.officer.audit-period"
+      ],
+      "paragraph_text_status": "full_paragraph",
+      "pdf_pages": [
+        59,
+        60
+      ],
+      "provenance": "period",
+      "required_coverage": "Full diplomatic source segment across both scan pages and an explicit period-versus-natal exclusion.",
+      "runtime_ids": [],
+      "segment_ids": [
+        "zzq.seg.officer.audit-ou3"
+      ],
+      "start_anchor": "正官佩印運喜財鄉"
+    },
+    {
+      "adjudication": "PER direct-officer/output/resource period conditions; excluded from natal lifecycle compilation.",
+      "audit_id": "OU4",
+      "chapter_id": "zzq.pattern.direct-officer",
+      "current_records": "S zzq.seg.officer.audit-ou4; N zzq.nonrule.officer.audit-period",
+      "disposition": "excluded_period_doctrine",
+      "locator_ids": [
+        "loc.gc.officer.audit-ou2"
+      ],
+      "non_rule_ids": [
+        "zzq.nonrule.officer.audit-period"
+      ],
+      "paragraph_text_status": "full_paragraph",
+      "pdf_pages": [
+        60
+      ],
+      "provenance": "period",
+      "required_coverage": "Full diplomatic source segment and an explicit period-versus-natal exclusion.",
+      "runtime_ids": [],
+      "segment_ids": [
+        "zzq.seg.officer.audit-ou4"
+      ],
+      "start_anchor": "正官帶傷食而用印制"
+    },
+    {
+      "adjudication": "PER mixed-officer/killing clearance period conditions; excluded from natal lifecycle compilation.",
+      "audit_id": "OU5",
+      "chapter_id": "zzq.pattern.direct-officer",
+      "current_records": "S zzq.seg.officer.audit-ou5; N zzq.nonrule.officer.audit-period",
+      "disposition": "excluded_period_doctrine",
+      "locator_ids": [
+        "loc.gc.officer.audit-ou2"
+      ],
+      "non_rule_ids": [
+        "zzq.nonrule.officer.audit-period"
+      ],
+      "paragraph_text_status": "full_paragraph",
+      "pdf_pages": [
+        60
+      ],
+      "provenance": "period",
+      "required_coverage": "Full diplomatic source segment and an explicit period-versus-natal exclusion.",
+      "runtime_ids": [],
+      "segment_ids": [
+        "zzq.seg.officer.audit-ou5"
+      ],
+      "start_anchor": "正官而帶煞"
+    },
+    {
+      "adjudication": "PER methodological closing: all period selection remains chart-specific; excluded from natal lifecycle compilation.",
+      "audit_id": "OU6",
+      "chapter_id": "zzq.pattern.direct-officer",
+      "current_records": "S zzq.seg.officer.audit-ou6; N zzq.nonrule.officer.audit-period",
+      "disposition": "excluded_period_doctrine",
+      "locator_ids": [
+        "loc.gc.officer.audit-ou2"
+      ],
+      "non_rule_ids": [
+        "zzq.nonrule.officer.audit-period"
+      ],
+      "paragraph_text_status": "full_paragraph",
+      "pdf_pages": [
+        60
+      ],
+      "provenance": "period",
+      "required_coverage": "Full diplomatic source segment and an explicit period-versus-natal exclusion.",
+      "runtime_ids": [],
+      "segment_ids": [
+        "zzq.seg.officer.audit-ou6"
+      ],
+      "start_anchor": "此皆大略言之"
+    },
+    {
+        "adjudication": "NR conceptual/analogy; no lifecycle rule.",
+      "audit_id": "W1",
+      "locator_ids": ["loc.gc.wealth.audit-w1"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w1"],
+      "segment_ids": ["zzq.seg.wealth.audit-w1"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "source_attestation_non_rule",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            60
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.wealth.definition; N zzq.nonrule.wealth.definition; loc.gc.wealth.w1@60",
+        "runtime_ids": [],
+        "start_anchor": "財為我尅使用之物也"
+    },
+    {
+        "adjudication": "U 根深 and 太露; officer-generation is context, not a complete path.",
+      "audit_id": "W2",
+      "locator_ids": ["loc.gc.wealth.audit-w2"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w2"],
+      "segment_ids": ["zzq.seg.wealth.audit-w2"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            60,
+            61
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.wealth.root-exposure; P zzq.prop.wealth.root-exposure; X(candidate_id=P); locs loc.gc.wealth.w2.start@60 + .end@61",
+        "runtime_ids": [],
+        "start_anchor": "財喜根深不宜太露"
+    },
+    {
+        "adjudication": "U 財旺/身強; no-hurting/no-killing are representable but insufficient. Candidate route only is safe.",
+      "audit_id": "W3",
+      "locator_ids": ["loc.gc.wealth.audit-w3"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w3"],
+      "segment_ids": ["zzq.seg.wealth.audit-w3"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "partial S zzq.seg.wealth.officer-path; P zzq.prop.wealth.form-officer; Q zzq.rule-candidate.wealth.form-officer; route P also cites it",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            61
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand S through W3 end; migrate to loc.gc.wealth.w3@61; retain Q + X",
+        "runtime_ids": [],
+        "start_anchor": "財格之貴局亦不一"
+    },
+    {
+        "adjudication": "U body strength; exact no-officer and one-peer counts are safe subfacts only.",
+      "audit_id": "W4",
+      "locator_ids": ["loc.gc.wealth.audit-w4"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w4"],
+      "segment_ids": ["zzq.seg.wealth.audit-w4"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "partial S zzq.seg.wealth.output-path; P/Q zzq.prop/zzq.rule-candidate.wealth.form-output",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            61
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand S; loc.gc.wealth.w4@61; retain Q + X",
+        "runtime_ids": [],
+        "start_anchor": "有財用食生者"
+    },
+    {
+        "adjudication": "U semantic position safety. Never substitute global no stem-control.",
+      "audit_id": "W5",
+      "locator_ids": ["loc.gc.wealth.audit-w5"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w5"],
+      "segment_ids": ["zzq.seg.wealth.audit-w5"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "partial S zzq.seg.wealth.position-safe; P zzq.prop.wealth.form-position-safe-resource; direct/indirect false Qs",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            61
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand through 兩不相能; loc.gc.wealth.w5@61; add P/Q/X zzq.prop/zzq.rule-candidate.wealth.damage-position-conflict; retain existing Qs/Xs",
+        "runtime_ids": [],
+        "start_anchor": "有財格佩印者"
+    },
+    {
+        "adjudication": "U position/order and same-member 去食護官.",
+      "audit_id": "W6",
+      "locator_ids": ["loc.gc.wealth.audit-w6"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w6"],
+      "segment_ids": ["zzq.seg.wealth.audit-w6"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            61,
+            62
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.wealth.output-resource-noninterference; P/Q/X ...wealth.form-output-resource-noninterference and ...wealth.rescue-remove-food-protect-officer; locs .w6.start@61/.end@62",
+        "runtime_ids": [],
+        "start_anchor": "有用食而兼用印者"
+    },
+    {
+        "adjudication": "U until the full conditions are atomized; potential wealth_hurting.",
+      "audit_id": "W7",
+      "locator_ids": ["loc.gc.wealth.audit-w7"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w7"],
+      "segment_ids": ["zzq.seg.wealth.audit-w7"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            62
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.wealth.hurting-path; P/Q/X zzq.prop/zzq.rule-candidate.wealth.form-hurting; loc.gc.wealth.w7@62",
+        "runtime_ids": [],
+        "start_anchor": "有財用傷官者"
+    },
+    {
+        "adjudication": "U same-member combine/control plus damage binding.",
+      "audit_id": "W8",
+      "locator_ids": ["loc.gc.wealth.audit-w8"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w8"],
+      "segment_ids": ["zzq.seg.wealth.audit-w8"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "partial S zzq.seg.wealth.killing-clear; P/Q ...wealth.rescue-killing-clear",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            62
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand; loc.gc.wealth.w8@62; add P/Q/X ...wealth.damage-killing; split rescue-combine-killing-retain-wealth and form-control-killing-generate-wealth",
+        "runtime_ids": [],
+        "start_anchor": "有財帶七煞者"
+    },
+    {
+        "adjudication": "U until balance/conditions are complete; potential wealth_killing_resource.",
+      "audit_id": "W9",
+      "locator_ids": ["loc.gc.wealth.audit-w9"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w9"],
+      "segment_ids": ["zzq.seg.wealth.audit-w9"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            62
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.wealth.killing-resource-path; P/Q/X ...wealth.form-killing-resource; N zzq.nonrule.wealth.w9-outcome; .w9@62",
+        "runtime_ids": [],
+        "start_anchor": "有財用煞印者"
+    },
+    {
+        "adjudication": "NR climate/example/outcome.",
+      "audit_id": "W10",
+      "locator_ids": ["loc.gc.wealth.audit-w10"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w10"],
+      "segment_ids": ["zzq.seg.wealth.audit-w10"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "source_attestation_non_rule",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            62
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.wealth.summer-water-example; N zzq.nonrule.wealth.summer-water-climate-example; .w10@62",
+        "runtime_ids": [],
+        "start_anchor": "至於壬生午月"
+    },
+    {
+        "adjudication": "U 太重, transformation, and 棄財就煞 precedence.",
+      "audit_id": "W11",
+      "locator_ids": ["loc.gc.wealth.audit-w11"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-w11"],
+      "segment_ids": ["zzq.seg.wealth.audit-w11"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            62,
+            63
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.wealth.peer-blade-transformations; P/Q/X ...wealth.damage-heavy-peer-blade plus separate transformation/precedence claims; locs .w11.start@62/.end@63",
+        "runtime_ids": [],
+        "start_anchor": "至於劫刃太重"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "WU1",
+      "locator_ids": ["loc.gc.wealth.audit-wu1"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-wu1"],
+      "segment_ids": ["zzq.seg.wealth.audit-wu1"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "partial S zzq.seg.wealth.period; N zzq.nonrule.wealth.period",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            63
+        ],
+        "provenance": "period",
+        "required_coverage": "expand through WU1 end; .wu1@63; include in N",
+        "runtime_ids": [],
+        "start_anchor": "財格取運"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "WU2",
+      "locator_ids": ["loc.gc.wealth.audit-wu2"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-wu2"],
+      "segment_ids": ["zzq.seg.wealth.audit-wu2"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            63
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.wealth.period-output; .wu2@63; add to existing N",
+        "runtime_ids": [],
+        "start_anchor": "財用食生"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "WU3",
+      "locator_ids": ["loc.gc.wealth.audit-wu3"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-wu3"],
+      "segment_ids": ["zzq.seg.wealth.audit-wu3"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            63
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.wealth.period-resource; .wu3@63; add to N",
+        "runtime_ids": [],
+        "start_anchor": "財格佩印"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "WU4",
+      "locator_ids": ["loc.gc.wealth.audit-wu4"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-wu4"],
+      "segment_ids": ["zzq.seg.wealth.audit-wu4"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            63,
+            64
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.wealth.period-output-resource; locs .wu4.start@63/.end@64; add to N",
+        "runtime_ids": [],
+        "start_anchor": "財用食印"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "WU5",
+      "locator_ids": ["loc.gc.wealth.audit-wu5"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-wu5"],
+      "segment_ids": ["zzq.seg.wealth.audit-wu5"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            64
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.wealth.period-hurting; .wu5@64; add to N",
+        "runtime_ids": [],
+        "start_anchor": "財帶傷官"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "WU6",
+      "locator_ids": ["loc.gc.wealth.audit-wu6"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-wu6"],
+      "segment_ids": ["zzq.seg.wealth.audit-wu6"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            64
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.wealth.period-killing; .wu6@64; add to N",
+        "runtime_ids": [],
+        "start_anchor": "財帶七煞"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "WU7",
+      "locator_ids": ["loc.gc.wealth.audit-wu7"],
+      "non_rule_ids": ["zzq.nonrule.wealth.audit-wu7"],
+      "segment_ids": ["zzq.seg.wealth.audit-wu7"],
+        "chapter_id": "zzq.pattern.wealth",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            64
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.wealth.period-killing-resource; .wu7@64; add to N",
+        "runtime_ids": [],
+        "start_anchor": "財用煞印"
+    },
+    {
+        "adjudication": "E candidate route only; direct/indirect split is marked engine ontology.",
+      "audit_id": "R1",
+      "locator_ids": ["loc.gc.resource.audit-r1"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.resource.audit-r1"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "full S zzq.seg.resource.opening; P zzq.prop.resource.route",
+        "disposition": "compiled_structural_subfact_with_unresolved_remainder",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            64
+        ],
+        "provenance": "natal",
+        "required_coverage": "no new doctrine; preferably migrate to loc.gc.resource.r1@64",
+        "runtime_ids": [
+            "zzq.rule.direct-resource.candidate-confirm",
+            "zzq.rule.direct-resource.candidate-possible",
+            "zzq.rule.indirect-resource.candidate-confirm",
+            "zzq.rule.indirect-resource.candidate-possible"
+        ],
+        "start_anchor": "印綬喜其生身"
+    },
+    {
+        "adjudication": "E existing exposed-officer officer_resource; U positional examples/non-interference.",
+      "audit_id": "R2",
+      "locator_ids": ["loc.gc.resource.audit-r2"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r2"],
+      "segment_ids": ["zzq.seg.resource.audit-r2"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "only opening S zzq.seg.resource.officer-path; P ...resource.form-officer-resource; compiled direct/indirect rules",
+        "disposition": "compiled_structural_subfact_with_unresolved_remainder",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            64,
+            65
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand/full using .r2.start@64/.end@65; add S/P/Q/X ...resource.officer-resource-noninterference; N .resource.r2-examples",
+        "runtime_ids": [
+            "zzq.rule.direct-resource.form-officer-resource",
+            "zzq.rule.indirect-resource.form-officer-resource"
+        ],
+        "start_anchor": "印綬之格局亦不一"
+    },
+    {
+        "adjudication": "U body/resource strength and light/shallow failure.",
+      "audit_id": "R3",
+      "locator_ids": ["loc.gc.resource.audit-r3"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r3"],
+      "segment_ids": ["zzq.seg.resource.audit-r3"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "partial S zzq.seg.resource.output-release; P/Q same suffix",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            65
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand; .r3@65; add failure P/Q/X ...resource.damage-light-output-release",
+        "runtime_ids": [],
+        "start_anchor": "有印而用傷食者"
+    },
+    {
+        "adjudication": "U strength/balance; potential killing_resource only after semantics.",
+      "audit_id": "R4",
+      "locator_ids": ["loc.gc.resource.audit-r4"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r4"],
+      "segment_ids": ["zzq.seg.resource.audit-r4"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            65
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.resource.killing-path; P/Q/X ...resource.form-killing-resource; N .resource.r4-outcome; .r4@65",
+        "runtime_ids": [],
+        "start_anchor": "有用偏官者"
+    },
+    {
+        "adjudication": "U relative balance; no co-presence shortcut.",
+      "audit_id": "R5",
+      "locator_ids": ["loc.gc.resource.audit-r5"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r5"],
+      "segment_ids": ["zzq.seg.resource.audit-r5"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            65
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.resource.killing-output-path; P/Q/X ...resource.form-killing-output; .r5@65",
+        "runtime_ids": [],
+        "start_anchor": "有用煞而兼帶傷食者"
+    },
+    {
+        "adjudication": "U root depth and heavy/light/body strength.",
+      "audit_id": "R6",
+      "locator_ids": ["loc.gc.resource.audit-r6"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r6"],
+      "segment_ids": ["zzq.seg.resource.audit-r6"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "partial S zzq.seg.resource.wealth-regulation; P/Q ...form-rooted-wealth-regulation",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            65
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand through failure; .r6@65; add P/Q/X ...resource.damage-unbalanced-wealth-regulation",
+        "runtime_ids": [],
+        "start_anchor": "有印多而用財者"
+    },
+    {
+        "adjudication": "U strength and same-member 合財存食.",
+      "audit_id": "R7",
+      "locator_ids": ["loc.gc.resource.audit-r7"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r7"],
+      "segment_ids": ["zzq.seg.resource.audit-r7"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            65,
+            66
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.resource.heavy-resource-light-wealth; P/Q/X ...resource.rescue-combine-wealth-preserve-output; locs .r7.start@65/.end@66",
+        "runtime_ids": [],
+        "start_anchor": "或卽印重財輕"
+    },
+    {
+        "adjudication": "Potential E only with explicit controller-to-controlled relation_exists; otherwise X for unresolved clearance.",
+      "audit_id": "R8",
+      "locator_ids": ["loc.gc.resource.audit-r8"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r8"],
+      "segment_ids": ["zzq.seg.resource.audit-r8"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "source_reviewed_pending_scope_adjudication",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            66
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.resource.officer-killing-controlled; P/Q ...resource.form-officer-killing-controlled; .r8@66",
+        "runtime_ids": [],
+        "start_anchor": "又有印而兼透官煞者"
+    },
+    {
+        "adjudication": "U transformation.",
+      "audit_id": "R9",
+      "locator_ids": ["loc.gc.resource.audit-r9"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r9"],
+      "segment_ids": ["zzq.seg.resource.audit-r9"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            66
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X zzq.seg/prop/rule-candidate.resource.transform-resource-to-robbery; .r9@66",
+        "runtime_ids": [],
+        "start_anchor": "至於化印為劫"
+    },
+    {
+        "adjudication": "U qualitative depth/strength; no rule from exposed killing alone.",
+      "audit_id": "R10",
+      "locator_ids": ["loc.gc.resource.audit-r10"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-r10"],
+      "segment_ids": ["zzq.seg.resource.audit-r10"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            66
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.resource.exposed-killing-caveat; P zzq.prop.resource.exposed-killing-caveat; X(P); N .resource.r10-outcome; .r10@66",
+        "runtime_ids": [],
+        "start_anchor": "更有印透七煞"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "RU1",
+      "locator_ids": ["loc.gc.resource.audit-ru1"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-ru1"],
+      "segment_ids": ["zzq.seg.resource.audit-ru1"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "partial S zzq.seg.resource.period; N zzq.nonrule.resource.period",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            67
+        ],
+        "provenance": "period",
+        "required_coverage": "expand; .ru1@67",
+        "runtime_ids": [],
+        "start_anchor": "印格取運"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "RU2",
+      "locator_ids": ["loc.gc.resource.audit-ru2"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-ru2"],
+      "segment_ids": ["zzq.seg.resource.audit-ru2"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            67
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.resource.period-officer-output; .ru2@67; add to N",
+        "runtime_ids": [],
+        "start_anchor": "若用官而兼帶傷食"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "RU3",
+      "locator_ids": ["loc.gc.resource.audit-ru3"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-ru3"],
+      "segment_ids": ["zzq.seg.resource.audit-ru3"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            67
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.resource.period-output-release; .ru3@67; add to N",
+        "runtime_ids": [],
+        "start_anchor": "印綬而用傷食"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "RU4",
+      "locator_ids": ["loc.gc.resource.audit-ru4"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-ru4"],
+      "segment_ids": ["zzq.seg.resource.audit-ru4"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            67
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.resource.period-killing; .ru4@67; add to N",
+        "runtime_ids": [],
+        "start_anchor": "印用七煞"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "RU5",
+      "locator_ids": ["loc.gc.resource.audit-ru5"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-ru5"],
+      "segment_ids": ["zzq.seg.resource.audit-ru5"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            67,
+            68
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.resource.period-killing-output; locs .ru5.start@67/.end@68; add to N",
+        "runtime_ids": [],
+        "start_anchor": "若用煞而兼帶傷食"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "RU6",
+      "locator_ids": ["loc.gc.resource.audit-ru6"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-ru6"],
+      "segment_ids": ["zzq.seg.resource.audit-ru6"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            68
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.resource.period-wealth; .ru6@68; add to N",
+        "runtime_ids": [],
+        "start_anchor": "印多遇財"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "RU7",
+      "locator_ids": ["loc.gc.resource.audit-ru7"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-ru7"],
+      "segment_ids": ["zzq.seg.resource.audit-ru7"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            68
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.resource.period-officer-killing; .ru7@68; add to N",
+        "runtime_ids": [],
+        "start_anchor": "印格而官煞競透"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "RU8",
+      "locator_ids": ["loc.gc.resource.audit-ru8"],
+      "non_rule_ids": ["zzq.nonrule.resource.audit-ru8"],
+      "segment_ids": ["zzq.seg.resource.audit-ru8"],
+        "chapter_id": "zzq.pattern.resource",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            68
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.resource.period-output-wealth; .ru8@68; add to N",
+        "runtime_ids": [],
+        "start_anchor": "印用食傷"
+    },
+    {
+        "adjudication": "U chapter root/strength. food_wealth is safe only with independent generic useful-god co-citation.",
+      "audit_id": "F1",
+      "locator_ids": ["loc.gc.food.audit-f1"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-f1"],
+      "segment_ids": ["zzq.seg.food.audit-f1"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "partial S zzq.seg.food.wealth-path; P route + ...food.form-output-wealth; Q ...food.form-output-wealth-rooted; Liang example",
+        "disposition": "compiled_structural_subfact_with_unresolved_remainder",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            68
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand through F1 end; loc.gc.food.f1@68; keep examples/outcomes non-authoritative",
+        "runtime_ids": [
+            "zzq.rule.eating-god.candidate-confirm",
+            "zzq.rule.eating-god.candidate-possible"
+        ],
+        "start_anchor": "食神本屬洩氣"
+    },
+    {
+        "adjudication": "NR character/example.",
+      "audit_id": "F2",
+      "locator_ids": ["loc.gc.food.audit-f2"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-f2"],
+      "segment_ids": ["zzq.seg.food.audit-f2"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "source_attestation_non_rule",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            68
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.food.hidden-food-exposed-hurting; N zzq.nonrule.food.f2-character-example; .f2@68",
+        "runtime_ids": [],
+        "start_anchor": "藏食露傷"
+    },
+    {
+        "adjudication": "Counts are representable; effect not adjudicated.",
+      "audit_id": "F3",
+      "locator_ids": ["loc.gc.food.audit-f3"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-f3"],
+      "segment_ids": ["zzq.seg.food.audit-f3"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            68
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.food.multiple-wealth; P .food.multiple-wealth-caveat only if an atomic structural effect survives, otherwise N .food.f3-example-outcome; .f3@68",
+        "runtime_ids": [],
+        "start_anchor": "偏正疊出"
+    },
+    {
+        "adjudication": "NR climate/example.",
+      "audit_id": "F4",
+      "locator_ids": ["loc.gc.food.audit-f4"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-f4"],
+      "segment_ids": ["zzq.seg.food.audit-f4"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "source_attestation_non_rule",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            69
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.food.summer-wood-wealth; N .food.summer-wood-climate-example; .f4@69",
+        "runtime_ids": [],
+        "start_anchor": "夏木用財"
+    },
+    {
+        "adjudication": "E killing_resource_no_wealth and single_exposed_killing_no_resource_wealth; never collapse alternatives.",
+      "audit_id": "F5",
+      "locator_ids": ["loc.gc.food.audit-f5"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.food.audit-f5"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "corrected split S ...food.killing-resource-alternative + ...single-killing-alternative; aggregate P/Q false; atomic P/rules compiled",
+        "disposition": "compiled_structural_path",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            69
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand both S to cover all F5; .f5@69; keep aggregate Q excluded",
+        "runtime_ids": [
+            "zzq.rule.food.form-killing-resource-no-wealth",
+            "zzq.rule.food.form-single-exposed-killing"
+        ],
+        "start_anchor": "若不用財而就煞印"
+    },
+    {
+        "adjudication": "Potential E only for exact closed day/month and exposed-god gates; X climate clauses.",
+      "audit_id": "F6",
+      "locator_ids": ["loc.gc.food.audit-f6"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-f6"],
+      "segment_ids": ["zzq.seg.food.audit-f6"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "source_reviewed_pending_scope_adjudication",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            69
+        ],
+        "provenance": "natal",
+        "required_coverage": "split S/P/Q ...food.metal-water-killing, ...hot-summer-resource, ...officer-exception; .f6@69",
+        "runtime_ids": [],
+        "start_anchor": "若金水食神而用煞"
+    },
+    {
+        "adjudication": "NR/PER-facing, not natal formation.",
+      "audit_id": "F7",
+      "locator_ids": ["loc.gc.food.audit-f7"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-f7"],
+      "segment_ids": ["zzq.seg.food.audit-f7"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "source_attestation_non_rule",
+        "paragraph_text_status": "witness_lacuna_partial_paragraph",
+        "paragraph_text_note": "Gengcun ji PDF page 69 preserves only ‘至若單用食神作食’ before a likely homoeoteleuton jumps to ‘透財以解’. This audit slot records only the surviving canonical-witness text and does not supply absent wording from another witness.",
+        "pdf_pages": [
+            69
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.food.single-food-period-facing; N .food.f7-period-outcome; .f7@69",
+        "runtime_ids": [],
+        "start_anchor": "至若單用食神"
+    },
+    {
+        "adjudication": "U until a real food/wealth path/root and same-member clearance exist.",
+      "audit_id": "F8",
+      "locator_ids": ["loc.gc.food.audit-f8"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-f8"],
+      "segment_ids": ["zzq.seg.food.audit-f8"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "first clause S zzq.seg.food.owl-rescue; P .food.rescue-owl-wealth; damage/rescue Qs false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "witness_lacuna_partial_paragraph",
+        "paragraph_text_note": "Gengcun ji PDF page 69 does not preserve the other-witness opening ‘更有印來奪食’. Its surviving text resumes at ‘透財以解’; this audit slot starts there and does not silently import the omitted words.",
+        "pdf_pages": [
+            69
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand; add S ...food.officer-killing-competition + ...food-combines-killing-retains-wealth; P/Q/X ...damage-officer-killing-competition + ...rescue-combine-killing-retain-wealth; .f8@69",
+        "runtime_ids": [],
+        "start_anchor": "透財以解"
+    },
+    {
+        "adjudication": "U order/interposition/member binding.",
+      "audit_id": "F9",
+      "locator_ids": ["loc.gc.food.audit-f9"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-f9"],
+      "segment_ids": ["zzq.seg.food.audit-f9"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            69,
+            70
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...food.wealth-killing-order-interposition; locs .f9.start@69/.end@70",
+        "runtime_ids": [],
+        "start_anchor": "至若食神透煞"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "FU1",
+      "locator_ids": ["loc.gc.food.audit-fu1"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-fu1"],
+      "segment_ids": ["zzq.seg.food.audit-fu1"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "partial S zzq.seg.food.period; N zzq.nonrule.food.period",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            70
+        ],
+        "provenance": "period",
+        "required_coverage": "expand; .fu1@70",
+        "runtime_ids": [],
+        "start_anchor": "食神取運"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "FU2",
+      "locator_ids": ["loc.gc.food.audit-fu2"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-fu2"],
+      "segment_ids": ["zzq.seg.food.audit-fu2"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            70
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.food.period-killing-resource; .fu2@70; add to N",
+        "runtime_ids": [],
+        "start_anchor": "食用煞印"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "FU3",
+      "locator_ids": ["loc.gc.food.audit-fu3"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-fu3"],
+      "segment_ids": ["zzq.seg.food.audit-fu3"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            70
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.food.period-output-killing; .fu3@70; add to N",
+        "runtime_ids": [],
+        "start_anchor": "食神帶煞"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "FU4",
+      "locator_ids": ["loc.gc.food.audit-fu4"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-fu4"],
+      "segment_ids": ["zzq.seg.food.audit-fu4"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            70
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.food.period-strong-food-resource; .fu4@70; add to N",
+        "runtime_ids": [],
+        "start_anchor": "食神太旺而帶印"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "FU5",
+      "locator_ids": ["loc.gc.food.audit-fu5"],
+      "non_rule_ids": ["zzq.nonrule.food.audit-fu5"],
+      "segment_ids": ["zzq.seg.food.audit-fu5"],
+        "chapter_id": "zzq.pattern.eating-god",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            70,
+            71
+        ],
+        "provenance": "period",
+        "required_coverage": "S zzq.seg.food.period-resource-wealth-rescue; locs .fu5.start@70/.end@71; add to N",
+        "runtime_ids": [],
+        "start_anchor": "若食神帶印而透財以解"
+    },
+    {
+        "adjudication": "NR conceptual/rank.",
+      "audit_id": "K1",
+      "locator_ids": ["loc.gc.kill.audit-k1"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k1"],
+      "segment_ids": ["zzq.seg.kill.audit-k1"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "source_attestation_non_rule",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            71
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.kill.definition-control-doctrine; N .kill.k1-conceptual-outcomes; .k1@71",
+        "runtime_ids": [],
+        "start_anchor": "煞以攻身"
+    },
+    {
+        "adjudication": "U 煞旺/食強/身健.",
+      "audit_id": "K2",
+      "locator_ids": ["loc.gc.kill.audit-k2"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k2"],
+      "segment_ids": ["zzq.seg.kill.audit-k2"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "partial S zzq.seg.kill.output-control; P route + ...kill.form-output-control; Q false",
+        "disposition": "compiled_structural_subfact_with_unresolved_remainder",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            71
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand; .k2@71; retain Q + X",
+        "runtime_ids": [
+            "zzq.rule.seven-killings.candidate-confirm",
+            "zzq.rule.seven-killings.candidate-possible"
+        ],
+        "start_anchor": "七煞之格局亦不一"
+    },
+    {
+        "adjudication": "Base damage U until K2 path exists; exceptions U order/member.",
+      "audit_id": "K3",
+      "locator_ids": ["loc.gc.kill.audit-k3"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k3"],
+      "segment_ids": ["zzq.seg.kill.audit-k3"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "partial S zzq.seg.kill.interference; P/Q damage false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            71,
+            72
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand locs .k3.start@71/.end@72; add S/P/Q/X ...kill.wealth-first-food-later and ...resource-first-food-later",
+        "runtime_ids": [],
+        "start_anchor": "煞用食制不宜露財透印"
+    },
+    {
+        "adjudication": "U full strength conditions.",
+      "audit_id": "K4",
+      "locator_ids": ["loc.gc.kill.audit-k4"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k4"],
+      "segment_ids": ["zzq.seg.kill.audit-k4"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            72
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.kill.resource-path; P/Q/X ...kill.form-resource; .k4@72",
+        "runtime_ids": [],
+        "start_anchor": "有七煞用印者"
+    },
+    {
+        "adjudication": "U strength.",
+      "audit_id": "K5",
+      "locator_ids": ["loc.gc.kill.audit-k5"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k5"],
+      "segment_ids": ["zzq.seg.kill.audit-k5"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            72
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...kill.heavy-killing-light-body-resource; .k5@72",
+        "runtime_ids": [],
+        "start_anchor": "亦有煞重身輕"
+    },
+    {
+        "adjudication": "U same-member/balance; co-presence unsafe.",
+      "audit_id": "K6",
+      "locator_ids": ["loc.gc.kill.audit-k6"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k6"],
+      "segment_ids": ["zzq.seg.kill.audit-k6"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            72
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.kill.wealth-path; P/Q/X ...kill.form-wealth plus split clearance; .k6@72",
+        "runtime_ids": [],
+        "start_anchor": "有煞而用財者"
+    },
+    {
+        "adjudication": "U strength.",
+      "audit_id": "K7",
+      "locator_ids": ["loc.gc.kill.audit-k7"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k7"],
+      "segment_ids": ["zzq.seg.kill.audit-k7"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            72
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...kill.heavy-body-light-killing-wealth; .k7@72",
+        "runtime_ids": [],
+        "start_anchor": "又有身重煞輕"
+    },
+    {
+        "adjudication": "U residual confirmation; ontology may report possible only.",
+      "audit_id": "K8",
+      "locator_ids": ["loc.gc.kill.audit-k8"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k8"],
+      "segment_ids": ["zzq.seg.kill.audit-k8"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            72
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.kill.mixed-qi-route; P .kill.mixed-qi-route; X(P); N .kill.k8-outcome; .k8@72",
+        "runtime_ids": [],
+        "start_anchor": "更有襍氣七煞"
+    },
+    {
+        "adjudication": "U same-member clearance.",
+      "audit_id": "K9",
+      "locator_ids": ["loc.gc.kill.audit-k9"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k9"],
+      "segment_ids": ["zzq.seg.kill.audit-k9"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "partial S zzq.seg.kill.mixture-clear; P/Q rescue false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            73
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand; .k9@73; add P/Q/X ...kill.damage-officer-mixture; split remove-officer/retain-killing and inverse",
+        "runtime_ids": [],
+        "start_anchor": "有煞而襍官者"
+    },
+    {
+        "adjudication": "E killing_blade_no_output; the old resource-path reading is invalid.",
+      "audit_id": "K10",
+      "locator_ids": ["loc.gc.kill.audit-k10"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.kill.audit-k10"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "corrected S zzq.seg.kill.blade-path; P ...kill.form-blade-no-output; compiled rule; Zhao example",
+        "disposition": "compiled_structural_path",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            73
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand/confirm; migrate misleading locator to .k10@73",
+        "runtime_ids": [
+            "zzq.rule.kill.form-blade-no-output"
+        ],
+        "start_anchor": "有煞無食制而用刃當者"
+    },
+    {
+        "adjudication": "U 太過 and external pattern.",
+      "audit_id": "K11",
+      "locator_ids": ["loc.gc.kill.audit-k11"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-k11"],
+      "segment_ids": ["zzq.seg.kill.audit-k11"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            73
+        ],
+        "provenance": "natal",
+        "required_coverage": "S .kill.overcontrol-special-pattern-caveat; P .kill.overcontrol-caveat; X(P); N .kill.k11-external-pattern; .k11@73",
+        "runtime_ids": [],
+        "start_anchor": "至書有制煞不可太過"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "KU1",
+      "locator_ids": ["loc.gc.kill.audit-ku1"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-ku1"],
+      "segment_ids": ["zzq.seg.kill.audit-ku1"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "partial S zzq.seg.kill.period; N .kill.period",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            74
+        ],
+        "provenance": "period",
+        "required_coverage": "expand; .ku1@74",
+        "runtime_ids": [],
+        "start_anchor": "偏官取運"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "KU2",
+      "locator_ids": ["loc.gc.kill.audit-ku2"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-ku2"],
+      "segment_ids": ["zzq.seg.kill.audit-ku2"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            74
+        ],
+        "provenance": "period",
+        "required_coverage": "S .kill.period-resource; .ku2@74; add to N",
+        "runtime_ids": [],
+        "start_anchor": "煞用印綬"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "KU3",
+      "locator_ids": ["loc.gc.kill.audit-ku3"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-ku3"],
+      "segment_ids": ["zzq.seg.kill.audit-ku3"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            74
+        ],
+        "provenance": "period",
+        "required_coverage": "S .kill.period-wealth; .ku3@74; add to N",
+        "runtime_ids": [],
+        "start_anchor": "七煞用財"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "KU4",
+      "locator_ids": ["loc.gc.kill.audit-ku4"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-ku4"],
+      "segment_ids": ["zzq.seg.kill.audit-ku4"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            74
+        ],
+        "provenance": "period",
+        "required_coverage": "S .kill.period-wealth-assists-killing; .ku4@74; add to N",
+        "runtime_ids": [],
+        "start_anchor": "其以財而助煞不及者"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "KU5",
+      "locator_ids": ["loc.gc.kill.audit-ku5"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-ku5"],
+      "segment_ids": ["zzq.seg.kill.audit-ku5"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            74,
+            75
+        ],
+        "provenance": "period",
+        "required_coverage": "S .kill.period-officer-mixture; locs .ku5.start@74/.end@75; add to N",
+        "runtime_ids": [],
+        "start_anchor": "煞帶正官"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "KU6",
+      "locator_ids": ["loc.gc.kill.audit-ku6"],
+      "non_rule_ids": ["zzq.nonrule.kill.audit-ku6"],
+      "segment_ids": ["zzq.seg.kill.audit-ku6"],
+        "chapter_id": "zzq.pattern.seven-killings",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            75
+        ],
+        "provenance": "period",
+        "required_coverage": "S .kill.period-blade; .ku6@75; add to N",
+        "runtime_ids": [],
+        "start_anchor": "煞無食制而用刃當煞"
+    },
+    {
+        "adjudication": "NR concept/outcome; candidate reducer is ontology policy.",
+      "audit_id": "H1",
+      "locator_ids": ["loc.gc.hurting.audit-h1"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h1"],
+      "segment_ids": ["zzq.seg.hurting.audit-h1"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none except heading",
+        "disposition": "source_attestation_non_rule",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            75,
+            76
+        ],
+        "provenance": "natal",
+        "required_coverage": "S zzq.seg.hurting.definition-doctrine; N .hurting.h1-conceptual-outcomes; locs .h1.start@75/.end@76; rebind route P to this doctrine",
+        "runtime_ids": [],
+        "start_anchor": "傷官雖非吉神"
+    },
+    {
+        "adjudication": "E hurting_wealth.",
+      "audit_id": "H2",
+      "locator_ids": ["loc.gc.hurting.audit-h2"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.hurting.audit-h2"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "partial S zzq.seg.hurting.wealth-path; P/rule ...hurting.form-wealth compiled; Shi example",
+        "disposition": "compiled_structural_path",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            76
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand; .h2@76",
+        "runtime_ids": [
+            "zzq.rule.hurting-officer.candidate-confirm",
+            "zzq.rule.hurting-officer.candidate-possible",
+            "zzq.rule.hurting.form-wealth"
+        ],
+        "start_anchor": "故有傷官用財者"
+    },
+    {
+        "adjudication": "U transformation.",
+      "audit_id": "H3",
+      "locator_ids": ["loc.gc.hurting.audit-h3"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h3"],
+      "segment_ids": ["zzq.seg.hurting.audit-h3"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            76
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...hurting.transform-hurting-to-wealth; N .hurting.h3-outcome; .h3@76",
+        "runtime_ids": [],
+        "start_anchor": "至于化傷為財"
+    },
+    {
+        "adjudication": "U 同根月令 and member binding.",
+      "audit_id": "H4",
+      "locator_ids": ["loc.gc.hurting.audit-h4"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h4"],
+      "segment_ids": ["zzq.seg.hurting.audit-h4"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            76
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...hurting.wealth-output-same-month-root / ...form-wealth-output-same-month-root; .h4@76",
+        "runtime_ids": [],
+        "start_anchor": "至于財傷有情"
+    },
+    {
+        "adjudication": "U strength.",
+      "audit_id": "H5",
+      "locator_ids": ["loc.gc.hurting.audit-h5"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h5"],
+      "segment_ids": ["zzq.seg.hurting.audit-h5"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "partial S zzq.seg.hurting.resource-path; P/Q ...form-resource false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            76
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand through failure; .h5@76; add P/Q/X ...hurting.damage-unbalanced-resource",
+        "runtime_ids": [],
+        "start_anchor": "有傷官佩印者"
+    },
+    {
+        "adjudication": "U positional safety.",
+      "audit_id": "H6",
+      "locator_ids": ["loc.gc.hurting.audit-h6"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h6"],
+      "segment_ids": ["zzq.seg.hurting.audit-h6"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            76,
+            77
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...hurting.wealth-resource-noninterference / ...form-...; locs .h6.start@76/.end@77",
+        "runtime_ids": [],
+        "start_anchor": "有傷官兼用財印者"
+    },
+    {
+        "adjudication": "U 傷多身弱; do not compile presence-only.",
+      "audit_id": "H7",
+      "locator_ids": ["loc.gc.hurting.audit-h7"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h7"],
+      "segment_ids": ["zzq.seg.hurting.audit-h7"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "partial S zzq.seg.hurting.killing-path; P/Q ...form-killing-resource-no-wealth false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            77
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand; .h7@77; retain X",
+        "runtime_ids": [],
+        "start_anchor": "有傷官用煞印者"
+    },
+    {
+        "adjudication": "U same exposed officer/hurting binding; near-executable after binding.",
+      "audit_id": "H8",
+      "locator_ids": ["loc.gc.hurting.audit-h8"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h8"],
+      "segment_ids": ["zzq.seg.hurting.audit-h8"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "partial S zzq.seg.hurting.officer-exception; P/Q ...form-metal-water-officer false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            77
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand; .h8@77",
+        "runtime_ids": [],
+        "start_anchor": "有傷官用官者"
+    },
+    {
+        "adjudication": "U climate/解凍.",
+      "audit_id": "H9",
+      "locator_ids": ["loc.gc.hurting.audit-h9"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h9"],
+      "segment_ids": ["zzq.seg.hurting.audit-h9"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            77
+        ],
+        "provenance": "natal",
+        "required_coverage": "S .hurting.winter-metal-officer; P .winter-metal-officer; X(P); N .h9-climate-outcome; .h9@77",
+        "runtime_ids": [],
+        "start_anchor": "若冬金用官"
+    },
+    {
+        "adjudication": "U exception/member semantics.",
+      "audit_id": "H10",
+      "locator_ids": ["loc.gc.hurting.audit-h10"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h10"],
+      "segment_ids": ["zzq.seg.hurting.audit-h10"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            77,
+            78
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...hurting.non-metal-water-officer-exception / ...form-...; N .h10-examples; locs .h10.start@77/.end@78",
+        "runtime_ids": [],
+        "start_anchor": "然亦有非金水而見官"
+    },
+    {
+        "adjudication": "U path/clearance.",
+      "audit_id": "H11",
+      "locator_ids": ["loc.gc.hurting.audit-h11"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-h11"],
+      "segment_ids": ["zzq.seg.hurting.audit-h11"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            78
+        ],
+        "provenance": "natal",
+        "required_coverage": "S .hurting.officer-killing-mixture; P/Q/X ...damage-officer-killing-mixture; N .h11-outcome; .h11@78",
+        "runtime_ids": [],
+        "start_anchor": "至于傷官而官煞並透"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "HU1",
+      "locator_ids": ["loc.gc.hurting.audit-hu1"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-hu1"],
+      "segment_ids": ["zzq.seg.hurting.audit-hu1"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "partial S zzq.seg.hurting.period; N .hurting.period",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            78
+        ],
+        "provenance": "period",
+        "required_coverage": "expand; .hu1@78",
+        "runtime_ids": [],
+        "start_anchor": "傷官取運"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "HU2",
+      "locator_ids": ["loc.gc.hurting.audit-hu2"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-hu2"],
+      "segment_ids": ["zzq.seg.hurting.audit-hu2"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            78
+        ],
+        "provenance": "period",
+        "required_coverage": "S .hurting.period-resource; .hu2@78; add to N",
+        "runtime_ids": [],
+        "start_anchor": "傷官佩印"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "HU3",
+      "locator_ids": ["loc.gc.hurting.audit-hu3"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-hu3"],
+      "segment_ids": ["zzq.seg.hurting.audit-hu3"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            78
+        ],
+        "provenance": "period",
+        "required_coverage": "S .hurting.period-wealth-resource; .hu3@78; add to N",
+        "runtime_ids": [],
+        "start_anchor": "傷官兼用財印"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "HU4",
+      "locator_ids": ["loc.gc.hurting.audit-hu4"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-hu4"],
+      "segment_ids": ["zzq.seg.hurting.audit-hu4"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            78,
+            79
+        ],
+        "provenance": "period",
+        "required_coverage": "S .hurting.period-killing-resource; locs .hu4.start@78/.end@79; add to N",
+        "runtime_ids": [],
+        "start_anchor": "傷官而用煞印"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "HU5",
+      "locator_ids": ["loc.gc.hurting.audit-hu5"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-hu5"],
+      "segment_ids": ["zzq.seg.hurting.audit-hu5"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            79
+        ],
+        "provenance": "period",
+        "required_coverage": "S .hurting.period-killing; .hu5@79; add to N",
+        "runtime_ids": [],
+        "start_anchor": "傷官帶煞"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "HU6",
+      "locator_ids": ["loc.gc.hurting.audit-hu6"],
+      "non_rule_ids": ["zzq.nonrule.hurting.audit-hu6"],
+      "segment_ids": ["zzq.seg.hurting.audit-hu6"],
+        "chapter_id": "zzq.pattern.hurting-officer",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            79
+        ],
+        "provenance": "period",
+        "required_coverage": "S .hurting.period-officer; .hu6@79; add to N",
+        "runtime_ids": [],
+        "start_anchor": "傷官用官"
+    },
+    {
+        "adjudication": "E route and officer_killing_support only with useful-god co-citation; chapter alone lacks blanket no-hurting.",
+      "audit_id": "B1",
+      "locator_ids": ["loc.gc.blade.audit-b1"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.blade.audit-b1"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "fragments S zzq.seg.blade.definition + .blade.officer-path; P route + ...blade.form-officer-killing-support; compiled rule co-cites useful-god",
+        "disposition": "compiled_structural_path",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            79
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand both through B1 end under loc.gc.blade.79-opening",
+        "runtime_ids": [
+            "zzq.rule.yang-blade.candidate-confirm",
+            "zzq.rule.yang-blade.candidate-possible",
+            "zzq.rule.blade.form-officer-killing-support"
+        ],
+        "start_anchor": "陽刃者劫我正財之神"
+    },
+    {
+        "adjudication": "U exact exposed-blade member identity.",
+      "audit_id": "B2",
+      "locator_ids": ["loc.gc.blade.audit-b2"],
+      "non_rule_ids": ["zzq.nonrule.blade.audit-b2"],
+      "segment_ids": ["zzq.seg.blade.audit-b2"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            79,
+            80
+        ],
+        "provenance": "natal",
+        "required_coverage": "split S/P/Q/X ...blade.exposed-blade-under-officer and ...under-killing; locs .b2.start@79/.end@80",
+        "runtime_ids": [],
+        "start_anchor": "陽刃用官透刃不慮"
+    },
+    {
+        "adjudication": "U exposed/hidden and root depth.",
+      "audit_id": "B3",
+      "locator_ids": ["loc.gc.blade.audit-b3"],
+      "non_rule_ids": ["zzq.nonrule.blade.audit-b3"],
+      "segment_ids": ["zzq.seg.blade.audit-b3"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            80
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...blade.exposure-root-depth-distinctions; N .blade.b3-examples; .b3@80",
+        "runtime_ids": [],
+        "start_anchor": "然同是官煞制刃"
+    },
+    {
+        "adjudication": "U respectively: path permitting output damage; killing strength; same-member clearance.",
+      "audit_id": "B4",
+      "locator_ids": ["loc.gc.blade.audit-b4"],
+      "non_rule_ids": ["zzq.nonrule.blade.audit-b4"],
+      "segment_ids": ["zzq.seg.blade.audit-b4"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "corrected split S ...blade.output-resource-alternative, ...heavy-killing-reduction-alternative, ...clearance-alternative; matching P/Qs false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            80
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand all under loc.gc.blade.80-output-alternatives",
+        "runtime_ids": [],
+        "start_anchor": "然亦有官煞制刃帶傷食"
+    },
+    {
+        "adjudication": "U climate/transformation.",
+      "audit_id": "B5",
+      "locator_ids": ["loc.gc.blade.audit-b5"],
+      "non_rule_ids": ["zzq.nonrule.blade.audit-b5"],
+      "segment_ids": ["zzq.seg.blade.audit-b5"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            80,
+            81
+        ],
+        "provenance": "natal",
+        "required_coverage": "S .blade.bing-noon-transformations; P/Q/X split .transform-blade-to-resource + .remove-blade-retain-resource; N .b5-climate-outcome; locs .b5.start@80/.end@81",
+        "runtime_ids": [],
+        "start_anchor": "其於丙生午月"
+    },
+    {
+        "adjudication": "U root/transformation.",
+      "audit_id": "B6",
+      "locator_ids": ["loc.gc.blade.audit-b6"],
+      "non_rule_ids": ["zzq.nonrule.blade.audit-b6"],
+      "segment_ids": ["zzq.seg.blade.audit-b6"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "partial S .blade.wealth-exception; P/Q .form-rooted-wealth-output false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            81
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand under loc.gc.blade.81-wealth; retain X",
+        "runtime_ids": [],
+        "start_anchor": "更若陽刃用財"
+    },
+    {
+        "adjudication": "PER. Retire every lu-robbery-owned p81 locator.",
+      "audit_id": "BU1",
+      "locator_ids": ["loc.gc.blade.audit-bu1"],
+      "non_rule_ids": ["zzq.nonrule.blade.audit-bu1"],
+      "segment_ids": ["zzq.seg.blade.audit-bu1"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "partial S .blade.period; N .blade.period; blade-owned heading S exists",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            81
+        ],
+        "provenance": "period",
+        "required_coverage": "heading must use loc.gc.blade.81-heading; expand period under .81-period",
+        "runtime_ids": [],
+        "start_anchor": "陽刃用官"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "BU2",
+      "locator_ids": ["loc.gc.blade.audit-bu2"],
+      "non_rule_ids": ["zzq.nonrule.blade.audit-bu2"],
+      "segment_ids": ["zzq.seg.blade.audit-bu2"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            81
+        ],
+        "provenance": "period",
+        "required_coverage": "S .blade.period-killing; .bu2@81; add to N",
+        "runtime_ids": [],
+        "start_anchor": "陽刃用煞"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "BU3",
+      "locator_ids": ["loc.gc.blade.audit-bu3"],
+      "non_rule_ids": ["zzq.nonrule.blade.audit-bu3"],
+      "segment_ids": ["zzq.seg.blade.audit-bu3"],
+        "chapter_id": "zzq.pattern.yang-blade",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            81
+        ],
+        "provenance": "period",
+        "required_coverage": "S .blade.period-officer-killing; .bu3@81; add to N",
+        "runtime_ids": [],
+        "start_anchor": "陽刃而官煞並出"
+    },
+    {
+        "adjudication": "E closed tables and blade exclusion; confirm/possible is engine ontology.",
+      "audit_id": "L1",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l1"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l1"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "S .lu-robbery.route; P .route-prosperity/.route-robbery; four candidate rules",
+        "disposition": "compiled_structural_path",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            82
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand/confirm under .82-heading",
+        "runtime_ids": [
+            "zzq.rule.month-prosperity.candidate-confirm",
+            "zzq.rule.month-prosperity.candidate-possible",
+            "zzq.rule.month-robbery.candidate-confirm",
+            "zzq.rule.month-robbery.candidate-possible"
+        ],
+        "start_anchor": "建祿者月建而逢祿堂也"
+    },
+    {
+        "adjudication": "E officer_resource_support and officer_wealth_support for both month patterns.",
+      "audit_id": "L2",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l2"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l2"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "stable split S .officer-path, .officer-resource-support, .officer-wealth-support; separate compiled P/rules",
+        "disposition": "compiled_structural_path",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            82,
+            83
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand collectively through Li example; locs .82-officer-base/.82-officer-resource/.83-officer-wealth",
+        "runtime_ids": [
+            "zzq.rule.month-prosperity.form-officer-resource-support",
+            "zzq.rule.month-prosperity.form-officer-wealth-support",
+            "zzq.rule.month-robbery.form-officer-resource-support",
+            "zzq.rule.month-robbery.form-officer-wealth-support"
+        ],
+        "start_anchor": "祿劫用官干頭透出為奇"
+    },
+    {
+        "adjudication": "U non-conflicting placement; no co-presence shortcut.",
+      "audit_id": "L3",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l3"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l3"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l3"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            83
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...lu-robbery.officer-dual-support-position-safe / ...form-...; N .l3-example; .l3@83",
+        "runtime_ids": [],
+        "start_anchor": "有用官而兼帶財印者"
+    },
+    {
+        "adjudication": "E wealth_output; no effective transformation fact.",
+      "audit_id": "L4",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l4"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l4"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "partial S .lu-robbery.wealth-path; P/rules .form-wealth-output compiled",
+        "disposition": "compiled_structural_path",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            83
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand under .83-wealth",
+        "runtime_ids": [
+            "zzq.rule.month-prosperity.form-wealth-output",
+            "zzq.rule.month-robbery.form-wealth-output"
+        ],
+        "start_anchor": "祿劫用財須帶傷食"
+    },
+    {
+        "adjudication": "U transformation.",
+      "audit_id": "L5",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l5"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l5"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l5"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            83
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X ...lu-robbery.transform-robbery-to-wealth; .l5@83",
+        "runtime_ids": [],
+        "start_anchor": "至於化劫為財"
+    },
+    {
+        "adjudication": "E killing_control; generic output, not eating-god specialization and not co-presence.",
+      "audit_id": "L6",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l6"],
+      "non_rule_ids": [],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l6"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "corrected S .killing-path; P .form-killing-control; compiled rules use explicit stem-control relation_exists",
+        "disposition": "compiled_structural_path",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            83
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand/confirm under .83-killing",
+        "runtime_ids": [
+            "zzq.rule.month-prosperity.form-killing-control",
+            "zzq.rule.month-robbery.form-killing-control"
+        ],
+        "start_anchor": "祿劫用煞必須制伏"
+    },
+    {
+        "adjudication": "U interaction/balance.",
+      "audit_id": "L7",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l7"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l7"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l7"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            83,
+            84
+        ],
+        "provenance": "natal",
+        "required_coverage": "S .lu-robbery.killing-wealth-path; P/Q/X .form-killing-wealth; locs .l7.start@83/.end@84",
+        "runtime_ids": [],
+        "start_anchor": "至若用煞而又帶財"
+    },
+    {
+        "adjudication": "Potential E absence wealth/officer + output with separately adjudicated exact season gates.",
+      "audit_id": "L8",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l8"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l8"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l8"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "source_reviewed_pending_scope_adjudication",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            84
+        ],
+        "provenance": "natal",
+        "required_coverage": "S .lu-robbery.output-only-path; P/Q .form-output-only; N .l8-examples; .l8@84",
+        "runtime_ids": [],
+        "start_anchor": "其祿劫之格無財官而用傷食"
+    },
+    {
+        "adjudication": "U same-member 制煞留官.",
+      "audit_id": "L9",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l9"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l9"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l9"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "partial S .lu-robbery.mixture-clear; P/Q rescue false",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            84
+        ],
+        "provenance": "natal",
+        "required_coverage": "expand under .84-mixture; add P/Q/X .damage-officer-killing-mixture; split clearance",
+        "runtime_ids": [],
+        "start_anchor": "更有祿劫而官煞競出"
+    },
+    {
+        "adjudication": "Potential E exact exposed-officer count + hurting after count-scope adjudication.",
+      "audit_id": "L10",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l10"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l10"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l10"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "source_reviewed_pending_scope_adjudication",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            84
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q .lu-robbery.double-officer-hurting / .form-double-officer-hurting; .l10@84",
+        "runtime_ids": [],
+        "start_anchor": "倘或兩官競出"
+    },
+    {
+        "adjudication": "E missing-condition fixture for L2; not damage on an unformed path.",
+      "audit_id": "L11",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l11"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l11"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l11"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            84
+        ],
+        "provenance": "natal",
+        "required_coverage": "S .lu-robbery.lone-officer-failure; P .failure-lone-officer; N .l11-outcome; .l11@84",
+        "runtime_ids": [],
+        "start_anchor": "若夫用官而孤官無輔"
+    },
+    {
+        "adjudication": "E negative fixture for L4; not damage.",
+      "audit_id": "L12",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l12"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l12"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l12"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            84
+        ],
+        "provenance": "natal",
+        "required_coverage": "S .lu-robbery.wealth-without-output-failure; P .failure-wealth-without-output; N .l12-outcome; .l12@84",
+        "runtime_ids": [],
+        "start_anchor": "用財而不透傷食"
+    },
+    {
+        "adjudication": "U 重; output absence alone is incomplete.",
+      "audit_id": "L13",
+      "locator_ids": ["loc.gc.lu-robbery.audit-l13"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-l13"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-l13"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "source_verified_unresolved",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            84
+        ],
+        "provenance": "natal",
+        "required_coverage": "S/P/Q/X .lu-robbery.heavy-officer-killing-uncontrolled / .damage-...; N .l13-outcome; .l13@84",
+        "runtime_ids": [],
+        "start_anchor": "用官煞重而無制伏"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "LU1",
+      "locator_ids": ["loc.gc.lu-robbery.audit-lu1"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-lu1"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-lu1"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "partial S .lu-robbery.period; N .lu-robbery.period",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            85
+        ],
+        "provenance": "period",
+        "required_coverage": "expand under .85-period",
+        "runtime_ids": [],
+        "start_anchor": "祿劫取運"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "LU2",
+      "locator_ids": ["loc.gc.lu-robbery.audit-lu2"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-lu2"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-lu2"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            85
+        ],
+        "provenance": "period",
+        "required_coverage": "S .lu-robbery.period-officer-support; .lu2@85; add to N",
+        "runtime_ids": [],
+        "start_anchor": "財生者喜印"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "LU3",
+      "locator_ids": ["loc.gc.lu-robbery.audit-lu3"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-lu3"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-lu3"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            85
+        ],
+        "provenance": "period",
+        "required_coverage": "S .lu-robbery.period-wealth-output; .lu3@85; add to N",
+        "runtime_ids": [],
+        "start_anchor": "祿劫用財而帶傷食"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "LU4",
+      "locator_ids": ["loc.gc.lu-robbery.audit-lu4"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-lu4"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-lu4"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            85,
+            86
+        ],
+        "provenance": "period",
+        "required_coverage": "S .lu-robbery.period-killing-control; locs .lu4.start@85/.end@86; add to N",
+        "runtime_ids": [],
+        "start_anchor": "祿劫用煞以食制"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "LU5",
+      "locator_ids": ["loc.gc.lu-robbery.audit-lu5"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-lu5"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-lu5"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            86
+        ],
+        "provenance": "period",
+        "required_coverage": "S .lu-robbery.period-killing-wealth; .lu5@86; add to N",
+        "runtime_ids": [],
+        "start_anchor": "若用煞而帶財"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "LU6",
+      "locator_ids": ["loc.gc.lu-robbery.audit-lu6"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-lu6"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-lu6"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            86
+        ],
+        "provenance": "period",
+        "required_coverage": "S .lu-robbery.period-output-only; .lu6@86; add to N",
+        "runtime_ids": [],
+        "start_anchor": "祿劫而用傷食"
+    },
+    {
+        "adjudication": "PER.",
+      "audit_id": "LU7",
+      "locator_ids": ["loc.gc.lu-robbery.audit-lu7"],
+      "non_rule_ids": ["zzq.nonrule.lu-robbery.audit-lu7"],
+      "segment_ids": ["zzq.seg.lu-robbery.audit-lu7"],
+        "chapter_id": "zzq.pattern.prosperity-robbery",
+        "current_records": "none",
+        "disposition": "excluded_period_doctrine",
+        "paragraph_text_status": "full_paragraph",
+        "pdf_pages": [
+            86
+        ],
+        "provenance": "period",
+        "required_coverage": "S .lu-robbery.period-officer-killing; .lu7@86; add to N",
+        "runtime_ids": [],
+        "start_anchor": "祿劫官煞並出"
+    }
+],
   "schema": "iching.classics.corpus-manifest.v1",
   "source_manifest": "research/classics/sources/manifest.json",
+  "special_review_gate": {
+    "double_wealth_source_id": "zzq.prop.special.gate-double-wealth",
+    "id": "zzq.special-review-gate-v1",
+    "officer_killing_source_id": "zzq.prop.special.gate-officer-killing",
+    "ordinary_use_source_id": "zzq.prop.special.gate-ordinary-use",
+    "rooted_wealth_source_id": "zzq.prop.special.gate-rooted-wealth"
+  },
+  "witness_review_scope": {
+    "canonical_witness_id": "gengcun-ji-ncl-06599",
+    "corpus_coverage": "selected_chapters_only",
+    "known_witness_lacunae": [
+      {
+        "chapter": "論時說拘泥格局",
+        "note": "The opening text is absent across the PDF page 54 to 55 transition in this witness; no missing wording was imported from another edition.",
+        "pdf_pages": [
+          54,
+          55
+        ]
+      }
+    ],
+    "not_transcribed_scope": {
+      "exception": "PDF pages 18-20 are transcribed as zzq.useful-god.success-failure-rescue.",
+      "note": "Foundational chapters on PDF pages 1-56 were visually reviewed but are outside the selected Task 5 transcription scope.",
+      "pdf_pages": [
+        1,
+        56
+      ]
+    },
+    "terminal_page": {
+      "classification": "blank_content_page",
+      "note": "PDF page 103 contains an empty ruled frame and watermark but no textual content.",
+      "pdf_page": 103
+    },
+    "visual_review": {
+      "end_pdf_page": 103,
+      "start_pdf_page": 1,
+      "status": "complete"
+    }
+  },
   "witness_variants": [{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"月令然以四柱配之","id":"var.useful.001","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"月令以四柱配之"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"有成敗","id":"var.useful.002","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"必有成敗"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"位置安適","id":"var.useful.003","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"位置妥帖"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"透印食神格成也","id":"var.useful.004","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"透印食格成也"},{"base_locator_ids":["loc.gc.useful.18","loc.gc.useful.19"],"base_reading":"羊刃；羊刃格","id":"var.useful.005","kind":"orthographic","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"陽刃；刃格"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"傷食","id":"var.useful.006","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"食傷"},{"base_locator_ids":["loc.gc.useful.18"],"base_reading":"逢伏〔旁改制〕煞；遇伏制","id":"var.useful.007","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"逢制煞；遇制伏"},{"base_locator_ids":["loc.gc.useful.19"],"base_reading":"敗中有成","id":"var.useful.008","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"敗中而成"},{"base_locator_ids":["loc.gc.useful.19"],"base_reading":"財旺生官而官又逢傷","id":"var.useful.009","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.113"],"witness_reading":"財旺生官而又逢傷"},{"base_locator_ids":["loc.gc.useful.20"],"base_reading":"而財以去印存食","id":"var.useful.010","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.114"],"witness_reading":"而逢財以去印存食"},{"base_locator_ids":["loc.gc.useful.20"],"base_reading":"是皆謂之救應也","id":"var.useful.011","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.114"],"witness_reading":"是謂之救應也"},{"base_locator_ids":["loc.gc.useful.20"],"base_reading":"能以萬變中融以一理","id":"var.useful.012","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.useful.114"],"witness_reading":"能於萬變中融以一理"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"論正官","id":"var.officer.001","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"論正官格"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"豈知","id":"var.officer.002","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"蓋"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"為喜矣","id":"var.officer.003","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"為喜也"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"貴之中又有","id":"var.officer.004","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"貴之又有"},{"base_locator_ids":["loc.gc.officer.57"],"base_reading":"論之","id":"var.officer.005","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.136"],"witness_reading":"言之"},{"base_locator_ids":["loc.gc.officer.58"],"base_reading":"仍以孤官無輔所以","id":"var.officer.006","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"仍以孤官無輔論所以"},{"base_locator_ids":["loc.gc.officer.58"],"base_reading":"並用財印","id":"var.officer.007","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"皆用財印"},{"base_locator_ids":["loc.gc.officer.58"],"base_reading":"用清支會","id":"var.officer.008","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"清用支會"},{"base_locator_ids":["loc.gc.officer.59"],"base_reading":"逢財而反","id":"var.officer.009","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"逢財反"},{"base_locator_ids":["loc.gc.officer.59"],"base_reading":"支具巳丑","id":"var.officer.010","kind":"lexical","semantic_impact":false,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"支中巳丑"},{"base_locator_ids":["loc.gc.officer.58"],"base_reading":"印能護官亦能減官","id":"var.officer.011","kind":"lexical","semantic_impact":true,"witness_id":"qin-shenan-1926-ziping-zhenquan-v2","witness_locator_ids":["loc.qin.officer.137"],"witness_reading":"印能護官亦能洩官"}],
   "variant_policy": "Gengcun Ji supplies the diplomatic base. The rights-clear Qin 1926 scan serves both as operational locator and independent collation witness. The World Library scan is a comparison-only search aid because its United States date status remains unresolved."
 }
