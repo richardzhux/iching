@@ -120,8 +120,8 @@ function activationLabel(subject: ConsumerSubjectScore, lifeKline: ConsumerLifeK
   const nextMonth = futureMonths.find((item) => item.value >= 110 || item.value <= 92)
   if (nextMonth) {
     const state = nextMonth.value >= 110
-      ? (locale === "zh" ? "高光窗口" : "high window")
-      : (locale === "zh" ? "调整窗口" : "adjustment window")
+      ? (locale === "zh" ? "活跃增强" : "higher activity")
+      : (locale === "zh" ? "活跃减弱" : "lower activity")
     return `${nextMonth.year} ${nextMonth.month.label} · ${state}`
   }
   const canonicalKey = lifeKlineSeriesKey(subject.key)
@@ -131,12 +131,12 @@ function activationLabel(subject: ConsumerSubjectScore, lifeKline: ConsumerLifeK
   if (!point) return null
   const value = relativeKlineValue(lifeKline, series, point.close)
   const state = value >= 110
-    ? (locale === "zh" ? "高光窗口" : "high window")
+    ? (locale === "zh" ? "活跃增强" : "higher activity")
     : value >= 104
-      ? (locale === "zh" ? "升温窗口" : "warming window")
+      ? (locale === "zh" ? "较为活跃" : "above-baseline activity")
       : value <= 92
-        ? (locale === "zh" ? "调整窗口" : "adjustment window")
-        : (locale === "zh" ? "节奏变化" : "rhythm shift")
+        ? (locale === "zh" ? "活跃减弱" : "lower activity")
+        : (locale === "zh" ? "接近常态" : "near baseline")
   return `${point.year} · ${state}`
 }
 
@@ -624,7 +624,7 @@ function BaziConsumerShareCanvases({
     <div aria-hidden="true" inert className="chart-export-stage">
       <article id={identityCardId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><ConsumerIdentity profile={profile} locale={locale} /></article>
       <article id={achievementCardId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><MetaphysicsAchievements achievements={achievements} locale={locale} /></article>
-      <article id={klineCardId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYear} /></article>
+      <article id={klineCardId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYear} staticMode /></article>
       <article id={pillarTableId} data-chart-export-root className="chart-share-canvas chart-export-canvas"><BaziProfessionalTable chart={chart} locale={locale} /></article>
     </div>
   )
@@ -702,7 +702,7 @@ function PatternSourceDisclosure({ bundleId, ruleIds, sourceIds, locale }: { bun
   )
 }
 
-function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+function BaziPatternSummary({ chart, locale, staticMode = false }: { chart: MetaphysicsChart; locale: Locale; staticMode?: boolean }) {
   const primary = chart.structure.patterns?.primary
   const claims = chart.consumer?.claims ?? []
   const hero = claims.find((claim) => claim.slot === "hero")
@@ -773,28 +773,45 @@ function BaziPatternSummary({ chart, locale }: { chart: MetaphysicsChart; locale
           </li>
         ))}
       </ol> : null}
-      {hasCanonicalSourceChain && patternBundleId ? <PatternSourceDisclosure key={`${patternBundleId}:${heroRuleIds.join(",")}:${heroSourceIds.join(",")}`} bundleId={patternBundleId} ruleIds={heroRuleIds} sourceIds={heroSourceIds} locale={locale} /> : null}
+      {hasCanonicalSourceChain && patternBundleId ? (staticMode
+        ? <div className="mt-5 border-t border-border/50 pt-4 text-xs leading-5 text-muted-foreground"><p className="font-semibold text-foreground">{locale === "zh" ? "古籍判断依据" : "Classical basis"}</p><p className="mt-2"><strong className="text-foreground">{locale === "zh" ? "规则" : "Rules"}：</strong>{heroRuleIds.join(" · ")}</p><p className="mt-1"><strong className="text-foreground">{locale === "zh" ? "命题" : "Propositions"}：</strong>{heroSourceIds.join(" · ")}</p><p className="mt-1"><strong className="text-foreground">{locale === "zh" ? "规则包" : "Rule bundle"}：</strong>{patternBundleId}</p></div>
+        : <PatternSourceDisclosure key={`${patternBundleId}:${heroRuleIds.join(",")}:${heroSourceIds.join(",")}`} bundleId={patternBundleId} ruleIds={heroRuleIds} sourceIds={heroSourceIds} locale={locale} />) : null}
       {dimensions.length ? <dl className="mt-5 grid gap-px overflow-hidden rounded-xl border border-border/50 bg-border/50 sm:grid-cols-3 lg:grid-cols-5">{dimensions.map(([label, value]) => <div key={label} className="bg-surface px-3 py-3"><dt className="text-[0.68rem] font-semibold text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-semibold text-foreground">{value}</dd></div>)}</dl> : null}
       {hero && rescueClaim ? <p className="mt-4 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{rescueClaim.summary}</p> : !hero && primary?.rescues?.length ? <p className="mt-4 text-sm"><strong>{locale === "zh" ? "救应" : "Rescue"}：</strong>{primary.rescues.join(" · ")}</p> : null}
       {hero && damageClaim ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "结构张力" : "Structural tension"}：</strong>{damageClaim.summary}</p> : !hero && primary?.tensions?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "结构张力" : "Structural tension"}：</strong>{primary.tensions.join(" · ")}</p> : null}
       {!hero && primary?.constraints?.length ? <p className="mt-2 text-sm"><strong>{locale === "zh" ? "制约" : "Constraints"}：</strong>{primary.constraints.join(" · ")}</p> : null}
-      {!hero && evidence.length ? <details className="mt-5 border-t border-border/50 pt-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "为什么这样判断" : "Why this pattern"}</summary><ol className="mt-3 space-y-2">{evidence.map((item, index) => <li key={item.id ?? index} className="flex gap-2 text-sm leading-6 text-muted-foreground"><span aria-hidden="true" className="font-semibold text-primary">{item.kind === "tension" ? "△" : "✓"}</span><span>{item.detail}</span></li>)}</ol></details> : null}
+      {!hero && evidence.length ? (staticMode
+        ? <div className="mt-5 border-t border-border/50 pt-4"><p className="text-sm font-semibold text-primary">{locale === "zh" ? "判断依据" : "Pattern evidence"}</p><ol className="mt-3 space-y-2">{evidence.map((item, index) => <li key={item.id ?? index} className="flex gap-2 text-sm leading-6 text-muted-foreground"><span aria-hidden="true" className="font-semibold text-primary">{item.kind === "tension" ? "△" : "✓"}</span><span>{item.detail}</span></li>)}</ol></div>
+        : <details className="mt-5 border-t border-border/50 pt-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "为什么这样判断" : "Why this pattern"}</summary><ol className="mt-3 space-y-2">{evidence.map((item, index) => <li key={item.id ?? index} className="flex gap-2 text-sm leading-6 text-muted-foreground"><span aria-hidden="true" className="font-semibold text-primary">{item.kind === "tension" ? "△" : "✓"}</span><span>{item.detail}</span></li>)}</ol></details>) : null}
     </section>
   )
 }
 
 function UncertainBaziView({ chart, locale, subjectName, generatedAt, calculationRule, exportTargetId, markdown }: { chart: MetaphysicsChart; locale: Locale; subjectName: string; generatedAt: string; calculationRule: string; exportTargetId: string; markdown: string }) {
+  return <>
+    <section className="chart-report space-y-7" aria-label={locale === "zh" ? "时辰待定八字分析" : "BaZi analysis with uncertain hour"}>
+      <div className="flex justify-end"><ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出稳定分析" : "Export stable analysis"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "图片生成失败，请重试。" : "Image generation failed. Try again."} safeBaseFilename={`bazi-stable-${chart.birth_profile.input_date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败" : "Copy failed"} /></div>
+      <UncertainBaziContent chart={chart} locale={locale} subjectName={subjectName} generatedAt={generatedAt} calculationRule={calculationRule} />
+    </section>
+    <div aria-hidden="true" inert className="chart-export-stage">
+      <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
+        <UncertainBaziContent chart={chart} locale={locale} subjectName={subjectName} generatedAt={generatedAt} calculationRule={calculationRule} staticMode />
+      </article>
+    </div>
+  </>
+}
+
+function UncertainBaziContent({ chart, locale, subjectName, generatedAt, calculationRule, staticMode = false }: { chart: MetaphysicsChart; locale: Locale; subjectName: string; generatedAt: string; calculationRule: string; staticMode?: boolean }) {
   const stability = chart.birth_profile.stability
   const findings = chart.synthesis?.conclusions ?? []
-  return <section id={exportTargetId} className="chart-report space-y-7" aria-label={locale === "zh" ? "时辰待定八字分析" : "BaZi analysis with uncertain hour"}>
-    <div data-export-exclude className="flex justify-end"><ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出稳定分析" : "Export stable analysis"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "图片生成失败，请重试。" : "Image generation failed. Try again."} safeBaseFilename={`bazi-stable-${chart.birth_profile.input_date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败" : "Copy failed"} /></div>
+  return <div className="space-y-7">
     <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={locale === "zh" ? "补充时辰后显示" : "Available after adding the birth hour"} generatedAt={generatedAt} trustNote={locale === "zh" ? "先呈现所有可能时辰中都成立的部分；补充时辰后自动解锁完整命盘与运限。" : "This view starts with what remains true across every possible birth hour. Add the hour to unlock the full chart and periods."} />
     <section className="rounded-2xl border border-primary/25 bg-primary/[0.045] p-5"><p className="text-xs font-semibold text-primary">{locale === "zh" ? `已对照 ${stability?.candidate_count ?? 13} 个可能时辰` : `Compared ${stability?.candidate_count ?? 13} possible hours`}</p><h2 className="mt-2 text-2xl font-semibold">{locale === "zh" ? "先看不受时辰影响的部分" : "Start with what stays stable"}</h2><p className="mt-2 text-sm leading-7 text-muted-foreground">{locale === "zh" ? "这些内容在早子到晚子的候选盘中都成立，不需要等到确认时辰才有价值。" : "These findings hold from early Zi through late Zi, so the chart remains useful before the exact hour is known."}</p></section>
     <section><h2 className="text-xl font-semibold">{locale === "zh" ? "稳定四柱" : "Stable pillars"}</h2><div className="mt-4 grid gap-3 sm:grid-cols-3">{(stability?.stable_pillars ?? []).map((item) => <div key={item.label} className="rounded-2xl border border-border/55 bg-surface p-4 text-center"><p className="text-xs font-semibold text-muted-foreground">{item.label}{locale === "zh" ? "柱" : " pillar"}</p><p className="mt-3"><span data-element={item.pillar.stem_element} className="chart-element-text text-4xl font-semibold">{item.pillar.stem}</span><span data-element={item.pillar.branch_element} className="chart-element-text ml-2 text-4xl font-semibold">{item.pillar.branch}</span></p><p className="mt-2 text-xs text-muted-foreground">{item.pillar.ten_god}</p></div>)}</div></section>
     <section><h2 className="text-xl font-semibold">{locale === "zh" ? "稳定判断" : "Stable findings"}</h2>{findings.length ? <div className="mt-4 grid gap-3 lg:grid-cols-2">{findings.map((item) => <article key={item.id} className="rounded-2xl border border-border/55 bg-surface p-5"><p className="text-xs font-semibold text-primary">{item.theme}</p><h3 className="mt-2 text-lg font-semibold leading-7">{item.headline}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p></article>)}</div> : <p className="mt-3 text-sm text-muted-foreground">{locale === "zh" ? "当前三柱没有跨全部时辰都一致的主题结论。" : "No theme-level finding remains identical across every possible hour."}</p>}</section>
     {stability?.stable_shensha.length ? <section><h2 className="text-xl font-semibold">{locale === "zh" ? "稳定命中的核心线索" : "Stable supporting markers"}</h2><div className="mt-3 flex flex-wrap gap-2">{stability.stable_shensha.map((name) => <span key={name} className="rounded-full bg-primary/8 px-3 py-1.5 text-sm font-semibold text-primary">{name}</span>)}</div></section> : null}
-    <section><h2 className="text-xl font-semibold">{locale === "zh" ? "确认时辰后会进一步明确" : "What the exact hour will clarify"}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{(stability?.sensitive_items ?? []).map((item) => <div key={item.label} className="rounded-xl border border-border/50 px-4 py-3"><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p></div>)}</div><details className="mt-4 rounded-xl border border-border/50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看全部可能时柱" : "View every possible hour pillar"}</summary><div className="mt-3"><HourCandidates candidates={chart.birth_profile.hour_candidates} locale={locale} /></div></details></section>
-  </section>
+    <section><h2 className="text-xl font-semibold">{locale === "zh" ? "确认时辰后会进一步明确" : "What the exact hour will clarify"}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{(stability?.sensitive_items ?? []).map((item) => <div key={item.label} className="rounded-xl border border-border/50 px-4 py-3"><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p></div>)}</div>{staticMode ? <div className="mt-4 rounded-xl border border-border/50 px-4 py-3"><HourCandidates candidates={chart.birth_profile.hour_candidates} locale={locale} /></div> : <details className="mt-4 rounded-xl border border-border/50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看全部可能时柱" : "View every possible hour pillar"}</summary><div className="mt-3"><HourCandidates candidates={chart.birth_profile.hour_candidates} locale={locale} /></div></details>}</section>
+  </div>
 }
 
 function BaziIdentitySummary({ chart, locale, subjectName, calculationRule, currentCycleText, generatedAt, trustNote }: { chart: MetaphysicsChart; locale: Locale; subjectName: string; calculationRule: string; currentCycleText: string; generatedAt: string; trustNote: string }) {
@@ -815,7 +832,7 @@ function BaziIdentitySummary({ chart, locale, subjectName, calculationRule, curr
   )
 }
 
-function BaziSynthesisPanel({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+function BaziSynthesisPanel({ chart, locale, staticMode = false }: { chart: MetaphysicsChart; locale: Locale; staticMode?: boolean }) {
   const evidence = new Map(
     (chart.theme_profiles ?? []).flatMap((profile) => profile.evidence).map((item) => [item.id, item]),
   )
@@ -824,12 +841,13 @@ function BaziSynthesisPanel({ chart, locale }: { chart: MetaphysicsChart; locale
   return <div className="grid gap-4 lg:grid-cols-2">{conclusions.map((item, index) => {
     const supporting = item.supporting_evidence_ids.map((id) => evidence.get(id)).filter(Boolean)
     const constraints = item.counter_evidence_ids.map((id) => evidence.get(id)).filter(Boolean)
+    const evidenceContent = <div className="mt-3 space-y-3">{supporting.map((entry) => entry ? <div key={entry.id}><p className="text-sm font-medium">{entry.title}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{entry.detail}</p></div> : null)}{constraints.length ? <div className="rounded-xl bg-muted/35 px-3 py-2"><p className="text-xs font-semibold">{locale === "zh" ? "同时需要留意" : "Also consider"}</p>{constraints.map((entry) => entry ? <p key={entry.id} className="mt-1 text-xs leading-5 text-muted-foreground">{entry.title}：{entry.detail}</p> : null)}</div> : null}</div>
     return <article key={item.id} className={`rounded-2xl border p-5 ${index === 0 ? "border-primary/35 bg-primary/[0.045] lg:col-span-2" : "border-border/55 bg-surface"}`}>
       <p className="text-xs font-semibold text-primary">{locale === "zh" ? item.theme : ({ 事业: "Career", 财富: "Wealth", 感情: "Relationship", 五行与承压结构: "Elements & pressure", 整体: "Overall" } as Record<string, string>)[item.theme] ?? item.theme}</p>
       <h3 className="mt-2 text-xl font-semibold leading-8">{item.headline}</h3>
       <p className="mt-2 text-sm leading-7 text-muted-foreground">{item.body}</p>
       {item.distribution_context ? <p className="mt-3 w-fit rounded-full bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">{item.distribution_context}</p> : null}
-      <details className="mt-4 border-t border-border/45 pt-3"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "为什么这样判断" : "Why this finding"}</summary><div className="mt-3 space-y-3">{supporting.map((entry) => entry ? <div key={entry.id}><p className="text-sm font-medium">{entry.title}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{entry.detail}</p></div> : null)}{constraints.length ? <div className="rounded-xl bg-muted/35 px-3 py-2"><p className="text-xs font-semibold">{locale === "zh" ? "同时需要留意" : "Also consider"}</p>{constraints.map((entry) => entry ? <p key={entry.id} className="mt-1 text-xs leading-5 text-muted-foreground">{entry.title}：{entry.detail}</p> : null)}</div> : null}</div></details>
+      {staticMode ? <div className="mt-4 border-t border-border/45 pt-3"><p className="text-sm font-semibold text-primary">{locale === "zh" ? "判断依据" : "Finding evidence"}</p>{evidenceContent}</div> : <details className="mt-4 border-t border-border/45 pt-3"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "为什么这样判断" : "Why this finding"}</summary>{evidenceContent}</details>}
     </article>
   })}</div>
 }
@@ -967,50 +985,55 @@ function PeriodSummary({ label, value, detail }: { label: string; value: string;
   return <div><p className="text-xs font-semibold text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div>
 }
 
-function ShenShaPanel({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+function ShenShaPanel({ chart, locale, staticMode = false }: { chart: MetaphysicsChart; locale: Locale; staticMode?: boolean }) {
   const [showExtended, setShowExtended] = useState(false)
   const metrics = new Map(chart.statistics.rarity_metrics.map((metric) => [metric.feature_id, metric]))
-  const visible = chart.shen_sha.filter((hit) => showExtended || hit.level === "core")
+  const visible = chart.shen_sha.filter((hit) => staticMode || showExtended || hit.level === "core")
   const categories = ["助力", "才学", "情缘", "执行", "迁动", "考验"]
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{locale === "zh" ? `核心命中 ${chart.shen_sha.filter((hit) => hit.level === "core").length} 项 · 扩展命中 ${chart.shen_sha.filter((hit) => hit.level === "extended").length} 项` : `${chart.shen_sha.filter((hit) => hit.level === "core").length} core · ${chart.shen_sha.filter((hit) => hit.level === "extended").length} extended hits`}</p>
-        <button type="button" aria-pressed={showExtended} onClick={() => setShowExtended((value) => !value)} className="rounded-full border border-border/60 px-3 py-1.5 text-xs font-semibold transition hover:border-primary/50 hover:text-primary">{showExtended ? (locale === "zh" ? "隐藏扩展规则" : "Hide extended") : (locale === "zh" ? "显示扩展规则" : "Show extended")}</button>
+        {!staticMode ? <button type="button" aria-pressed={showExtended} onClick={() => setShowExtended((value) => !value)} className="rounded-full border border-border/60 px-3 py-1.5 text-xs font-semibold transition hover:border-primary/50 hover:text-primary">{showExtended ? (locale === "zh" ? "隐藏扩展规则" : "Hide extended") : (locale === "zh" ? "显示扩展规则" : "Show extended")}</button> : null}
       </div>
       {categories.map((category) => {
         const hits = visible.filter((hit) => hit.category === category)
         if (!hits.length) return null
-        return <section key={category}><h3 className="text-sm font-semibold">{category}</h3><div className="mt-2 grid gap-2 lg:grid-cols-2">{hits.map((hit) => <ShenShaRow key={hit.rule_id} hit={hit} metric={metrics.get(hit.feature_id)} locale={locale} />)}</div></section>
+        return <section key={category}><h3 className="text-sm font-semibold">{category}</h3><div className="mt-2 grid gap-2 lg:grid-cols-2">{hits.map((hit) => <ShenShaRow key={hit.rule_id} hit={hit} metric={metrics.get(hit.feature_id)} locale={locale} staticMode={staticMode} />)}</div></section>
       })}
       <p className="text-xs leading-5 text-muted-foreground">{chart.statistics.disclaimer}</p>
     </div>
   )
 }
 
-function ShenShaRow({ hit, metric, locale }: { hit: ShenShaHit; metric?: RarityMetric; locale: Locale }) {
+function ShenShaRow({ hit, metric, locale, staticMode = false }: { hit: ShenShaHit; metric?: RarityMetric; locale: Locale; staticMode?: boolean }) {
   const rarityLabels = locale === "zh" ? { common: "常见", less_common: "较少", rare: "稀有", very_rare: "罕见" } : { common: "Common", less_common: "Less common", rare: "Rare", very_rare: "Very rare" }
   const frequency = !metric || metric.status === "unsupported"
     ? (locale === "zh" ? "暂无基线数据" : "No baseline data")
     : metric.status === "zero"
       ? (locale === "zh" ? "0% · 本参考周期未出现" : "0% · not observed in this reference")
       : `${metric.display_percentage} · ${rarityLabels[metric.level as keyof typeof rarityLabels]}`
-  return <details className="group rounded-xl border border-border/50 bg-surface px-4 py-3 open:border-primary/35 open:bg-primary/[0.035]"><summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-4"><span><strong>{hit.name}</strong>{hit.state ? <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{hit.state}</span> : null}<span className="ml-2 text-xs text-muted-foreground">{hit.pillar_labels.join("、")}{locale === "zh" ? "柱" : " pillar"}</span></span><span className="text-right text-xs font-semibold text-primary">{frequency}</span></span></summary><div className="mt-3 space-y-2 border-t border-border/45 pt-3 text-xs leading-5 text-muted-foreground">{hit.state_reason ? <p className="font-medium text-foreground">{hit.state_reason}</p> : null}<p>{hit.trigger}</p><p><strong className="text-foreground">{locale === "zh" ? "来源" : "Source"}：</strong>{hit.source.title} · {hit.source.note}</p>{hit.school_note ? <p><strong className="text-foreground">{locale === "zh" ? "口径备注" : "Convention note"}：</strong>{hit.school_note}</p> : null}{metric && metric.status !== "unsupported" ? <p>{locale === "zh" ? "分母" : "Denominator"}：{metric.total_weight.toLocaleString()} {locale === "zh" ? "历法分钟权重" : "calendar-minute weight"}</p> : null}{hit.formula_digest ? <p className="font-mono text-[0.68rem]">{hit.formula_digest}</p> : null}</div></details>
+  const heading = <span className="flex items-center justify-between gap-4"><span><strong>{hit.name}</strong>{hit.state ? <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{hit.state}</span> : null}<span className="ml-2 text-xs text-muted-foreground">{hit.pillar_labels.join("、")}{locale === "zh" ? "柱" : " pillar"}</span></span><span className="text-right text-xs font-semibold text-primary">{frequency}</span></span>
+  const body = <div className="mt-3 space-y-2 border-t border-border/45 pt-3 text-xs leading-5 text-muted-foreground">{hit.state_reason ? <p className="font-medium text-foreground">{hit.state_reason}</p> : null}<p>{hit.trigger}</p><p><strong className="text-foreground">{locale === "zh" ? "来源" : "Source"}：</strong>{hit.source.title} · {hit.source.note}</p>{hit.school_note ? <p><strong className="text-foreground">{locale === "zh" ? "口径备注" : "Convention note"}：</strong>{hit.school_note}</p> : null}{metric && metric.status !== "unsupported" ? <p>{locale === "zh" ? "分母" : "Denominator"}：{metric.total_weight.toLocaleString()} {locale === "zh" ? "历法分钟权重" : "calendar-minute weight"}</p> : null}{hit.formula_digest ? <p className="font-mono text-[0.68rem]">{hit.formula_digest}</p> : null}</div>
+  return staticMode
+    ? <article className="rounded-xl border border-border/50 bg-surface px-4 py-3">{heading}{body}</article>
+    : <details className="group rounded-xl border border-border/50 bg-surface px-4 py-3 open:border-primary/35 open:bg-primary/[0.035]"><summary className="cursor-pointer list-none">{heading}</summary>{body}</details>
 }
 
-function ThemeProfilePanel({ profiles, baselineLabel, locale }: { profiles: ThemeProfile[]; baselineLabel: string; locale: Locale }) {
+function ThemeProfilePanel({ profiles, baselineLabel, locale, staticMode = false }: { profiles: ThemeProfile[]; baselineLabel: string; locale: Locale; staticMode?: boolean }) {
   const english: Record<string, string> = { 事业: "Career", 财富: "Wealth", 感情: "Relationship", 五行与承压结构: "Elements & pressure" }
   if (!profiles.length) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "旧版命盘尚无四主题结构数据；按新版重新排盘后可查看。" : "This legacy chart has no four-theme structure data. Recalculate with the current version."}</p>
-  return <section aria-labelledby="theme-profile-title"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 id="theme-profile-title" className="text-xl font-semibold">{locale === "zh" ? "哪些结构更有辨识度" : "Which structures are more distinctive"}</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{locale === "zh" ? "直接对照每项结构在历法样本中的位置，看清哪些更常见、哪些最能形成你的个人辨识度。" : "Compare each structure with the calendar sample space to see what is common and what most strongly distinguishes your chart."}</p></div><p className="text-xs text-muted-foreground">{baselineLabel}</p></div><div className="mt-5 grid gap-4 lg:grid-cols-2">{profiles.map((profile) => <ThemeProfileCard key={profile.theme} profile={profile} label={locale === "zh" ? profile.theme : english[profile.theme]} locale={locale} />)}</div></section>
+  return <section aria-labelledby="theme-profile-title"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 id="theme-profile-title" className="text-xl font-semibold">{locale === "zh" ? "哪些结构更有辨识度" : "Which structures are more distinctive"}</h3><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{locale === "zh" ? "直接对照每项结构在历法样本中的位置，看清哪些更常见、哪些最能形成你的个人辨识度。" : "Compare each structure with the calendar sample space to see what is common and what most strongly distinguishes your chart."}</p></div><p className="text-xs text-muted-foreground">{baselineLabel}</p></div><div className="mt-5 grid gap-4 lg:grid-cols-2">{profiles.map((profile) => <ThemeProfileCard key={profile.theme} profile={profile} label={locale === "zh" ? profile.theme : english[profile.theme]} locale={locale} staticMode={staticMode} />)}</div></section>
 }
 
-function ThemeProfileCard({ profile, label, locale }: { profile: ThemeProfile; label: string; locale: Locale }) {
+function ThemeProfileCard({ profile, label, locale, staticMode = false }: { profile: ThemeProfile; label: string; locale: Locale; staticMode?: boolean }) {
   const comparisons = profile.comparisons ?? []
   const families = profile.active_families ?? Array.from(new Set(profile.evidence.map((item) => item.family)))
-  return <section className="rounded-2xl border border-border/55 bg-surface px-5 py-5"><div className="flex items-start justify-between gap-5"><div><h4 className="text-xl font-semibold">{label}</h4><p className="mt-2 text-sm text-muted-foreground">{comparisons.length ? (locale === "zh" ? `${comparisons.length} 项结构对照` : `${comparisons.length} structure comparisons`) : (locale === "zh" ? "重新排盘后显示分布" : "Recalculate to see distributions")}</p></div><div className="flex flex-wrap justify-end gap-1.5">{families.slice(0, 3).map((family) => <span key={family} className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">{family}</span>)}</div></div><div className="mt-5 space-y-5">{comparisons.map((item) => <MetricComparisonView key={item.metric_id} item={item} locale={locale} />)}</div><details className="mt-5 border-t border-border/45 pt-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? `查看 ${profile.evidence.length} 条结构依据` : `View ${profile.evidence.length} evidence items`}</summary><div className="mt-4 space-y-4">{profile.evidence.map((item) => <div key={item.id} className="grid gap-2 sm:grid-cols-[5rem_1fr]"><span className="w-fit rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">{item.evidence_type}</span><div><p className="text-base font-medium">{item.title}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p><p className="mt-1 text-xs text-muted-foreground">{item.source}</p></div></div>)}</div></details></section>
+  const evidenceContent = <div className="mt-4 space-y-4">{profile.evidence.map((item) => <div key={item.id} className="grid gap-2 sm:grid-cols-[5rem_1fr]"><span className="w-fit rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">{item.evidence_type}</span><div><p className="text-base font-medium">{item.title}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{item.detail}</p><p className="mt-1 text-xs text-muted-foreground">{item.source}</p></div></div>)}</div>
+  return <section className="rounded-2xl border border-border/55 bg-surface px-5 py-5"><div className="flex items-start justify-between gap-5"><div><h4 className="text-xl font-semibold">{label}</h4><p className="mt-2 text-sm text-muted-foreground">{comparisons.length ? (locale === "zh" ? `${comparisons.length} 项结构对照` : `${comparisons.length} structure comparisons`) : (locale === "zh" ? "重新排盘后显示分布" : "Recalculate to see distributions")}</p></div><div className="flex flex-wrap justify-end gap-1.5">{families.slice(0, 3).map((family) => <span key={family} className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">{family}</span>)}</div></div><div className="mt-5 space-y-5">{comparisons.map((item) => <MetricComparisonView key={item.metric_id} item={item} locale={locale} staticMode={staticMode} />)}</div>{staticMode ? <div className="mt-5 border-t border-border/45 pt-4"><p className="text-sm font-semibold text-primary">{locale === "zh" ? `${profile.evidence.length} 条结构依据` : `${profile.evidence.length} evidence items`}</p>{evidenceContent}</div> : <details className="mt-5 border-t border-border/45 pt-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? `查看 ${profile.evidence.length} 条结构依据` : `View ${profile.evidence.length} evidence items`}</summary>{evidenceContent}</details>}</section>
 }
 
-function MetricComparisonView({ item, locale }: { item: ThemeComparison; locale: Locale }) {
+function MetricComparisonView({ item, locale, staticMode = false }: { item: ThemeComparison; locale: Locale; staticMode?: boolean }) {
   if (item.status === "unsupported") return <div><p className="text-sm font-semibold">{item.label}</p><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "暂无可比基线" : "No comparable baseline yet"}</p></div>
   if (item.comparison_mode === "incidence") {
     const hit = item.hit_percentage ?? 0
@@ -1031,10 +1054,11 @@ function MetricComparisonView({ item, locale }: { item: ThemeComparison; locale:
         ? "Not observed in this reference"
         : "Common range"
   const displayLabel = locale === "zh" ? (item.display_label ?? item.semantic_pole ?? "常见区间") : englishDisplay
-  return <div><div className="flex flex-wrap items-end justify-between gap-3"><p className="text-sm font-semibold">{item.label} <strong className="ml-1 text-xl text-primary">{item.value}</strong></p><p className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">{displayLabel}</p></div><details className="mt-3 border-t border-border/45 pt-3"><summary className="cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">{locale === "zh" ? "查看完整历法分布" : "View full calendar distribution"}</summary>{item.histogram?.length ? <div className="mt-3 flex h-16 items-end gap-1" role="img" aria-label={locale === "zh" ? `${item.label}离散分布` : `${item.label} discrete distribution`}>{item.histogram.map((entry) => <div key={String(entry.value)} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"><span className="text-[0.6rem] tabular-nums text-muted-foreground">{entry.percentage >= 5 ? `${entry.percentage.toFixed(0)}%` : ""}</span><span className={`w-full rounded-t-sm ${String(entry.value) === String(item.value) ? "bg-primary" : "bg-primary/20"}`} style={{ height: `${Math.max(4, entry.percentage / max * 38)}px` }} /><span className="text-[0.6rem] tabular-nums text-muted-foreground">{entry.value}</span></div>)}</div> : <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-muted"><span className="bg-muted-foreground/25" style={{ width: `${lower}%` }} /><span className="bg-primary/80" style={{ width: `${same}%` }} /><span className="bg-primary/25" style={{ width: `${higher}%` }} /></div>}<div className="mt-2 grid grid-cols-3 text-[0.68rem] text-muted-foreground"><span>{locale === "zh" ? "低于" : "Lower"} {lower.toFixed(1)}%</span><span className="text-center">{locale === "zh" ? "相同" : "Same"} {same.toFixed(1)}%</span><span className="text-right">{locale === "zh" ? "高于" : "Higher"} {higher.toFixed(1)}%</span></div></details></div>
+  const distribution = <>{item.histogram?.length ? <div className="mt-3 flex h-16 items-end gap-1" role="img" aria-label={locale === "zh" ? `${item.label}离散分布` : `${item.label} discrete distribution`}>{item.histogram.map((entry) => <div key={String(entry.value)} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"><span className="text-[0.6rem] tabular-nums text-muted-foreground">{entry.percentage >= 5 ? `${entry.percentage.toFixed(0)}%` : ""}</span><span className={`w-full rounded-t-sm ${String(entry.value) === String(item.value) ? "bg-primary" : "bg-primary/20"}`} style={{ height: `${Math.max(4, entry.percentage / max * 38)}px` }} /><span className="text-[0.6rem] tabular-nums text-muted-foreground">{entry.value}</span></div>)}</div> : <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-muted"><span className="bg-muted-foreground/25" style={{ width: `${lower}%` }} /><span className="bg-primary/80" style={{ width: `${same}%` }} /><span className="bg-primary/25" style={{ width: `${higher}%` }} /></div>}<div className="mt-2 grid grid-cols-3 text-[0.68rem] text-muted-foreground"><span>{locale === "zh" ? "低于" : "Lower"} {lower.toFixed(1)}%</span><span className="text-center">{locale === "zh" ? "相同" : "Same"} {same.toFixed(1)}%</span><span className="text-right">{locale === "zh" ? "高于" : "Higher"} {higher.toFixed(1)}%</span></div></>
+  return <div><div className="flex flex-wrap items-end justify-between gap-3"><p className="text-sm font-semibold">{item.label} <strong className="ml-1 text-xl text-primary">{item.value}</strong></p><p className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-semibold text-primary">{displayLabel}</p></div>{staticMode ? <div className="mt-3 border-t border-border/45 pt-3">{distribution}</div> : <details className="mt-3 border-t border-border/45 pt-3"><summary className="cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">{locale === "zh" ? "查看完整历法分布" : "View full calendar distribution"}</summary>{distribution}</details>}</div>
 }
 
-function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChart; locale: Locale; currentYear: number }) {
+function BaziStatistics({ chart, locale, currentYear, staticMode = false }: { chart: MetaphysicsChart; locale: Locale; currentYear: number; staticMode?: boolean }) {
   const elements = ["木", "火", "土", "金", "水"]
   const layers = chart.structure?.layered_distribution
   const visibleElements = layers?.elements.visible_stems ?? chart.element_counts
@@ -1085,7 +1109,7 @@ function BaziStatistics({ chart, locale, currentYear }: { chart: MetaphysicsChar
       </StatisticBlock>
       <StatisticBlock title={locale === "zh" ? "干支关系图" : "Stem-branch relations"} description={locale === "zh" ? `共识别 ${allRelations.length} 条结构关系；同一组干支可能同时命中不同规则。` : `${allRelations.length} recognized relationships; one pair may match multiple rules.`}>
         <HorizontalCountChart rows={relationshipGroups.map((group) => ({ label: group.label, value: allRelations.filter((item) => item.includes(group.key)).length }))} denominator={Math.max(1, allRelations.length)} />
-        <details className="mt-4 border-t border-border/45 pt-3"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看全部关系" : "View every relationship"}</summary><p className="mt-2 text-sm leading-6 text-muted-foreground">{allRelations.join(" / ") || "—"}</p></details>
+        {staticMode ? <div className="mt-4 border-t border-border/45 pt-3"><p className="text-sm font-semibold text-primary">{locale === "zh" ? "全部关系" : "Every relationship"}</p><p className="mt-2 text-sm leading-6 text-muted-foreground">{allRelations.join(" / ") || "—"}</p></div> : <details className="mt-4 border-t border-border/45 pt-3"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看全部关系" : "View every relationship"}</summary><p className="mt-2 text-sm leading-6 text-muted-foreground">{allRelations.join(" / ") || "—"}</p></details>}
       </StatisticBlock>
       <StatisticBlock title={locale === "zh" ? "阴阳明字" : "Visible Yin / Yang"} description={unknownCount ? (locale === "zh" ? `${unknownCount} 个待定明字未计入` : `${unknownCount} uncertain characters excluded`) : (locale === "zh" ? "只计算四柱八个明字。" : "Only the eight visible characters are counted.")}>
         <div className="mt-5 flex h-5 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${locale === "zh" ? "阳" : "Yang"} ${yangCount}, ${locale === "zh" ? "阴" : "Yin"} ${yinCount}`}><span className="bg-primary" style={{ width: `${yangCount / yinYangTotal * 100}%` }} /><span className="bg-primary/35" style={{ width: `${yinCount / yinYangTotal * 100}%` }} /></div>
@@ -1171,14 +1195,14 @@ function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculat
       <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
         {exportedConsumerProfile ? <ConsumerIdentity profile={exportedConsumerProfile} locale={locale} /> : <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />}
         {chart.consumer?.achievements?.some((item) => item.member_ids.length > 1) ? <ExportSection title={locale === "zh" ? "稀有结构组合" : "Rare structure combinations"}><MetaphysicsAchievements achievements={chart.consumer.achievements.filter((item) => item.member_ids.length > 1)} locale={locale} /></ExportSection> : null}
-        <ExportSection title={locale === "zh" ? "格局判断链" : "Pattern reasoning"}><BaziPatternSummary chart={chart} locale={locale} /></ExportSection>
-        {lifeKline ? <ExportSection title={locale === "zh" ? "人生 K 线" : "Life K-line"}><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></ExportSection> : null}
+        <ExportSection title={locale === "zh" ? "格局判断链" : "Pattern reasoning"}><BaziPatternSummary chart={chart} locale={locale} staticMode /></ExportSection>
+        {lifeKline ? <ExportSection title={locale === "zh" ? "人生 K 线" : "Life K-line"}><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} staticMode /></ExportSection> : null}
         <ExportSection title={locale === "zh" ? "四柱命盘" : "Four pillars"}><BaziProfessionalTable chart={chart} locale={locale} /></ExportSection>
-        <ExportSection title={locale === "zh" ? "核心判断" : "Key findings"}><BaziSynthesisPanel chart={chart} locale={locale} /></ExportSection>
+        <ExportSection title={locale === "zh" ? "核心判断" : "Key findings"}><BaziSynthesisPanel chart={chart} locale={locale} staticMode /></ExportSection>
         {periodCycles?.length ? <ExportSection title={locale === "zh" ? "运限" : "Periods"}><BaziPeriodExportSummary cycles={periodCycles} chart={chart} locale={locale} /></ExportSection> : null}
-        <ExportSection title={locale === "zh" ? "结构对照" : "Structure comparisons"}>{hasAvailableStatistics(chart) ? <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /> : <StatisticsUnavailable locale={locale} />}</ExportSection>
-        <ExportSection title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ExportSection>
-        <ExportSection title={locale === "zh" ? "结构统计" : "Structure statistics"}><BaziStatistics chart={chart} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} /></ExportSection>
+        <ExportSection title={locale === "zh" ? "结构对照" : "Structure comparisons"}>{hasAvailableStatistics(chart) ? <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} staticMode /> : <StatisticsUnavailable locale={locale} />}</ExportSection>
+        <ExportSection title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} staticMode /></ExportSection>
+        <ExportSection title={locale === "zh" ? "结构统计" : "Structure statistics"}><BaziStatistics chart={chart} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} staticMode /></ExportSection>
         <p className="mt-8 border-t border-border/60 pt-5 text-xs leading-5 text-muted-foreground">{baziRuleVersionSummary(chart, locale)}</p>
       </article>
     </div>

@@ -12,9 +12,9 @@
   "config_id": "bazi-canonical-calendar-1-asia-shanghai-forward",
   "engine": "canonical-calendar-1 (sxtwl 2.0.7 ephemeris)",
   "rules_version": "shensha-2026.07-v2.1",
-  "rules_registry_hash": "sha256:f4c327d3ac5405abee1da87e587b8054062df05eb70e80593b5a8d5b3aa1db91",
+  "rules_registry_hash": "sha256:04b579fe498a7233e873dc765ead008f0895a6f4df0c6a41feb1ed744630d0c4",
   "pattern_bundle_id": "zzq-shen-canonical-v1",
-  "pattern_bundle_digest": "27a01e7fd9c87896259718252f107ad3b4ca95762bfb94d6580eb4e62483516d",
+  "pattern_bundle_digest": "bac491fb41eaede8257667913722a9026698bc32b0fb57ce76b9de0bb32cc1b3",
   "feature_catalog": [
     "bazi.shensha.ciguan",
     "bazi.shensha.dexiu",
@@ -1174,9 +1174,9 @@
     }
   },
   "consumer_features": {
-    "rules_version": "metaphysics-consumer-2026.07-v5",
+    "rules_version": "metaphysics-consumer-2026.07-v6",
     "weighted_unit": "minute",
-    "method": "weighted_empirical_feature_incidence",
+    "method": "weighted_empirical_feature_incidence_canonical_patterns_v2",
     "catalog": [
       {
         "id": "bazi.consumer.shensha.ciguan.state.activated",
@@ -1779,99 +1779,114 @@
         "title": "灾煞·可见"
       },
       {
-        "id": "bazi.pattern.ordinary.direct_officer",
+        "id": "bazi.pattern.canonical.direct_officer.status.broken",
         "kind": "pattern",
-        "title": "正官格"
+        "title": "正官·受损"
       },
       {
-        "id": "bazi.pattern.ordinary.direct_resource",
+        "id": "bazi.pattern.canonical.direct_officer.status.candidate",
         "kind": "pattern",
-        "title": "正印格"
+        "title": "正官·候选"
       },
       {
-        "id": "bazi.pattern.ordinary.direct_wealth",
+        "id": "bazi.pattern.canonical.direct_officer.status.formed",
         "kind": "pattern",
-        "title": "正财格"
+        "title": "正官·成格"
       },
       {
-        "id": "bazi.pattern.ordinary.eating_god",
+        "id": "bazi.pattern.canonical.direct_officer.status.mixed",
         "kind": "pattern",
-        "title": "食神格"
+        "title": "正官·混杂"
       },
       {
-        "id": "bazi.pattern.ordinary.hurting_officer",
+        "id": "bazi.pattern.canonical.direct_officer.status.rescued",
         "kind": "pattern",
-        "title": "伤官格"
+        "title": "正官·破而有救"
       },
       {
-        "id": "bazi.pattern.ordinary.indirect_resource",
+        "id": "bazi.pattern.canonical.direct_resource.status.candidate",
         "kind": "pattern",
-        "title": "偏印格"
+        "title": "正印·候选"
       },
       {
-        "id": "bazi.pattern.ordinary.indirect_wealth",
+        "id": "bazi.pattern.canonical.direct_resource.status.formed",
         "kind": "pattern",
-        "title": "偏财格"
+        "title": "正印·成格"
       },
       {
-        "id": "bazi.pattern.ordinary.month_prosperity",
+        "id": "bazi.pattern.canonical.direct_wealth.status.candidate",
         "kind": "pattern",
-        "title": "建禄格"
+        "title": "正财·候选"
       },
       {
-        "id": "bazi.pattern.ordinary.month_robbery",
+        "id": "bazi.pattern.canonical.eating_god.status.candidate",
         "kind": "pattern",
-        "title": "月劫格"
+        "title": "食神·候选"
       },
       {
-        "id": "bazi.pattern.ordinary.seven_killings",
+        "id": "bazi.pattern.canonical.eating_god.status.formed",
         "kind": "pattern",
-        "title": "七杀格"
+        "title": "食神·成格"
       },
       {
-        "id": "bazi.pattern.ordinary.yang_blade",
+        "id": "bazi.pattern.canonical.hurting_officer.status.candidate",
         "kind": "pattern",
-        "title": "阳刃格"
+        "title": "伤官·候选"
       },
       {
-        "id": "bazi.pattern.special.exclusive_earth",
+        "id": "bazi.pattern.canonical.hurting_officer.status.formed",
         "kind": "pattern",
-        "title": "稼穑格"
+        "title": "伤官·成格"
       },
       {
-        "id": "bazi.pattern.special.exclusive_fire",
+        "id": "bazi.pattern.canonical.indirect_resource.status.candidate",
         "kind": "pattern",
-        "title": "炎上格"
+        "title": "偏印·候选"
       },
       {
-        "id": "bazi.pattern.special.exclusive_water",
+        "id": "bazi.pattern.canonical.indirect_resource.status.formed",
         "kind": "pattern",
-        "title": "润下格"
+        "title": "偏印·成格"
       },
       {
-        "id": "bazi.pattern.special.follow_officer",
+        "id": "bazi.pattern.canonical.indirect_wealth.status.candidate",
         "kind": "pattern",
-        "title": "从杀格"
+        "title": "偏财·候选"
       },
       {
-        "id": "bazi.pattern.special.follow_output",
+        "id": "bazi.pattern.canonical.month_prosperity.status.candidate",
         "kind": "pattern",
-        "title": "从儿格"
+        "title": "建禄·候选"
       },
       {
-        "id": "bazi.pattern.special.follow_prosperous",
+        "id": "bazi.pattern.canonical.month_prosperity.status.formed",
         "kind": "pattern",
-        "title": "从旺格"
+        "title": "建禄·成格"
       },
       {
-        "id": "bazi.pattern.special.follow_strong",
+        "id": "bazi.pattern.canonical.month_robbery.status.candidate",
         "kind": "pattern",
-        "title": "从强格"
+        "title": "月劫·候选"
       },
       {
-        "id": "bazi.pattern.special.follow_wealth",
+        "id": "bazi.pattern.canonical.month_robbery.status.formed",
         "kind": "pattern",
-        "title": "从财格"
+        "title": "月劫·成格"
+      },
+      {
+        "id": "bazi.pattern.canonical.seven_killings.status.candidate",
+        "kind": "pattern",
+        "title": "七杀·候选"
+      },
+      {
+        "id": "bazi.pattern.canonical.yang_blade.status.candidate",
+        "kind": "pattern",
+        "title": "阳刃·候选"
+      },
+      {
+        "id": "bazi.pattern.canonical.yang_blade.status.formed",
+        "kind": "pattern",
+        "title": "阳刃·成格"
       },
       {
         "id": "bazi.shensha.combination.blade_lu_officer_resource",
@@ -2070,25 +2085,6 @@
       "bazi.consumer.shensha.zaisha.state.constrained": 4387812.872834,
       "bazi.consumer.shensha.zaisha.state.supported": 8038712.380115,
       "bazi.consumer.shensha.zaisha.state.visible": 5442395.017635,
-      "bazi.pattern.ordinary.direct_officer": 6406873.945818,
-      "bazi.pattern.ordinary.direct_resource": 6102378.542098,
-      "bazi.pattern.ordinary.direct_wealth": 6450464.373669,
-      "bazi.pattern.ordinary.eating_god": 6427875.969397,
-      "bazi.pattern.ordinary.hurting_officer": 6404257.73192,
-      "bazi.pattern.ordinary.indirect_resource": 5790395.186862,
-      "bazi.pattern.ordinary.indirect_wealth": 6503603.443053,
-      "bazi.pattern.ordinary.month_prosperity": 4771278.911764,
-      "bazi.pattern.ordinary.month_robbery": 4173117.577856,
-      "bazi.pattern.ordinary.seven_killings": 6529638.270727,
-      "bazi.pattern.ordinary.yang_blade": 2355582.376739,
-      "bazi.pattern.special.exclusive_earth": 1080.0,
-      "bazi.pattern.special.exclusive_fire": 1080.0,
-      "bazi.pattern.special.exclusive_water": 1440.0,
-      "bazi.pattern.special.follow_officer": 720.0,
-      "bazi.pattern.special.follow_output": 960.0,
-      "bazi.pattern.special.follow_prosperous": 22080.0,
-      "bazi.pattern.special.follow_strong": 171201.849403,
-      "bazi.pattern.special.follow_wealth": 8192.727928,
       "bazi.shensha.combination.blade_lu_officer_resource": 881371.382845,
       "bazi.shensha.combination.dexiu_xuetang_wealth_officer": 1184334.000586,
       "bazi.shensha.combination.general_virtue_tianyi": 8931814.723732,
@@ -2103,8 +2099,35 @@
       "bazi.shensha.combination.two_virtues": 11581298.853063,
       "bazi.shensha.combination.xuetang_lushen": 1789029.70692,
       "bazi.shensha.combination.xuetang_tianyi": 4076614.319592,
-      "bazi.shensha.combination.xuetang_yima": 2943763.123185
+      "bazi.shensha.combination.xuetang_yima": 2943763.123185,
+      "bazi.pattern.canonical.direct_officer.status.broken": 440722.79448,
+      "bazi.pattern.canonical.direct_officer.status.candidate": 885213.901782,
+      "bazi.pattern.canonical.direct_officer.status.formed": 2241386.783087,
+      "bazi.pattern.canonical.direct_officer.status.mixed": 591783.48053,
+      "bazi.pattern.canonical.direct_officer.status.rescued": 485276.866493,
+      "bazi.pattern.canonical.direct_resource.status.candidate": 4431244.08291,
+      "bazi.pattern.canonical.direct_resource.status.formed": 1882929.388368,
+      "bazi.pattern.canonical.direct_wealth.status.candidate": 6315318.61449,
+      "bazi.pattern.canonical.eating_god.status.candidate": 6242418.244739,
+      "bazi.pattern.canonical.eating_god.status.formed": 50174.705294,
+      "bazi.pattern.canonical.hurting_officer.status.candidate": 2513926.233799,
+      "bazi.pattern.canonical.hurting_officer.status.formed": 3099954.733774,
+      "bazi.pattern.canonical.indirect_resource.status.candidate": 4708667.106908,
+      "bazi.pattern.canonical.indirect_resource.status.formed": 1606281.683752,
+      "bazi.pattern.canonical.indirect_wealth.status.candidate": 6314907.607985,
+      "bazi.pattern.canonical.month_prosperity.status.candidate": 2453616.422861,
+      "bazi.pattern.canonical.month_prosperity.status.formed": 2003977.596933,
+      "bazi.pattern.canonical.month_robbery.status.candidate": 1368196.798392,
+      "bazi.pattern.canonical.month_robbery.status.formed": 932375.905898,
+      "bazi.pattern.canonical.seven_killings.status.candidate": 6303112.821283,
+      "bazi.pattern.canonical.yang_blade.status.candidate": 2521575.014509,
+      "bazi.pattern.canonical.yang_blade.status.formed": 113463.244629
+    },
+    "pattern_authority": {
+      "pattern_bundle_id": "zzq-shen-canonical-v1",
+      "pattern_bundle_digest": "bac491fb41eaede8257667913722a9026698bc32b0fb57ce76b9de0bb32cc1b3",
+      "feature_semantics": "canonical_active_lifecycle_status"
     }
   },
-  "hash": "sha256:7b6a23060089583407605cf677fd6c3f65f370b61b512fd45dc5bd8b950e1e32"
+  "hash": "sha256:a6bbc59758ddfa5702144a73a54e74ab92f073f55dbfc295f451703f5ce87468"
 }

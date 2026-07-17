@@ -4,8 +4,16 @@ from pathlib import Path
 
 import iching.core.metaphysics_consumer as consumer_module
 import pytest
-from iching.core.metaphysics_consumer import THEME_ORDER, build_bazi_consumer_profile, build_life_kline
-from iching.core.metaphysics_statistics import select_consumer_distributions, select_consumer_feature_metrics
+from iching.core.metaphysics_consumer import (
+    THEME_ORDER,
+    build_bazi_consumer_profile,
+    build_life_kline,
+    consumer_feature_records,
+)
+from iching.core.metaphysics_statistics import (
+    select_consumer_distributions,
+    select_consumer_feature_metrics,
+)
 from iching.tools.workspace_budget import check_workspace_budget
 
 
@@ -18,22 +26,33 @@ def test_consumer_profile_keeps_empirical_scores_internal() -> None:
             "rules_version": "metaphysics-consumer-2026.07-v3",
             "weighted_unit": "minute",
             "global": {
-                "male": {dimension: {"42": 20, "43": 60, "44": 20} for dimension in dimensions},
+                "male": {
+                    dimension: {"42": 20, "43": 60, "44": 20}
+                    for dimension in dimensions
+                },
             },
             "cohorts": {
                 "丙-午": {
-                    "male": {dimension: {"43": 10, "44": 90} for dimension in dimensions},
+                    "male": {
+                        dimension: {"43": 10, "44": 90} for dimension in dimensions
+                    },
                 },
             },
         },
     }
-    selected = select_consumer_distributions(baseline, gender="male", cohort_key="丙-午")
+    selected = select_consumer_distributions(
+        baseline, gender="male", cohort_key="丙-午"
+    )
     structure = {
         "theme_profiles": [
             {
                 "theme": label,
                 "evidence": [],
-                "structure_metrics": ([{"metric_id": "hidden_wealth_count", "value": 1}] if label == "财富" else []),
+                "structure_metrics": (
+                    [{"metric_id": "hidden_wealth_count", "value": 1}]
+                    if label == "财富"
+                    else []
+                ),
                 "comparisons": [],
             }
             for label in ("事业", "财富", "感情", "五行与承压结构")
@@ -53,15 +72,26 @@ def test_consumer_profile_keeps_empirical_scores_internal() -> None:
         consumer_distributions=selected,
     )
 
-    forbidden_identity = {"main_score", "raw_score", "global_percentile", "cohort_percentile"}
+    forbidden_identity = {
+        "main_score",
+        "raw_score",
+        "global_percentile",
+        "cohort_percentile",
+    }
     forbidden_subject = {
-        "score", "raw_score", "global_percentile", "global_top_percentage",
-        "cohort_percentile", "cohort_top_percentage",
+        "score",
+        "raw_score",
+        "global_percentile",
+        "global_top_percentage",
+        "cohort_percentile",
+        "cohort_top_percentage",
     }
     assert forbidden_identity.isdisjoint(profile["identity"])
     assert all(forbidden_subject.isdisjoint(subject) for subject in profile["subjects"])
     assert all(subject["path_label"] for subject in profile["subjects"])
-    wealth = next(subject for subject in profile["subjects"] if subject["key"] == "wealth")
+    wealth = next(
+        subject for subject in profile["subjects"] if subject["key"] == "wealth"
+    )
     assert wealth["path_label"] == "潜藏兑现型"
     assert "不等于贫穷" in wealth["path_summary"]
     assert not hasattr(consumer_module, "score_bazi_consumer_themes")
@@ -89,16 +119,42 @@ def test_full_life_kline_opens_on_current_cycle() -> None:
             "year": value,
             "theme_activations": {},
             "months": [
-                {"index": index, "label": f"{index + 1}月", "ganzhi": "甲子", "theme_activations": {}}
+                {
+                    "index": index,
+                    "label": f"{index + 1}月",
+                    "ganzhi": "甲子",
+                    "theme_activations": {},
+                }
                 for index in range(12)
             ],
         }
 
     kline = build_life_kline(
         [
-            {"label": "甲子", "start_year": 2016, "end_year": 2025, "is_current": False, "theme_activations": {}, "years": [year(value) for value in range(2016, 2026)]},
-            {"label": "乙丑", "start_year": 2026, "end_year": 2035, "is_current": True, "theme_activations": {}, "years": [year(value) for value in range(2026, 2036)]},
-            {"label": "丙寅", "start_year": 2036, "end_year": 2045, "is_current": False, "theme_activations": {}, "years": [year(value) for value in range(2036, 2046)]},
+            {
+                "label": "甲子",
+                "start_year": 2016,
+                "end_year": 2025,
+                "is_current": False,
+                "theme_activations": {},
+                "years": [year(value) for value in range(2016, 2026)],
+            },
+            {
+                "label": "乙丑",
+                "start_year": 2026,
+                "end_year": 2035,
+                "is_current": True,
+                "theme_activations": {},
+                "years": [year(value) for value in range(2026, 2036)],
+            },
+            {
+                "label": "丙寅",
+                "start_year": 2036,
+                "end_year": 2045,
+                "is_current": False,
+                "theme_activations": {},
+                "years": [year(value) for value in range(2036, 2046)],
+            },
         ],
         {theme: 60 for theme in THEME_ORDER},
     )
@@ -114,13 +170,27 @@ def test_full_life_kline_opens_on_current_cycle() -> None:
 
     alternate = build_life_kline(
         [
-            {"label": "乙丑", "start_year": 2026, "end_year": 2035, "is_current": True, "theme_activations": {}, "years": [year(value) for value in range(2026, 2036)]},
+            {
+                "label": "乙丑",
+                "start_year": 2026,
+                "end_year": 2035,
+                "is_current": True,
+                "theme_activations": {},
+                "years": [year(value) for value in range(2026, 2036)],
+            },
         ],
         natal_scores={theme: 99 for theme in THEME_ORDER},
     )
     baseline = build_life_kline(
         [
-            {"label": "乙丑", "start_year": 2026, "end_year": 2035, "is_current": True, "theme_activations": {}, "years": [year(value) for value in range(2026, 2036)]},
+            {
+                "label": "乙丑",
+                "start_year": 2026,
+                "end_year": 2035,
+                "is_current": True,
+                "theme_activations": {},
+                "years": [year(value) for value in range(2026, 2036)],
+            },
         ],
         natal_scores={theme: 1 for theme in THEME_ORDER},
     )
@@ -133,7 +203,13 @@ def test_consumer_feature_lookup_returns_compact_incidence() -> None:
         "sample_weight": 100,
         "consumer_features": {
             "rules_version": consumer_module.CONSUMER_RULES_VERSION,
-            "catalog": [{"id": "bazi.shensha.combination.two_virtues", "kind": "combination", "title": "二德扶持"}],
+            "catalog": [
+                {
+                    "id": "bazi.shensha.combination.two_virtues",
+                    "kind": "combination",
+                    "title": "二德扶持",
+                }
+            ],
             "hit_weights": {"bazi.shensha.combination.two_virtues": 4.25},
         },
     }
@@ -146,3 +222,65 @@ def test_consumer_feature_lookup_returns_compact_incidence() -> None:
     assert observed["percentage"] == 4.25
     assert observed["status"] == "observed"
     assert unsupported["status"] == "unsupported"
+
+
+def test_consumer_pattern_incidence_uses_only_active_canonical_authority() -> None:
+    records = consumer_feature_records(
+        {
+            "primary": {
+                "id": "bazi.pattern.special.follow_strong",
+                "title": "从强格",
+            },
+            "source_backed_authority": {
+                "authoritative": True,
+                "pattern_set": {
+                    "active_pattern_ids": ["indirect_resource"],
+                    "ambiguous_pattern_ids": ["direct_wealth"],
+                    "patterns": [
+                        {"pattern_id": "direct_wealth", "status": "ambiguous"},
+                        {"pattern_id": "indirect_resource", "status": "formed"},
+                    ],
+                },
+            },
+        },
+        {},
+    )
+
+    assert records == [
+        {
+            "id": "bazi.pattern.canonical.indirect_resource.status.formed",
+            "kind": "pattern",
+            "title": "偏印·成格",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "patterns",
+    (
+        {"primary": {"id": "bazi.pattern.ordinary.direct_officer"}},
+        {
+            "source_backed_authority": {
+                "authoritative": False,
+                "pattern_set": {
+                    "active_pattern_ids": ["direct_officer"],
+                    "patterns": [{"pattern_id": "direct_officer", "status": "formed"}],
+                },
+            }
+        },
+        {
+            "source_backed_authority": {
+                "authoritative": True,
+                "pattern_set": {
+                    "active_pattern_ids": [],
+                    "ambiguous_pattern_ids": ["direct_officer"],
+                    "patterns": [
+                        {"pattern_id": "direct_officer", "status": "ambiguous"}
+                    ],
+                },
+            }
+        },
+    ),
+)
+def test_non_authoritative_or_ambiguous_patterns_emit_no_incidence(patterns) -> None:
+    assert consumer_feature_records(patterns, {}) == []

@@ -201,6 +201,160 @@ def test_claims_are_deterministic_and_every_trace_array_is_present() -> None:
     )
 
 
+def test_theme_and_signature_claims_keep_existing_provenance_and_comparison() -> None:
+    pillars, structure = _chart("丁卯", "癸酉", "甲午", "辛未")
+    profiles = deepcopy(structure["theme_profiles"])
+    wealth = next(profile for profile in profiles if profile["theme"] == "财富")
+    hidden_wealth = next(
+        evidence for evidence in wealth["evidence"] if evidence["family"] == "财星藏根"
+    )
+    hidden_wealth["rule_ids"] = ["bazi.rule.hidden-wealth"]
+    hidden_wealth["source_ids"] = ["bazi.source.hidden-wealth"]
+    wealth["comparisons"] = [
+        {
+            "metric_id": "hidden_wealth_count",
+            "status": "observed",
+            "comparison_mode": "rank_interval",
+            "display_label": "资源更偏内藏积累 · 相对偏高",
+            "display_mode": "directional",
+            "display_direction": "high",
+            "display_percentage": "8.40%",
+            "same_percentage": 8.4,
+            "lower_percentage": 86.0,
+            "higher_percentage": 5.6,
+            "value": 3,
+            "baseline_id": "bazi-test-baseline",
+        }
+    ]
+
+    claims = compile_consumer_claims(
+        patterns=assess_patterns(pillars, structure),
+        theme_profiles=profiles,
+        shensha_effects={},
+        cycles=[],
+    )
+    career = next(
+        claim
+        for claim in claims
+        if claim["slot"] == "theme" and claim["theme"] == "career"
+    )
+    wealth_claim = next(
+        claim
+        for claim in claims
+        if claim["slot"] == "theme" and claim["theme"] == "wealth"
+    )
+    signature = next(
+        claim
+        for claim in claims
+        if claim["slot"] == "signature" and hidden_wealth["id"] in claim["evidenceIds"]
+    )
+
+    assert career["ruleIds"] and career["sourceIds"]
+    assert wealth_claim["ruleIds"] == ["bazi.rule.hidden-wealth"]
+    assert wealth_claim["sourceIds"] == ["bazi.source.hidden-wealth"]
+    assert signature["ruleIds"] == ["bazi.rule.hidden-wealth"]
+    assert signature["sourceIds"] == ["bazi.source.hidden-wealth"]
+    assert signature["comparison"] == {
+        "kind": "rank_interval",
+        "metricId": "hidden_wealth_count",
+        "status": "observed",
+        "value": 3,
+        "display": "资源更偏内藏积累 · 相对偏高",
+        "displayMode": "directional",
+        "displayDirection": "high",
+        "displayPercentage": "8.40%",
+        "samePercentage": 8.4,
+        "lowerPercentage": 86.0,
+        "higherPercentage": 5.6,
+        "baselineId": "bazi-test-baseline",
+    }
+    projected = project_consumer_claims(claims)
+    fingerprint = next(
+        item for item in projected["fingerprints"] if item["id"] == signature["id"]
+    )
+    assert fingerprint["comparison_kind"] == "rank_interval"
+    assert fingerprint["comparison_label"] == "资源更偏内藏积累 · 相对偏高"
+    assert fingerprint["incidence_percentage"] is None
+
+
+def test_timeline_claims_trace_events_without_inventing_source_ids() -> None:
+    cycles = _cycles()
+    cycles[0]["theme_activations"]["事业"] = [
+        {
+            "id": "bazi.period.dayun.career.shensha.1",
+            "kind": "新增",
+            "label": "大运神煞·驿马",
+            "detail": "日支命中驿马规则。",
+            "feature": "yima",
+            "source": "版本化神煞注册表",
+            "source_ids": ["bazi.source.yima"],
+        },
+        {
+            "id": "bazi.period.dayun.career.relation.2",
+            "kind": "联动",
+            "label": "大运关系·地支冲",
+            "detail": "大运支与原局形成地支冲。",
+            "feature": "地支冲",
+            "source": "结构化干支关系",
+        },
+    ]
+    claims = compile_consumer_claims(
+        patterns={},
+        theme_profiles=[],
+        shensha_effects={},
+        cycles=cycles,
+    )
+    window = next(claim for claim in claims if claim["slot"] == "timeline")
+
+    assert window["evidenceIds"] == [
+        "bazi.period.dayun.career.shensha.1",
+        "bazi.period.dayun.career.relation.2",
+    ]
+    assert window["ruleIds"] == ["yima"]
+    assert window["sourceIds"] == ["bazi.source.yima"]
+    assert "结构化干支关系" not in window["sourceIds"]
+    assert window["activation"]["drivers"][0]["evidenceIds"] == [
+        "bazi.period.dayun.career.shensha.1"
+    ]
+    assert window["activation"]["drivers"][0]["ruleIds"] == ["yima"]
+
+
+def test_common_ten_god_signature_uses_its_matching_distribution_metric() -> None:
+    claims = compile_consumer_claims(
+        patterns={},
+        theme_profiles=[
+            {
+                "theme": "事业",
+                "evidence": [
+                    {
+                        "id": "bazi.evidence.career.officer",
+                        "family": "官杀",
+                        "title": "官杀分布",
+                        "detail": "官杀共见三项。",
+                    }
+                ],
+                "structure_metrics": [],
+                "comparisons": [
+                    {
+                        "metric_id": "officer_count",
+                        "status": "observed",
+                        "comparison_mode": "rank_interval",
+                        "display_label": "责任结构更集中 · 相对偏高",
+                        "same_percentage": 12.5,
+                        "baseline_id": "bazi-test-baseline",
+                    }
+                ],
+            }
+        ],
+        shensha_effects={},
+        cycles=[],
+    )
+    signature = next(claim for claim in claims if claim["slot"] == "signature")
+
+    assert signature["comparison"]["metricId"] == "officer_count"
+    assert signature["comparison"]["display"] == "责任结构更集中 · 相对偏高"
+
+
 def test_canonical_authority_controls_the_consumer_hero() -> None:
     claims, patterns = _compiled()
     changed = deepcopy(patterns)

@@ -44,6 +44,8 @@ export interface ConsumerFingerprint {
   detail: string
   rarity_label: string
   top_percentage?: number
+  comparison_kind?: string | null
+  comparison_label?: string | null
   incidence_percentage?: number | null
 }
 
@@ -95,7 +97,7 @@ function formatNumber(value: number, locale: ConsumerLocale, maximumFractionDigi
 
 function incidenceLabel(value: number, locale: ConsumerLocale) {
   const formatted = formatNumber(value, locale)
-  return locale === "zh" ? `同值约 ${formatted}%` : `${formatted}% same-value incidence`
+  return locale === "zh" ? `出现约 ${formatted}%` : `Occurs in about ${formatted}%`
 }
 
 export interface ConsumerSubjectPath {
@@ -272,8 +274,8 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
         <section className="min-w-0 px-5 py-7 sm:px-7 lg:px-9" aria-labelledby={`${headingId}-fingerprints`}>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="kicker">{locale === "zh" ? "特别结构" : "DISTINCTIVE STRUCTURES"}</p>
-              <h3 id={`${headingId}-fingerprints`} className="mt-2 text-xl font-semibold">{locale === "zh" ? "命盘中较有辨识度的特征" : "Distinctive patterns in your chart"}</h3>
+              <p className="kicker">{locale === "zh" ? "核心结构" : "CORE STRUCTURES"}</p>
+              <h3 id={`${headingId}-fingerprints`} className="mt-2 text-xl font-semibold">{locale === "zh" ? "最值得先看的五个命盘特征" : "Five chart features worth seeing first"}</h3>
             </div>
             <span className="text-xs tabular-nums text-muted-foreground">{fingerprints.length}</span>
           </div>
@@ -284,7 +286,7 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
                 <div className="min-w-0">
                   <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                     <h4 className="font-semibold leading-6">{fingerprint.title}</h4>
-                    <p className="text-xs font-semibold text-primary">{fingerprint.rarity_label}{fingerprint.incidence_percentage != null ? ` · ${incidenceLabel(fingerprint.incidence_percentage, locale)}` : ""}</p>
+                    <p className="text-xs font-semibold text-primary">{fingerprint.rarity_label}{fingerprint.comparison_label ? ` · ${fingerprint.comparison_label}` : fingerprint.incidence_percentage != null ? ` · ${incidenceLabel(fingerprint.incidence_percentage, locale)}` : ""}</p>
                   </div>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{fingerprint.detail}</p>
                 </div>
@@ -314,7 +316,7 @@ function SubjectPathCard({ subject, locale, index }: { subject: ConsumerSubjectS
       {subject.next_activation ? (
         <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-foreground/80">
           <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-          <span><span className="font-semibold text-foreground">{locale === "zh" ? "下一次触发" : "Next activation"}</span><span aria-hidden="true"> · </span>{subject.next_activation}</span>
+          <span><span className="font-semibold text-foreground">{locale === "zh" ? "下一次节奏变化" : "Next rhythm shift"}</span><span aria-hidden="true"> · </span>{subject.next_activation}</span>
         </p>
       ) : null}
     </article>
@@ -324,14 +326,14 @@ function SubjectPathCard({ subject, locale, index }: { subject: ConsumerSubjectS
 const MONTH_STATE_STYLES: Record<ConsumerMonthPreview["state"], { bar: string; surface: string }> = {
   high: { bar: "bg-primary", surface: "border-primary/25 bg-primary/[0.06]" },
   steady: { bar: "bg-primary/40", surface: "border-border/55 bg-background/55" },
-  adjustment: { bar: "bg-amber-500/80", surface: "border-amber-500/25 bg-amber-500/[0.05]" },
+  adjustment: { bar: "bg-muted-foreground/40", surface: "border-border/55 bg-muted/20" },
 }
 
 function monthStateLabel(state: ConsumerMonthPreview["state"], locale: ConsumerLocale) {
   const labels: Record<ConsumerMonthPreview["state"], { zh: string; en: string }> = {
-    high: { zh: "高光", en: "High" },
-    steady: { zh: "平稳", en: "Steady" },
-    adjustment: { zh: "调整", en: "Adjust" },
+    high: { zh: "活跃增强", en: "Higher activity" },
+    steady: { zh: "接近常态", en: "Near baseline" },
+    adjustment: { zh: "活跃减弱", en: "Lower activity" },
   }
   return labels[state][locale]
 }
@@ -348,7 +350,7 @@ function MonthPreview({ months, locale, headingId }: { months: ConsumerMonthPrev
       <p className="kicker">{locale === "zh" ? "未来十二月" : "NEXT 12 MONTHS"}</p>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
         <h3 id={headingId} className="text-xl font-semibold">{locale === "zh" ? "月度节奏预览" : "Monthly rhythm preview"}</h3>
-        <p className="text-xs text-muted-foreground">{locale === "zh" ? "高光、平稳与调整一眼可见" : "High, steady, and adjustment periods at a glance"}</p>
+        <p className="text-xs text-muted-foreground">{locale === "zh" ? "快速查看相对个人常态的活跃变化" : "See activity changes relative to your personal baseline"}</p>
       </div>
       <div
         className="custom-scrollbar mt-5 max-w-full overflow-x-auto pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"

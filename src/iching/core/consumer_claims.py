@@ -158,6 +158,10 @@ _SIGNATURE_FAMILY_PRIORITY = {
     "比劫": 4,
 }
 _FAMILY_METRICS = {
+    "官杀": "officer_count",
+    "印星": "resource_count",
+    "食伤": "output_count",
+    "比劫": "peer_count",
     "通根": "root_pillar_count",
     "夫妻宫关系": "spouse_palace_relation_count",
     "财星明透": "visible_wealth_count",
@@ -175,6 +179,38 @@ def _mapping(value: Any) -> Mapping[str, Any]:
 
 def _unique_strings(values: Iterable[Any]) -> list[str]:
     return list(dict.fromkeys(str(value) for value in values if str(value)))
+
+
+def _record_ids(record: Mapping[str, Any], *keys: str) -> list[str]:
+    """Read explicit identifier fields without converting display copy into IDs."""
+
+    values: list[Any] = []
+    for key in keys:
+        value = record.get(key)
+        if isinstance(value, str):
+            values.append(value)
+        elif isinstance(value, (list, tuple, set)):
+            values.extend(value)
+    return _unique_strings(values)
+
+
+def _evidence_ids(record: Mapping[str, Any]) -> list[str]:
+    return _unique_strings(
+        (
+            record.get("id", ""),
+            *_record_ids(
+                record, "evidence_ids", "evidenceIds", "evidence_id", "evidenceId"
+            ),
+        )
+    )
+
+
+def _rule_ids(record: Mapping[str, Any]) -> list[str]:
+    return _record_ids(record, "rule_ids", "ruleIds", "rule_id", "ruleId")
+
+
+def _source_ids(record: Mapping[str, Any]) -> list[str]:
+    return _record_ids(record, "source_ids", "sourceIds", "source_id", "sourceId")
 
 
 def _primary_pattern(patterns: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -680,10 +716,13 @@ def _theme_claims(
     for theme in CLAIM_THEME_ORDER:
         profile = by_theme.get(theme, {})
         path_key, title, summary = _theme_path(theme, profile, primary)
-        evidence = [
-            item
+        all_evidence = [
+            _mapping(item)
             for item in profile.get("evidence", ())
-            if isinstance(item, Mapping) and str(item.get("family", "")) != "神煞"
+            if isinstance(item, Mapping)
+        ]
+        evidence = [
+            item for item in all_evidence if str(item.get("family", "")) != "神煞"
         ]
         evidence.sort(
             key=lambda item: (
@@ -695,6 +734,22 @@ def _theme_claims(
             )
         )
         highlights = _unique_strings(item.get("title", "") for item in evidence)[:2]
+        rule_ids = _unique_strings(
+            rule_id for item in all_evidence for rule_id in _rule_ids(item)
+        )
+        source_ids = _unique_strings(
+            source_id for item in all_evidence for source_id in _source_ids(item)
+        )
+        if (
+            theme == "career"
+            and canonical_pattern
+            and _verdict_provenance_matches(primary, canonical_pattern)
+        ):
+            canonical_rule_ids, canonical_source_ids = _trace_ids(
+                _canonical_verdict_traces(canonical_pattern)
+            )
+            rule_ids = _unique_strings((*rule_ids, *canonical_rule_ids))
+            source_ids = _unique_strings((*source_ids, *canonical_source_ids))
         claims.append(
             {
                 "id": f"bazi.claim.theme.{theme}.{path_key}",
@@ -712,12 +767,12 @@ def _theme_claims(
                     else {}
                 ),
                 "evidenceIds": _unique_strings(
-                    evidence.get("id", "")
-                    for evidence in profile.get("evidence", ())
-                    if isinstance(evidence, Mapping)
+                    evidence_id
+                    for item in all_evidence
+                    for evidence_id in _evidence_ids(item)
                 ),
-                "ruleIds": [],
-                "sourceIds": [],
+                "ruleIds": rule_ids,
+                "sourceIds": source_ids,
             }
         )
     return claims
@@ -738,19 +793,65 @@ def _pattern_evidence_ids(
     )
 
 
-def _comparison_same_mass(profile: Mapping[str, Any], family: str) -> float:
+def _family_metric_comparison(
+    profile: Mapping[str, Any], family: str
+) -> Mapping[str, Any]:
     metric_id = _FAMILY_METRICS.get(family)
     if not metric_id:
-        return 101.0
+        return {}
     for comparison in profile.get("comparisons", ()):
         if not isinstance(comparison, Mapping):
             continue
         if str(comparison.get("metric_id", "")) != metric_id:
             continue
         if str(comparison.get("status", "")) not in {"observed", "zero"}:
-            return 101.0
-        return float(comparison.get("same_mass", 101) or 101)
-    return 101.0
+            return {}
+        return comparison
+    return {}
+
+
+def _claim_metric_comparison(
+    profile: Mapping[str, Any], family: str
+) -> dict[str, Any] | None:
+    comparison = _family_metric_comparison(profile, family)
+    if not comparison:
+        return None
+    result: dict[str, Any] = {
+        "kind": str(
+            comparison.get(
+                "comparison_mode", comparison.get("metric_type", "distribution")
+            )
+        ),
+        "metricId": str(comparison.get("metric_id", "")),
+        "status": str(comparison.get("status", "observed")),
+    }
+    fields = {
+        "value": "value",
+        "display_label": "display",
+        "display_mode": "displayMode",
+        "display_direction": "displayDirection",
+        "display_percentage": "displayPercentage",
+        "same_percentage": "samePercentage",
+        "lower_percentage": "lowerPercentage",
+        "higher_percentage": "higherPercentage",
+        "tail_percentage": "tailPercentage",
+        "tail_side": "tailSide",
+        "hit_percentage": "percentage",
+        "baseline_id": "baselineId",
+    }
+    for source_key, output_key in fields.items():
+        if source_key in comparison and comparison.get(source_key) is not None:
+            result[output_key] = comparison[source_key]
+    return result
+
+
+def _comparison_same_mass(profile: Mapping[str, Any], family: str) -> float:
+    comparison = _family_metric_comparison(profile, family)
+    if not comparison:
+        return 101.0
+    return float(
+        comparison.get("same_mass", comparison.get("same_percentage", 101)) or 101
+    )
 
 
 def _signature_claims(
@@ -928,6 +1029,7 @@ def _signature_claims(
                 continue
             importance_rank = _SIGNATURE_FAMILY_PRIORITY.get(family, 5)
             importance = "major" if importance_rank <= 2 else "supporting"
+            comparison = _claim_metric_comparison(profile, family)
             claim = {
                 "id": f"bazi.claim.signature.{evidence['id']}",
                 "slot": "signature",
@@ -938,9 +1040,10 @@ def _signature_claims(
                 "classicalRole": "expression"
                 if importance_rank <= 2
                 else "supporting_marker",
-                "evidenceIds": [str(evidence["id"])],
-                "ruleIds": [],
-                "sourceIds": [],
+                **({"comparison": comparison} if comparison else {}),
+                "evidenceIds": _evidence_ids(evidence),
+                "ruleIds": _rule_ids(evidence),
+                "sourceIds": _source_ids(evidence),
                 "_family": family,
             }
             candidates.append(
@@ -1046,6 +1149,15 @@ def _combination_claims(
     return [item[3] for item in sorted(candidates, key=lambda item: item[:3])[:4]]
 
 
+def _timeline_event_rule_ids(event: Mapping[str, Any]) -> list[str]:
+    rule_ids = _rule_ids(event)
+    source = str(event.get("source", ""))
+    feature = str(event.get("feature", ""))
+    if feature and source.endswith("神煞注册表"):
+        rule_ids = _unique_strings((*rule_ids, feature))
+    return rule_ids
+
+
 def _timeline_claims(cycles: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
     event_kind_order = {"新增": 0, "联动": 1, "变化": 2, "冲突": 3}
     usable = sorted(
@@ -1132,6 +1244,32 @@ def _timeline_claims(cycles: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]
         else:
             title = f"{start_year}–{end_year} · {cycle_label}"
             summary = "这一阶段的具体激活点由大运、流年与流月共同展开。"
+        evidence_ids = _unique_strings(
+            (
+                *_record_ids(cycle, "evidence_ids", "evidenceIds"),
+                *(
+                    evidence_id
+                    for event in events
+                    for evidence_id in _evidence_ids(event)
+                ),
+            )
+        )
+        rule_ids = _unique_strings(
+            (
+                *_rule_ids(cycle),
+                *(
+                    rule_id
+                    for event in events
+                    for rule_id in _timeline_event_rule_ids(event)
+                ),
+            )
+        )
+        source_ids = _unique_strings(
+            (
+                *_source_ids(cycle),
+                *(source_id for event in events for source_id in _source_ids(event)),
+            )
+        )
         claims.append(
             {
                 "id": f"bazi.claim.timeline.{cycle.get('index', start_year)}",
@@ -1155,14 +1293,17 @@ def _timeline_claims(cycles: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]
                             "label": str(event.get("label", "")),
                             "detail": str(event.get("detail", "")),
                             "source": str(event.get("source", "")),
+                            "evidenceIds": _evidence_ids(event),
+                            "ruleIds": _timeline_event_rule_ids(event),
+                            "sourceIds": _source_ids(event),
                         }
                         for event in events
                         if event.get("label")
                     ],
                 },
-                "evidenceIds": [],
-                "ruleIds": [],
-                "sourceIds": [],
+                "evidenceIds": evidence_ids,
+                "ruleIds": rule_ids,
+                "sourceIds": source_ids,
             }
         )
     return claims
@@ -1260,7 +1401,13 @@ def project_consumer_claims(claims: Iterable[Mapping[str, Any]]) -> dict[str, An
                 "rarity_label": importance_labels.get(
                     str(claim.get("importance", "supporting")), "结构亮点"
                 ),
-                "incidence_percentage": comparison.get("percentage"),
+                "comparison_kind": comparison.get("kind"),
+                "comparison_label": comparison.get("display"),
+                "incidence_percentage": (
+                    comparison.get("percentage")
+                    if comparison.get("kind") == "incidence"
+                    else None
+                ),
             }
         )
     achievements = []

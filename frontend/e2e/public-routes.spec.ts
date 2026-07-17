@@ -135,7 +135,7 @@ async function mockPublicConfig(page: Page) {
   )
 }
 
-async function mockMetaphysics(page: Page) {
+async function mockMetaphysics(page: Page, chart: unknown = mockedMetaphysicsChart) {
   await page.route("**/api/tools/metaphysics", (route) => {
     const corsHeaders = {
       "access-control-allow-origin": "*",
@@ -143,7 +143,7 @@ async function mockMetaphysics(page: Page) {
       "access-control-allow-headers": "content-type",
     }
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: corsHeaders })
-    return route.fulfill({ status: 200, contentType: "application/json", headers: corsHeaders, body: JSON.stringify(mockedMetaphysicsChart) })
+    return route.fulfill({ status: 200, contentType: "application/json", headers: corsHeaders, body: JSON.stringify(chart) })
   })
 }
 
@@ -491,7 +491,7 @@ test("exports one mocked BaZi PNG with a safe filename and no controls in its ca
   const exportTarget = page.locator("[data-chart-export-root]")
   await expect(exportTarget).toHaveCount(1)
   await expect(exportTarget).toHaveAttribute("aria-hidden", "true")
-  await expect(exportTarget.locator("button, input, select, textarea")).toHaveCount(0)
+  await expect(exportTarget.locator("button, input, select, textarea, details, summary")).toHaveCount(0)
 
   let downloads = 0
   page.on("download", () => { downloads += 1 })
@@ -534,6 +534,37 @@ test("exports one mocked BaZi PNG with a safe filename and no controls in its ca
   expect(bitmap.uniqueColors).toBeGreaterThan(10)
   await page.waitForTimeout(100)
   expect(downloads).toBe(1)
+})
+
+test("uncertain-hour BaZi export expands every stable result without dead controls", async ({ page }) => {
+  const uncertainChart = {
+    ...mockedMetaphysicsChart,
+    birth_profile: {
+      ...mockedMetaphysicsChart.birth_profile,
+      hour_uncertain: true,
+      hour_candidates: [
+        { label: "Early Zi", pillar: "庚子" },
+        { label: "Chou", pillar: "辛丑" },
+        { label: "Late Zi", pillar: "庚子" },
+      ],
+      stability: {
+        candidate_count: 13,
+        stable_pillars: mockedMetaphysicsChart.pillars.slice(0, 3).map((pillar) => ({ label: pillar.label, pillar })),
+        stable_shensha: ["天乙贵人"],
+        sensitive_items: [{ label: "Hour pillar", detail: "Confirm the birth hour to resolve this pillar." }],
+      },
+    },
+  }
+  await mockMetaphysics(page, uncertainChart)
+  await page.goto("/en/tools")
+  await page.getByRole("tab", { name: "BaZi", exact: true }).click()
+  await page.getByRole("button", { name: "Generate my chart", exact: true }).click()
+
+  const exportTarget = page.locator("[data-chart-export-root]")
+  await expect(exportTarget).toHaveCount(1)
+  await expect(exportTarget.locator("button, input, select, textarea, details, summary")).toHaveCount(0)
+  await expect(exportTarget.getByText("Possible hour pillars")).toBeVisible()
+  await expect(page.getByRole("button", { name: "Export stable analysis", exact: true })).toBeVisible()
 })
 
 test("recovers when the export target is unavailable", async ({ page }) => {

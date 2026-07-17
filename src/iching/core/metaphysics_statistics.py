@@ -26,6 +26,10 @@ BASELINE_IDS = {
 FEATURE_ID_RE = re.compile(r"^(bazi|ziwei)\.[a-z0-9_.-]{1,96}$")
 BASELINE_SCHEMA_VERSION = 6
 BASELINE_GENERATION_VERSION = 4
+BAZI_CONSUMER_FEATURE_METHOD = (
+    "weighted_empirical_feature_incidence_canonical_patterns_v2"
+)
+BAZI_PATTERN_FEATURE_SEMANTICS = "canonical_active_lifecycle_status"
 ZIWEI_RULES_VERSION = "ziwei-structural-2026.07-v2.1"
 ZIWEI_CONSUMER_RULES_VERSION = "ziwei-consumer-c1"
 ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"
@@ -84,17 +88,24 @@ def feature_catalog_hash(feature_ids: Iterable[str]) -> str:
 
 def bazi_rules_registry_hash() -> str:
     pattern_registry = load_packaged_shen_registry()
-    return _sha256_json({
-        "shensha_registry_digest": REGISTRY_DIGEST,
-        "metric_registry_version": METRIC_REGISTRY_VERSION,
-        "metric_definitions": METRIC_DEFINITIONS,
-        "pattern_bundle_id": pattern_registry.bundle_id,
-        "pattern_bundle_digest": pattern_registry.bundle_digest,
-    })
+    return _sha256_json(
+        {
+            "shensha_registry_digest": REGISTRY_DIGEST,
+            "metric_registry_version": METRIC_REGISTRY_VERSION,
+            "metric_definitions": METRIC_DEFINITIONS,
+            "consumer_feature_rules_version": CONSUMER_RULES_VERSION,
+            "pattern_bundle_id": pattern_registry.bundle_id,
+            "pattern_bundle_digest": pattern_registry.bundle_digest,
+        }
+    )
 
 
 def metric_catalog_hash(catalog: Iterable[Mapping[str, Any]]) -> str:
-    return _sha256_json(sorted((dict(item) for item in catalog), key=lambda item: str(item.get("id", ""))))
+    return _sha256_json(
+        sorted(
+            (dict(item) for item in catalog), key=lambda item: str(item.get("id", ""))
+        )
+    )
 
 
 def ziwei_rules_registry_hash() -> str:
@@ -129,9 +140,13 @@ def _expected_config_id(baseline: Mapping[str, Any]) -> str:
 
 
 def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
-    required_schema = BASELINE_SCHEMA_VERSION if baseline.get("chart_type") == "bazi" else 3
+    required_schema = (
+        BASELINE_SCHEMA_VERSION if baseline.get("chart_type") == "bazi" else 3
+    )
     if int(baseline.get("schema_version", 1)) < required_schema:
-        raise BaselineVersionMismatchError("统计基线为旧版 schema，请重新生成后再启用统计。")
+        raise BaselineVersionMismatchError(
+            "统计基线为旧版 schema，请重新生成后再启用统计。"
+        )
     required = {
         "config_id",
         "feature_catalog",
@@ -143,37 +158,56 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
         "hash",
     }
     if baseline.get("chart_type") == "bazi":
-        required.update({
-            "baseline_generation_version",
-            "metric_catalog",
-            "metric_catalog_hash",
-            "pattern_bundle_id",
-            "pattern_bundle_digest",
-        })
+        required.update(
+            {
+                "baseline_generation_version",
+                "metric_catalog",
+                "metric_catalog_hash",
+                "pattern_bundle_id",
+                "pattern_bundle_digest",
+            }
+        )
     missing = sorted(required - baseline.keys())
     if missing:
-        raise BaselineCompatibilityError(f"统计基线缺少 schema v3 字段: {', '.join(missing)}")
+        raise BaselineCompatibilityError(
+            f"统计基线缺少 schema v3 字段: {', '.join(missing)}"
+        )
     if baseline["hash"] != payload_hash(baseline):
         raise BaselineCompatibilityError("统计基线完整性校验失败，请重新生成基线。")
     catalog = baseline.get("feature_catalog")
-    if not isinstance(catalog, list) or any(not isinstance(item, str) for item in catalog):
+    if not isinstance(catalog, list) or any(
+        not isinstance(item, str) for item in catalog
+    ):
         raise BaselineCompatibilityError("统计基线特征目录无效，请重新生成基线。")
     if baseline["feature_catalog_hash"] != feature_catalog_hash(catalog):
-        raise BaselineCompatibilityError("统计基线特征目录完整性校验失败，请重新生成基线。")
+        raise BaselineCompatibilityError(
+            "统计基线特征目录完整性校验失败，请重新生成基线。"
+        )
     if baseline.get("chart_type") == "bazi":
-        if int(baseline.get("baseline_generation_version", 0)) != BASELINE_GENERATION_VERSION:
-            raise BaselineVersionMismatchError("统计基线生成版本与当前运行时不兼容，请重新生成基线。")
+        if (
+            int(baseline.get("baseline_generation_version", 0))
+            != BASELINE_GENERATION_VERSION
+        ):
+            raise BaselineVersionMismatchError(
+                "统计基线生成版本与当前运行时不兼容，请重新生成基线。"
+            )
         pattern_registry = load_packaged_shen_registry()
         if (
             baseline.get("pattern_bundle_id") != pattern_registry.bundle_id
             or baseline.get("pattern_bundle_digest") != pattern_registry.bundle_digest
         ):
-            raise BaselineVersionMismatchError("统计基线格局规则包与当前运行时不兼容，请重新生成基线。")
+            raise BaselineVersionMismatchError(
+                "统计基线格局规则包与当前运行时不兼容，请重新生成基线。"
+            )
         metric_catalog = baseline.get("metric_catalog")
-        if not isinstance(metric_catalog, list) or any(not isinstance(item, dict) for item in metric_catalog):
+        if not isinstance(metric_catalog, list) or any(
+            not isinstance(item, dict) for item in metric_catalog
+        ):
             raise BaselineCompatibilityError("统计基线指标目录无效，请重新生成基线。")
         if baseline.get("metric_catalog_hash") != metric_catalog_hash(metric_catalog):
-            raise BaselineCompatibilityError("统计基线指标目录完整性校验失败，请重新生成基线。")
+            raise BaselineCompatibilityError(
+                "统计基线指标目录完整性校验失败，请重新生成基线。"
+            )
     expected_registry = (
         bazi_rules_registry_hash()
         if baseline.get("chart_type") == "bazi"
@@ -182,14 +216,29 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
     if baseline["rules_registry_hash"] != expected_registry:
         raise BaselineVersionMismatchError("统计基线规则注册表不兼容，请重新生成基线。")
     if baseline["config_id"] != _expected_config_id(baseline):
-        raise BaselineVersionMismatchError("统计基线配置与当前运行时不兼容，请选择匹配的基线。")
-    if not isinstance(baseline["unique_state_count"], int) or baseline["unique_state_count"] <= 0:
-        raise BaselineCompatibilityError("统计基线 unique_state_count 无效，请重新生成基线。")
+        raise BaselineVersionMismatchError(
+            "统计基线配置与当前运行时不兼容，请选择匹配的基线。"
+        )
+    if (
+        not isinstance(baseline["unique_state_count"], int)
+        or baseline["unique_state_count"] <= 0
+    ):
+        raise BaselineCompatibilityError(
+            "统计基线 unique_state_count 无效，请重新生成基线。"
+        )
     if not isinstance(baseline["weighted_unit"], str) or not baseline["weighted_unit"]:
-        raise BaselineCompatibilityError("统计基线 weighted_unit 无效，请重新生成基线。")
+        raise BaselineCompatibilityError(
+            "统计基线 weighted_unit 无效，请重新生成基线。"
+        )
     sample_weight = baseline["sample_weight"]
-    if not isinstance(sample_weight, (int, float)) or isinstance(sample_weight, bool) or sample_weight <= 0:
-        raise BaselineCompatibilityError("统计基线 sample_weight 无效，请重新生成基线。")
+    if (
+        not isinstance(sample_weight, (int, float))
+        or isinstance(sample_weight, bool)
+        or sample_weight <= 0
+    ):
+        raise BaselineCompatibilityError(
+            "统计基线 sample_weight 无效，请重新生成基线。"
+        )
     features = baseline.get("features")
     if not isinstance(features, dict):
         raise BaselineCompatibilityError("统计基线 features 无效，请重新生成基线。")
@@ -206,21 +255,35 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
     tolerance = max(0.001, float(sample_weight) * 1e-9)
     metric_groups = baseline.get("theme_metric_weights_by_gender", {})
     if baseline.get("chart_type") == "bazi" and not metric_groups:
-        raise BaselineCompatibilityError("统计基线缺少主题结构指标分布，请重新生成基线。")
+        raise BaselineCompatibilityError(
+            "统计基线缺少主题结构指标分布，请重新生成基线。"
+        )
     for themes in metric_groups.values():
         if not isinstance(themes, dict):
-            raise BaselineCompatibilityError("统计基线主题结构分布无效，请重新生成基线。")
+            raise BaselineCompatibilityError(
+                "统计基线主题结构分布无效，请重新生成基线。"
+            )
         for metrics in themes.values():
             if not isinstance(metrics, dict):
-                raise BaselineCompatibilityError("统计基线主题结构分布无效，请重新生成基线。")
+                raise BaselineCompatibilityError(
+                    "统计基线主题结构分布无效，请重新生成基线。"
+                )
             for histogram in metrics.values():
                 if not isinstance(histogram, dict):
-                    raise BaselineCompatibilityError("统计基线主题结构分布无效，请重新生成基线。")
+                    raise BaselineCompatibilityError(
+                        "统计基线主题结构分布无效，请重新生成基线。"
+                    )
                 total = sum(float(weight) for weight in histogram.values())
                 if abs(total - float(sample_weight)) > tolerance:
-                    raise BaselineCompatibilityError("统计基线主题结构分布分母与样本权重不一致。")
+                    raise BaselineCompatibilityError(
+                        "统计基线主题结构分布分母与样本权重不一致。"
+                    )
     consumer_scores = baseline.get("consumer_score_distributions")
-    if baseline.get("chart_type") == "bazi" and isinstance(consumer_scores, dict) and consumer_scores.get("rules_version") == CONSUMER_RULES_VERSION:
+    if (
+        baseline.get("chart_type") == "bazi"
+        and isinstance(consumer_scores, dict)
+        and consumer_scores.get("rules_version") == CONSUMER_RULES_VERSION
+    ):
         dimensions = {"overall", "career", "wealth", "relationship", "health"}
         global_scores = consumer_scores.get("global")
         cohorts = consumer_scores.get("cohorts")
@@ -229,34 +292,72 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
         for gender in ("male", "female", "neutral"):
             histograms = global_scores.get(gender)
             if not isinstance(histograms, dict) or set(histograms) != dimensions:
-                raise BaselineCompatibilityError("八字消费排名指标目录无效，请重新生成基线。")
+                raise BaselineCompatibilityError(
+                    "八字消费排名指标目录无效，请重新生成基线。"
+                )
             for encoded_histogram in histograms.values():
                 histogram = _decode_consumer_histogram(encoded_histogram)
-                if not histogram or abs(sum(histogram.values()) - float(sample_weight)) > tolerance:
-                    raise BaselineCompatibilityError("八字消费排名全样本分母不一致，请重新生成基线。")
+                if (
+                    not histogram
+                    or abs(sum(histogram.values()) - float(sample_weight)) > tolerance
+                ):
+                    raise BaselineCompatibilityError(
+                        "八字消费排名全样本分母不一致，请重新生成基线。"
+                    )
         cohort_total = 0.0
         for cohort in cohorts.values():
             if not isinstance(cohort, dict):
-                raise BaselineCompatibilityError("八字消费排名同类样本无效，请重新生成基线。")
+                raise BaselineCompatibilityError(
+                    "八字消费排名同类样本无效，请重新生成基线。"
+                )
             cohort_weight: float | None = None
             for gender in ("male", "female", "neutral"):
                 histograms = cohort.get(gender)
                 if not isinstance(histograms, dict) or set(histograms) != dimensions:
-                    raise BaselineCompatibilityError("八字消费排名同类指标目录无效，请重新生成基线。")
+                    raise BaselineCompatibilityError(
+                        "八字消费排名同类指标目录无效，请重新生成基线。"
+                    )
                 for encoded_histogram in histograms.values():
                     histogram = _decode_consumer_histogram(encoded_histogram)
                     if not histogram:
-                        raise BaselineCompatibilityError("八字消费排名同类直方图无效，请重新生成基线。")
+                        raise BaselineCompatibilityError(
+                            "八字消费排名同类直方图无效，请重新生成基线。"
+                        )
                     total = sum(float(weight) for weight in histogram.values())
                     if cohort_weight is None:
                         cohort_weight = total
                     elif abs(total - cohort_weight) > tolerance:
-                        raise BaselineCompatibilityError("八字消费排名同类分母不一致，请重新生成基线。")
+                        raise BaselineCompatibilityError(
+                            "八字消费排名同类分母不一致，请重新生成基线。"
+                        )
             cohort_total += cohort_weight or 0.0
         if abs(cohort_total - float(sample_weight)) > tolerance:
-            raise BaselineCompatibilityError("八字消费排名同类样本总量不一致，请重新生成基线。")
+            raise BaselineCompatibilityError(
+                "八字消费排名同类样本总量不一致，请重新生成基线。"
+            )
     consumer_features = baseline.get("consumer_features")
-    if baseline.get("chart_type") == "bazi" and isinstance(consumer_features, dict) and consumer_features.get("rules_version") == CONSUMER_RULES_VERSION:
+    if (
+        baseline.get("chart_type") == "bazi"
+        and isinstance(consumer_features, dict)
+        and consumer_features.get("rules_version") == CONSUMER_RULES_VERSION
+    ):
+        pattern_authority = consumer_features.get("pattern_authority")
+        if consumer_features.get("method") != BAZI_CONSUMER_FEATURE_METHOD:
+            raise BaselineVersionMismatchError(
+                "八字消费特征生产口径与当前运行时不兼容，请重新生成基线。"
+            )
+        if (
+            not isinstance(pattern_authority, Mapping)
+            or pattern_authority.get("pattern_bundle_id")
+            != baseline.get("pattern_bundle_id")
+            or pattern_authority.get("pattern_bundle_digest")
+            != baseline.get("pattern_bundle_digest")
+            or pattern_authority.get("feature_semantics")
+            != BAZI_PATTERN_FEATURE_SEMANTICS
+        ):
+            raise BaselineVersionMismatchError(
+                "八字格局特征权威来源与当前运行时不兼容，请重新生成基线。"
+            )
         feature_catalog = consumer_features.get("catalog")
         hit_weights = consumer_features.get("hit_weights")
         if not isinstance(feature_catalog, list) or not isinstance(hit_weights, dict):
@@ -267,45 +368,98 @@ def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
             if isinstance(item, Mapping) and item.get("id")
         }
         if catalog_ids != set(hit_weights):
-            raise BaselineCompatibilityError("八字消费特征目录与频率不一致，请重新生成基线。")
-        if any(not isinstance(weight, (int, float)) or isinstance(weight, bool) or weight < 0 or weight > sample_weight for weight in hit_weights.values()):
-            raise BaselineCompatibilityError("八字消费特征频率权重无效，请重新生成基线。")
-    if baseline.get("chart_type") == "ziwei" and baseline.get("consumer_baseline") is not None:
+            raise BaselineCompatibilityError(
+                "八字消费特征目录与频率不一致，请重新生成基线。"
+            )
+        if any(
+            not isinstance(weight, (int, float))
+            or isinstance(weight, bool)
+            or weight < 0
+            or weight > sample_weight
+            for weight in hit_weights.values()
+        ):
+            raise BaselineCompatibilityError(
+                "八字消费特征频率权重无效，请重新生成基线。"
+            )
+    if (
+        baseline.get("chart_type") == "ziwei"
+        and baseline.get("consumer_baseline") is not None
+    ):
         consumer = baseline["consumer_baseline"]
         if not isinstance(consumer, dict):
             raise BaselineCompatibilityError("紫微消费统计分布无效，请重新生成基线。")
         if consumer.get("rules_version") != ZIWEI_CONSUMER_RULES_VERSION:
-            raise BaselineVersionMismatchError("紫微消费统计规则版本不兼容，请重新生成基线。")
+            raise BaselineVersionMismatchError(
+                "紫微消费统计规则版本不兼容，请重新生成基线。"
+            )
         if consumer.get("hash") != payload_hash(consumer):
-            raise BaselineCompatibilityError("紫微消费统计分布完整性校验失败，请重新生成基线。")
+            raise BaselineCompatibilityError(
+                "紫微消费统计分布完整性校验失败，请重新生成基线。"
+            )
         score_keys = consumer.get("score_keys")
         expected_score_keys = {"overall", "career", "wealth", "relationship", "health"}
         if not isinstance(score_keys, list) or set(score_keys) != expected_score_keys:
-            raise BaselineCompatibilityError("紫微消费统计指标目录无效，请重新生成基线。")
+            raise BaselineCompatibilityError(
+                "紫微消费统计指标目录无效，请重新生成基线。"
+            )
         histograms = consumer.get("histograms")
         cohort_histograms = consumer.get("cohort_histograms")
         cohort_weights = consumer.get("cohort_weights")
-        if not isinstance(histograms, dict) or not isinstance(cohort_histograms, dict) or not isinstance(cohort_weights, dict):
+        if (
+            not isinstance(histograms, dict)
+            or not isinstance(cohort_histograms, dict)
+            or not isinstance(cohort_weights, dict)
+        ):
             raise BaselineCompatibilityError("紫微消费统计直方图无效，请重新生成基线。")
         for score_key in expected_score_keys:
             histogram = histograms.get(score_key)
-            if not isinstance(histogram, dict) or abs(sum(float(weight) for weight in histogram.values()) - float(sample_weight)) > tolerance:
-                raise BaselineCompatibilityError("紫微消费统计全样本分母不一致，请重新生成基线。")
-        if abs(sum(float(weight) for weight in cohort_weights.values()) - float(sample_weight)) > tolerance:
-            raise BaselineCompatibilityError("紫微消费统计同类样本分母不一致，请重新生成基线。")
+            if (
+                not isinstance(histogram, dict)
+                or abs(
+                    sum(float(weight) for weight in histogram.values())
+                    - float(sample_weight)
+                )
+                > tolerance
+            ):
+                raise BaselineCompatibilityError(
+                    "紫微消费统计全样本分母不一致，请重新生成基线。"
+                )
+        if (
+            abs(
+                sum(float(weight) for weight in cohort_weights.values())
+                - float(sample_weight)
+            )
+            > tolerance
+        ):
+            raise BaselineCompatibilityError(
+                "紫微消费统计同类样本分母不一致，请重新生成基线。"
+            )
         for cohort_id, cohort_weight in cohort_weights.items():
             cohort = cohort_histograms.get(cohort_id)
             if not isinstance(cohort, dict):
-                raise BaselineCompatibilityError("紫微消费统计同类样本缺失，请重新生成基线。")
+                raise BaselineCompatibilityError(
+                    "紫微消费统计同类样本缺失，请重新生成基线。"
+                )
             for score_key in expected_score_keys:
                 histogram = cohort.get(score_key)
-                if not isinstance(histogram, dict) or abs(sum(float(weight) for weight in histogram.values()) - float(cohort_weight)) > tolerance:
-                    raise BaselineCompatibilityError("紫微消费统计同类直方图分母不一致，请重新生成基线。")
+                if (
+                    not isinstance(histogram, dict)
+                    or abs(
+                        sum(float(weight) for weight in histogram.values())
+                        - float(cohort_weight)
+                    )
+                    > tolerance
+                ):
+                    raise BaselineCompatibilityError(
+                        "紫微消费统计同类直方图分母不一致，请重新生成基线。"
+                    )
 
 
 @lru_cache(maxsize=8)
 def load_baseline(baseline_id: str) -> dict[str, Any]:
-    if baseline_id not in {item for values in BASELINE_IDS.values() for item in values.values()}:
+    if baseline_id not in {
+        item for values in BASELINE_IDS.values() for item in values.values()
+    }:
         raise ValueError(f"未知统计基线: {baseline_id}")
     path = DATA_DIR / f"{baseline_id}.json"
     if not path.exists():
@@ -339,13 +493,39 @@ def frequency_label(percentage: float) -> str:
 
 
 def _baseline_public(baseline: dict[str, Any]) -> dict[str, Any]:
-    public = {key: baseline[key] for key in (
-        "schema_version", "baseline_generation_version", "config_id", "feature_catalog_hash", "metric_catalog_hash", "rules_registry_hash",
-        "pattern_bundle_id", "pattern_bundle_digest",
-        "unique_state_count", "weighted_unit", "time_index_weights", "gender_scope", "interval_semantics",
-        "id", "chart_type", "kind", "label", "start", "end", "timezone", "day_boundary",
-        "engine", "rules_version", "sample_unit", "sample_weight", "method", "hash",
-    ) if key in baseline}
+    public = {
+        key: baseline[key]
+        for key in (
+            "schema_version",
+            "baseline_generation_version",
+            "config_id",
+            "feature_catalog_hash",
+            "metric_catalog_hash",
+            "rules_registry_hash",
+            "pattern_bundle_id",
+            "pattern_bundle_digest",
+            "unique_state_count",
+            "weighted_unit",
+            "time_index_weights",
+            "gender_scope",
+            "interval_semantics",
+            "id",
+            "chart_type",
+            "kind",
+            "label",
+            "start",
+            "end",
+            "timezone",
+            "day_boundary",
+            "engine",
+            "rules_version",
+            "sample_unit",
+            "sample_weight",
+            "method",
+            "hash",
+        )
+        if key in baseline
+    }
     public.setdefault("schema_version", 1)
     public.setdefault("weighted_unit", baseline.get("sample_unit", "sample"))
     if "rules_registry_hash" in baseline:
@@ -353,19 +533,33 @@ def _baseline_public(baseline: dict[str, Any]) -> dict[str, Any]:
     return public
 
 
-def _ziwei_consumer_public(baseline: Mapping[str, Any], feature_ids: Iterable[str]) -> dict[str, Any] | None:
+def _ziwei_consumer_public(
+    baseline: Mapping[str, Any], feature_ids: Iterable[str]
+) -> dict[str, Any] | None:
     """Return global histograms plus only the requested life-star cohort."""
     consumer = baseline.get("consumer_baseline")
     if not isinstance(consumer, Mapping):
         return None
-    life_feature = next((item for item in feature_ids if item.startswith("ziwei.life_combo.")), None)
+    life_feature = next(
+        (item for item in feature_ids if item.startswith("ziwei.life_combo.")), None
+    )
     cohort_id = life_feature.removeprefix("ziwei.") if life_feature else ""
-    archetype_feature = next((item for item in feature_ids if item.startswith("ziwei.archetype.")), None)
-    archetype_id = archetype_feature.removeprefix("ziwei.archetype.") if archetype_feature else ""
+    archetype_feature = next(
+        (item for item in feature_ids if item.startswith("ziwei.archetype.")), None
+    )
+    archetype_id = (
+        archetype_feature.removeprefix("ziwei.archetype.") if archetype_feature else ""
+    )
     cohort_histograms = consumer.get("cohort_histograms", {})
     cohort_weights = consumer.get("cohort_weights", {})
-    selected_histogram = cohort_histograms.get(cohort_id) if isinstance(cohort_histograms, Mapping) else None
-    selected_weight = cohort_weights.get(cohort_id) if isinstance(cohort_weights, Mapping) else None
+    selected_histogram = (
+        cohort_histograms.get(cohort_id)
+        if isinstance(cohort_histograms, Mapping)
+        else None
+    )
+    selected_weight = (
+        cohort_weights.get(cohort_id) if isinstance(cohort_weights, Mapping) else None
+    )
     family_features = {
         f"life:{cohort_id.removeprefix('life_combo.')}" if cohort_id else "",
         f"archetype:{archetype_id}" if archetype_id else "",
@@ -390,8 +584,12 @@ def _ziwei_consumer_public(baseline: Mapping[str, Any], feature_ids: Iterable[st
         "weighted_unit": consumer.get("weighted_unit"),
         "histograms": consumer.get("histograms", {}),
         "cohort_key": consumer.get("cohort_key"),
-        "cohort_weights": {cohort_id: selected_weight} if cohort_id and selected_weight is not None else {},
-        "cohort_histograms": {cohort_id: selected_histogram} if cohort_id and isinstance(selected_histogram, Mapping) else {},
+        "cohort_weights": {cohort_id: selected_weight}
+        if cohort_id and selected_weight is not None
+        else {},
+        "cohort_histograms": {cohort_id: selected_histogram}
+        if cohort_id and isinstance(selected_histogram, Mapping)
+        else {},
         "structural_families": structural_families,
         "method": consumer.get("method"),
         "hash": consumer.get("hash"),
@@ -410,11 +608,16 @@ def select_consumer_distributions(
     ten small integer-score histograms instead of every cohort distribution.
     """
     package = baseline.get("consumer_score_distributions", {})
-    if not isinstance(package, Mapping) or package.get("rules_version") != CONSUMER_RULES_VERSION:
+    if (
+        not isinstance(package, Mapping)
+        or package.get("rules_version") != CONSUMER_RULES_VERSION
+    ):
         return {
             "status": "unavailable",
             "baseline_id": baseline.get("id"),
-            "rules_version": package.get("rules_version") if isinstance(package, Mapping) else None,
+            "rules_version": package.get("rules_version")
+            if isinstance(package, Mapping)
+            else None,
             "global": {},
             "cohort": {},
         }
@@ -422,11 +625,28 @@ def select_consumer_distributions(
     global_by_gender = package.get("global", {})
     cohorts = package.get("cohorts", {})
     if not isinstance(global_by_gender, Mapping) or not isinstance(cohorts, Mapping):
-        return {"status": "unavailable", "baseline_id": baseline.get("id"), "global": {}, "cohort": {}}
-    global_histograms = global_by_gender.get(requested_gender) or global_by_gender.get("neutral") or {}
-    cohort_entry = cohorts.get(cohort_key, {}) if isinstance(cohorts.get(cohort_key, {}), Mapping) else {}
-    cohort_histograms = cohort_entry.get(requested_gender) or cohort_entry.get("neutral") or {}
-    status = "available" if isinstance(global_histograms, Mapping) and global_histograms else "unavailable"
+        return {
+            "status": "unavailable",
+            "baseline_id": baseline.get("id"),
+            "global": {},
+            "cohort": {},
+        }
+    global_histograms = (
+        global_by_gender.get(requested_gender) or global_by_gender.get("neutral") or {}
+    )
+    cohort_entry = (
+        cohorts.get(cohort_key, {})
+        if isinstance(cohorts.get(cohort_key, {}), Mapping)
+        else {}
+    )
+    cohort_histograms = (
+        cohort_entry.get(requested_gender) or cohort_entry.get("neutral") or {}
+    )
+    status = (
+        "available"
+        if isinstance(global_histograms, Mapping) and global_histograms
+        else "unavailable"
+    )
     return {
         "status": status,
         "baseline_id": baseline.get("id"),
@@ -436,11 +656,15 @@ def select_consumer_distributions(
         "global": {
             str(key): _decode_consumer_histogram(histogram)
             for key, histogram in global_histograms.items()
-        } if isinstance(global_histograms, Mapping) else {},
+        }
+        if isinstance(global_histograms, Mapping)
+        else {},
         "cohort": {
             str(key): _decode_consumer_histogram(histogram)
             for key, histogram in cohort_histograms.items()
-        } if isinstance(cohort_histograms, Mapping) else {},
+        }
+        if isinstance(cohort_histograms, Mapping)
+        else {},
     }
 
 
@@ -449,7 +673,10 @@ def select_consumer_feature_metrics(
     feature_ids: Iterable[str],
 ) -> list[dict[str, Any]]:
     package = baseline.get("consumer_features", {})
-    if not isinstance(package, Mapping) or package.get("rules_version") != CONSUMER_RULES_VERSION:
+    if (
+        not isinstance(package, Mapping)
+        or package.get("rules_version") != CONSUMER_RULES_VERSION
+    ):
         return []
     catalog = {
         str(item.get("id", "")): item
@@ -465,17 +692,23 @@ def select_consumer_feature_metrics(
         supported = feature_id in catalog
         hit_weight = float(weights.get(feature_id, 0) or 0) if supported else 0.0
         percentage = hit_weight / total * 100 if supported else 0.0
-        result.append({
-            "feature_id": feature_id,
-            "kind": str(catalog.get(feature_id, {}).get("kind", "")),
-            "title": str(catalog.get(feature_id, {}).get("title", "")),
-            "status": "observed" if hit_weight > 0 else "zero" if supported else "unsupported",
-            "hit_weight": hit_weight,
-            "total_weight": total,
-            "percentage": round(percentage, 6),
-            "display_percentage": frequency_label(percentage) if supported else "—",
-            "baseline_id": baseline.get("id"),
-        })
+        result.append(
+            {
+                "feature_id": feature_id,
+                "kind": str(catalog.get(feature_id, {}).get("kind", "")),
+                "title": str(catalog.get(feature_id, {}).get("title", "")),
+                "status": "observed"
+                if hit_weight > 0
+                else "zero"
+                if supported
+                else "unsupported",
+                "hit_weight": hit_weight,
+                "total_weight": total,
+                "percentage": round(percentage, 6),
+                "display_percentage": frequency_label(percentage) if supported else "—",
+                "baseline_id": baseline.get("id"),
+            }
+        )
     return result
 
 
@@ -497,7 +730,9 @@ def _metric_semantic_poles(
         for key in ("low", "typical", "high")
     ):
         return {key: str(supplied[key]) for key in ("low", "typical", "high")}
-    definition_id = str(metric.get("definition_id") or f"{theme}.{metric.get('metric_id', '')}")
+    definition_id = str(
+        metric.get("definition_id") or f"{theme}.{metric.get('metric_id', '')}"
+    )
     registered = METRIC_DEFINITIONS.get(definition_id, {}).get("semantic_poles")
     if isinstance(registered, Mapping) and all(
         isinstance(registered.get(key), str) and registered.get(key)
@@ -589,7 +824,9 @@ def apply_theme_comparisons(
 ) -> list[dict[str, Any]]:
     """Compare each transparent structural metric; never collapse them into one score."""
     metrics_by_gender = baseline.get("theme_metric_weights_by_gender", {})
-    metric_group = metrics_by_gender.get(gender) or metrics_by_gender.get("neutral") or {}
+    metric_group = (
+        metrics_by_gender.get(gender) or metrics_by_gender.get("neutral") or {}
+    )
     total = float(baseline.get("sample_weight", 0))
     result: list[dict[str, Any]] = []
     for profile in profiles:
@@ -600,11 +837,27 @@ def apply_theme_comparisons(
         for metric in item.get("structure_metrics", ()):
             metric_id = str(metric.get("metric_id", ""))
             value = int(metric.get("value", 0))
-            histogram = theme_histograms.get(metric_id, {}) if isinstance(theme_histograms, Mapping) else {}
-            exact_weight = float(histogram.get(str(value), 0)) if isinstance(histogram, Mapping) else 0.0
+            histogram = (
+                theme_histograms.get(metric_id, {})
+                if isinstance(theme_histograms, Mapping)
+                else {}
+            )
+            exact_weight = (
+                float(histogram.get(str(value), 0))
+                if isinstance(histogram, Mapping)
+                else 0.0
+            )
             if histogram and total > 0:
-                lower = sum(float(weight) for key, weight in histogram.items() if int(key) < value)
-                higher = sum(float(weight) for key, weight in histogram.items() if int(key) > value)
+                lower = sum(
+                    float(weight)
+                    for key, weight in histogram.items()
+                    if int(key) < value
+                )
+                higher = sum(
+                    float(weight)
+                    for key, weight in histogram.items()
+                    if int(key) > value
+                )
                 exact_percentage = exact_weight / total * 100
                 ordered_histogram = [
                     {
@@ -612,17 +865,33 @@ def apply_theme_comparisons(
                         "weight": float(weight),
                         "percentage": round(float(weight) / total * 100, 4),
                     }
-                    for key, weight in sorted(histogram.items(), key=lambda pair: int(pair[0]))
+                    for key, weight in sorted(
+                        histogram.items(), key=lambda pair: int(pair[0])
+                    )
                     if float(weight) > 0
                 ]
                 probabilities = [entry["weight"] / total for entry in ordered_histogram]
-                entropy = -sum(probability * log(probability) for probability in probabilities if probability > 0)
+                entropy = -sum(
+                    probability * log(probability)
+                    for probability in probabilities
+                    if probability > 0
+                )
                 support_size = len(probabilities)
-                normalized_entropy = entropy / log(support_size) if support_size > 1 else 0.0
+                normalized_entropy = (
+                    entropy / log(support_size) if support_size > 1 else 0.0
+                )
                 effective_support = exp(entropy) if probabilities else 0.0
-                if exact_percentage < 10 and normalized_entropy >= 0.70 and effective_support >= 6:
+                if (
+                    exact_percentage < 10
+                    and normalized_entropy >= 0.70
+                    and effective_support >= 6
+                ):
                     resolution = "high"
-                elif exact_percentage <= 25 and normalized_entropy >= 0.45 and effective_support >= 3:
+                elif (
+                    exact_percentage <= 25
+                    and normalized_entropy >= 0.45
+                    and effective_support >= 3
+                ):
                     resolution = "medium"
                 else:
                     resolution = "low"
@@ -650,13 +919,15 @@ def apply_theme_comparisons(
                 if metric_type == "binary":
                     hit_weight = float(histogram.get("1", 0))
                     hit_percentage = hit_weight / total * 100
-                    comparisons.append({
-                        **common_distribution,
-                        "comparison_mode": "incidence",
-                        "display_mode": "incidence",
-                        "display_label": f"出现率 {frequency_label(hit_percentage)}",
-                        "hit_percentage": round(hit_percentage, 4),
-                    })
+                    comparisons.append(
+                        {
+                            **common_distribution,
+                            "comparison_mode": "incidence",
+                            "display_mode": "incidence",
+                            "display_label": f"出现率 {frequency_label(hit_percentage)}",
+                            "hit_percentage": round(hit_percentage, 4),
+                        }
+                    )
                     continue
                 display_contract = _ordered_display_contract(
                     status=str(common_distribution["status"]),
@@ -666,34 +937,42 @@ def apply_theme_comparisons(
                     higher_percentage=higher_percentage,
                     semantic_poles=semantic_poles,
                 )
-                comparisons.append({
-                    **common_distribution,
-                    "comparison_mode": "rank_interval",
-                    "semantic_poles": semantic_poles,
-                    "lower_percentage": round(lower_percentage, 4),
-                    "same_percentage": round(exact_percentage, 4),
-                    "higher_percentage": round(higher_percentage, 4),
-                    "lower_tail_percentage": round(lower_percentage + exact_percentage, 4),
-                    "upper_tail_percentage": round(higher_percentage + exact_percentage, 4),
-                    "rank_interval": {
-                        "lower": round(lower_percentage, 4),
-                        "upper": round(lower_percentage + exact_percentage, 4),
-                    },
-                    **display_contract,
-                })
+                comparisons.append(
+                    {
+                        **common_distribution,
+                        "comparison_mode": "rank_interval",
+                        "semantic_poles": semantic_poles,
+                        "lower_percentage": round(lower_percentage, 4),
+                        "same_percentage": round(exact_percentage, 4),
+                        "higher_percentage": round(higher_percentage, 4),
+                        "lower_tail_percentage": round(
+                            lower_percentage + exact_percentage, 4
+                        ),
+                        "upper_tail_percentage": round(
+                            higher_percentage + exact_percentage, 4
+                        ),
+                        "rank_interval": {
+                            "lower": round(lower_percentage, 4),
+                            "upper": round(lower_percentage + exact_percentage, 4),
+                        },
+                        **display_contract,
+                    }
+                )
             else:
-                comparisons.append({
-                    **dict(metric),
-                    "status": "unsupported",
-                    "display_percentage": "—",
-                    "display_mode": "unavailable",
-                    "display_label": "暂无可比基线",
-                    "lower_percentage": 0.0,
-                    "same_percentage": 0.0,
-                    "higher_percentage": 0.0,
-                    "baseline_id": baseline.get("id"),
-                    "method": "weighted_empirical_metric_distribution",
-                })
+                comparisons.append(
+                    {
+                        **dict(metric),
+                        "status": "unsupported",
+                        "display_percentage": "—",
+                        "display_mode": "unavailable",
+                        "display_label": "暂无可比基线",
+                        "lower_percentage": 0.0,
+                        "same_percentage": 0.0,
+                        "higher_percentage": 0.0,
+                        "baseline_id": baseline.get("id"),
+                        "method": "weighted_empirical_metric_distribution",
+                    }
+                )
         item["comparisons"] = comparisons
         result.append(item)
     return result
@@ -707,16 +986,19 @@ def _unavailable_statistics(
     reason: str,
     status: str,
 ) -> dict[str, Any]:
-    metrics = [{
-        "feature_id": feature_id,
-        "hit_weight": 0.0,
-        "total_weight": 0.0,
-        "percentage": 0.0,
-        "display_percentage": "—",
-        "level": "unavailable",
-        "status": "unsupported",
-        "baseline_id": baseline_id,
-    } for feature_id in feature_ids]
+    metrics = [
+        {
+            "feature_id": feature_id,
+            "hit_weight": 0.0,
+            "total_weight": 0.0,
+            "percentage": 0.0,
+            "display_percentage": "—",
+            "level": "unavailable",
+            "status": "unsupported",
+            "baseline_id": baseline_id,
+        }
+        for feature_id in feature_ids
+    ]
     return {
         "status": status,
         "unavailable_reason": reason,
@@ -760,26 +1042,39 @@ def unavailable_bazi_statistics(
         baseline_id=baseline_id,
         feature_ids=feature_ids,
         reason=reason,
-        status=status if status in {"unavailable", "version_mismatch"} else "unavailable",
+        status=status
+        if status in {"unavailable", "version_mismatch"}
+        else "unavailable",
     )
     # The chart retains its deterministic theme profiles independently; the
     # unavailable optional statistics surface stays visibly empty.
     del theme_profiles
-    result.update({
-        "rarity_metrics": [],
-        "theme_profile": [],
-        "theme_profiles": [],
-        "consumer_distributions": {"status": "unavailable", "global": {}, "cohort": {}},
-        "consumer_feature_metrics": [],
-    })
+    result.update(
+        {
+            "rarity_metrics": [],
+            "theme_profile": [],
+            "theme_profiles": [],
+            "consumer_distributions": {
+                "status": "unavailable",
+                "global": {},
+                "cohort": {},
+            },
+            "consumer_feature_metrics": [],
+        }
+    )
     return result
 
 
-def lookup_statistics(*, chart_type: str, baseline_id: str, feature_ids: Iterable[str]) -> dict[str, Any]:
+def lookup_statistics(
+    *, chart_type: str, baseline_id: str, feature_ids: Iterable[str]
+) -> dict[str, Any]:
     if chart_type not in BASELINE_IDS:
         raise ValueError(f"尚不支持的命盘统计类型: {chart_type}")
     normalized = list(dict.fromkeys(feature_ids))
-    if any(not FEATURE_ID_RE.fullmatch(item) or not item.startswith(f"{chart_type}.") for item in normalized):
+    if any(
+        not FEATURE_ID_RE.fullmatch(item) or not item.startswith(f"{chart_type}.")
+        for item in normalized
+    ):
         raise ValueError("feature_ids 只能包含规范化统计特征 ID。")
     try:
         baseline = load_baseline(baseline_id)
@@ -798,19 +1093,33 @@ def lookup_statistics(*, chart_type: str, baseline_id: str, feature_ids: Iterabl
     metrics = []
     for feature_id in normalized:
         supported = feature_id in catalog
-        hit_weight = float(baseline.get("features", {}).get(feature_id, {}).get("hit_weight", 0)) if supported else 0.0
+        hit_weight = (
+            float(baseline.get("features", {}).get(feature_id, {}).get("hit_weight", 0))
+            if supported
+            else 0.0
+        )
         percentage = 0.0 if total <= 0 else hit_weight / total * 100
-        status = "unsupported" if not supported else ("observed" if hit_weight > 0 else "zero")
-        metrics.append({
-            "feature_id": feature_id,
-            "hit_weight": hit_weight,
-            "total_weight": total,
-            "percentage": round(percentage, 6),
-            "display_percentage": "—" if status == "unsupported" else frequency_label(percentage),
-            "level": frequency_level(percentage) if status == "observed" else "unavailable",
-            "status": status,
-            "baseline_id": baseline["id"],
-        })
+        status = (
+            "unsupported"
+            if not supported
+            else ("observed" if hit_weight > 0 else "zero")
+        )
+        metrics.append(
+            {
+                "feature_id": feature_id,
+                "hit_weight": hit_weight,
+                "total_weight": total,
+                "percentage": round(percentage, 6),
+                "display_percentage": "—"
+                if status == "unsupported"
+                else frequency_label(percentage),
+                "level": frequency_level(percentage)
+                if status == "observed"
+                else "unavailable",
+                "status": status,
+                "baseline_id": baseline["id"],
+            }
+        )
     result = {
         "status": "available",
         "unavailable_reason": None,
@@ -863,11 +1172,15 @@ def statistics_for_shensha(
         )
     try:
         baseline = load_baseline(baseline_id)
-        result["theme_profiles"] = apply_theme_comparisons(profile_list, baseline, gender=gender)
+        result["theme_profiles"] = apply_theme_comparisons(
+            profile_list, baseline, gender=gender
+        )
         result["consumer_distributions"] = select_consumer_distributions(
             baseline,
             gender=gender,
-            cohort_key=f"{day_master}-{month_command}" if day_master and month_command else "",
+            cohort_key=f"{day_master}-{month_command}"
+            if day_master and month_command
+            else "",
         )
         result["consumer_feature_metrics"] = select_consumer_feature_metrics(
             baseline,
@@ -875,9 +1188,12 @@ def statistics_for_shensha(
         )
     except (RuntimeError, OSError, ValueError):
         result["theme_profiles"] = [
-            {**dict(profile), "comparisons": []}
-            for profile in profile_list
+            {**dict(profile), "comparisons": []} for profile in profile_list
         ]
-        result["consumer_distributions"] = {"status": "unavailable", "global": {}, "cohort": {}}
+        result["consumer_distributions"] = {
+            "status": "unavailable",
+            "global": {},
+            "cohort": {},
+        }
         result["consumer_feature_metrics"] = []
     return result

@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
 CORPUS = ROOT / "research" / "classics" / "ziping_zhenquan"
+FOUR_PILLAR_RE = re.compile(
+    r"([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])"
+    r"([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])"
+    r"([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])"
+    r"([甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥])"
+)
 
 
 def _manifest() -> dict[str, Any]:
@@ -89,7 +96,9 @@ def test_full_witness_visual_review_and_appendix_boundary_are_explicit() -> None
     ]
 
     appendix = next(
-        row for row in manifest["chapters"] if row["id"] == "zzq.appendix.pattern-plates"
+        row
+        for row in manifest["chapters"]
+        if row["id"] == "zzq.appendix.pattern-plates"
     )
     assert appendix["record_counts"] == {
         "examples": 93,
@@ -205,6 +214,30 @@ def test_ordinary_examples_separate_author_claim_from_engine_expectation() -> No
             assert "source_claim" not in record, (path, record["id"])
 
 
+def test_every_parseable_source_chart_has_a_distinct_structured_example() -> None:
+    source_charts = {
+        match
+        for path in sorted((CORPUS / "segments").glob("*.jsonl"))
+        for record in _jsonl(path)
+        for match in FOUR_PILLAR_RE.findall(record["normalized_search_text"])
+    }
+    examples = {
+        tuple(record["pillars"]): record
+        for path in sorted((CORPUS / "examples").glob("*.jsonl"))
+        for record in _jsonl(path)
+    }
+
+    assert source_charts <= set(examples)
+    assert examples[("戊戌", "乙卯", "丙午", "乙亥")]["id"] == (
+        "zzq.example.resource.li-zhuangyuan-r3"
+    )
+    assert examples[("己巳", "癸亥", "壬午", "丙午")]["id"] == (
+        "zzq.example.lu-robbery.yuan-l7"
+    )
+    assert examples[("戊戌", "乙卯", "丙午", "乙亥")]["engine_expectation"] is None
+    assert examples[("己巳", "癸亥", "壬午", "丙午")]["engine_expectation"] is None
+
+
 def test_candidate_routing_is_declared_engine_policy_not_scan_explicit_doctrine() -> (
     None
 ):
@@ -215,7 +248,9 @@ def test_candidate_routing_is_declared_engine_policy_not_scan_explicit_doctrine(
     assert policy["source_framework_ids"]
 
 
-def test_all_119_ordinary_and_officer_period_paragraphs_have_explicit_source_dispositions() -> None:
+def test_all_119_ordinary_and_officer_period_paragraphs_have_explicit_source_dispositions() -> (
+    None
+):
     manifest = _manifest()
     dispositions = manifest["paragraph_dispositions"]
     locator_ids = {row["id"] for row in manifest["locators"]}

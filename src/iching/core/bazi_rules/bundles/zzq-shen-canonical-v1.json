@@ -1,6 +1,6 @@
 {
   "authority_layer": "shen_core",
-  "bundle_digest": "27a01e7fd9c87896259718252f107ad3b4ca95762bfb94d6580eb4e62483516d",
+  "bundle_digest": "bac491fb41eaede8257667913722a9026698bc32b0fb57ce76b9de0bb32cc1b3",
   "bundle_id": "zzq-shen-canonical-v1",
   "exclusions": [
     {
@@ -2723,11 +2723,11 @@
       ]
     }
   ],
-  "source_bundle_digest": "a87693c80cb7380db14004e4aebb2f9dbe7e92871d886fe187dcb96c6b5d7bfa",
+  "source_bundle_digest": "97897a4a99cb70ecca1b40938fd198059794425b8e1e85c8055e6b8b88f17777",
   "source_provenance": [
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.blade.form-officer-killing-support",
@@ -2758,8 +2758,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.blade.route",
@@ -2790,8 +2790,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.food.form-killing-resource-no-wealth",
@@ -2840,8 +2840,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.food.form-single-exposed-killing",
@@ -2890,8 +2890,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.food.route",
@@ -2940,8 +2940,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.hurting.form-wealth",
@@ -2972,8 +2972,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.hurting.route",
@@ -3004,8 +3004,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.kill.form-blade-no-output",
@@ -3036,8 +3036,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.kill.route",
@@ -3068,8 +3068,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.lu-robbery.form-killing-control",
@@ -3100,8 +3100,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.lu-robbery.form-officer-resource-support",
@@ -3150,8 +3150,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.lu-robbery.form-officer-wealth-support",
@@ -3200,8 +3200,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.lu-robbery.form-wealth-output",
@@ -3232,8 +3232,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.lu-robbery.route-prosperity",
@@ -3264,8 +3264,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.lu-robbery.route-robbery",
@@ -3296,8 +3296,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.damage-hurting-officer-001",
@@ -3328,8 +3328,8 @@
       "text_type": "damage"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.damage-mixed-killing-001",
@@ -3360,8 +3360,8 @@
       "text_type": "damage"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.damage-wealth-breaks-seal-001",
@@ -3392,8 +3392,8 @@
       "text_type": "damage"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.form-dual-support-001",
@@ -3424,8 +3424,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.form-seal-support-001",
@@ -3456,8 +3456,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.form-single-support-001",
@@ -3488,8 +3488,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.form-wealth-support-001",
@@ -3520,8 +3520,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.rescue-hurting-seal-001",
@@ -3558,8 +3558,8 @@
       "text_type": "rescue"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.officer.route",
@@ -3590,8 +3590,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.resource.form-officer-resource",
@@ -3640,8 +3640,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.resource.route",
@@ -3690,8 +3690,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.special.gate-double-wealth",
@@ -3722,8 +3722,8 @@
       "text_type": "failure"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.special.gate-officer-killing",
@@ -3754,8 +3754,8 @@
       "text_type": "failure"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.special.gate-ordinary-use",
@@ -3786,8 +3786,8 @@
       "text_type": "failure"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.special.gate-rooted-wealth",
@@ -3818,8 +3818,8 @@
       "text_type": "failure"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.useful.form-blade-001",
@@ -3862,8 +3862,8 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.useful.rescue-officer-002",
@@ -3894,8 +3894,8 @@
       "text_type": "rescue"
     },
     {
-      "corpus_artifact_digest": "9bcf7c4f803dcb364eafce03e5ddc9b0268146f0ca0af029b025651270e44dad",
-      "corpus_manifest_digest": "414daa4066258a4a69dc4e3332768f543da0b2e999ac9f783e5049defbfca523",
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
       "proposition_id": "zzq.prop.wealth.route",
@@ -3968,7 +3968,7 @@
       "text_type": "formation"
     }
   ],
-  "source_provenance_digest": "3860b30ffc685cbfe0caf5fe7e6429f3dd9b9c045c430f45fab76753a5f683cb",
+  "source_provenance_digest": "a7e355999b08dacc14a642a48123aed471441a72f3273f7ef5b84115c1dcf67a",
   "special_review_gate": {
     "double_wealth_source_id": "zzq.prop.special.gate-double-wealth",
     "id": "zzq.special-review-gate-v1",

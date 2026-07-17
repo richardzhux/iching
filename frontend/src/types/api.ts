@@ -195,6 +195,8 @@ export type ConsumerFingerprint = {
   rarity_label: string
   /** @deprecated Legacy ranking field; canonical claims do not populate it. */
   top_percentage?: number
+  comparison_kind?: string | null
+  comparison_label?: string | null
   incidence_percentage?: number | null
 }
 

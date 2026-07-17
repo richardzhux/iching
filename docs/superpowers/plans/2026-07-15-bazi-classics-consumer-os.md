@@ -256,8 +256,8 @@ type ConsumerClaim = {
 - [x] Ensure statistics/version failure degrades only statistics, not pillars, pattern, periods, or saved-chart loading.
 - [x] Classify every legacy/new shadow difference and close all P0/P1 findings.
 - [x] Run focused Python integration, frontend lint/build, and the repository-size guard.
-- [ ] Run desktop/mobile browser smoke. Local port binding is unavailable in the current managed runtime; the production build and API/runtime contracts pass.
-- [ ] Perform a whole-branch source/rule/product review, commit `chore: finalize bazi classical consumer os`, and push the branch without merging.
+- [x] Run desktop/mobile browser smoke. The full Chromium desktop and 375 px mobile suite passes: 29 passed, with one intentional desktop skip for the mobile-only case.
+- [x] Perform a whole-branch source/rule/product review, commit the production delta, and push the branch without merging.
 
 ## Completion Gates
 

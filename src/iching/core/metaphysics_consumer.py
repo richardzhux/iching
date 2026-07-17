@@ -10,7 +10,7 @@ from iching.core.consumer_claims import (
 )
 
 
-CONSUMER_RULES_VERSION = "metaphysics-consumer-2026.07-v5"
+CONSUMER_RULES_VERSION = "metaphysics-consumer-2026.07-v6"
 
 THEME_ORDER = ("career", "wealth", "relationship", "rhythm")
 THEME_LABELS = {
@@ -53,6 +53,71 @@ _LIFECYCLE_TRANSITIONS = {
     ),
 }
 
+_CANONICAL_PATTERN_TITLES = {
+    "direct_officer": "正官",
+    "direct_resource": "正印",
+    "direct_wealth": "正财",
+    "eating_god": "食神",
+    "hurting_officer": "伤官",
+    "indirect_resource": "偏印",
+    "indirect_wealth": "偏财",
+    "month_prosperity": "建禄",
+    "month_robbery": "月劫",
+    "seven_killings": "七杀",
+    "yang_blade": "阳刃",
+}
+_CANONICAL_STATUS_TITLES = {
+    "formed": "成格",
+    "broken": "受损",
+    "rescued": "破而有救",
+    "mixed": "混杂",
+    "transformed": "转化",
+    "candidate": "候选",
+}
+
+
+def _canonical_pattern_feature_records(
+    patterns: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    """Return incidence features from the promoted Shen authority only.
+
+    The legacy pattern payload remains in the API for snapshot compatibility,
+    but it must never define a frequency that is stamped with the canonical
+    bundle digest.  Ambiguous candidates and the fail-closed special review
+    gate deliberately emit no incidence feature.
+    """
+
+    authority = patterns.get("source_backed_authority")
+    if not isinstance(authority, Mapping) or authority.get("authoritative") is not True:
+        return []
+    pattern_set = authority.get("pattern_set")
+    if not isinstance(pattern_set, Mapping):
+        return []
+    active_ids = {
+        str(value) for value in pattern_set.get("active_pattern_ids", ()) if value
+    }
+    records: list[dict[str, str]] = []
+    for value in pattern_set.get("patterns", ()):
+        if not isinstance(value, Mapping):
+            continue
+        pattern_id = str(value.get("pattern_id", ""))
+        status = str(value.get("status", ""))
+        if pattern_id not in active_ids or pattern_id not in _CANONICAL_PATTERN_TITLES:
+            continue
+        if status not in _CANONICAL_STATUS_TITLES:
+            continue
+        records.append(
+            {
+                "id": f"bazi.pattern.canonical.{pattern_id}.status.{status}",
+                "kind": "pattern",
+                "title": (
+                    f"{_CANONICAL_PATTERN_TITLES[pattern_id]}·"
+                    f"{_CANONICAL_STATUS_TITLES[status]}"
+                ),
+            }
+        )
+    return records
+
 
 def consumer_feature_records(
     patterns: Mapping[str, Any] | None,
@@ -61,15 +126,8 @@ def consumer_feature_records(
     """Feature IDs shared by baseline generation and live-chart lookup."""
     records: list[dict[str, str]] = []
     pattern = patterns or {}
-    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
-    if isinstance(primary, Mapping) and primary.get("id"):
-        records.append(
-            {
-                "id": str(primary["id"]),
-                "kind": "pattern",
-                "title": str(primary.get("title", primary.get("name", "主导格局"))),
-            }
-        )
+    if isinstance(pattern, Mapping):
+        records.extend(_canonical_pattern_feature_records(pattern))
     effects = shensha_effects or {}
     for hit in effects.get("hits", ()):
         state = str(hit.get("state", "可见"))

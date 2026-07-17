@@ -105,6 +105,7 @@ export interface LifeKlineChartProps {
   onRequestFullLife?: () => boolean | Promise<boolean>
   onSeriesChange?: (key: LifeKlineKey) => void
   onYearChange?: (year: number) => void
+  staticMode?: boolean
   className?: string
 }
 
@@ -313,6 +314,7 @@ export function LifeKlineChart({
   onRequestFullLife,
   onSeriesChange,
   onYearChange,
+  staticMode = false,
   className,
 }: LifeKlineChartProps) {
   const id = useId()
@@ -484,13 +486,13 @@ export function LifeKlineChart({
             <h2 id={titleId} className="mt-2 text-2xl font-semibold">{locale === "zh" ? "人生 K 线" : "Life K-line"}</h2>
             <p id={descriptionId} className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{locale === "zh" ? "以你的长期主题活跃常态为 100，展示每一年和每个月的结构信号密度变化。" : "Your long-term theme-activity baseline is set to 100, showing changes in structural-signal density by year and month."}</p>
           </div>
-          <details className="shrink-0 text-xs text-muted-foreground">
+          {staticMode ? <p className="max-w-xs shrink-0 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "100 是个人长期活跃常态；高于 100 表示结构信号更密集，低于 100 表示结构信号更少。" : "100 is the personal activity baseline; values above it mean denser signals and values below it mean fewer signals."}</p> : <details className="shrink-0 text-xs text-muted-foreground">
             <summary className="min-h-11 cursor-pointer rounded-lg px-2 py-3 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "K 线怎么看" : "How to read it"}</summary>
             <p className="max-w-xs break-words border-t border-border/55 pt-2 leading-5">{locale === "zh" ? "100 是你自己的长期活跃常态。每根年线汇总十二个月；高于 100 表示结构信号更密集，低于 100 表示结构信号更少。" : "100 is your own long-term activity baseline. Each candle summarizes twelve months; above 100 means denser structural signals, while below 100 means fewer signals."}</p>
-          </details>
+          </details>}
         </div>
 
-        <div className="mt-5 max-w-full overflow-x-auto pb-1 custom-scrollbar">
+        {staticMode ? <div className="mt-5 inline-flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2 text-sm font-semibold"><span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: activeSeries.color }} />{activeSeriesLabel}</div> : <div className="mt-5 max-w-full overflow-x-auto pb-1 custom-scrollbar">
           <div role="tablist" aria-label={locale === "zh" ? "人生 K 线主题" : "Life K-line theme"} className="inline-flex min-w-max rounded-xl bg-muted/60 p-1">
             {consumerSeries.map((series, index) => {
               const selected = series.key === activeSeries.key
@@ -514,10 +516,10 @@ export function LifeKlineChart({
               )
             })}
           </div>
-        </div>
+        </div>}
       </header>
 
-      <div id={panelId} role="tabpanel" aria-labelledby={`${id}-tab-${activeSeries.key}`} className="min-w-0 px-3 py-5 sm:px-5">
+      <div id={panelId} role={staticMode ? undefined : "tabpanel"} aria-labelledby={staticMode ? undefined : `${id}-tab-${activeSeries.key}`} className="min-w-0 px-3 py-5 sm:px-5">
         {visibleStages.length ? (
           <section className="mb-5 min-w-0 rounded-2xl border border-border/60 bg-background/55 p-4 sm:p-5" aria-labelledby={`${id}-stages`}>
             <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
@@ -555,7 +557,7 @@ export function LifeKlineChart({
           </section>
         ) : null}
 
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-1">
+        {staticMode ? <p className="px-1 text-xs font-semibold tabular-nums text-muted-foreground">{visiblePoints.length ? `${visiblePoints[0].year}–${visiblePoints[visiblePoints.length - 1].year}` : "—"}</p> : <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-1">
           <div className="inline-flex rounded-xl border border-border/60 bg-background p-1" role="group" aria-label={locale === "zh" ? "K 线时间范围" : "K-line time range"}>
             <button type="button" aria-pressed={!showFullLife} onClick={() => void selectWindowMode(false)} className={cn("min-h-10 rounded-lg px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", !showFullLife ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{locale === "zh" ? "十年窗口" : "10-year window"}</button>
             {canShowFullLife ? <button type="button" aria-pressed={showFullLife} disabled={fullLifeLoading} onClick={() => void selectWindowMode(true)} className={cn("min-h-10 rounded-lg px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50", showFullLife ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{fullLifeLoading ? (locale === "zh" ? "载入中…" : "Loading…") : (locale === "zh" ? "全人生" : "Full life")}</button> : null}
@@ -571,7 +573,7 @@ export function LifeKlineChart({
               <button type="button" disabled={!canMoveNext} onClick={() => moveWindow(1)} aria-label={locale === "zh" ? "查看后十年" : "Show next ten years"} className="inline-flex size-11 items-center justify-center rounded-xl border border-border/60 text-lg transition hover:border-primary/45 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-35"><span aria-hidden="true">→</span></button>
             </div>
           ) : <p className="text-xs font-semibold tabular-nums text-muted-foreground">{visiblePoints.length ? `${visiblePoints[0].year}–${visiblePoints[visiblePoints.length - 1].year}` : "—"}</p>}
-        </div>
+        </div>}
 
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 px-1 text-xs text-muted-foreground" aria-label={locale === "zh" ? "图例" : "Legend"}>
           {viewMode === "trend" ? <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5" style={{ backgroundColor: activeColor }} />{locale === "zh" ? "年度活跃趋势" : "Annual activity trend"}</span> : <>
@@ -583,15 +585,15 @@ export function LifeKlineChart({
           {viewMode === "candles" ? <><span>{locale === "zh" ? "朱红 = 年末活跃度高于年初" : "Red = year-end activity above year-open"}</span><span>{locale === "zh" ? "青绿 = 年末活跃度低于年初" : "Green = year-end activity below year-open"}</span></> : null}
         </div>
 
-        <p id={interactionHintId} className="mt-3 px-1 text-xs text-muted-foreground">{locale === "zh" ? `点击或轻触${viewMode === "trend" ? "年份节点" : "年线"}查看详情；聚焦图表后可用左右方向键切换年份。` : `Click or tap a ${viewMode === "trend" ? "year point" : "candle"} for details. Focus the chart and use Left/Right Arrow to change year.`}</p>
+        {!staticMode ? <p id={interactionHintId} className="mt-3 px-1 text-xs text-muted-foreground">{locale === "zh" ? `点击或轻触${viewMode === "trend" ? "年份节点" : "年线"}查看详情；聚焦图表后可用左右方向键切换年份。` : `Click or tap a ${viewMode === "trend" ? "year point" : "candle"} for details. Focus the chart and use Left/Right Arrow to change year.`}</p> : null}
 
         <div
-          tabIndex={0}
+          tabIndex={staticMode ? undefined : 0}
           role="group"
           aria-label={`${activeSeriesLabel} ${locale === "zh" ? (viewMode === "trend" ? "个人相对趋势图" : "个人相对年线图") : (viewMode === "trend" ? "personal relative trend chart" : "personal relative annual candlestick chart")}`}
-          aria-describedby={`${descriptionId} ${interactionHintId}`}
-          onKeyDown={handleChartKeyDown}
-          onPointerLeave={() => setHoveredYear(null)}
+          aria-describedby={staticMode ? descriptionId : `${descriptionId} ${interactionHintId}`}
+          onKeyDown={staticMode ? undefined : handleChartKeyDown}
+          onPointerLeave={staticMode ? undefined : () => setHoveredYear(null)}
           className="custom-scrollbar mt-3 min-w-0 max-w-full overflow-x-auto rounded-2xl border border-border/55 bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <svg role="img" aria-labelledby={`${titleId} ${descriptionId}`} viewBox={`0 0 ${chartWidth} ${displayChartHeight}`} className="block h-auto w-full max-w-none" style={{ minWidth: `${chartWidth}px` }}>

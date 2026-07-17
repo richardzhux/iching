@@ -822,7 +822,7 @@ def test_task7_playwright_covers_single_safe_png_download_and_failure_recovery()
     assert "exports one mocked BaZi PNG with a safe filename" in e2e
     assert 'page.waitForEvent("download")' in e2e
     assert 'toHaveAttribute("aria-hidden", "true")' in e2e
-    assert 'locator("button, input, select, textarea")' in e2e
+    assert 'locator("button, input, select, textarea, details, summary")' in e2e
     assert "downloads).toBe(1)" in e2e
     assert "recovers when the export target is unavailable" in e2e
 
@@ -1552,6 +1552,11 @@ def test_task8_bazi_consumer_os_exposes_one_clear_identity_and_share_contract():
     assert "overflow-x-auto" in identity, (
         "the twelve-month preview should scroll inside its own region"
     )
+    for quality_label in ("高光窗口", "调整窗口", "同值约"):
+        assert quality_label not in f"{identity}\n{chart}"
+    for activity_label in ("活跃增强", "活跃减弱", "接近常态"):
+        assert activity_label in f"{identity}\n{chart}"
+    assert "出现约" in identity
 
     assert "稀有结构组合" in achievements
     assert "命盘成就" not in achievements

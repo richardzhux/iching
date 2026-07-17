@@ -13,9 +13,18 @@ from fastapi.testclient import TestClient
 
 import iching.core.metaphysics_statistics as statistics
 from iching.core.bazi_rules.registry import load_packaged_shen_registry
-from iching.core.bazi_structure import METRIC_DEFINITIONS
-from iching.core.metaphysics_consumer import CONSUMER_RULES_VERSION
-from iching.core.metaphysics_statistics import BASELINE_ID, frequency_label, lookup_statistics
+from iching.core.bazi_patterns import assess_patterns
+from iching.core.bazi_structure import METRIC_DEFINITIONS, build_structure_profile
+from iching.core.metaphysics import _seasonal_status
+from iching.core.metaphysics_consumer import (
+    CONSUMER_RULES_VERSION,
+    consumer_feature_records,
+)
+from iching.core.metaphysics_statistics import (
+    BASELINE_ID,
+    frequency_label,
+    lookup_statistics,
+)
 from iching.core.shensha import RULES_VERSION
 from iching.web.api.main import app
 
@@ -24,10 +33,17 @@ client = TestClient(app)
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from generate_bazi_baseline import (  # noqa: E402
+    _canonical_consumer_feature_metadata,
     _config_id,
     _feature_catalog,
     _pattern_bundle_identity,
     _pillars as baseline_pillars,
+    _pillars_from_state_key,
+    _replace_canonical_pattern_features,
+    REFRESH_SOURCE_CONSUMER_RULES_VERSION,
+    REFRESH_SOURCE_PATTERN_BUNDLE_DIGEST,
+    REFRESH_SOURCE_RULES_REGISTRY_HASH,
+    _validate_pattern_refresh_source,
     _validate_promotion_source,
     promote_g3_payload,
 )
@@ -68,9 +84,15 @@ def test_baseline_lookup_returns_denominator_and_version() -> None:
     assert result["baseline"]["hash"]
     assert result["status"] == "available"
     assert len(result["rarity_metrics"]) == 2
-    assert all(metric["total_weight"] == result["baseline"]["sample_weight"] for metric in result["rarity_metrics"])
+    assert all(
+        metric["total_weight"] == result["baseline"]["sample_weight"]
+        for metric in result["rarity_metrics"]
+    )
     assert all(metric["status"] == "observed" for metric in result["rarity_metrics"])
-    assert all(metric["level"] in {"common", "less_common", "rare", "very_rare"} for metric in result["rarity_metrics"])
+    assert all(
+        metric["level"] in {"common", "less_common", "rare", "very_rare"}
+        for metric in result["rarity_metrics"]
+    )
 
 
 def _write_v6_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
@@ -95,9 +117,15 @@ def _write_v6_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
         "rules_registry_hash": registry_hash or statistics.bazi_rules_registry_hash(),
         "feature_catalog": catalog,
         "feature_catalog_hash": statistics.feature_catalog_hash(catalog),
-        "metric_catalog": [statistics.METRIC_DEFINITIONS[key] for key in sorted(statistics.METRIC_DEFINITIONS)],
+        "metric_catalog": [
+            statistics.METRIC_DEFINITIONS[key]
+            for key in sorted(statistics.METRIC_DEFINITIONS)
+        ],
         "metric_catalog_hash": statistics.metric_catalog_hash(
-            [statistics.METRIC_DEFINITIONS[key] for key in sorted(statistics.METRIC_DEFINITIONS)]
+            [
+                statistics.METRIC_DEFINITIONS[key]
+                for key in sorted(statistics.METRIC_DEFINITIONS)
+            ]
         ),
         "unique_state_count": 2,
         "sample_unit": "minute",
@@ -106,15 +134,21 @@ def _write_v6_baseline(tmp_path, *, registry_hash: str | None = None) -> None:
         "method": "test",
         "features": {"bazi.shensha.wenchang": {"hit_weight": 5}},
         "theme_metric_weights_by_gender": {
-            gender: {theme: {"metric": {"0": 4, "1": 6}} for theme in statistics.THEME_IDS}
+            gender: {
+                theme: {"metric": {"0": 4, "1": 6}} for theme in statistics.THEME_IDS
+            }
             for gender in ("male", "female", "neutral")
         },
     }
     payload["hash"] = statistics.payload_hash(payload)
-    (tmp_path / f"{BASELINE_ID}.json").write_text(json.dumps(payload, ensure_ascii=False))
+    (tmp_path / f"{BASELINE_ID}.json").write_text(
+        json.dumps(payload, ensure_ascii=False)
+    )
 
 
-def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch) -> None:
+def test_catalog_statuses_distinguish_zero_and_unsupported(
+    tmp_path, monkeypatch
+) -> None:
     _write_v6_baseline(tmp_path)
     monkeypatch.setattr(statistics, "DATA_DIR", tmp_path)
     statistics.load_baseline.cache_clear()
@@ -131,7 +165,10 @@ def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch
 
     observed, zero, unsupported = result["rarity_metrics"]
     assert observed["status"] == "observed"
-    assert {key: zero[key] for key in ("status", "display_percentage", "percentage", "hit_weight")} == {
+    assert {
+        key: zero[key]
+        for key in ("status", "display_percentage", "percentage", "hit_weight")
+    } == {
         "status": "zero",
         "display_percentage": "0%",
         "percentage": 0.0,
@@ -142,7 +179,9 @@ def test_catalog_statuses_distinguish_zero_and_unsupported(tmp_path, monkeypatch
     assert unsupported["level"] == "unavailable"
 
 
-def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypatch) -> None:
+def test_metric_distribution_replaces_family_count_percentile(
+    tmp_path, monkeypatch
+) -> None:
     _write_v6_baseline(tmp_path)
     monkeypatch.setattr(statistics, "DATA_DIR", tmp_path)
     statistics.load_baseline.cache_clear()
@@ -156,7 +195,14 @@ def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypa
     assert "rule_indices" not in result
     assert result["theme_profile"] == []
     comparison = statistics.apply_theme_comparisons(
-        [{"theme": "事业", "structure_metrics": [{"metric_id": "metric", "label": "指标", "value": 1, "unit": "项"}]}],
+        [
+            {
+                "theme": "事业",
+                "structure_metrics": [
+                    {"metric_id": "metric", "label": "指标", "value": 1, "unit": "项"}
+                ],
+            }
+        ],
         statistics.load_baseline(BASELINE_ID),
         gender="male",
     )[0]["comparisons"][0]
@@ -176,7 +222,20 @@ def test_metric_distribution_replaces_family_count_percentile(tmp_path, monkeypa
     assert "%" not in comparison["display_label"]
 
     binary = statistics.apply_theme_comparisons(
-        [{"theme": "事业", "structure_metrics": [{"metric_id": "metric", "label": "是否命中", "value": 1, "unit": "是否命中", "metric_type": "binary"}]}],
+        [
+            {
+                "theme": "事业",
+                "structure_metrics": [
+                    {
+                        "metric_id": "metric",
+                        "label": "是否命中",
+                        "value": 1,
+                        "unit": "是否命中",
+                        "metric_type": "binary",
+                    }
+                ],
+            }
+        ],
         statistics.load_baseline(BASELINE_ID),
         gender="male",
     )[0]["comparisons"][0]
@@ -206,14 +265,16 @@ def _theme_comparison(
     }
     profile = {
         "theme": theme,
-        "structure_metrics": [{
-            "definition_id": definition["id"],
-            "metric_id": metric_id,
-            "label": definition["label"],
-            "value": value,
-            "unit": "是否命中" if metric_type == "binary" else "项",
-            "metric_type": metric_type,
-        }],
+        "structure_metrics": [
+            {
+                "definition_id": definition["id"],
+                "metric_id": metric_id,
+                "label": definition["label"],
+                "value": value,
+                "unit": "是否命中" if metric_type == "binary" else "项",
+                "metric_type": metric_type,
+            }
+        ],
     }
     return statistics.apply_theme_comparisons(
         [profile],
@@ -253,7 +314,16 @@ def test_ordered_metrics_expose_inclusive_tail_only_at_high_resolution() -> None
         theme="财富",
         metric_id="visible_wealth_count",
         value=0,
-        histogram={"0": 5, "1": 15, "2": 15, "3": 15, "4": 15, "5": 15, "6": 10, "7": 10},
+        histogram={
+            "0": 5,
+            "1": 15,
+            "2": 15,
+            "3": 15,
+            "4": 15,
+            "5": 15,
+            "6": 10,
+            "7": 10,
+        },
     )
     assert low["resolution"] == "high"
     assert low["display_mode"] == "exact_tail"
@@ -316,14 +386,19 @@ def test_every_ordered_metric_has_three_neutral_semantic_poles() -> None:
     ]
 
     assert ordered
-    assert all(set(definition["semantic_poles"]) == {"low", "typical", "high"} for definition in ordered)
+    assert all(
+        set(definition["semantic_poles"]) == {"low", "typical", "high"}
+        for definition in ordered
+    )
     assert all(
         all(definition["semantic_poles"][pole] for pole in ("low", "typical", "high"))
         for definition in ordered
     )
 
 
-def test_v6_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path, monkeypatch) -> None:
+def test_v6_baseline_integrity_and_registry_errors_are_caller_friendly(
+    tmp_path, monkeypatch
+) -> None:
     _write_v6_baseline(tmp_path)
     path = tmp_path / f"{BASELINE_ID}.json"
     payload = json.loads(path.read_text())
@@ -377,7 +452,11 @@ def test_v6_baseline_integrity_and_registry_errors_are_caller_friendly(tmp_path,
 
 def test_generator_metadata_declares_current_grain_without_full_regeneration() -> None:
     bazi = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "generate_bazi_baseline.py"), "--metadata"],
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "generate_bazi_baseline.py"),
+            "--metadata",
+        ],
         cwd=ROOT,
         check=True,
         capture_output=True,
@@ -397,7 +476,18 @@ def test_generator_metadata_declares_current_grain_without_full_regeneration() -
     pattern_registry = load_packaged_shen_registry()
     assert bazi_metadata["pattern_bundle_id"] == pattern_registry.bundle_id
     assert bazi_metadata["pattern_bundle_digest"] == pattern_registry.bundle_digest
-    assert bazi_metadata["theme_comparison_method"] == "transparent_metric_distributions"
+    assert (
+        bazi_metadata["theme_comparison_method"] == "transparent_metric_distributions"
+    )
+    assert (
+        bazi_metadata["consumer_feature_method"]
+        == statistics.BAZI_CONSUMER_FEATURE_METHOD
+    )
+    assert bazi_metadata["pattern_authority"] == {
+        "pattern_bundle_id": pattern_registry.bundle_id,
+        "pattern_bundle_digest": pattern_registry.bundle_digest,
+        "feature_semantics": statistics.BAZI_PATTERN_FEATURE_SEMANTICS,
+    }
 
     ziwei = subprocess.run(
         ["node", str(ROOT / "scripts" / "generate_ziwei_baseline.mjs"), "--metadata"],
@@ -409,12 +499,30 @@ def test_generator_metadata_declares_current_grain_without_full_regeneration() -
     ziwei_metadata = json.loads(ziwei.stdout)
     assert ziwei_metadata["schema_version"] == 3
     assert ziwei_metadata["config_id"] == statistics.ZIWEI_STANDARD_CONFIG_ID
-    assert ziwei_metadata["time_index_weights"] == [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1]
-    assert ziwei_metadata["gender_scope"] == "male_only_natal_structure_gender_invariant"
+    assert ziwei_metadata["time_index_weights"] == [
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        1,
+    ]
+    assert (
+        ziwei_metadata["gender_scope"] == "male_only_natal_structure_gender_invariant"
+    )
     assert ziwei_metadata["unique_state_count"] == 43829 * 13
     assert ziwei_metadata["sample_weight"] == 43829 * 24
     assert ziwei_metadata["weighted_unit"] == "civil_hour"
-    assert ziwei_metadata["rules_registry_hash"] == statistics.ziwei_rules_registry_hash()
+    assert (
+        ziwei_metadata["rules_registry_hash"] == statistics.ziwei_rules_registry_hash()
+    )
 
 
 def test_legacy_baseline_without_current_pattern_bundle_cannot_be_promoted() -> None:
@@ -450,7 +558,7 @@ def _current_rule_promotion_source() -> dict:
         "metric_catalog": metric_catalog,
         "metric_catalog_hash": statistics.metric_catalog_hash(metric_catalog),
         "consumer_features": {
-            "rules_version": CONSUMER_RULES_VERSION,
+            **_canonical_consumer_feature_metadata(),
             "catalog": [],
             "hit_weights": {},
         },
@@ -465,6 +573,9 @@ def _current_rule_promotion_source() -> dict:
         ("registry", "Rule formulas changed"),
         ("metric", "Metric formulas changed"),
         ("consumer", "Consumer feature formulas changed"),
+        ("consumer_method", "Consumer pattern authority changed"),
+        ("consumer_authority", "Consumer pattern authority changed"),
+        ("consumer_catalog", "predates canonical lifecycle features"),
     ),
 )
 def test_promotion_requires_exact_rule_formulas(mutation: str, message: str) -> None:
@@ -473,13 +584,274 @@ def test_promotion_requires_exact_rule_formulas(mutation: str, message: str) -> 
         source["rules_registry_hash"] = "sha256:" + "0" * 64
     elif mutation == "metric":
         source["metric_catalog"][0] = {**source["metric_catalog"][0], "label": "旧公式"}
-        source["metric_catalog_hash"] = statistics.metric_catalog_hash(source["metric_catalog"])
-    else:
+        source["metric_catalog_hash"] = statistics.metric_catalog_hash(
+            source["metric_catalog"]
+        )
+    elif mutation == "consumer":
         source["consumer_features"]["rules_version"] = "legacy-consumer-rules"
+    elif mutation == "consumer_method":
+        source["consumer_features"]["method"] = "weighted_empirical_feature_incidence"
+    elif mutation == "consumer_authority":
+        source["consumer_features"]["pattern_authority"]["feature_semantics"] = (
+            "legacy_candidates"
+        )
+    else:
+        source["consumer_features"]["catalog"] = [
+            {
+                "id": "bazi.pattern.ordinary.direct_officer",
+                "kind": "pattern",
+                "title": "正官格",
+            }
+        ]
+        source["consumer_features"]["hit_weights"] = {
+            "bazi.pattern.ordinary.direct_officer": 1
+        }
     source["hash"] = statistics.payload_hash(source)
 
     with pytest.raises(ValueError, match=message):
         _validate_promotion_source(source, "forward")
+
+
+def test_pattern_refresh_replaces_only_legacy_pattern_incidence() -> None:
+    source = _current_rule_promotion_source()
+    source["consumer_features"] = {
+        "rules_version": "metaphysics-consumer-2026.07-v5",
+        "weighted_unit": "minute",
+        "method": "legacy",
+        "catalog": [
+            {
+                "id": "bazi.pattern.special.follow_strong",
+                "kind": "pattern",
+                "title": "从强格",
+            },
+            {
+                "id": "bazi.shensha.combination.two_virtues",
+                "kind": "combination",
+                "title": "二德扶持",
+            },
+        ],
+        "hit_weights": {
+            "bazi.pattern.special.follow_strong": 12.5,
+            "bazi.shensha.combination.two_virtues": 7,
+        },
+    }
+    source["hash"] = statistics.payload_hash(source)
+
+    refreshed = _replace_canonical_pattern_features(
+        source,
+        pattern_weights={
+            "bazi.pattern.canonical.indirect_resource.status.formed": 180,
+        },
+        pattern_titles={
+            "bazi.pattern.canonical.indirect_resource.status.formed": "偏印·成格",
+        },
+    )
+
+    assert refreshed["consumer_features"]["catalog"] == [
+        {
+            "id": "bazi.pattern.canonical.indirect_resource.status.formed",
+            "kind": "pattern",
+            "title": "偏印·成格",
+        },
+        {
+            "id": "bazi.shensha.combination.two_virtues",
+            "kind": "combination",
+            "title": "二德扶持",
+        },
+    ]
+    assert refreshed["consumer_features"]["hit_weights"] == {
+        "bazi.pattern.canonical.indirect_resource.status.formed": 3.0,
+        "bazi.shensha.combination.two_virtues": 7,
+    }
+    assert refreshed["consumer_features"]["rules_version"] == CONSUMER_RULES_VERSION
+    assert (
+        refreshed["consumer_features"]["method"]
+        == statistics.BAZI_CONSUMER_FEATURE_METHOD
+    )
+    assert refreshed["consumer_features"]["pattern_authority"] == {
+        **_pattern_bundle_identity(),
+        "feature_semantics": "canonical_active_lifecycle_status",
+    }
+    assert refreshed["rules_registry_hash"] == statistics.bazi_rules_registry_hash()
+    assert refreshed["hash"] == statistics.payload_hash(refreshed)
+
+
+def test_full_generator_path_emits_canonical_pattern_incidence() -> None:
+    pillars = _pillars_from_state_key(("甲子", "丙寅", "丙寅", "戊子"))
+    structure = build_structure_profile(
+        pillars,
+        gender=None,
+        shensha_hits=[],
+        seasonal_status=_seasonal_status(pillars[1]["branch"]),
+    )
+    patterns = assess_patterns(pillars, structure, include_attestations=False)
+
+    pattern_records = [
+        record
+        for record in consumer_feature_records(patterns, {})
+        if record["kind"] == "pattern"
+    ]
+
+    assert pattern_records == [
+        {
+            "id": "bazi.pattern.canonical.indirect_resource.status.candidate",
+            "kind": "pattern",
+            "title": "偏印·候选",
+        }
+    ]
+
+
+@pytest.mark.parametrize("mode", ("forward", "current"))
+def test_checked_in_g4_pattern_incidence_is_canonical(mode: str) -> None:
+    path = (
+        ROOT
+        / "src"
+        / "iching"
+        / "core"
+        / "data"
+        / f"bazi-calendar-1924-2044-g4-{mode}.json"
+    )
+    baseline = json.loads(path.read_text())
+    package = baseline["consumer_features"]
+    pattern_ids = {
+        item["id"] for item in package["catalog"] if item["kind"] == "pattern"
+    }
+
+    assert pattern_ids
+    assert pattern_ids == {
+        identifier
+        for identifier in package["hit_weights"]
+        if identifier.startswith("bazi.pattern.")
+    }
+    assert all(
+        identifier.startswith("bazi.pattern.canonical.") for identifier in pattern_ids
+    )
+    assert not any(
+        ".ordinary." in identifier or ".special." in identifier
+        for identifier in pattern_ids
+    )
+    assert package["rules_version"] == CONSUMER_RULES_VERSION
+    assert package["method"] == statistics.BAZI_CONSUMER_FEATURE_METHOD
+    assert package["pattern_authority"] == {
+        **_pattern_bundle_identity(),
+        "feature_semantics": statistics.BAZI_PATTERN_FEATURE_SEMANTICS,
+    }
+    assert baseline["rules_registry_hash"] == statistics.bazi_rules_registry_hash()
+    assert baseline["hash"] == statistics.payload_hash(baseline)
+
+
+@pytest.mark.parametrize("mutation", ("method", "bundle", "semantics"))
+def test_g4_loader_rejects_noncanonical_consumer_pattern_producer(
+    mutation: str,
+) -> None:
+    path = (
+        ROOT
+        / "src"
+        / "iching"
+        / "core"
+        / "data"
+        / "bazi-calendar-1924-2044-g4-forward.json"
+    )
+    baseline = json.loads(path.read_text())
+    package = baseline["consumer_features"]
+    if mutation == "method":
+        package["method"] = "weighted_empirical_feature_incidence"
+    elif mutation == "bundle":
+        package["pattern_authority"]["pattern_bundle_digest"] = "stale"
+    else:
+        package["pattern_authority"]["feature_semantics"] = "legacy_candidates"
+    baseline["hash"] = statistics.payload_hash(baseline)
+
+    with pytest.raises(statistics.BaselineVersionMismatchError):
+        statistics._validate_v3_baseline(baseline)
+
+
+def _approved_pattern_refresh_source() -> dict:
+    source_path = (
+        ROOT
+        / "src"
+        / "iching"
+        / "core"
+        / "data"
+        / "bazi-calendar-1924-2044-g4-forward.json"
+    )
+    source = json.loads(source_path.read_text())
+    package = source["consumer_features"]
+    non_patterns = [item for item in package["catalog"] if item["kind"] != "pattern"]
+    non_pattern_ids = {item["id"] for item in non_patterns}
+    source["pattern_bundle_digest"] = REFRESH_SOURCE_PATTERN_BUNDLE_DIGEST
+    source["rules_registry_hash"] = REFRESH_SOURCE_RULES_REGISTRY_HASH
+    source["consumer_features"] = {
+        "rules_version": REFRESH_SOURCE_CONSUMER_RULES_VERSION,
+        "weighted_unit": "minute",
+        "method": "weighted_empirical_feature_incidence",
+        "catalog": [
+            *non_patterns,
+            {
+                "id": "bazi.pattern.ordinary.direct_officer",
+                "kind": "pattern",
+                "title": "正官格",
+            },
+        ],
+        "hit_weights": {
+            **{
+                key: value
+                for key, value in package["hit_weights"].items()
+                if key in non_pattern_ids
+            },
+            "bazi.pattern.ordinary.direct_officer": 1,
+        },
+    }
+    source["hash"] = statistics.payload_hash(source)
+    return source
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("schema", "schema version"),
+        ("generation", "generation version"),
+        ("registry", "pre-refresh rule registry"),
+        ("feature", "Feature formulas changed"),
+        ("metric", "Metric formulas changed"),
+        ("consumer", "approved v5 consumer producer"),
+        ("consumer_weights", "catalog and weights differ"),
+    ),
+)
+def test_pattern_refresh_rejects_mismatched_preserved_producers(
+    mutation: str,
+    message: str,
+) -> None:
+    source = _approved_pattern_refresh_source()
+    if mutation == "schema":
+        source["schema_version"] -= 1
+    elif mutation == "generation":
+        source["baseline_generation_version"] -= 1
+    elif mutation == "registry":
+        source["rules_registry_hash"] = "sha256:" + "0" * 64
+    elif mutation == "feature":
+        source["feature_catalog"] = source["feature_catalog"][:-1]
+        source["feature_catalog_hash"] = statistics.feature_catalog_hash(
+            source["feature_catalog"]
+        )
+    elif mutation == "metric":
+        source["metric_catalog"][0] = {
+            **source["metric_catalog"][0],
+            "label": "stale",
+        }
+        source["metric_catalog_hash"] = statistics.metric_catalog_hash(
+            source["metric_catalog"]
+        )
+    elif mutation == "consumer":
+        source["consumer_features"]["rules_version"] = "unknown-producer"
+    else:
+        source["consumer_features"]["hit_weights"].pop(
+            next(iter(source["consumer_features"]["hit_weights"]))
+        )
+    source["hash"] = statistics.payload_hash(source)
+
+    with pytest.raises(ValueError, match=message):
+        _validate_pattern_refresh_source(source, "forward")
 
 
 def test_statistics_endpoint_accepts_only_normalized_features() -> None:

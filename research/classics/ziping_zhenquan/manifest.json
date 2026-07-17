@@ -155,7 +155,7 @@
       },
       "id": "zzq.pattern.resource",
       "record_counts": {
-        "examples": 1,
+        "examples": 2,
         "non_rules": 19,
         "propositions": 4,
         "rule_candidates": 8,
@@ -261,7 +261,7 @@
       },
       "id": "zzq.pattern.prosperity-robbery",
       "record_counts": {
-        "examples": 1,
+        "examples": 2,
         "non_rules": 17,
         "propositions": 7,
         "rule_candidates": 13,
