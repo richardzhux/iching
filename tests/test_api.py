@@ -6,6 +6,11 @@ from fastapi.testclient import TestClient
 
 from iching.integrations.ai import AIResponseData
 from iching.integrations.supabase_client import SupabaseUser
+from iching.core.bazi_rules.registry import load_packaged_shen_registry
+from iching.core.calendar_engine import ENGINE_VERSION as CALENDAR_ENGINE_VERSION
+from iching.core.metaphysics_consumer import CONSUMER_RULES_VERSION
+from iching.core.metaphysics_statistics import BaselineVersionMismatchError
+from iching.core.shensha import RULES_VERSION as SHENSHA_RULES_VERSION
 from iching.web.api.main import app
 from iching.web.api import routes
 
@@ -56,19 +61,135 @@ def test_metaphysics_chart_endpoint() -> None:
     assert len(data["pillars"]) == 4
     assert data["calendar_facts"]["month_command"] == "寅"
     assert data["calendar_facts"]["day_branch"] == "辰"
-    assert data["calendar_facts"]["six_spirits"] == ["青龙", "朱雀", "勾陈", "腾蛇", "白虎", "玄武"]
+    assert data["calendar_facts"]["six_spirits"] == [
+        "青龙",
+        "朱雀",
+        "勾陈",
+        "腾蛇",
+        "白虎",
+        "玄武",
+    ]
+    registry = load_packaged_shen_registry()
+    assert data["derived_schema_version"] == 7
+    assert data["rule_versions"] == {
+        "calendar": CALENDAR_ENGINE_VERSION,
+        "pattern_bundle": registry.bundle_id,
+        "pattern_digest": registry.bundle_digest,
+        "shensha": SHENSHA_RULES_VERSION,
+        "consumer": CONSUMER_RULES_VERSION,
+    }
+
+
+def test_metaphysics_period_endpoint_returns_typed_activity_cycle() -> None:
+    response = client.post(
+        "/api/tools/metaphysics/periods",
+        json={
+            "timestamp": "2004-06-26T04:30:00",
+            "timezone": "Asia/Shanghai",
+            "gender": "male",
+            "day_boundary": "forward",
+            "cycle_index": 2,
+        },
+    )
+
+    assert response.status_code == 200
+    cycle = response.json()["cycle"]
+    assert cycle["index"] == 2
+    assert cycle["years"] and cycle["years"][0]["months"]
+    activations = [
+        activation
+        for items in cycle["theme_activations"].values()
+        for activation in items
+    ]
+    assert activations
+    assert all(activation["role"] == "activity" for activation in activations)
+    assert all(activation["activity"] >= 0 for activation in activations)
+
+
+def test_pattern_rule_endpoint_returns_compact_verified_source_summary() -> None:
+    registry = load_packaged_shen_registry()
+    rule = registry.rules[0]
+    response = client.get(
+        f"/api/tools/metaphysics/pattern-rules/{registry.bundle_id}/{rule.id}"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["bundle_id"] == registry.bundle_id
+    assert data["bundle_digest"] == registry.bundle_digest
+    assert data["rule_id"] == rule.id
+    assert data["sources"]
+    assert all(source["review_state"] == "scan_verified" for source in data["sources"])
+    assert all(source["locators"] for source in data["sources"])
+    locators = [locator for source in data["sources"] for locator in source["locators"]]
+    assert all(locator["quote"] for locator in locators)
+    assert all(locator["url"] for locator in locators)
+    assert all(locator["pdf_page"] for locator in locators)
+    assert "corpus_artifact_digest" not in response.text
+    assert "predicate" not in response.text
+    assert "full_trace" not in response.text
+
+
+def test_pattern_rule_endpoint_rejects_unknown_bundle_and_rule() -> None:
+    registry = load_packaged_shen_registry()
+    assert (
+        client.get(
+            f"/api/tools/metaphysics/pattern-rules/unknown-bundle/{registry.rules[0].id}"
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"/api/tools/metaphysics/pattern-rules/{registry.bundle_id}/unknown-rule"
+        ).status_code
+        == 404
+    )
+
+
+def test_metaphysics_chart_survives_statistics_version_failure(monkeypatch) -> None:
+    import iching.core.metaphysics as metaphysics
+
+    def unavailable_statistics(*args, **kwargs):
+        raise BaselineVersionMismatchError("测试基线版本不匹配")
+
+    monkeypatch.setattr(metaphysics, "statistics_for_shensha", unavailable_statistics)
+    response = client.post(
+        "/api/tools/metaphysics",
+        json={
+            "timestamp": "2024-02-10T12:00:00",
+            "timezone": "Asia/Shanghai",
+            "day_boundary": "forward",
+            "gender": "male",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["pillars"]) == 4
+    assert data["structure"]["patterns"]
+    assert data["period_layers"]["dayun"]
+    assert data["statistics"]["status"] == "version_mismatch"
+    assert data["statistics"]["unavailable_reason"] == "测试基线版本不匹配"
+    assert data["statistics"]["baseline"]["id"] == "bazi-calendar-1924-2044-g4-forward"
+    assert data["statistics"]["rarity_metrics"] == []
+    assert data["statistics"]["theme_profiles"] == []
+    assert data["theme_profiles"]
 
 
 def test_chat_stream_endpoint_emits_sse_events() -> None:
     class FakeChatService:
         def authenticate(self, token: str) -> SupabaseUser:
-            return SupabaseUser(id="00000000-0000-0000-0000-000000000001", email="reader@example.com")
+            return SupabaseUser(
+                id="00000000-0000-0000-0000-000000000001", email="reader@example.com"
+            )
 
         def stream_followup(self, **kwargs):
             assert kwargs["model_override"] == "gpt-5.6-terra"
             assert kwargs["restart"] is False
             yield {"type": "delta", "delta": "先稳"}
-            yield {"type": "completed", "assistant": {"role": "assistant", "content": "先稳后进"}, "usage": {"total_tokens": 9}}
+            yield {
+                "type": "completed",
+                "assistant": {"role": "assistant", "content": "先稳后进"},
+                "usage": {"total_tokens": 9},
+            }
 
     fake_chat_service = FakeChatService()
     app.dependency_overrides[routes._get_chat_service] = lambda: fake_chat_service
@@ -117,14 +238,18 @@ def test_create_session_manual_lines() -> None:
     assert data["session_dict"]["topic"] == "事业"
     assert data["session_dict"]["user_context"] == "我需要在月底前决定。"
     assert data["reading_brief"]["source_passages"]
-    assert data["reading_brief"]["archive_sources"]["total_passages"] >= len(data["reading_brief"]["source_passages"])
+    assert data["reading_brief"]["archive_sources"]["total_passages"] >= len(
+        data["reading_brief"]["source_passages"]
+    )
     assert data["reading_brief"]["personal_context"]["status"] == "reserved"
 
 
 def test_create_session_ai_enabled_returns_reading_brief(monkeypatch) -> None:
     class FakeChatService:
         def authenticate(self, token: str) -> SupabaseUser:
-            return SupabaseUser(id="00000000-0000-0000-0000-000000000001", email="reader@example.com")
+            return SupabaseUser(
+                id="00000000-0000-0000-0000-000000000001", email="reader@example.com"
+            )
 
         def record_session_snapshot(self, *args, **kwargs) -> None:
             return None
@@ -145,7 +270,9 @@ def test_create_session_ai_enabled_returns_reading_brief(monkeypatch) -> None:
             usage={"input_tokens": 4, "output_tokens": 8, "total_tokens": 12},
         )
 
-    monkeypatch.setattr("iching.web.service._validate_ai_password", lambda password: (True, ""))
+    monkeypatch.setattr(
+        "iching.web.service._validate_ai_password", lambda password: (True, "")
+    )
     monkeypatch.setattr("iching.services.session.start_analysis", fake_start_analysis)
     fake_chat_service = FakeChatService()
     monkeypatch.setattr(routes.get_session_runner(), "chat_service", fake_chat_service)

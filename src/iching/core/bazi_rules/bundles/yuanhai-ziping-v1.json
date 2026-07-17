@@ -1,0 +1,20 @@
+{
+  "authority_layer": "yuanhai",
+  "availability": "partial",
+  "base_bundle_digest": "bac491fb41eaede8257667913722a9026698bc32b0fb57ce76b9de0bb32cc1b3",
+  "base_bundle_id": "zzq-shen-canonical-v1",
+  "overlay_descriptor_version": "bazi-overlay-descriptor-v1",
+  "registry": {
+    "authority_layer": "yuanhai",
+    "bundle_digest": "b8300d0248b8688b86b55842bf868ae2cc90908f328294b31a7b9c44e28973a9",
+    "bundle_id": "yuanhai-ziping-v1",
+    "exclusions": [],
+    "registry_version": "bazi-rule-registry-v1",
+    "rules": [],
+    "source_bundle_digest": "bfbbcb378b69e3b00c3d80df17486bcf2e9352fc8137fd79bfecde291f812a36",
+    "source_provenance": [],
+    "source_provenance_digest": ""
+  },
+  "relations": [],
+  "unavailable_reason": null
+}

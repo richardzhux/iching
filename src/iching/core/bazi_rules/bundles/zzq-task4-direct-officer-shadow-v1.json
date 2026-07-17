@@ -1,0 +1,582 @@
+{
+  "bundle_digest": "b95f8d7e5e94fbd179f12b1704bf169ead94f14fd2d3fdd4a9410b474471ad3e",
+  "bundle_id": "zzq-shen-canonical-v1",
+  "exclusions": [
+    {
+      "candidate_id": "zzq.prop.officer.damage-dual-support-001",
+      "reason": "匿名命例只進入精確四柱證言，不生成通用財印損害規則。",
+      "source_ids": [
+        "zzq.prop.officer.damage-dual-support-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.form-purity-001",
+      "reason": "金例的清配置保留為例證，不從原始藏干或歷史結果生成通用純度規則。",
+      "source_ids": [
+        "zzq.prop.officer.form-purity-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.rescue-fan-allocation-001",
+      "reason": "范例的部分巳丑會金與雙作用分配只進入精確四柱證言，不生成通用部分三合。",
+      "source_ids": [
+        "zzq.prop.officer.rescue-fan-allocation-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.variant-seal-effect-001",
+      "reason": "減官與洩官的底本異文未裁定，不編譯效果。",
+      "source_ids": [
+        "zzq.prop.officer.variant-seal-effect-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.rule-candidate.officer.damage-punishment-001",
+      "reason": "廣義刑沖破害尚不能把損害綁定到同一正官成格路徑，且會反駁薛例陽性夾具。",
+      "source_ids": [
+        "zzq.prop.officer.damage-punishment-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.rule-candidate.officer.form-transform-001",
+      "reason": "化官為印缺少已裁定的轉化事實，不從組合結果推斷轉化。",
+      "source_ids": [
+        "zzq.prop.officer.form-transform-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.rule-candidate.officer.rescue-branch-combination-001",
+      "reason": "廣義地支會合救應尚不能解析並解除同一個已發生的支關係損害。",
+      "source_ids": [
+        "zzq.prop.officer.rescue-branch-combination-001"
+      ]
+    }
+  ],
+  "registry_version": "bazi-rule-registry-v1",
+  "rules": [
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.officer.form-wealth-support-001",
+      "invalidates_rescue_ids": [],
+      "path_id": "wealth_support",
+      "pattern_id": "direct_officer",
+      "precedence": 10,
+      "predicate": {
+        "families": [
+          "wealth"
+        ],
+        "gods": [
+          "偏财",
+          "正财"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.form-wealth-support-001"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.officer.form-seal-support-001",
+      "invalidates_rescue_ids": [],
+      "path_id": "seal_support",
+      "pattern_id": "direct_officer",
+      "precedence": 20,
+      "predicate": {
+        "families": [
+          "seal"
+        ],
+        "gods": [
+          "偏印",
+          "正印"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.form-seal-support-001"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.officer.form-dual-support-001",
+      "invalidates_rescue_ids": [],
+      "path_id": "dual_support",
+      "pattern_id": "direct_officer",
+      "precedence": 30,
+      "predicate": {
+        "children": [
+          {
+            "child": {
+              "adjacent": true,
+              "controlled_gods": [],
+              "controlled_positions": [],
+              "controlled_values": [],
+              "controller_gods": [],
+              "controller_positions": [],
+              "controller_values": [],
+              "excluded_member_gods": [],
+              "excluded_occurrence_ids": [],
+              "layers": [
+                "stem"
+              ],
+              "member_filters": [
+                {
+                  "elements": [],
+                  "gods": [
+                    "偏印",
+                    "正印"
+                  ],
+                  "layers": [],
+                  "occurrence_ids": [],
+                  "positions": [],
+                  "roles": [],
+                  "values": []
+                },
+                {
+                  "elements": [],
+                  "gods": [
+                    "偏财",
+                    "正财"
+                  ],
+                  "layers": [],
+                  "occurrence_ids": [],
+                  "positions": [],
+                  "roles": [],
+                  "values": []
+                }
+              ],
+              "op": "relation_exists",
+              "positions": [],
+              "relation_types": [
+                "stem_combine",
+                "stem_control"
+              ],
+              "result_elements": [],
+              "values": []
+            },
+            "op": "not"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.form-dual-support-001"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [
+        "seal_support",
+        "wealth_support"
+      ],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "officer_killing_mixture",
+      "id": "zzq.rule.officer.damage-mixed-killing-001",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 50,
+      "predicate": {
+        "families": [
+          "officer"
+        ],
+        "gods": [
+          "七杀"
+        ],
+        "op": "activation_exists",
+        "origins": [
+          "exposed_stem",
+          "source_rule"
+        ],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.damage-mixed-killing-001"
+      ],
+      "stage": "damage",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "damage",
+      "id": "zzq.rule.officer.damage-hurting-officer-001",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 60,
+      "predicate": {
+        "families": [
+          "output"
+        ],
+        "gods": [
+          "伤官"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.damage-hurting-officer-001"
+      ],
+      "stage": "damage",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "rescue_invalidation",
+      "id": "zzq.rule.officer.damage-wealth-breaks-seal-001",
+      "invalidates_rescue_ids": [
+        "zzq.rule.officer.rescue-hurting-seal-001"
+      ],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 70,
+      "predicate": {
+        "children": [
+          {
+            "adjacent": true,
+            "controlled_gods": [
+              "偏印",
+              "正印"
+            ],
+            "controlled_positions": [],
+            "controlled_values": [],
+            "controller_gods": [
+              "偏财",
+              "正财"
+            ],
+            "controller_positions": [],
+            "controller_values": [],
+            "excluded_member_gods": [],
+            "excluded_occurrence_ids": [],
+            "layers": [
+              "stem"
+            ],
+            "member_filters": [],
+            "op": "relation_exists",
+            "positions": [],
+            "relation_types": [
+              "stem_control"
+            ],
+            "result_elements": [],
+            "values": []
+          },
+          {
+            "families": [
+              "output"
+            ],
+            "gods": [
+              "伤官"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.damage-wealth-breaks-seal-001"
+      ],
+      "stage": "damage",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "rescue",
+      "id": "zzq.rule.officer.rescue-hurting-seal-001",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 80,
+      "predicate": {
+        "families": [
+          "seal"
+        ],
+        "gods": [
+          "偏印",
+          "正印"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [
+        "zzq.rule.officer.damage-hurting-officer-001"
+      ],
+      "source_ids": [
+        "zzq.prop.officer.rescue-hurting-seal-001"
+      ],
+      "stage": "rescue",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "rescue",
+      "id": "zzq.rule.useful.rescue-officer-002",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 90,
+      "predicate": {
+        "adjacent": true,
+        "controlled_gods": [],
+        "controlled_positions": [],
+        "controlled_values": [],
+        "controller_gods": [],
+        "controller_positions": [],
+        "controller_values": [],
+        "excluded_member_gods": [
+          "正官"
+        ],
+        "excluded_occurrence_ids": [],
+        "layers": [
+          "stem"
+        ],
+        "member_filters": [
+          {
+            "elements": [],
+            "gods": [
+              "七杀"
+            ],
+            "layers": [],
+            "occurrence_ids": [],
+            "positions": [],
+            "roles": [],
+            "values": []
+          }
+        ],
+        "op": "relation_exists",
+        "positions": [],
+        "relation_types": [
+          "stem_combine"
+        ],
+        "result_elements": [],
+        "values": []
+      },
+      "resolves_damage_ids": [
+        "zzq.rule.officer.damage-mixed-killing-001"
+      ],
+      "source_ids": [
+        "zzq.prop.useful.rescue-officer-002"
+      ],
+      "stage": "rescue",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "source_precedence",
+      "id": "zzq.rule.officer.form-single-support-001",
+      "invalidates_rescue_ids": [],
+      "path_id": "wealth_support",
+      "pattern_id": "direct_officer",
+      "precedence": 40,
+      "predicate": {
+        "children": [
+          {
+            "adjacent": true,
+            "controlled_gods": [],
+            "controlled_positions": [],
+            "controlled_values": [],
+            "controller_gods": [],
+            "controller_positions": [],
+            "controller_values": [],
+            "excluded_member_gods": [],
+            "excluded_occurrence_ids": [],
+            "layers": [
+              "stem"
+            ],
+            "member_filters": [
+              {
+                "elements": [],
+                "gods": [
+                  "偏印",
+                  "正印"
+                ],
+                "layers": [],
+                "occurrence_ids": [],
+                "positions": [],
+                "roles": [],
+                "values": []
+              },
+              {
+                "elements": [],
+                "gods": [
+                  "偏财",
+                  "正财"
+                ],
+                "layers": [],
+                "occurrence_ids": [],
+                "positions": [],
+                "roles": [],
+                "values": []
+              }
+            ],
+            "op": "relation_exists",
+            "positions": [],
+            "relation_types": [
+              "stem_combine",
+              "stem_control"
+            ],
+            "result_elements": [],
+            "values": []
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.form-single-support-001"
+      ],
+      "stage": "resolution",
+      "supersedes_path_ids": [
+        "seal_support"
+      ],
+      "targets_path_ids": [
+        "wealth_support"
+      ]
+    }
+  ],
+  "source_provenance": [
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.officer.damage-hurting-officer-001","review_state":"scan_verified","segments":[{"id":"zzq.seg.officer.rescue-overview.doctrine","layer":"shen_core","review_state":"scan_verified","text_type":"rescue_rule"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.officer.58","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"damage"},
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.officer.damage-mixed-killing-001","review_state":"scan_verified","segments":[{"id":"zzq.seg.officer.rescue-overview.doctrine","layer":"shen_core","review_state":"scan_verified","text_type":"rescue_rule"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.officer.58","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"damage"},
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.officer.damage-wealth-breaks-seal-001","review_state":"scan_verified","segments":[{"id":"zzq.seg.officer.damage","layer":"shen_core","review_state":"scan_verified","text_type":"damage_rule"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.officer.58","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"damage"},
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.officer.form-dual-support-001","review_state":"scan_verified","segments":[{"id":"zzq.seg.officer.formation.dual-support","layer":"shen_core","review_state":"scan_verified","text_type":"formation_rule"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.officer.57","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"formation"},
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.officer.form-seal-support-001","review_state":"scan_verified","segments":[{"id":"zzq.seg.officer.single-support","layer":"shen_core","review_state":"scan_verified","text_type":"comparative_rule"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.officer.58","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"formation"},
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.officer.form-single-support-001","review_state":"scan_verified","segments":[{"id":"zzq.seg.officer.single-support","layer":"shen_core","review_state":"scan_verified","text_type":"comparative_rule"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.officer.58","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"formation"},
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.officer.form-wealth-support-001","review_state":"scan_verified","segments":[{"id":"zzq.seg.officer.single-support","layer":"shen_core","review_state":"scan_verified","text_type":"comparative_rule"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.officer.58","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"formation"},
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.officer.rescue-hurting-seal-001","review_state":"scan_verified","segments":[{"id":"zzq.seg.officer.rescue-overview.doctrine","layer":"shen_core","review_state":"scan_verified","text_type":"rescue_rule"},{"id":"zzq.seg.officer.rescue-overview.introduction","layer":"shen_core","review_state":"scan_verified","text_type":"rescue_doctrine"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.officer.58","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"rescue"},
+    {"corpus_artifact_digest":"fd5c7a64370ae839707ed7e80690bb853a862fba434791c15ff784b0a663b182","corpus_manifest_digest":"922c5dad879a049429e4d6d0092bfa57b48c7dc1de111f19801c5256bfed85c5","layer":"shen_core","production_eligible":true,"proposition_id":"zzq.prop.useful.rescue-officer-002","review_state":"scan_verified","segments":[{"id":"zzq.seg.useful.rescue","layer":"shen_core","review_state":"scan_verified","text_type":"rescue_rules"}],"source_manifest_digest":"d463fc7eebe502f3b5b24bedcb634ee9c3a672f0aaf5417775cdcacad865637e","support_locators":[{"id":"loc.gc.useful.20","review_state":"scan_verified","visually_verified":true,"witness_id":"gengcun-ji-ncl-06599","witness_production_allowed":true,"witness_rights_status":"public_domain"}],"text_type":"rescue"}
+  ],
+  "source_provenance_digest": "6947ffaaba8022e41d87ec8b20dff2c24014a3fef6bfa3c2f39fc6e9831c42d7",
+  "source_bundle_digest": "456d1235259336e683653695e01f5c1c28e1a20b4e43ba39a4f1869827705385"
+}

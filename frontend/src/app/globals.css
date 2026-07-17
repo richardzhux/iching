@@ -254,6 +254,22 @@
   margin: 0;
 }
 
+/* Keep the report inside the consumer viewport; wide chart facts scroll only
+   inside their deliberately marked regions instead of widening the page. */
+.chart-report {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.chart-report .overflow-x-auto {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 .chart-pillar {
   --element-accent: hsl(var(--primary));
   box-shadow: inset 0 3px 0 var(--element-accent);
@@ -290,5 +306,15 @@
 @media (max-width: 767px) {
   body {
     background-attachment: scroll;
+  }
+}
+
+@media (max-width: 390px) {
+  .chart-report {
+    overflow-wrap: anywhere;
+  }
+
+  .chart-report .overflow-x-auto {
+    overflow-wrap: normal;
   }
 }

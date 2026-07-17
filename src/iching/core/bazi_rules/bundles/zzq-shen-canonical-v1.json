@@ -1,0 +1,3979 @@
+{
+  "authority_layer": "shen_core",
+  "bundle_digest": "bac491fb41eaede8257667913722a9026698bc32b0fb57ce76b9de0bb32cc1b3",
+  "bundle_id": "zzq-shen-canonical-v1",
+  "exclusions": [
+    {
+      "candidate_id": "zzq.prop.officer.damage-dual-support-001",
+      "pattern_id": "direct_officer",
+      "reason": "匿名命例只進入精確四柱證言，不生成通用財印損害規則。",
+      "source_ids": [
+        "zzq.prop.officer.damage-dual-support-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.form-purity-001",
+      "pattern_id": "direct_officer",
+      "reason": "金例的清配置保留為例證，不從原始藏干或歷史結果生成通用純度規則。",
+      "source_ids": [
+        "zzq.prop.officer.form-purity-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.rescue-fan-allocation-001",
+      "pattern_id": "direct_officer",
+      "reason": "范例的部分巳丑會金與雙作用分配只進入精確四柱證言，不生成通用部分三合。",
+      "source_ids": [
+        "zzq.prop.officer.rescue-fan-allocation-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.prop.officer.variant-seal-effect-001",
+      "pattern_id": "direct_officer",
+      "reason": "減官與洩官的底本異文未裁定，不編譯效果。",
+      "source_ids": [
+        "zzq.prop.officer.variant-seal-effect-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.rule-candidate.officer.damage-punishment-001",
+      "pattern_id": "direct_officer",
+      "reason": "廣義刑沖破害尚不能把損害綁定到同一正官成格路徑，且會反駁薛例陽性夾具。",
+      "source_ids": [
+        "zzq.prop.officer.damage-punishment-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.rule-candidate.officer.form-transform-001",
+      "pattern_id": "direct_officer",
+      "reason": "化官為印缺少已裁定的轉化事實，不從組合結果推斷轉化。",
+      "source_ids": [
+        "zzq.prop.officer.form-transform-001"
+      ]
+    },
+    {
+      "candidate_id": "zzq.rule-candidate.officer.rescue-branch-combination-001",
+      "pattern_id": "direct_officer",
+      "reason": "廣義地支會合救應尚不能解析並解除同一個已發生的支關係損害。",
+      "source_ids": [
+        "zzq.prop.officer.rescue-branch-combination-001"
+      ]
+    }
+  ],
+  "registry_version": "bazi-rule-registry-v1",
+  "rules": [
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.direct-officer.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 100,
+      "predicate": {
+        "element": null,
+        "god": "正官",
+        "level": "main",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.direct-resource.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_resource",
+      "precedence": 100,
+      "predicate": {
+        "element": null,
+        "god": "正印",
+        "level": "main",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.resource.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.direct-wealth.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_wealth",
+      "precedence": 100,
+      "predicate": {
+        "element": null,
+        "god": "正财",
+        "level": "main",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.wealth.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.eating-god.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "eating_god",
+      "precedence": 100,
+      "predicate": {
+        "element": null,
+        "god": "食神",
+        "level": "main",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.food.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.hurting-officer.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "hurting_officer",
+      "precedence": 100,
+      "predicate": {
+        "element": null,
+        "god": "伤官",
+        "level": "main",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.hurting.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.indirect-resource.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "indirect_resource",
+      "precedence": 100,
+      "predicate": {
+        "element": null,
+        "god": "偏印",
+        "level": "main",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.resource.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.indirect-wealth.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "indirect_wealth",
+      "precedence": 100,
+      "predicate": {
+        "element": null,
+        "god": "偏财",
+        "level": "main",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.wealth.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.month-prosperity.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "month_prosperity",
+      "precedence": 100,
+      "predicate": {
+        "children": [
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "丁"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "午"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "丙"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "巳"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "乙"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "卯"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "壬"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "亥"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "己"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "午"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "庚"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "申"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "戊"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "巳"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "甲"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "寅"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "癸"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "子"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "辛"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "酉"
+              }
+            ],
+            "op": "all"
+          }
+        ],
+        "op": "any"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.route-prosperity"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.month-robbery.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "month_robbery",
+      "precedence": 100,
+      "predicate": {
+        "children": [
+          {
+            "child": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "丙"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "午"
+                    }
+                  ],
+                  "op": "all"
+                },
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "壬"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "子"
+                    }
+                  ],
+                  "op": "all"
+                },
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "庚"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "酉"
+                    }
+                  ],
+                  "op": "all"
+                },
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "戊"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "午"
+                    }
+                  ],
+                  "op": "all"
+                },
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "甲"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "卯"
+                    }
+                  ],
+                  "op": "all"
+                }
+              ],
+              "op": "any"
+            },
+            "op": "not"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "丁"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "巳"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "乙"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "寅"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "己"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "巳"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "癸"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "亥"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "辛"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "申"
+                  }
+                ],
+                "op": "all"
+              }
+            ],
+            "op": "any"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.route-robbery"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.seven-killings.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "seven_killings",
+      "precedence": 100,
+      "predicate": {
+        "element": null,
+        "god": "七杀",
+        "level": "main",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.kill.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_confirm",
+      "id": "zzq.rule.yang-blade.candidate-confirm",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "yang_blade",
+      "precedence": 100,
+      "predicate": {
+        "children": [
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "丙"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "午"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "壬"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "子"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "庚"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "酉"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "戊"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "午"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "甲"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "卯"
+              }
+            ],
+            "op": "all"
+          }
+        ],
+        "op": "any"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.blade.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.direct-officer.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 110,
+      "predicate": {
+        "element": null,
+        "god": "正官",
+        "level": "any",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.direct-resource.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_resource",
+      "precedence": 110,
+      "predicate": {
+        "element": null,
+        "god": "正印",
+        "level": "any",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.resource.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.direct-wealth.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_wealth",
+      "precedence": 110,
+      "predicate": {
+        "element": null,
+        "god": "正财",
+        "level": "any",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.wealth.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.eating-god.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "eating_god",
+      "precedence": 110,
+      "predicate": {
+        "element": null,
+        "god": "食神",
+        "level": "any",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.food.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.hurting-officer.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "hurting_officer",
+      "precedence": 110,
+      "predicate": {
+        "element": null,
+        "god": "伤官",
+        "level": "any",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.hurting.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.indirect-resource.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "indirect_resource",
+      "precedence": 110,
+      "predicate": {
+        "element": null,
+        "god": "偏印",
+        "level": "any",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.resource.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.indirect-wealth.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "indirect_wealth",
+      "precedence": 110,
+      "predicate": {
+        "element": null,
+        "god": "偏财",
+        "level": "any",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.wealth.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.month-prosperity.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "month_prosperity",
+      "precedence": 110,
+      "predicate": {
+        "children": [
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "丁"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "午"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "丙"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "巳"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "乙"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "卯"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "壬"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "亥"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "己"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "午"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "庚"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "申"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "戊"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "巳"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "甲"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "寅"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "癸"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "子"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "辛"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "酉"
+              }
+            ],
+            "op": "all"
+          }
+        ],
+        "op": "any"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.route-prosperity"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.month-robbery.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "month_robbery",
+      "precedence": 110,
+      "predicate": {
+        "children": [
+          {
+            "child": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "丙"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "午"
+                    }
+                  ],
+                  "op": "all"
+                },
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "壬"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "子"
+                    }
+                  ],
+                  "op": "all"
+                },
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "庚"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "酉"
+                    }
+                  ],
+                  "op": "all"
+                },
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "戊"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "午"
+                    }
+                  ],
+                  "op": "all"
+                },
+                {
+                  "children": [
+                    {
+                      "op": "fact_equals",
+                      "path": "day_master.stem",
+                      "value": "甲"
+                    },
+                    {
+                      "op": "fact_equals",
+                      "path": "month_command.branch",
+                      "value": "卯"
+                    }
+                  ],
+                  "op": "all"
+                }
+              ],
+              "op": "any"
+            },
+            "op": "not"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "丁"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "巳"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "乙"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "寅"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "己"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "巳"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "癸"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "亥"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "辛"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "申"
+                  }
+                ],
+                "op": "all"
+              }
+            ],
+            "op": "any"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.route-robbery"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.seven-killings.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "seven_killings",
+      "precedence": 110,
+      "predicate": {
+        "element": null,
+        "god": "七杀",
+        "level": "any",
+        "op": "month_command_equals",
+        "stem": null
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.kill.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "candidate_possible",
+      "id": "zzq.rule.yang-blade.candidate-possible",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "yang_blade",
+      "precedence": 110,
+      "predicate": {
+        "children": [
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "丙"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "午"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "壬"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "子"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "庚"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "酉"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "戊"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "午"
+              }
+            ],
+            "op": "all"
+          },
+          {
+            "children": [
+              {
+                "op": "fact_equals",
+                "path": "day_master.stem",
+                "value": "甲"
+              },
+              {
+                "op": "fact_equals",
+                "path": "month_command.branch",
+                "value": "卯"
+              }
+            ],
+            "op": "all"
+          }
+        ],
+        "op": "any"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.blade.route"
+      ],
+      "stage": "candidate",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.officer.form-wealth-support-001",
+      "invalidates_rescue_ids": [],
+      "path_id": "wealth_support",
+      "pattern_id": "direct_officer",
+      "precedence": 10,
+      "predicate": {
+        "families": [
+          "wealth"
+        ],
+        "gods": [
+          "偏财",
+          "正财"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.form-wealth-support-001"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.officer.form-seal-support-001",
+      "invalidates_rescue_ids": [],
+      "path_id": "seal_support",
+      "pattern_id": "direct_officer",
+      "precedence": 20,
+      "predicate": {
+        "families": [
+          "seal"
+        ],
+        "gods": [
+          "偏印",
+          "正印"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.form-seal-support-001"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.officer.form-dual-support-001",
+      "invalidates_rescue_ids": [],
+      "path_id": "dual_support",
+      "pattern_id": "direct_officer",
+      "precedence": 30,
+      "predicate": {
+        "children": [
+          {
+            "child": {
+              "adjacent": true,
+              "controlled_gods": [],
+              "controlled_positions": [],
+              "controlled_values": [],
+              "controller_gods": [],
+              "controller_positions": [],
+              "controller_values": [],
+              "excluded_member_gods": [],
+              "excluded_occurrence_ids": [],
+              "layers": [
+                "stem"
+              ],
+              "member_filters": [
+                {
+                  "elements": [],
+                  "gods": [
+                    "偏印",
+                    "正印"
+                  ],
+                  "layers": [],
+                  "occurrence_ids": [],
+                  "positions": [],
+                  "roles": [],
+                  "values": []
+                },
+                {
+                  "elements": [],
+                  "gods": [
+                    "偏财",
+                    "正财"
+                  ],
+                  "layers": [],
+                  "occurrence_ids": [],
+                  "positions": [],
+                  "roles": [],
+                  "values": []
+                }
+              ],
+              "op": "relation_exists",
+              "positions": [],
+              "relation_types": [
+                "stem_combine",
+                "stem_control"
+              ],
+              "result_elements": [],
+              "values": []
+            },
+            "op": "not"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.form-dual-support-001"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [
+        "seal_support",
+        "wealth_support"
+      ],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.blade.form-officer-killing-support",
+      "invalidates_rescue_ids": [],
+      "path_id": "officer_killing_support",
+      "pattern_id": "yang_blade",
+      "precedence": 120,
+      "predicate": {
+        "children": [
+          {
+            "child": {
+              "families": [
+                "output"
+              ],
+              "gods": [
+                "伤官"
+              ],
+              "op": "activation_exists",
+              "origins": [],
+              "positions": [],
+              "scope": "generic"
+            },
+            "op": "not"
+          },
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "七杀",
+              "正官"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.blade.form-officer-killing-support"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "supporting_source_ids": [
+        "zzq.prop.useful.form-blade-001"
+      ],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.direct-resource.form-officer-resource",
+      "invalidates_rescue_ids": [],
+      "path_id": "officer_resource",
+      "pattern_id": "direct_resource",
+      "precedence": 120,
+      "predicate": {
+        "children": [
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "正官"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.resource.form-officer-resource"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.food.form-killing-resource-no-wealth",
+      "invalidates_rescue_ids": [],
+      "path_id": "killing_resource_no_wealth",
+      "pattern_id": "eating_god",
+      "precedence": 120,
+      "predicate": {
+        "children": [
+          {
+            "comparator": "==",
+            "op": "count_compare",
+            "path": "occurrences",
+            "value": 0,
+            "where": {
+              "elements": [],
+              "exposed": null,
+              "gods": [
+                "偏财",
+                "正财"
+              ],
+              "include_day_master": false,
+              "layers": [],
+              "positions": [],
+              "qi_levels": [],
+              "stems": []
+            }
+          },
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "七杀"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.food.form-killing-resource-no-wealth"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.hurting.form-wealth",
+      "invalidates_rescue_ids": [],
+      "path_id": "hurting_wealth",
+      "pattern_id": "hurting_officer",
+      "precedence": 120,
+      "predicate": {
+        "families": [
+          "wealth"
+        ],
+        "gods": [
+          "偏财",
+          "正财"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.hurting.form-wealth"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.indirect-resource.form-officer-resource",
+      "invalidates_rescue_ids": [],
+      "path_id": "officer_resource",
+      "pattern_id": "indirect_resource",
+      "precedence": 120,
+      "predicate": {
+        "children": [
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "正官"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.resource.form-officer-resource"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.kill.form-blade-no-output",
+      "invalidates_rescue_ids": [],
+      "path_id": "killing_blade_no_output",
+      "pattern_id": "seven_killings",
+      "precedence": 120,
+      "predicate": {
+        "children": [
+          {
+            "child": {
+              "families": [
+                "output"
+              ],
+              "gods": [
+                "食神"
+              ],
+              "op": "activation_exists",
+              "origins": [],
+              "positions": [],
+              "scope": "generic"
+            },
+            "op": "not"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "丙"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "午"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "壬"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "子"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "庚"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "酉"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "戊"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "午"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "甲"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "month_command.branch",
+                    "value": "卯"
+                  }
+                ],
+                "op": "all"
+              }
+            ],
+            "op": "any"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.kill.form-blade-no-output"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.month-prosperity.form-officer-resource-support",
+      "invalidates_rescue_ids": [],
+      "path_id": "officer_resource_support",
+      "pattern_id": "month_prosperity",
+      "precedence": 120,
+      "predicate": {
+        "children": [
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "正官"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.form-officer-resource-support"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.month-robbery.form-officer-resource-support",
+      "invalidates_rescue_ids": [],
+      "path_id": "officer_resource_support",
+      "pattern_id": "month_robbery",
+      "precedence": 120,
+      "predicate": {
+        "children": [
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "正官"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.form-officer-resource-support"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.food.form-single-exposed-killing",
+      "invalidates_rescue_ids": [],
+      "path_id": "single_exposed_killing_no_resource_wealth",
+      "pattern_id": "eating_god",
+      "precedence": 121,
+      "predicate": {
+        "children": [
+          {
+            "comparator": "==",
+            "op": "count_compare",
+            "path": "occurrences",
+            "value": 0,
+            "where": {
+              "elements": [],
+              "exposed": null,
+              "gods": [
+                "偏印",
+                "正印"
+              ],
+              "include_day_master": false,
+              "layers": [],
+              "positions": [],
+              "qi_levels": [],
+              "stems": []
+            }
+          },
+          {
+            "comparator": "==",
+            "op": "count_compare",
+            "path": "occurrences",
+            "value": 0,
+            "where": {
+              "elements": [],
+              "exposed": null,
+              "gods": [
+                "偏财",
+                "正财"
+              ],
+              "include_day_master": false,
+              "layers": [],
+              "positions": [],
+              "qi_levels": [],
+              "stems": []
+            }
+          },
+          {
+            "comparator": "==",
+            "op": "count_compare",
+            "path": "occurrences",
+            "value": 1,
+            "where": {
+              "elements": [],
+              "exposed": true,
+              "gods": [
+                "七杀"
+              ],
+              "include_day_master": false,
+              "layers": [
+                "stem"
+              ],
+              "positions": [],
+              "qi_levels": [],
+              "stems": []
+            }
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.food.form-single-exposed-killing"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.month-prosperity.form-officer-wealth-support",
+      "invalidates_rescue_ids": [],
+      "path_id": "officer_wealth_support",
+      "pattern_id": "month_prosperity",
+      "precedence": 125,
+      "predicate": {
+        "children": [
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "正官"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.form-officer-wealth-support"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.month-robbery.form-officer-wealth-support",
+      "invalidates_rescue_ids": [],
+      "path_id": "officer_wealth_support",
+      "pattern_id": "month_robbery",
+      "precedence": 125,
+      "predicate": {
+        "children": [
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "正官"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.form-officer-wealth-support"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.month-prosperity.form-wealth-output",
+      "invalidates_rescue_ids": [],
+      "path_id": "wealth_output",
+      "pattern_id": "month_prosperity",
+      "precedence": 130,
+      "predicate": {
+        "children": [
+          {
+            "families": [
+              "output"
+            ],
+            "gods": [
+              "伤官",
+              "食神"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.form-wealth-output"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.month-robbery.form-wealth-output",
+      "invalidates_rescue_ids": [],
+      "path_id": "wealth_output",
+      "pattern_id": "month_robbery",
+      "precedence": 130,
+      "predicate": {
+        "children": [
+          {
+            "families": [
+              "output"
+            ],
+            "gods": [
+              "伤官",
+              "食神"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.form-wealth-output"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.month-prosperity.form-killing-control",
+      "invalidates_rescue_ids": [],
+      "path_id": "killing_control",
+      "pattern_id": "month_prosperity",
+      "precedence": 140,
+      "predicate": {
+        "children": [
+          {
+            "adjacent": false,
+            "controlled_gods": [
+              "七杀"
+            ],
+            "controlled_positions": [],
+            "controlled_values": [],
+            "controller_gods": [
+              "伤官",
+              "食神"
+            ],
+            "controller_positions": [],
+            "controller_values": [],
+            "excluded_member_gods": [],
+            "excluded_occurrence_ids": [],
+            "layers": [
+              "stem"
+            ],
+            "member_filters": [],
+            "op": "relation_exists",
+            "positions": [],
+            "relation_types": [
+              "stem_control"
+            ],
+            "result_elements": [],
+            "values": []
+          },
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "七杀"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.form-killing-control"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "formation",
+      "id": "zzq.rule.month-robbery.form-killing-control",
+      "invalidates_rescue_ids": [],
+      "path_id": "killing_control",
+      "pattern_id": "month_robbery",
+      "precedence": 140,
+      "predicate": {
+        "children": [
+          {
+            "adjacent": false,
+            "controlled_gods": [
+              "七杀"
+            ],
+            "controlled_positions": [],
+            "controlled_values": [],
+            "controller_gods": [
+              "伤官",
+              "食神"
+            ],
+            "controller_positions": [],
+            "controller_values": [],
+            "excluded_member_gods": [],
+            "excluded_occurrence_ids": [],
+            "layers": [
+              "stem"
+            ],
+            "member_filters": [],
+            "op": "relation_exists",
+            "positions": [],
+            "relation_types": [
+              "stem_control"
+            ],
+            "result_elements": [],
+            "values": []
+          },
+          {
+            "families": [
+              "officer"
+            ],
+            "gods": [
+              "七杀"
+            ],
+            "op": "activation_exists",
+            "origins": [
+              "exposed_stem"
+            ],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.lu-robbery.form-killing-control"
+      ],
+      "stage": "formation",
+      "supersedes_path_ids": [],
+      "targets_path_ids": []
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "officer_killing_mixture",
+      "id": "zzq.rule.officer.damage-mixed-killing-001",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 50,
+      "predicate": {
+        "families": [
+          "officer"
+        ],
+        "gods": [
+          "七杀"
+        ],
+        "op": "activation_exists",
+        "origins": [
+          "exposed_stem",
+          "source_rule"
+        ],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.damage-mixed-killing-001"
+      ],
+      "stage": "damage",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "damage",
+      "id": "zzq.rule.officer.damage-hurting-officer-001",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 60,
+      "predicate": {
+        "families": [
+          "output"
+        ],
+        "gods": [
+          "伤官"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.damage-hurting-officer-001"
+      ],
+      "stage": "damage",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "rescue_invalidation",
+      "id": "zzq.rule.officer.damage-wealth-breaks-seal-001",
+      "invalidates_rescue_ids": [
+        "zzq.rule.officer.rescue-hurting-seal-001"
+      ],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 70,
+      "predicate": {
+        "children": [
+          {
+            "adjacent": true,
+            "controlled_gods": [
+              "偏印",
+              "正印"
+            ],
+            "controlled_positions": [],
+            "controlled_values": [],
+            "controller_gods": [
+              "偏财",
+              "正财"
+            ],
+            "controller_positions": [],
+            "controller_values": [],
+            "excluded_member_gods": [],
+            "excluded_occurrence_ids": [],
+            "layers": [
+              "stem"
+            ],
+            "member_filters": [],
+            "op": "relation_exists",
+            "positions": [],
+            "relation_types": [
+              "stem_control"
+            ],
+            "result_elements": [],
+            "values": []
+          },
+          {
+            "families": [
+              "output"
+            ],
+            "gods": [
+              "伤官"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.damage-wealth-breaks-seal-001"
+      ],
+      "stage": "damage",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "rescue",
+      "id": "zzq.rule.officer.rescue-hurting-seal-001",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 80,
+      "predicate": {
+        "families": [
+          "seal"
+        ],
+        "gods": [
+          "偏印",
+          "正印"
+        ],
+        "op": "activation_exists",
+        "origins": [],
+        "positions": [],
+        "scope": "generic"
+      },
+      "resolves_damage_ids": [
+        "zzq.rule.officer.damage-hurting-officer-001"
+      ],
+      "source_ids": [
+        "zzq.prop.officer.rescue-hurting-seal-001"
+      ],
+      "stage": "rescue",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "rescue",
+      "id": "zzq.rule.useful.rescue-officer-002",
+      "invalidates_rescue_ids": [],
+      "path_id": null,
+      "pattern_id": "direct_officer",
+      "precedence": 90,
+      "predicate": {
+        "adjacent": true,
+        "controlled_gods": [],
+        "controlled_positions": [],
+        "controlled_values": [],
+        "controller_gods": [],
+        "controller_positions": [],
+        "controller_values": [],
+        "excluded_member_gods": [
+          "正官"
+        ],
+        "excluded_occurrence_ids": [],
+        "layers": [
+          "stem"
+        ],
+        "member_filters": [
+          {
+            "elements": [],
+            "gods": [
+              "七杀"
+            ],
+            "layers": [],
+            "occurrence_ids": [],
+            "positions": [],
+            "roles": [],
+            "values": []
+          }
+        ],
+        "op": "relation_exists",
+        "positions": [],
+        "relation_types": [
+          "stem_combine"
+        ],
+        "result_elements": [],
+        "values": []
+      },
+      "resolves_damage_ids": [
+        "zzq.rule.officer.damage-mixed-killing-001"
+      ],
+      "source_ids": [
+        "zzq.prop.useful.rescue-officer-002"
+      ],
+      "stage": "rescue",
+      "supersedes_path_ids": [],
+      "targets_path_ids": [
+        "dual_support",
+        "seal_support",
+        "wealth_support"
+      ]
+    },
+    {
+      "authority_layer": "shen_core",
+      "effect": "source_precedence",
+      "id": "zzq.rule.officer.form-single-support-001",
+      "invalidates_rescue_ids": [],
+      "path_id": "wealth_support",
+      "pattern_id": "direct_officer",
+      "precedence": 40,
+      "predicate": {
+        "children": [
+          {
+            "adjacent": true,
+            "controlled_gods": [],
+            "controlled_positions": [],
+            "controlled_values": [],
+            "controller_gods": [],
+            "controller_positions": [],
+            "controller_values": [],
+            "excluded_member_gods": [],
+            "excluded_occurrence_ids": [],
+            "layers": [
+              "stem"
+            ],
+            "member_filters": [
+              {
+                "elements": [],
+                "gods": [
+                  "偏印",
+                  "正印"
+                ],
+                "layers": [],
+                "occurrence_ids": [],
+                "positions": [],
+                "roles": [],
+                "values": []
+              },
+              {
+                "elements": [],
+                "gods": [
+                  "偏财",
+                  "正财"
+                ],
+                "layers": [],
+                "occurrence_ids": [],
+                "positions": [],
+                "roles": [],
+                "values": []
+              }
+            ],
+            "op": "relation_exists",
+            "positions": [],
+            "relation_types": [
+              "stem_combine",
+              "stem_control"
+            ],
+            "result_elements": [],
+            "values": []
+          },
+          {
+            "families": [
+              "seal"
+            ],
+            "gods": [
+              "偏印",
+              "正印"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          },
+          {
+            "families": [
+              "wealth"
+            ],
+            "gods": [
+              "偏财",
+              "正财"
+            ],
+            "op": "activation_exists",
+            "origins": [],
+            "positions": [],
+            "scope": "generic"
+          }
+        ],
+        "op": "all"
+      },
+      "resolves_damage_ids": [],
+      "source_ids": [
+        "zzq.prop.officer.form-single-support-001"
+      ],
+      "stage": "resolution",
+      "supersedes_path_ids": [
+        "seal_support"
+      ],
+      "targets_path_ids": [
+        "wealth_support"
+      ]
+    }
+  ],
+  "source_bundle_digest": "97897a4a99cb70ecca1b40938fd198059794425b8e1e85c8055e6b8b88f17777",
+  "source_provenance": [
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.blade.form-officer-killing-support",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.blade.officer-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.blade.79-opening",
+          "pdf_page": 79,
+          "quote": "陽刃者劫我正財之神",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.blade.route",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.blade.definition",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "conceptual_doctrine"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.blade.79-opening",
+          "pdf_page": 79,
+          "quote": "陽刃者劫我正財之神",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=79",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.food.form-killing-resource-no-wealth",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.food.audit-f5",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "paragraph_boundary_attestation"
+        },
+        {
+          "id": "zzq.seg.food.killing-resource-alternative",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.food.69",
+          "pdf_page": 69,
+          "quote": "透財以解",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "paragraph opening anchor, visually verified in audit",
+          "id": "loc.gc.food.audit-f5",
+          "pdf_page": 69,
+          "quote": "若不用財而就煞印",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.food.form-single-exposed-killing",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.food.audit-f5",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "paragraph_boundary_attestation"
+        },
+        {
+          "id": "zzq.seg.food.single-killing-alternative",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.food.69",
+          "pdf_page": 69,
+          "quote": "透財以解",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "paragraph opening anchor, visually verified in audit",
+          "id": "loc.gc.food.audit-f5",
+          "pdf_page": 69,
+          "quote": "若不用財而就煞印",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=69",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.food.route",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.food.audit-f1",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "paragraph_boundary_attestation"
+        },
+        {
+          "id": "zzq.seg.food.wealth-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.food.68",
+          "pdf_page": 68,
+          "quote": "食神本屬洩氣以其能生正財所以喜之",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "paragraph opening anchor, visually verified in audit",
+          "id": "loc.gc.food.audit-f1",
+          "pdf_page": 68,
+          "quote": "食神本屬洩氣",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=68",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.hurting.form-wealth",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.hurting.wealth-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns",
+          "id": "loc.gc.hurting.76-wealth-path",
+          "pdf_page": 76,
+          "quote": "有傷官用財者",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.hurting.route",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.hurting.wealth-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns",
+          "id": "loc.gc.hurting.76-wealth-path",
+          "pdf_page": 76,
+          "quote": "有傷官用財者",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=76",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.kill.form-blade-no-output",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.kill.blade-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.kill.73-blade-path",
+          "pdf_page": 73,
+          "quote": "有煞無食制而用刃當者",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=73",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.kill.route",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.kill.output-control",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.kill.71",
+          "pdf_page": 71,
+          "quote": "七煞之格局亦不一煞用食制者上也",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=71",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.lu-robbery.form-killing-control",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.lu-robbery.killing-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.lu-robbery.83-killing",
+          "pdf_page": 83,
+          "quote": "祿劫用煞必須制伏",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.lu-robbery.form-officer-resource-support",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.lu-robbery.officer-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        },
+        {
+          "id": "zzq.seg.lu-robbery.officer-resource-support",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.lu-robbery.82-officer-base",
+          "pdf_page": 82,
+          "quote": "祿劫用官干頭透出為奇又要財印相隨不可孤官無輔",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.lu-robbery.82-officer-resource",
+          "pdf_page": 82,
+          "quote": "有用官而印護者",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.lu-robbery.form-officer-wealth-support",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.lu-robbery.officer-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        },
+        {
+          "id": "zzq.seg.lu-robbery.officer-wealth-support",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.lu-robbery.82-officer-base",
+          "pdf_page": 82,
+          "quote": "祿劫用官干頭透出為奇又要財印相隨不可孤官無輔",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.lu-robbery.83-officer-wealth",
+          "pdf_page": 83,
+          "quote": "有用官而財助者",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.lu-robbery.form-wealth-output",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.lu-robbery.wealth-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.lu-robbery.83-wealth",
+          "pdf_page": 83,
+          "quote": "祿劫用財須帶傷食",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=83",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.lu-robbery.route-prosperity",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.lu-robbery.route",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "conceptual_doctrine"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, heading column",
+          "id": "loc.gc.lu-robbery.82-heading",
+          "pdf_page": 82,
+          "quote": "論建祿月劫",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.lu-robbery.route-robbery",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.lu-robbery.route",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "conceptual_doctrine"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, heading column",
+          "id": "loc.gc.lu-robbery.82-heading",
+          "pdf_page": 82,
+          "quote": "論建祿月劫",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=82",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.damage-hurting-officer-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.rescue-overview.doctrine",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "rescue_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "damage"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.damage-mixed-killing-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.rescue-overview.doctrine",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "rescue_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "damage"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.damage-wealth-breaks-seal-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.damage",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "damage_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "damage"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.form-dual-support-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.formation.dual-support",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns 1-4",
+          "id": "loc.gc.officer.57",
+          "pdf_page": 57,
+          "quote": "官以尅身雖與七煞有別終受彼制",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=57",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.form-seal-support-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.single-support",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "comparative_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.form-single-support-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.single-support",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "comparative_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.form-wealth-support-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.single-support",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "comparative_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.rescue-hurting-seal-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.rescue-overview.doctrine",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "rescue_rule"
+        },
+        {
+          "id": "zzq.seg.officer.rescue-overview.introduction",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "rescue_doctrine"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.officer.58",
+          "pdf_page": 58,
+          "quote": "若財印不兩用則單用印不若單用財",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=58",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "rescue"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.officer.route",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.officer.principle.doctrine",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "conceptual_doctrine"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns 1-4",
+          "id": "loc.gc.officer.57",
+          "pdf_page": 57,
+          "quote": "官以尅身雖與七煞有別終受彼制",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=57",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.resource.form-officer-resource",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.resource.audit-r2",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "paragraph_boundary_attestation"
+        },
+        {
+          "id": "zzq.seg.resource.officer-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.resource.64-opening",
+          "pdf_page": 64,
+          "quote": "印綬喜其生身正偏同為美格",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "paragraph opening anchor, visually verified in audit",
+          "id": "loc.gc.resource.audit-r2",
+          "pdf_page": 64,
+          "quote": "印綬之格局亦不一",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.resource.route",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.resource.audit-r1",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "paragraph_boundary_attestation"
+        },
+        {
+          "id": "zzq.seg.resource.opening",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "conceptual_doctrine"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.resource.64-opening",
+          "pdf_page": 64,
+          "quote": "印綬喜其生身正偏同為美格",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "paragraph opening anchor, visually verified in audit",
+          "id": "loc.gc.resource.audit-r1",
+          "pdf_page": 64,
+          "quote": "印綬喜其生身",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=64",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.special.gate-double-wealth",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.special.gate",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "failure_rules"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns",
+          "id": "loc.gc.special.86",
+          "pdf_page": 86,
+          "quote": "雜格者月令無用取外格而用之",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "failure"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.special.gate-officer-killing",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.special.gate",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "failure_rules"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns",
+          "id": "loc.gc.special.86",
+          "pdf_page": 86,
+          "quote": "雜格者月令無用取外格而用之",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "failure"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.special.gate-ordinary-use",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.special.gate",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "failure_rules"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns",
+          "id": "loc.gc.special.86",
+          "pdf_page": 86,
+          "quote": "雜格者月令無用取外格而用之",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "failure"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.special.gate-rooted-wealth",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.special.gate",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "failure_rules"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns",
+          "id": "loc.gc.special.86",
+          "pdf_page": 86,
+          "quote": "雜格者月令無用取外格而用之",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=86",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "failure"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.useful.form-blade-001",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.useful.formation",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rules"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "left folio, right-to-left columns 1-4",
+          "id": "loc.gc.useful.18",
+          "pdf_page": 18,
+          "quote": "用神專尋月令然以四柱配之有成敗",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=18",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.useful.19",
+          "pdf_page": 19,
+          "quote": "成中有敗必是帶忌敗中有成全凭救應",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=19",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.useful.rescue-officer-002",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.useful.rescue",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "rescue_rules"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "right folio through left folio, right-to-left columns",
+          "id": "loc.gc.useful.20",
+          "pdf_page": 20,
+          "quote": "何謂救應如官逢傷而透印以解之",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=20",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "rescue"
+    },
+    {
+      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
+      "layer": "shen_core",
+      "production_eligible": true,
+      "proposition_id": "zzq.prop.wealth.route",
+      "review_state": "scan_verified",
+      "segments": [
+        {
+          "id": "zzq.seg.wealth.audit-w3",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "paragraph_boundary_attestation"
+        },
+        {
+          "id": "zzq.seg.wealth.audit-w4",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "paragraph_boundary_attestation"
+        },
+        {
+          "id": "zzq.seg.wealth.officer-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        },
+        {
+          "id": "zzq.seg.wealth.output-path",
+          "layer": "shen_core",
+          "review_state": "scan_verified",
+          "text_type": "formation_rule"
+        }
+      ],
+      "source_manifest_digest": "3136967a12a5453293e54629cde5e53bd5edaf8996bc8341920c5784979dd114",
+      "support_locators": [
+        {
+          "column_line": "both folios, right-to-left columns",
+          "id": "loc.gc.wealth.61-officer-path",
+          "pdf_page": 61,
+          "quote": "有財旺生官者身強而不透傷官不混七煞",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "paragraph opening anchor, visually verified in audit",
+          "id": "loc.gc.wealth.audit-w3",
+          "pdf_page": 61,
+          "quote": "財格之貴局亦不一",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        },
+        {
+          "column_line": "paragraph opening anchor, visually verified in audit",
+          "id": "loc.gc.wealth.audit-w4",
+          "pdf_page": 61,
+          "quote": "有財用食生者",
+          "review_state": "scan_verified",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/NCL-06599_%E8%80%95%E5%AF%B8%E9%9B%86.pdf#page=61",
+          "visually_verified": true,
+          "witness_id": "gengcun-ji-ncl-06599",
+          "witness_production_allowed": true,
+          "witness_rights_status": "public_domain"
+        }
+      ],
+      "text_type": "formation"
+    }
+  ],
+  "source_provenance_digest": "a7e355999b08dacc14a642a48123aed471441a72f3273f7ef5b84115c1dcf67a",
+  "special_review_gate": {
+    "double_wealth_source_id": "zzq.prop.special.gate-double-wealth",
+    "id": "zzq.special-review-gate-v1",
+    "officer_killing_source_id": "zzq.prop.special.gate-officer-killing",
+    "ordinary_use_source_id": "zzq.prop.special.gate-ordinary-use",
+    "rooted_wealth_source_id": "zzq.prop.special.gate-rooted-wealth"
+  }
+}

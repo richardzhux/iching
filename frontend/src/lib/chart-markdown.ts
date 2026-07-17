@@ -1,10 +1,61 @@
-import type { ConsumerProfile, MetaphysicsChart, MetaphysicsStatistics } from "@/types/api"
+import type { ConsumerProfile, MetaphysicsChart, MetaphysicsStatistics, ThemeComparison } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 
 type Locale = "en" | "zh"
 
 const cell = (value: string) => value.replaceAll("|", "\\|").replaceAll("\n", "<br>") || "—"
+
+function percentage(value: number, zh: boolean) {
+  return new Intl.NumberFormat(zh ? "zh-CN" : "en-US", { maximumFractionDigits: 2 }).format(value)
+}
+
+function comparisonDisplayLabel(item: ThemeComparison, zh: boolean) {
+  if (zh && item.display_label) return item.display_label
+  if (!zh) {
+    if (item.display_mode === "incidence" || item.comparison_mode === "incidence") {
+      return item.hit_percentage != null ? `${percentage(item.hit_percentage, false)}% incidence` : "Incidence recorded"
+    }
+    if (item.display_mode === "exact_tail") {
+      const tail = item.tail_percentage != null ? ` · about ${percentage(item.tail_percentage, false)}% of samples` : ""
+      return `${item.display_direction === "low" ? "Distinct lower-side expression" : "Distinct higher-side expression"}${tail}`
+    }
+    if (item.display_mode === "directional") return item.display_direction === "low" ? "Relatively restrained expression" : "Relatively pronounced expression"
+    if (item.display_mode === "reference_zero") return "Not observed in this reference"
+    if (item.display_mode === "unavailable" || item.status === "unsupported") return "No comparable baseline"
+    if (item.display_mode === "common_value") return "Common range"
+  }
+  if (item.display_label) return item.display_label
+  if (item.comparison_mode === "incidence") {
+    const incidence = item.hit_percentage ?? item.exact_percentage
+    return incidence != null ? `${zh ? "出现率" : "Incidence"} ${percentage(incidence, zh)}%` : (zh ? "出现率已记录" : "Incidence recorded")
+  }
+  if (item.status === "unsupported") return zh ? "暂无可比基线" : "No comparable baseline"
+  if (item.status === "zero") return zh ? "本参考周期未出现" : "Not observed in this reference"
+  return item.semantic_pole || (zh ? "结构位置已记录" : "Structural position recorded")
+}
+
+function comparisonMarkdown(item: ThemeComparison, zh: boolean) {
+  const value = item.comparison_mode === "incidence"
+    ? (item.value ? (zh ? "命中" : "Present") : (zh ? "未命中" : "Absent"))
+    : `${item.value}${item.unit || ""}`
+  return `- ${item.label} · ${value}：${comparisonDisplayLabel(item, zh)}`
+}
+
+export function baziRuleVersionSummary(chart: MetaphysicsChart, locale: Locale, fullDigest = false) {
+  const zh = locale === "zh"
+  const versions = chart.rule_versions
+  if (!versions) {
+    return zh ? `排盘规则 ${chart.rules_version}` : `Chart rules ${chart.rules_version}`
+  }
+  const patternLabel = versions.pattern_bundle === "zzq-shen-canonical-v1"
+    ? (zh ? "《子平真诠》沈氏格局规则" : "Shen's Zi Ping pattern rules")
+    : versions.pattern_bundle
+  const digest = fullDigest ? versions.pattern_digest : versions.pattern_digest.slice(0, 12)
+  return zh
+    ? `格局依据：${patternLabel} · 版本校验 ${digest} · 历法 ${versions.calendar} · 神煞 ${versions.shensha} · 解读 ${versions.consumer}`
+    : `Pattern basis: ${patternLabel} · verification ${digest} · calendar ${versions.calendar} · Shen Sha ${versions.shensha} · interpretation ${versions.consumer}`
+}
 
 function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
   if (!consumer?.identity) return []
@@ -14,7 +65,34 @@ function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
     "| --- | --- | --- |",
     ...consumer.subjects.map((subject) => `| ${cell(subject.label)} | ${cell(subject.path_label || subject.headline || (zh ? "结构路径" : "Structural path"))} | ${cell(subject.path_summary || (subject.drivers ?? []).slice(0, 2).join(" · ") || (zh ? "查看完整命盘" : "See full chart"))} |`),
   ]
-  const stages = consumer.life_kline.stages.slice(0, 3).map((stage) => `- ${stage.year}｜**${stage.label}**：${zh ? "值得关注的阶段" : "A period worth watching"}`)
+  const stages = consumer.life_kline.stages.slice(0, 3).map((stage) => `- ${stage.year}｜**${stage.label}**：${stage.summary || (zh ? "值得关注的阶段" : "A period worth watching")}`)
+  const fingerprints = consumer.fingerprints.map((fingerprint) => {
+    const incidence = fingerprint.incidence_percentage != null
+      ? ` · ${zh ? "出现率" : "incidence"} ${percentage(fingerprint.incidence_percentage, zh)}%`
+      : ""
+    return `- **${fingerprint.title}**：${fingerprint.detail}（${fingerprint.rarity_label}${incidence}）`
+  })
+  const combinations = consumer.achievements.map((achievement) => {
+    const incidence = achievement.rarity_percentage != null
+      ? ` · ${zh ? "出现率" : "incidence"} ${percentage(achievement.rarity_percentage, zh)}%`
+      : ""
+    const position = achievement.position ? ` · ${zh ? "落位" : "position"} ${achievement.position}` : ""
+    return `- **${achievement.title}**｜${achievement.state}${incidence}${position}：${achievement.summary}`
+  })
+  const seenClaims = new Set<string>()
+  const claims = (consumer.claims ?? []).filter((claim) => {
+    const key = claim.id || `${claim.title}\u0000${claim.summary}`
+    if (seenClaims.has(key)) return false
+    seenClaims.add(key)
+    return true
+  }).map((claim) => {
+    const details = [
+      ...(claim.evidenceHighlights ?? []),
+      ...(claim.comparison?.display ? [claim.comparison.display] : []),
+      ...(claim.activation ? [`${claim.activation.layer} · ${claim.activation.ganzhi}${claim.activation.isCurrent ? (zh ? " · 当前" : " · current") : ""}`] : []),
+    ].filter(Boolean)
+    return `- **${claim.title}**：${claim.summary}${details.length ? `（${details.join(" · ")}）` : ""}`
+  })
   return [
     `## ${zh ? "命格身份" : "Chart identity"}`,
     "",
@@ -25,6 +103,9 @@ function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
     `**${zh ? "你的四条人生路径" : "Your four life paths"}**`,
     "",
     ...subjectTable,
+    ...(claims.length ? ["", `### ${zh ? "结构判断" : "Structural findings"}`, "", ...claims] : []),
+    ...(fingerprints.length ? ["", `### ${zh ? "较有辨识度的结构" : "Distinctive chart structures"}`, "", ...fingerprints] : []),
+    ...(combinations.length ? ["", `### ${zh ? "稀有结构组合" : "Rare structure combinations"}`, "", ...combinations] : []),
     ...(stages.length ? ["", `### ${zh ? "未来三大阶段" : "Three future stages"}`, "", ...stages] : []),
     "",
   ]
@@ -59,6 +140,7 @@ function ziweiMetricMarkdownLabel(featureId: string, chart: IFunctionalAstrolabe
 
 export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, locale: Locale) {
   const zh = locale === "zh"
+  const statisticsAvailable = !chart.statistics.status || chart.statistics.status === "available"
   const title = subjectName.trim() || (zh ? "未命名命盘" : "Personal chart")
   if (chart.birth_profile.hour_uncertain) {
     const stability = chart.birth_profile.stability
@@ -132,19 +214,18 @@ export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, 
   ] : []
   const themes = (chart.theme_profiles ?? chart.structure?.theme_profiles ?? []).flatMap((profile) => [
     `### ${profile.theme}`,
-    ...(profile.comparisons ?? []).map((item) => item.comparison_mode === "incidence"
-      ? `- ${item.label} ${item.value ? (zh ? "命中" : "present") : (zh ? "未命中" : "absent")}：${zh ? "出现率" : "incidence"} ${(item.hit_percentage ?? 0).toFixed(1)}%`
-      : `- ${item.label} ${item.value}：${zh ? "低于" : "lower"} ${(item.lower_percentage ?? 0).toFixed(1)}% · ${zh ? "相同" : "same"} ${(item.same_percentage ?? 0).toFixed(1)}% · ${zh ? "高于" : "higher"} ${(item.higher_percentage ?? 0).toFixed(1)}%`),
+    ...(profile.comparisons ?? []).map((item) => comparisonMarkdown(item, zh)),
     ...profile.evidence.map((item) => `- ${item.evidence_type}｜${item.title}：${item.detail}（${item.source}）`),
   ])
+  const legacyFindings = chart.consumer?.claims?.length ? [] : (chart.synthesis?.conclusions ?? []).map((item) => `- **${item.headline}**：${item.body}${item.distribution_context ? `（${item.distribution_context}）` : ""}`)
   return [
     `## ${zh ? "命主" : "Chart"}：${title}`, "", ...consumerMarkdown(chart.consumer, zh), `## ${zh ? "生辰八字" : "BaZi"}`, "", ...table, "", ...facts,
     "", ...dayun,
     "", `## ${zh ? "神煞与历法样本频率" : "Shen Sha and calendar-sample frequency"}`, "", ...shensha,
     "", `> ${zh ? "出现率只表示这项结构在历法样本中的少见程度，不代表吉凶或人生高低。" : "Incidence only describes how uncommon a structure is in calendar samples; it does not indicate fortune or life quality."}`,
-    "", `## ${zh ? "核心判断" : "Key findings"}`, "", ...(chart.synthesis?.conclusions ?? []).map((item) => `- **${item.headline}**：${item.body}${item.distribution_context ? `（${item.distribution_context}）` : ""}`),
+    ...(legacyFindings.length ? ["", `## ${zh ? "核心判断" : "Key findings"}`, "", ...legacyFindings] : []),
     "", `## ${zh ? "四主题结构画像" : "Four-theme structure profile"}`, "", ...themes,
-    "", `> ${zh ? "规则版本" : "Rules"}: ${chart.rules_version} · ${zh ? "统计基线" : "Baseline"}: ${chart.statistics.baseline.id}`,
+    "", `> ${baziRuleVersionSummary(chart, locale, true)} · ${statisticsAvailable ? `${zh ? "统计基线" : "Baseline"} ${chart.statistics.baseline.id}` : (zh ? "历法样本对照暂时不可用" : "Calendar-sample comparisons temporarily unavailable")}`,
   ].join("\n")
 }
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timedelta
+import logging
 from math import cos, pi, sin
 from typing import Any, Dict, Iterable, Optional
 from zoneinfo import ZoneInfo
@@ -11,8 +12,18 @@ from lunar_python import Lunar as LunarCalendar
 from lunar_python import Solar as SolarCalendar
 
 from iching.core.bazi_patterns import assess_patterns
+from iching.core.bazi_rules.adapter import (
+    build_source_backed_shadow,
+    canonical_authority_from_shadow,
+)
+from iching.core.bazi_rules.registry import load_packaged_shen_registry
+from iching.core.bazi_rules.fact_graph import (
+    build_bazi_fact_envelope_from_graphs,
+    build_bazi_fact_graph,
+)
 from iching.core.bazi_structure import build_structure_profile, structured_relations
 from iching.core.calendar_engine import (
+    ENGINE_VERSION as CALENDAR_ENGINE_VERSION,
     JIE_MONTH_BRANCH,
     calculate_calendar_facts,
     normalize_local_datetime,
@@ -22,41 +33,193 @@ from iching.core.calendar_engine import (
     timezone_for,
 )
 from iching.core.najia import derive_six_gods
-from iching.core.metaphysics_statistics import statistics_for_shensha
-from iching.core.metaphysics_consumer import build_bazi_consumer_profile, consumer_feature_records
+from iching.core.metaphysics_statistics import (
+    BASELINE_ID,
+    BASELINE_IDS,
+    statistics_for_shensha,
+    unavailable_bazi_statistics,
+)
+from iching.core.metaphysics_consumer import (
+    CONSUMER_RULES_VERSION,
+    build_bazi_consumer_profile,
+    consumer_feature_records,
+)
 from iching.core.shensha import RULES_VERSION, evaluate_shensha
 from iching.core.shensha_effects import evaluate_shensha_effects
+
+logger = logging.getLogger(__name__)
 
 STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
 BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
 ELEMENTS = ["木", "火", "土", "金", "水"]
 STEM_ELEMENTS = {stem: ELEMENTS[index // 2] for index, stem in enumerate(STEMS)}
-BRANCH_ELEMENTS = dict(zip(BRANCHES, ["水", "土", "木", "木", "土", "火", "火", "土", "金", "金", "土", "水"]))
+BRANCH_ELEMENTS = dict(
+    zip(
+        BRANCHES,
+        ["水", "土", "木", "木", "土", "火", "火", "土", "金", "金", "土", "水"],
+    )
+)
 HIDDEN_STEMS = {
-    "子": ["癸"], "丑": ["己", "癸", "辛"], "寅": ["甲", "丙", "戊"], "卯": ["乙"],
-    "辰": ["戊", "乙", "癸"], "巳": ["丙", "戊", "庚"], "午": ["丁", "己"], "未": ["己", "丁", "乙"],
-    "申": ["庚", "壬", "戊"], "酉": ["辛"], "戌": ["戊", "辛", "丁"], "亥": ["壬", "甲"],
+    "子": ["癸"],
+    "丑": ["己", "癸", "辛"],
+    "寅": ["甲", "丙", "戊"],
+    "卯": ["乙"],
+    "辰": ["戊", "乙", "癸"],
+    "巳": ["丙", "戊", "庚"],
+    "午": ["丁", "己"],
+    "未": ["己", "丁", "乙"],
+    "申": ["庚", "壬", "戊"],
+    "酉": ["辛"],
+    "戌": ["戊", "辛", "丁"],
+    "亥": ["壬", "甲"],
 }
 NAYIN = [
-    "海中金", "炉中火", "大林木", "路旁土", "剑锋金", "山头火", "涧下水", "城头土", "白蜡金", "杨柳木",
-    "泉中水", "屋上土", "霹雳火", "松柏木", "长流水", "沙中金", "山下火", "平地木", "壁上土", "金箔金",
-    "覆灯火", "天河水", "大驿土", "钗钏金", "桑柘木", "大溪水", "沙中土", "天上火", "石榴木", "大海水",
+    "海中金",
+    "炉中火",
+    "大林木",
+    "路旁土",
+    "剑锋金",
+    "山头火",
+    "涧下水",
+    "城头土",
+    "白蜡金",
+    "杨柳木",
+    "泉中水",
+    "屋上土",
+    "霹雳火",
+    "松柏木",
+    "长流水",
+    "沙中金",
+    "山下火",
+    "平地木",
+    "壁上土",
+    "金箔金",
+    "覆灯火",
+    "天河水",
+    "大驿土",
+    "钗钏金",
+    "桑柘木",
+    "大溪水",
+    "沙中土",
+    "天上火",
+    "石榴木",
+    "大海水",
 ]
 JIE_QI_NAMES = [
-    "冬至", "小寒", "大寒", "立春", "雨水", "惊蛰", "春分", "清明", "谷雨", "立夏", "小满", "芒种",
-    "夏至", "小暑", "大暑", "立秋", "处暑", "白露", "秋分", "寒露", "霜降", "立冬", "小雪", "大雪",
+    "冬至",
+    "小寒",
+    "大寒",
+    "立春",
+    "雨水",
+    "惊蛰",
+    "春分",
+    "清明",
+    "谷雨",
+    "立夏",
+    "小满",
+    "芒种",
+    "夏至",
+    "小暑",
+    "大暑",
+    "立秋",
+    "处暑",
+    "白露",
+    "秋分",
+    "寒露",
+    "霜降",
+    "立冬",
+    "小雪",
+    "大雪",
 ]
-LUNAR_MONTHS = ["", "正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"]
+LUNAR_MONTHS = [
+    "",
+    "正",
+    "二",
+    "三",
+    "四",
+    "五",
+    "六",
+    "七",
+    "八",
+    "九",
+    "十",
+    "冬",
+    "腊",
+]
 LUNAR_DAYS = [
-    "", "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
-    "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十",
-    "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十",
+    "",
+    "初一",
+    "初二",
+    "初三",
+    "初四",
+    "初五",
+    "初六",
+    "初七",
+    "初八",
+    "初九",
+    "初十",
+    "十一",
+    "十二",
+    "十三",
+    "十四",
+    "十五",
+    "十六",
+    "十七",
+    "十八",
+    "十九",
+    "二十",
+    "廿一",
+    "廿二",
+    "廿三",
+    "廿四",
+    "廿五",
+    "廿六",
+    "廿七",
+    "廿八",
+    "廿九",
+    "三十",
 ]
-BRANCH_CLASH = dict(zip(BRANCHES, ["午", "未", "申", "酉", "戌", "亥", "子", "丑", "寅", "卯", "辰", "巳"]))
-BRANCH_COMBINE = dict(zip(BRANCHES, ["丑", "子", "亥", "戌", "酉", "申", "未", "午", "巳", "辰", "卯", "寅"]))
-CHANG_SHENG = ["长生", "沐浴", "冠带", "临官", "帝旺", "衰", "病", "死", "墓", "绝", "胎", "养"]
-CHANG_SHENG_OFFSET = {"甲": 1, "丙": 10, "戊": 10, "庚": 7, "壬": 4, "乙": 6, "丁": 9, "己": 9, "辛": 0, "癸": 3}
-STEM_CLASHES = {frozenset(pair) for pair in (("甲", "庚"), ("乙", "辛"), ("丙", "壬"), ("丁", "癸"))}
+BRANCH_CLASH = dict(
+    zip(
+        BRANCHES,
+        ["午", "未", "申", "酉", "戌", "亥", "子", "丑", "寅", "卯", "辰", "巳"],
+    )
+)
+BRANCH_COMBINE = dict(
+    zip(
+        BRANCHES,
+        ["丑", "子", "亥", "戌", "酉", "申", "未", "午", "巳", "辰", "卯", "寅"],
+    )
+)
+CHANG_SHENG = [
+    "长生",
+    "沐浴",
+    "冠带",
+    "临官",
+    "帝旺",
+    "衰",
+    "病",
+    "死",
+    "墓",
+    "绝",
+    "胎",
+    "养",
+]
+CHANG_SHENG_OFFSET = {
+    "甲": 1,
+    "丙": 10,
+    "戊": 10,
+    "庚": 7,
+    "壬": 4,
+    "乙": 6,
+    "丁": 9,
+    "己": 9,
+    "辛": 0,
+    "癸": 3,
+}
+STEM_CLASHES = {
+    frozenset(pair) for pair in (("甲", "庚"), ("乙", "辛"), ("丙", "壬"), ("丁", "癸"))
+}
 STEM_COMBINATIONS = {
     frozenset(("甲", "己")): "甲己合土",
     frozenset(("乙", "庚")): "乙庚合金",
@@ -65,7 +228,17 @@ STEM_COMBINATIONS = {
     frozenset(("戊", "癸")): "戊癸合火",
 }
 ELEMENT_CONTROLS = {"木": "土", "土": "水", "水": "火", "火": "金", "金": "木"}
-BRANCH_CLASHES = {frozenset(pair) for pair in (("子", "午"), ("丑", "未"), ("寅", "申"), ("卯", "酉"), ("辰", "戌"), ("巳", "亥"))}
+BRANCH_CLASHES = {
+    frozenset(pair)
+    for pair in (
+        ("子", "午"),
+        ("丑", "未"),
+        ("寅", "申"),
+        ("卯", "酉"),
+        ("辰", "戌"),
+        ("巳", "亥"),
+    )
+}
 BRANCH_SIX_COMBINATIONS = {
     frozenset(("子", "丑")): "子丑六合土",
     frozenset(("寅", "亥")): "寅亥六合木",
@@ -74,10 +247,40 @@ BRANCH_SIX_COMBINATIONS = {
     frozenset(("巳", "申")): "巳申六合水",
     frozenset(("午", "未")): "午未六合",
 }
-BRANCH_HARMS = {frozenset(pair) for pair in (("子", "未"), ("丑", "午"), ("寅", "巳"), ("卯", "辰"), ("申", "亥"), ("酉", "戌"))}
-BRANCH_BREAKS = {frozenset(pair) for pair in (("子", "酉"), ("丑", "辰"), ("寅", "亥"), ("卯", "午"), ("巳", "申"), ("未", "戌"))}
-BRANCH_HARMONIES = (("申子辰", "水"), ("亥卯未", "木"), ("寅午戌", "火"), ("巳酉丑", "金"))
-BRANCH_MEETINGS = (("亥子丑", "水"), ("寅卯辰", "木"), ("巳午未", "火"), ("申酉戌", "金"))
+BRANCH_HARMS = {
+    frozenset(pair)
+    for pair in (
+        ("子", "未"),
+        ("丑", "午"),
+        ("寅", "巳"),
+        ("卯", "辰"),
+        ("申", "亥"),
+        ("酉", "戌"),
+    )
+}
+BRANCH_BREAKS = {
+    frozenset(pair)
+    for pair in (
+        ("子", "酉"),
+        ("丑", "辰"),
+        ("寅", "亥"),
+        ("卯", "午"),
+        ("巳", "申"),
+        ("未", "戌"),
+    )
+}
+BRANCH_HARMONIES = (
+    ("申子辰", "水"),
+    ("亥卯未", "木"),
+    ("寅午戌", "火"),
+    ("巳酉丑", "金"),
+)
+BRANCH_MEETINGS = (
+    ("亥子丑", "水"),
+    ("寅卯辰", "木"),
+    ("巳午未", "火"),
+    ("申酉戌", "金"),
+)
 SEASONAL_ELEMENT_STATUS = {
     "spring": {"木": "旺", "火": "相", "水": "休", "金": "囚", "土": "死"},
     "summer": {"火": "旺", "土": "相", "木": "休", "水": "囚", "金": "死"},
@@ -85,6 +288,58 @@ SEASONAL_ELEMENT_STATUS = {
     "winter": {"水": "旺", "木": "相", "金": "休", "土": "囚", "火": "死"},
     "earth": {"土": "旺", "金": "相", "火": "休", "木": "囚", "水": "死"},
 }
+
+
+def bazi_rule_versions() -> Dict[str, str]:
+    """Return the exact rule tuple bound to live BaZi schema-v7 results."""
+    registry = load_packaged_shen_registry()
+    return {
+        "calendar": CALENDAR_ENGINE_VERSION,
+        "pattern_bundle": registry.bundle_id,
+        "pattern_digest": registry.bundle_digest,
+        "shensha": RULES_VERSION,
+        "consumer": CONSUMER_RULES_VERSION,
+    }
+
+
+def _statistics_or_unavailable(
+    hits: Iterable[Dict[str, Any]],
+    day_boundary: str,
+    *,
+    theme_profiles: Iterable[Dict[str, Any]],
+    gender: Optional[str] = None,
+    day_master: str = "",
+    month_command: str = "",
+    consumer_feature_ids: Iterable[str] = (),
+) -> Dict[str, Any]:
+    """Isolate optional baseline failures from deterministic chart output."""
+    hit_list = list(hits)
+    profile_list = list(theme_profiles)
+    feature_ids = [
+        str(hit.get("feature_id", "")) for hit in hit_list if hit.get("feature_id")
+    ]
+    try:
+        return statistics_for_shensha(
+            hit_list,
+            day_boundary,
+            theme_profiles=profile_list,
+            gender=gender,
+            day_master=day_master,
+            month_command=month_command,
+            consumer_feature_ids=consumer_feature_ids,
+        )
+    except (RuntimeError, OSError, ValueError) as exc:
+        logger.warning(
+            "BaZi statistics unavailable; returning chart without comparisons: %s", exc
+        )
+        baseline_id = BASELINE_IDS["bazi"].get(day_boundary, BASELINE_ID)
+        return unavailable_bazi_statistics(
+            baseline_id=baseline_id,
+            feature_ids=feature_ids,
+            theme_profiles=profile_list,
+            reason=str(exc),
+            status=getattr(exc, "status", "unavailable"),
+        )
 
 
 def _timezone(name: str) -> ZoneInfo:
@@ -159,7 +414,9 @@ def _calendar_input_to_solar(
     }
 
 
-def _true_solar_time(value: datetime, longitude: Optional[float]) -> tuple[datetime, float]:
+def _true_solar_time(
+    value: datetime, longitude: Optional[float]
+) -> tuple[datetime, float]:
     if longitude is None:
         return value, 0.0
     standard_offset = (value.utcoffset() or timedelta()) - (value.dst() or timedelta())
@@ -204,7 +461,9 @@ def _ten_god(day_stem: str, other_stem: str) -> str:
 
 def _growth_stage(stem: str, branch: str) -> str:
     branch_index = BRANCHES.index(branch)
-    index = CHANG_SHENG_OFFSET[stem] + (branch_index if STEMS.index(stem) % 2 == 0 else -branch_index)
+    index = CHANG_SHENG_OFFSET[stem] + (
+        branch_index if STEMS.index(stem) % 2 == 0 else -branch_index
+    )
     return CHANG_SHENG[index % 12]
 
 
@@ -221,7 +480,11 @@ def _pillar(label: str, gz: Any, day_stem: str) -> Dict[str, Any]:
         "polarity": "阳" if gz.tg % 2 == 0 else "阴",
         "ten_god": "日主" if label == "日" else _ten_god(day_stem, stem),
         "hidden_stems": [
-            {"stem": hidden, "element": STEM_ELEMENTS[hidden], "ten_god": _ten_god(day_stem, hidden)}
+            {
+                "stem": hidden,
+                "element": STEM_ELEMENTS[hidden],
+                "ten_god": _ten_god(day_stem, hidden),
+            }
             for hidden in HIDDEN_STEMS[branch]
         ],
         "nayin": _nayin(stem, branch),
@@ -240,7 +503,7 @@ def _stem_relations(pillars: list[Dict[str, Any]]) -> list[str]:
     stems = [pillar["stem"] for pillar in pillars if pillar["stem"] in STEMS]
     relations: list[str] = []
     for left_index, left in enumerate(stems):
-        for right in stems[left_index + 1:]:
+        for right in stems[left_index + 1 :]:
             pair = frozenset((left, right))
             if pair in STEM_CLASHES:
                 relation = f"{left}{right}冲"
@@ -273,7 +536,7 @@ def _branch_relations(pillars: list[Dict[str, Any]]) -> list[str]:
         elif len(unique) == 2:
             relations.append(f"{''.join(unique)}半会{element}")
     for left_index, left in enumerate(branches):
-        for right in branches[left_index + 1:]:
+        for right in branches[left_index + 1 :]:
             pair = frozenset((left, right))
             labels: list[str] = []
             if pair in BRANCH_SIX_COMBINATIONS:
@@ -322,7 +585,9 @@ def _jieqi_datetime(item: Any, zone: ZoneInfo) -> datetime:
     return solar_term_datetime(item, zone)
 
 
-def _nearby_jieqi(value: datetime) -> tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+def _nearby_jieqi(
+    value: datetime,
+) -> tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
     items: list[tuple[datetime, int]] = []
     for year in (value.year - 1, value.year, value.year + 1):
         for item in sxtwl.getJieQiByYear(year):
@@ -347,15 +612,43 @@ def _nearby_jieqi(value: datetime) -> tuple[Optional[Dict[str, Any]], Optional[D
 
 
 def _hour_candidates(value: datetime, day_boundary: str) -> list[Dict[str, str]]:
-    labels = ["早子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥", "晚子"]
+    labels = [
+        "早子",
+        "丑",
+        "寅",
+        "卯",
+        "辰",
+        "巳",
+        "午",
+        "未",
+        "申",
+        "酉",
+        "戌",
+        "亥",
+        "晚子",
+    ]
     hours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23]
     candidates: list[Dict[str, str]] = []
     for label, hour in zip(labels, hours):
         candidate = value.replace(hour=hour, minute=0, second=0, microsecond=0)
-        pillar_date = candidate + timedelta(days=1) if day_boundary == "forward" and hour == 23 else candidate
-        solar_day = sxtwl.fromSolar(pillar_date.year, pillar_date.month, pillar_date.day)
-        hour_gz = solar_day.getHourGZ(0 if day_boundary == "forward" and hour == 23 else hour)
-        candidates.append({"label": label, "time_range": f"{hour:02d}:00", "pillar": _gz_text(hour_gz)})
+        pillar_date = (
+            candidate + timedelta(days=1)
+            if day_boundary == "forward" and hour == 23
+            else candidate
+        )
+        solar_day = sxtwl.fromSolar(
+            pillar_date.year, pillar_date.month, pillar_date.day
+        )
+        hour_gz = solar_day.getHourGZ(
+            0 if day_boundary == "forward" and hour == 23 else hour
+        )
+        candidates.append(
+            {
+                "label": label,
+                "time_range": f"{hour:02d}:00",
+                "pillar": _gz_text(hour_gz),
+            }
+        )
     return candidates
 
 
@@ -386,15 +679,32 @@ def _build_uncertain_metaphysics_chart(
         dayun_algorithm=dayun_algorithm,
         include_period_details=False,
     )
-    labels = ["早子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥", "晚子"]
+    labels = [
+        "早子",
+        "丑",
+        "寅",
+        "卯",
+        "辰",
+        "巳",
+        "午",
+        "未",
+        "申",
+        "酉",
+        "戌",
+        "亥",
+        "晚子",
+    ]
     hours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23]
     candidates: list[Dict[str, Any]] = []
     candidate_profiles: list[Dict[str, Any]] = []
     candidate_hits: list[list[Dict[str, Any]]] = []
+    candidate_graphs = []
 
     for label, hour in zip(labels, hours):
         civil = local.replace(hour=hour, minute=0, second=0, microsecond=0)
-        calculation_time, _ = _true_solar_time(civil, longitude) if use_true_solar_time else (civil, 0.0)
+        calculation_time, _ = (
+            _true_solar_time(civil, longitude) if use_true_solar_time else (civil, 0.0)
+        )
         facts = calculate_calendar_facts(
             calculation_time,
             timezone_name=timezone_name,
@@ -408,40 +718,64 @@ def _build_uncertain_metaphysics_chart(
             _pillar("时", facts.hour_gz, day_stem),
         ]
         hits = evaluate_shensha(pillars)
+        fact_graph = build_bazi_fact_graph(pillars)
         profile = build_structure_profile(
             pillars,
             gender=gender,
             shensha_hits=hits,
             seasonal_status=_seasonal_status(pillars[1]["branch"]),
+            fact_graph=fact_graph,
         )
-        candidates.append({
-            "label": label,
-            "time_range": f"{hour:02d}:00",
-            "pillar": pillars[3]["text"],
-            "day_master": day_stem,
-            "pillars": [pillar["text"] for pillar in pillars],
-        })
+        candidates.append(
+            {
+                "label": label,
+                "time_range": f"{hour:02d}:00",
+                "pillar": pillars[3]["text"],
+                "day_master": day_stem,
+                "pillars": [pillar["text"] for pillar in pillars],
+            }
+        )
         candidate_profiles.append(profile)
         candidate_hits.append(hits)
+        candidate_graphs.append(fact_graph)
 
     stable_pillars: list[Dict[str, Any]] = []
     for index, pillar_label in enumerate(("年", "月", "日", "时")):
         values = {candidate["pillars"][index] for candidate in candidates}
         if len(values) == 1:
-            stable_pillars.append({"label": pillar_label, "text": values.pop(), "pillar": base["pillars"][index]})
+            stable_pillars.append(
+                {
+                    "label": pillar_label,
+                    "text": values.pop(),
+                    "pillar": base["pillars"][index],
+                }
+            )
 
-    stable_rule_ids = set.intersection(*({str(hit["rule_id"]) for hit in hits} for hits in candidate_hits))
+    stable_rule_ids = set.intersection(
+        *({str(hit["rule_id"]) for hit in hits} for hits in candidate_hits)
+    )
     hit_by_id = {str(hit["rule_id"]): hit for hit in candidate_hits[0]}
-    stable_hits = [hit_by_id[rule_id] for rule_id in sorted(stable_rule_ids) if rule_id in hit_by_id]
+    stable_hits = [
+        hit_by_id[rule_id]
+        for rule_id in sorted(stable_rule_ids)
+        if rule_id in hit_by_id
+    ]
 
     def evidence_key(item: Dict[str, Any]) -> tuple[str, ...]:
         return (
-            str(item.get("family", "")), str(item.get("evidence_type", "")),
-            str(item.get("title", "")), str(item.get("detail", "")), str(item.get("source", "")),
+            str(item.get("family", "")),
+            str(item.get("evidence_type", "")),
+            str(item.get("title", "")),
+            str(item.get("detail", "")),
+            str(item.get("source", "")),
         )
 
     evidence_sets = [
-        {evidence_key(item): (str(theme.get("theme", "")), item) for theme in profile.get("theme_profiles", []) for item in theme.get("evidence", [])}
+        {
+            evidence_key(item): (str(theme.get("theme", "")), item)
+            for theme in profile.get("theme_profiles", [])
+            for item in theme.get("evidence", [])
+        }
         for profile in candidate_profiles
     ]
     common_evidence_keys = set.intersection(*(set(items) for items in evidence_sets))
@@ -456,88 +790,154 @@ def _build_uncertain_metaphysics_chart(
             item = dict(original)
             item["id"] = f"stable.{theme}.{len(evidence) + 1}"
             evidence.append(item)
-        stable_theme_profiles.append({
-            "theme": theme,
-            "evidence": evidence,
-            "active_families": sorted({str(item.get("family", "")) for item in evidence if item.get("family")}),
-            "structure_metrics": [],
-            "comparisons": [],
-        })
-        if evidence:
-            support = [item for item in evidence if item.get("evidence_type") in {"支持", "活动", "背景"}]
-            constraints = [item for item in evidence if item.get("evidence_type") == "制约"]
-            lead = (support or evidence)[0]
-            conclusions.append({
-                "id": f"stable.{theme}",
+        stable_theme_profiles.append(
+            {
                 "theme": theme,
-                "headline": f"{theme}有不受出生时辰影响的结构主线",
-                "body": f"{lead['title']}。这项判断在全部可能时辰中都成立，可以先作为理解命盘的稳定起点。",
-                "supporting_evidence_ids": [item["id"] for item in support[:3]],
-                "counter_evidence_ids": [item["id"] for item in constraints[:2]],
-                "school_scope": "现代子平通行分析",
-                "school_agreement": "stable_across_hours",
-                "distribution_context": None,
-                "input_sensitivity": "stable",
-                "priority": len(PERIOD_THEMES) - PERIOD_THEMES.index(theme),
-            })
+                "evidence": evidence,
+                "active_families": sorted(
+                    {
+                        str(item.get("family", ""))
+                        for item in evidence
+                        if item.get("family")
+                    }
+                ),
+                "structure_metrics": [],
+                "comparisons": [],
+            }
+        )
+        if evidence:
+            support = [
+                item
+                for item in evidence
+                if item.get("evidence_type") in {"支持", "活动", "背景"}
+            ]
+            constraints = [
+                item for item in evidence if item.get("evidence_type") == "制约"
+            ]
+            lead = (support or evidence)[0]
+            conclusions.append(
+                {
+                    "id": f"stable.{theme}",
+                    "theme": theme,
+                    "headline": f"{theme}有不受出生时辰影响的结构主线",
+                    "body": f"{lead['title']}。这项判断在全部可能时辰中都成立，可以先作为理解命盘的稳定起点。",
+                    "supporting_evidence_ids": [item["id"] for item in support[:3]],
+                    "counter_evidence_ids": [item["id"] for item in constraints[:2]],
+                    "school_scope": "现代子平通行分析",
+                    "school_agreement": "stable_across_hours",
+                    "distribution_context": None,
+                    "input_sensitivity": "stable",
+                    "priority": len(PERIOD_THEMES) - PERIOD_THEMES.index(theme),
+                }
+            )
 
     sensitivity: list[Dict[str, str]] = []
-    varying_pillars = [label for index, label in enumerate(("年柱", "月柱", "日柱", "时柱")) if len({candidate["pillars"][index] for candidate in candidates}) > 1]
+    varying_pillars = [
+        label
+        for index, label in enumerate(("年柱", "月柱", "日柱", "时柱"))
+        if len({candidate["pillars"][index] for candidate in candidates}) > 1
+    ]
     if varying_pillars:
-        sensitivity.append({"label": "可能变化的四柱", "detail": "、".join(varying_pillars)})
+        sensitivity.append(
+            {"label": "可能变化的四柱", "detail": "、".join(varying_pillars)}
+        )
     day_masters = sorted({str(candidate["day_master"]) for candidate in candidates})
     if len(day_masters) > 1:
         sensitivity.append({"label": "日主可能变化", "detail": " / ".join(day_masters)})
-    all_rule_ids = set.union(*({str(hit["rule_id"]) for hit in hits} for hits in candidate_hits))
+    all_rule_ids = set.union(
+        *({str(hit["rule_id"]) for hit in hits} for hits in candidate_hits)
+    )
     variable_rules = all_rule_ids - stable_rule_ids
     if variable_rules:
-        sensitivity.append({"label": "随时辰变化的神煞", "detail": f"{len(variable_rules)} 项会随候选时柱变化"})
-    sensitivity.append({"label": "运限起点", "detail": "补充时辰后可精确定位大运、流年与流月交接"})
+        sensitivity.append(
+            {
+                "label": "随时辰变化的神煞",
+                "detail": f"{len(variable_rules)} 项会随候选时柱变化",
+            }
+        )
+    sensitivity.append(
+        {"label": "运限起点", "detail": "补充时辰后可精确定位大运、流年与流月交接"}
+    )
 
-    statistics = statistics_for_shensha(
+    statistics = _statistics_or_unavailable(
         stable_hits,
         day_boundary,
         theme_profiles=stable_theme_profiles,
         gender=gender,
     )
-    base.update({
-        "input_timestamp": local.isoformat(),
-        "day_master": day_masters[0] if len(day_masters) == 1 else "待定",
-        "calculation_quality": {"status": "uncertain", "label": "已分析稳定部分", "crosscheck": "hour_range"},
-        "shen_sha": stable_hits,
-        "theme_profiles": stable_theme_profiles,
-        "synthesis": {"method": "modern-ziping-common-v1", "conclusions": conclusions},
-        "statistics": statistics,
-        "period_layers": {"dayun": [], "current": {"as_of": datetime.now(local.tzinfo).isoformat(), "year": None, "month": None}, "engine": "pending_exact_hour"},
-        "consumer": {},
-    })
+    base.update(
+        {
+            "input_timestamp": local.isoformat(),
+            "day_master": day_masters[0] if len(day_masters) == 1 else "待定",
+            "calculation_quality": {
+                "status": "uncertain",
+                "label": "已分析稳定部分",
+                "crosscheck": "hour_range",
+            },
+            "shen_sha": stable_hits,
+            "theme_profiles": stable_theme_profiles,
+            "synthesis": {
+                "method": "modern-ziping-common-v1",
+                "conclusions": conclusions,
+            },
+            "statistics": statistics,
+            "period_layers": {
+                "dayun": [],
+                "current": {
+                    "as_of": datetime.now(local.tzinfo).isoformat(),
+                    "year": None,
+                    "month": None,
+                },
+                "engine": "pending_exact_hour",
+            },
+            "consumer": {},
+        }
+    )
     base["structure"]["theme_profiles"] = stable_theme_profiles
     base["structure"]["synthesis"] = base["synthesis"]
-    base["birth_profile"].update({
-        **calendar_input,
-        "birth_place": birth_place or "",
-        "gender": gender,
-        "hour_uncertain": True,
-        "hour_candidates": candidates,
-        "stability": {
-            "stable_pillars": stable_pillars,
-            "stable_shensha": [hit["name"] for hit in stable_hits],
-            "sensitive_items": sensitivity[:4],
-            "candidate_count": len(candidates),
-        },
-        "dayun": {
-            "status": "requires_hour",
-            "algorithm": dayun_algorithm,
-            "note": "补充出生时辰后即可精确展开运限。",
-            "cycles": [],
-        },
-    })
+    base["birth_profile"].update(
+        {
+            **calendar_input,
+            "birth_place": birth_place or "",
+            "gender": gender,
+            "hour_uncertain": True,
+            "hour_candidates": candidates,
+            "stability": {
+                "stable_pillars": stable_pillars,
+                "stable_shensha": [hit["name"] for hit in stable_hits],
+                "sensitive_items": sensitivity[:4],
+                "candidate_count": len(candidates),
+            },
+            "dayun": {
+                "status": "requires_hour",
+                "algorithm": dayun_algorithm,
+                "note": "补充出生时辰后即可精确展开运限。",
+                "cycles": [],
+            },
+        }
+    )
     base["birth_profile"].pop("period_query", None)
+    envelope = build_bazi_fact_envelope_from_graphs(candidate_graphs)
+    uncertain_shadow = build_source_backed_shadow(
+        (),
+        base["structure"]["patterns"],
+        envelope,
+        include_attestations=False,
+    )
+    base["structure"]["patterns"]["source_backed_shadow"] = uncertain_shadow
+    base["structure"]["patterns"]["source_backed_authority"] = (
+        canonical_authority_from_shadow(uncertain_shadow)
+    )
     return base
 
 
 PERIOD_THEMES = ("事业", "财富", "感情", "五行与承压结构")
-PERIOD_TOPIC_THEMES = {"career": "事业", "wealth": "财富", "relationship": "感情", "health": "五行与承压结构"}
+PERIOD_TOPIC_THEMES = {
+    "career": "事业",
+    "wealth": "财富",
+    "relationship": "感情",
+    "health": "五行与承压结构",
+}
 
 
 def _period_theme_activations(
@@ -547,38 +947,115 @@ def _period_theme_activations(
     gender: Optional[str],
     shensha_hits: list[Dict[str, Any]],
     relations: list[Dict[str, Any]],
-) -> Dict[str, list[Dict[str, str]]]:
-    activations: Dict[str, list[Dict[str, str]]] = {theme: [] for theme in PERIOD_THEMES}
+) -> Dict[str, list[Dict[str, Any]]]:
+    activations: Dict[str, list[Dict[str, Any]]] = {
+        theme: [] for theme in PERIOD_THEMES
+    }
     seen: set[tuple[str, str, str]] = set()
+    layer = {"大运": "dayun", "流年": "liunian", "流月": "liuyue"}.get(
+        period_label, "period"
+    )
 
-    def add(theme: str, kind: str, label: str, detail: str, source: str) -> None:
+    def add(
+        theme: str,
+        kind: str,
+        label: str,
+        detail: str,
+        source: str,
+        *,
+        feature: str = "",
+    ) -> None:
         key = (theme, kind, label)
         if theme not in activations or key in seen:
             return
         seen.add(key)
-        activations[theme].append({"kind": kind, "label": label, "detail": detail, "source": source})
+        activations[theme].append(
+            {
+                "id": f"bazi.period.{layer}.{theme}.{len(activations[theme]) + 1}",
+                "layer": layer,
+                "kind": kind,
+                # Period features are observations of theme activity. A relation
+                # being a conflict does not make the period worse, and a
+                # non-conflict does not make it better. The K-line counts both as
+                # unsigned activity and compares that density only with the
+                # chart's own long-horizon baseline.
+                "role": "activity",
+                "delta": 0.0,
+                "activity": 1.0,
+                "feature": feature,
+                "label": label,
+                "detail": detail,
+                "source": source,
+            }
+        )
 
     if ten_god in {"正官", "七杀", "正印", "偏印", "食神", "伤官"}:
-        add("事业", "新增", f"{period_label}十神·{ten_god}", "该运限天干与日主形成此十神关系。", "日主中心十神")
+        add(
+            "事业",
+            "新增",
+            f"{period_label}十神·{ten_god}",
+            "该运限天干与日主形成此十神关系。",
+            "日主中心十神",
+            feature=ten_god,
+        )
     if ten_god in {"正财", "偏财", "食神", "伤官", "比肩", "劫财"}:
-        add("财富", "新增", f"{period_label}十神·{ten_god}", "该运限天干与日主形成此十神关系。", "日主中心十神")
+        add(
+            "财富",
+            "新增",
+            f"{period_label}十神·{ten_god}",
+            "该运限天干与日主形成此十神关系。",
+            "日主中心十神",
+            feature=ten_god,
+        )
     spouse_gods = {"正财", "偏财"} if gender == "male" else {"正官", "七杀"}
     if ten_god in spouse_gods:
-        add("感情", "新增", f"{period_label}配偶星·{ten_god}", "按男命财星、女命官杀的通行取法记录。", "子平配偶星取法")
+        add(
+            "感情",
+            "新增",
+            f"{period_label}配偶星·{ten_god}",
+            "按男命财星、女命官杀的通行取法记录。",
+            "子平配偶星取法",
+            feature=ten_god,
+        )
     if ten_god in {"正印", "偏印", "比肩", "劫财", "正官", "七杀", "食神", "伤官"}:
-        add("五行与承压结构", "变化", f"{period_label}日主关系·{ten_god}", "传统五行的支持与制约关系在这一阶段发生变化。", "日主中心十神")
+        add(
+            "五行与承压结构",
+            "变化",
+            f"{period_label}日主关系·{ten_god}",
+            "传统五行的支持与制约关系在这一阶段发生变化。",
+            "日主中心十神",
+            feature=ten_god,
+        )
 
     for hit in shensha_hits:
         for topic in hit.get("topic_tags", ()):
             theme = PERIOD_TOPIC_THEMES.get(str(topic))
             if theme:
-                add(theme, "新增", f"{period_label}神煞·{hit['name']}", str(hit.get("trigger", "")), "版本化神煞注册表")
+                # A ShenSha occurrence is context, not an automatic rise or fall.
+                add(
+                    theme,
+                    "新增",
+                    f"{period_label}神煞·{hit['name']}",
+                    str(hit.get("trigger", "")),
+                    "版本化神煞注册表",
+                    feature=str(hit.get("rule_id", hit["name"])),
+                )
 
     for relation in relations:
         relation_type = str(relation.get("relation_type", ""))
-        kind = "冲突" if any(token in relation_type for token in ("冲", "刑", "害", "破", "克")) else "联动"
+        conflict = any(
+            token in relation_type for token in ("冲", "刑", "害", "破", "克")
+        )
+        kind = "冲突" if conflict else "联动"
         for theme in relation.get("theme_tags", ()):
-            add(str(theme), kind, f"{period_label}关系·{relation_type}", str(relation.get("label", "")), "结构化干支关系")
+            add(
+                str(theme),
+                kind,
+                f"{period_label}关系·{relation_type}",
+                str(relation.get("label", "")),
+                "结构化干支关系",
+                feature=relation_type,
+            )
     return activations
 
 
@@ -605,7 +1082,9 @@ def _dayun_payload(
             "note": "时辰不确定时，起运时刻与大运交接可能变化，暂不输出伪精确大运。",
             "cycles": [],
         }
-    solar = SolarCalendar.fromYmdHms(value.year, value.month, value.day, value.hour, value.minute, value.second)
+    solar = SolarCalendar.fromYmdHms(
+        value.year, value.month, value.day, value.hour, value.minute, value.second
+    )
     eight_char = solar.getLunar().getEightChar()
     eight_char.setSect(1 if day_boundary == "forward" else 2)
     crosscheck_bazi = eight_char.toString()
@@ -626,8 +1105,12 @@ def _dayun_payload(
     start_solar = yun.getStartSolar()
     first_dayun_start = normalize_local_datetime(
         datetime(
-            start_solar.getYear(), start_solar.getMonth(), start_solar.getDay(),
-            start_solar.getHour(), start_solar.getMinute(), start_solar.getSecond(),
+            start_solar.getYear(),
+            start_solar.getMonth(),
+            start_solar.getDay(),
+            start_solar.getHour(),
+            start_solar.getMinute(),
+            start_solar.getSecond(),
         ),
         timezone_name,
     ).local_datetime
@@ -641,49 +1124,96 @@ def _dayun_payload(
     def flow_boundaries(year: int) -> tuple[datetime, datetime, list[datetime]]:
         terms = solar_terms_for_years(range(year - 1, year + 3), value.tzinfo)
         lichun = next(
-            item.local_datetime for item in terms
+            item.local_datetime
+            for item in terms
             if item.index == 3 and item.local_datetime.year == year
         )
         next_lichun = next(
-            item.local_datetime for item in terms
+            item.local_datetime
+            for item in terms
             if item.index == 3 and item.local_datetime.year == year + 1
         )
         month_starts = [
-            item.local_datetime for item in terms
-            if item.index in JIE_MONTH_BRANCH and lichun <= item.local_datetime < next_lichun
+            item.local_datetime
+            for item in terms
+            if item.index in JIE_MONTH_BRANCH
+            and lichun <= item.local_datetime < next_lichun
         ]
         month_starts.sort()
         return lichun, next_lichun, [*month_starts, next_lichun]
-    natal_relations = set(_stem_relations(natal_pillars) + _branch_relations(natal_pillars))
+
+    natal_relations = set(
+        _stem_relations(natal_pillars) + _branch_relations(natal_pillars)
+    )
     cycles = []
+    kline_cycles = []
+    expand_next_cycle = False
     current_year_payload: Optional[Dict[str, Any]] = None
     current_month_payload: Optional[Dict[str, Any]] = None
-    for cycle in yun.getDaYun(9):
+    # Keep a stable contemporary minimum, then extend only as far as needed for
+    # the reference age plus the following cycle. The cap covers living users
+    # without allowing an extreme historical input to create an unbounded API
+    # payload.
+    reference_age_years = max(0, reference.year - value.year)
+    cycle_count = max(13, min(20, reference_age_years // 10 + 3))
+    for cycle in yun.getDaYun(cycle_count):
         cycle_index = cycle.getIndex()
-        cycle_start = value if cycle_index == 0 else add_years(first_dayun_start, (cycle_index - 1) * 10)
-        cycle_end = first_dayun_start if cycle_index == 0 else add_years(first_dayun_start, cycle_index * 10)
+        cycle_start = (
+            value
+            if cycle_index == 0
+            else add_years(first_dayun_start, (cycle_index - 1) * 10)
+        )
+        cycle_end = (
+            first_dayun_start
+            if cycle_index == 0
+            else add_years(first_dayun_start, cycle_index * 10)
+        )
         cycle_is_current = cycle_start <= reference < cycle_end
         cycle_ganzhi = cycle.getGanZhi()
-        cycle_pillar = {
-            "label": "大运",
-            "stem": cycle_ganzhi[0],
-            "branch": cycle_ganzhi[1],
-            "text": cycle_ganzhi,
-        } if cycle_ganzhi else None
+        cycle_pillar = (
+            {
+                "label": "大运",
+                "stem": cycle_ganzhi[0],
+                "branch": cycle_ganzhi[1],
+                "text": cycle_ganzhi,
+            }
+            if cycle_ganzhi
+            else None
+        )
         cycle_context = [*natal_pillars, *([cycle_pillar] if cycle_pillar else [])]
-        cycle_ten_god = _ten_god(natal_pillars[2]["stem"], cycle_ganzhi[0]) if cycle_ganzhi else "—"
-        cycle_hits = [
-            hit for hit in evaluate_shensha(cycle_context)
-            if "大运" in hit["pillar_labels"]
-        ] if cycle_pillar else []
-        cycle_relations = _stem_relations(cycle_context) + _branch_relations(cycle_context)
+        cycle_ten_god = (
+            _ten_god(natal_pillars[2]["stem"], cycle_ganzhi[0]) if cycle_ganzhi else "—"
+        )
+        cycle_hits = (
+            [
+                hit
+                for hit in evaluate_shensha(cycle_context)
+                if "大运" in hit["pillar_labels"]
+            ]
+            if cycle_pillar
+            else []
+        )
+        cycle_relations = _stem_relations(cycle_context) + _branch_relations(
+            cycle_context
+        )
         cycle_structured_relations = [
-            relation for relation in structured_relations(cycle_context)
-            if any(item.get("pillar") == "大运" for item in relation.get("participants", ()))
+            relation
+            for relation in structured_relations(cycle_context)
+            if any(
+                item.get("pillar") == "大运"
+                for item in relation.get("participants", ())
+            )
         ]
         years = []
-        should_expand_cycle = include_period_details or cycle_is_current or cycle_index == period_cycle_index
-        for liu_nian in cycle.getLiuNian() if should_expand_cycle else ():
+        is_default_next_cycle = expand_next_cycle
+        should_expand_cycle = (
+            include_period_details
+            or cycle_is_current
+            or is_default_next_cycle
+            or cycle_index == period_cycle_index
+        )
+        expand_next_cycle = cycle_is_current
+        for liu_nian in cycle.getLiuNian():
             year_start, year_end, month_boundaries = flow_boundaries(liu_nian.getYear())
             year_is_current = cycle_is_current and year_start <= reference < year_end
             year_ganzhi = liu_nian.getGanZhi()
@@ -695,13 +1225,20 @@ def _dayun_payload(
             }
             year_context = [*cycle_context, year_pillar]
             year_hits = [
-                hit for hit in evaluate_shensha(year_context)
+                hit
+                for hit in evaluate_shensha(year_context)
                 if "流年" in hit["pillar_labels"]
             ]
-            year_relations = _stem_relations(year_context) + _branch_relations(year_context)
+            year_relations = _stem_relations(year_context) + _branch_relations(
+                year_context
+            )
             year_structured_relations = [
-                relation for relation in structured_relations(year_context)
-                if any(item.get("pillar") == "流年" for item in relation.get("participants", ()))
+                relation
+                for relation in structured_relations(year_context)
+                if any(
+                    item.get("pillar") == "流年"
+                    for item in relation.get("participants", ())
+                )
             ]
             year_ten_god = _ten_god(natal_pillars[2]["stem"], year_ganzhi[0])
             months = []
@@ -709,7 +1246,9 @@ def _dayun_payload(
                 month_index = liu_yue.getIndex()
                 month_start = month_boundaries[month_index]
                 month_end = month_boundaries[month_index + 1]
-                month_is_current = year_is_current and month_start <= reference < month_end
+                month_is_current = (
+                    year_is_current and month_start <= reference < month_end
+                )
                 month_ganzhi = liu_yue.getGanZhi()
                 month_pillar = {
                     "label": "流月",
@@ -719,13 +1258,20 @@ def _dayun_payload(
                 }
                 month_context = [*year_context, month_pillar]
                 month_hits = [
-                    hit for hit in evaluate_shensha(month_context)
+                    hit
+                    for hit in evaluate_shensha(month_context)
                     if "流月" in hit["pillar_labels"]
                 ]
-                month_relations = _stem_relations(month_context) + _branch_relations(month_context)
+                month_relations = _stem_relations(month_context) + _branch_relations(
+                    month_context
+                )
                 month_structured_relations = [
-                    relation for relation in structured_relations(month_context)
-                    if any(item.get("pillar") == "流月" for item in relation.get("participants", ()))
+                    relation
+                    for relation in structured_relations(month_context)
+                    if any(
+                        item.get("pillar") == "流月"
+                        for item in relation.get("participants", ())
+                    )
                 ]
                 month_ten_god = _ten_god(natal_pillars[2]["stem"], month_ganzhi[0])
                 month_payload = {
@@ -740,7 +1286,8 @@ def _dayun_payload(
                     "is_current": month_is_current,
                     "shen_sha": [hit["name"] for hit in month_hits],
                     "relations": [
-                        relation for relation in month_relations
+                        relation
+                        for relation in month_relations
                         if relation not in set(year_relations)
                     ],
                     "theme_activations": _period_theme_activations(
@@ -767,7 +1314,11 @@ def _dayun_payload(
                 "end_timestamp": year_end.isoformat(),
                 "is_current": year_is_current,
                 "shen_sha": [hit["name"] for hit in year_hits],
-                "relations": [relation for relation in year_relations if relation not in set(cycle_relations)],
+                "relations": [
+                    relation
+                    for relation in year_relations
+                    if relation not in set(cycle_relations)
+                ],
                 "theme_activations": _period_theme_activations(
                     period_label="流年",
                     ten_god=year_ten_god,
@@ -779,8 +1330,10 @@ def _dayun_payload(
             }
             years.append(year_payload)
             if year_is_current and liu_nian.getYear() == reference_year:
-                current_year_payload = {key: value for key, value in year_payload.items() if key != "months"}
-        cycles.append({
+                current_year_payload = {
+                    key: value for key, value in year_payload.items() if key != "months"
+                }
+        cycle_payload = {
             "index": cycle_index,
             "label": "童限" if cycle_index == 0 else cycle_ganzhi,
             "ganzhi": cycle_ganzhi,
@@ -793,7 +1346,11 @@ def _dayun_payload(
             "is_current": cycle_is_current,
             "ten_god": cycle_ten_god,
             "shen_sha": [hit["name"] for hit in cycle_hits],
-            "relations": [relation for relation in cycle_relations if relation not in natal_relations],
+            "relations": [
+                relation
+                for relation in cycle_relations
+                if relation not in natal_relations
+            ],
             "theme_activations": _period_theme_activations(
                 period_label="大运",
                 ten_god=cycle_ten_god,
@@ -802,11 +1359,17 @@ def _dayun_payload(
                 relations=cycle_structured_relations,
             ),
             "years": years,
-        })
+        }
+        kline_cycles.append(cycle_payload)
+        cycles.append(
+            cycle_payload if should_expand_cycle else {**cycle_payload, "years": []}
+        )
     return {
         "status": "available",
         "algorithm": algorithm,
-        "algorithm_note": "sect2 按分钟精算；sect1 按日数与时辰折算。" if algorithm == "sect2" else "sect1 按日数与时辰折算。",
+        "algorithm_note": "sect2 按分钟精算；sect1 按日数与时辰折算。"
+        if algorithm == "sect2"
+        else "sect1 按日数与时辰折算。",
         "direction": "forward" if yun.isForward() else "reverse",
         "start": {
             "years": yun.getStartYear(),
@@ -818,6 +1381,9 @@ def _dayun_payload(
         "engine_bazi": crosscheck_bazi,
         "crosscheck_matches": crosscheck_bazi == expected_bazi,
         "cycles": cycles,
+        # Consumed and removed before API serialization. It keeps the personal
+        # baseline fixed across the compact and full-life views.
+        "_kline_cycles": kline_cycles,
         "current": {
             "as_of": reference.isoformat(),
             "year": current_year_payload,
@@ -876,7 +1442,11 @@ def build_metaphysics_chart(
             dayun_algorithm=dayun_algorithm,
         )
     effective_local = local
-    calculation_time, correction_minutes = _true_solar_time(effective_local, longitude) if use_true_solar_time else (effective_local, 0.0)
+    calculation_time, correction_minutes = (
+        _true_solar_time(effective_local, longitude)
+        if use_true_solar_time
+        else (effective_local, 0.0)
+    )
     pillar_date = calculation_time
     if day_boundary == "forward" and calculation_time.hour >= 23:
         pillar_date = calculation_time + timedelta(days=1)
@@ -930,19 +1500,22 @@ def build_metaphysics_chart(
         include_period_details=include_period_details,
         period_cycle_index=period_cycle_index,
     )
+    kline_cycles = dayun.pop("_kline_cycles", dayun.get("cycles", []))
     raw_shen_sha = evaluate_shensha(pillars)
+    fact_graph = build_bazi_fact_graph(pillars)
     structure = build_structure_profile(
         pillars,
         gender=gender,
         shensha_hits=raw_shen_sha,
         seasonal_status=_seasonal_status(month_branch),
+        fact_graph=fact_graph,
     )
-    patterns = assess_patterns(pillars, structure)
+    patterns = assess_patterns(pillars, structure, fact_graph=fact_graph)
     structure["patterns"] = patterns
     shensha_effects = evaluate_shensha_effects(raw_shen_sha, pillars, structure)
     shen_sha = shensha_effects["hits"]
     consumer_features = consumer_feature_records(patterns, shensha_effects)
-    statistics = statistics_for_shensha(
+    statistics = _statistics_or_unavailable(
         shen_sha,
         day_boundary,
         theme_profiles=structure["theme_profiles"],
@@ -951,7 +1524,7 @@ def build_metaphysics_chart(
         month_command=month_branch,
         consumer_feature_ids=[item["id"] for item in consumer_features],
     )
-    theme_profiles = statistics.get("theme_profiles", structure["theme_profiles"])
+    theme_profiles = statistics.get("theme_profiles") or structure["theme_profiles"]
     structure["theme_profiles"] = theme_profiles
     rarity_by_feature = {
         str(item.get("feature_id", "")): float(item.get("percentage", 0) or 0)
@@ -963,22 +1536,39 @@ def build_metaphysics_chart(
         if feature_id in rarity_by_feature:
             hit["rarity_percentage"] = rarity_by_feature[feature_id]
     structure["shensha_combinations"] = shensha_effects["combinations"]
-    synthesis = structure.get("synthesis", {"method": "modern-ziping-common-v1", "conclusions": []})
-    profiles_by_theme = {str(profile.get("theme", "")): profile for profile in theme_profiles}
+    synthesis = structure.get(
+        "synthesis", {"method": "modern-ziping-common-v1", "conclusions": []}
+    )
+    profiles_by_theme = {
+        str(profile.get("theme", "")): profile for profile in theme_profiles
+    }
     for conclusion in synthesis.get("conclusions", []):
-        comparisons = profiles_by_theme.get(str(conclusion.get("theme", "")), {}).get("comparisons", [])
-        supported = [item for item in comparisons if item.get("status") in {"observed", "zero"}]
+        comparisons = profiles_by_theme.get(str(conclusion.get("theme", "")), {}).get(
+            "comparisons", []
+        )
+        supported = [
+            item
+            for item in comparisons
+            if item.get("status") in {"observed", "zero"} and item.get("display_label")
+        ]
         if not supported:
             continue
-        most_distinctive = min(supported, key=lambda item: float(item.get("same_mass", item.get("exact_percentage", 100))))
-        same_mass = float(most_distinctive.get("same_mass", most_distinctive.get("exact_percentage", 100)))
-        if same_mass <= 10:
-            context = f"较少见 · 同值样本 {same_mass:.1f}%"
-        elif same_mass <= 25:
-            context = f"辨识度中等 · 同值样本 {same_mass:.1f}%"
-        else:
-            context = f"较常见 · 同值样本 {same_mass:.1f}%"
-        conclusion["distribution_context"] = context
+        display_priority = {
+            "exact_tail": 0,
+            "directional": 1,
+            "reference_zero": 2,
+            "common_value": 3,
+            "incidence": 4,
+        }
+        most_distinctive = min(
+            supported,
+            key=lambda item: (
+                display_priority.get(str(item.get("display_mode", "")), 5),
+                float(item.get("tail_percentage", 101) or 101),
+                str(item.get("metric_id", "")),
+            ),
+        )
+        conclusion["distribution_context"] = str(most_distinctive["display_label"])
     consumer = build_bazi_consumer_profile(
         pillars=pillars,
         structure=structure,
@@ -987,6 +1577,7 @@ def build_metaphysics_chart(
         cycles=dayun.get("cycles", []),
         consumer_distributions=statistics.get("consumer_distributions"),
         consumer_feature_metrics=statistics.get("consumer_feature_metrics", ()),
+        kline_cycles=kline_cycles,
     )
     return {
         "timezone": timezone_name,
@@ -1016,10 +1607,11 @@ def build_metaphysics_chart(
             "six_spirits": six_gods,
         },
         "element_counts": {element: counts.get(element, 0) for element in ELEMENTS},
-        "derived_schema_version": 6,
+        "derived_schema_version": 7,
         "calculation_quality": calendar_facts.quality,
         "boundary_flags": calendar_facts.boundary_flags,
         "rules_version": RULES_VERSION,
+        "rule_versions": bazi_rule_versions(),
         "shen_sha": shen_sha,
         "structure": structure,
         "theme_profiles": theme_profiles,
@@ -1027,7 +1619,14 @@ def build_metaphysics_chart(
         "statistics": statistics,
         "period_layers": {
             "dayun": dayun.get("cycles", []),
-            "current": dayun.get("current", {"as_of": datetime.now(calculation_time.tzinfo).isoformat(), "year": None, "month": None}),
+            "current": dayun.get(
+                "current",
+                {
+                    "as_of": datetime.now(calculation_time.tzinfo).isoformat(),
+                    "year": None,
+                    "month": None,
+                },
+            ),
             "engine": "lunar_python 1.4.8",
         },
         "consumer": consumer,
@@ -1052,7 +1651,9 @@ def build_metaphysics_chart(
                 "birth_place": birth_place,
                 "hour_uncertain": False,
                 "dayun_algorithm": dayun_algorithm,
-                "reference_timestamp": reference_timestamp.isoformat() if reference_timestamp else None,
+                "reference_timestamp": reference_timestamp.isoformat()
+                if reference_timestamp
+                else None,
                 "include_period_details": False,
             },
             "engines": {

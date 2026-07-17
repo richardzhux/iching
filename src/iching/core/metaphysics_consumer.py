@@ -1,306 +1,122 @@
 from __future__ import annotations
 
-from hashlib import sha256
-from math import sqrt
+from math import tanh
 from typing import Any, Iterable, Mapping
 
+from iching.core.consumer_claims import (
+    CONSUMER_CLAIMS_VERSION,
+    compile_consumer_claims,
+    project_consumer_claims,
+)
 
-CONSUMER_RULES_VERSION = "metaphysics-consumer-2026.07-v3"
 
-THEME_ORDER = ("career", "wealth", "relationship", "health")
+CONSUMER_RULES_VERSION = "metaphysics-consumer-2026.07-v6"
+
+THEME_ORDER = ("career", "wealth", "relationship", "rhythm")
 THEME_LABELS = {
     "career": "事业",
     "wealth": "财富",
     "relationship": "感情",
-    "health": "身心节奏",
+    "rhythm": "身心节奏",
 }
-PROFILE_THEME_KEYS = {
-    "事业": "career",
-    "财富": "wealth",
-    "感情": "relationship",
-    "五行与承压结构": "health",
-    "健康": "health",
+THEME_PROFILE_LABELS = {
+    "career": "事业",
+    "wealth": "财富",
+    "relationship": "感情",
+    "rhythm": "五行与承压结构",
 }
 THEME_COLORS = {
-    "overall": "#7c3aed",
     "career": "#dc2626",
     "wealth": "#d97706",
     "relationship": "#db2777",
-    "health": "#059669",
+    "rhythm": "#059669",
 }
 
-_CONSTRAINT_METRICS = {
-    "peer_count",
-    "missing_element_count",
-    "concentrated_element_count",
-    "pressure_relation_count",
-    "repeated_branch_count",
+_SHENSHA_STATE_IDS = {
+    "发力": "activated",
+    "有力": "supported",
+    "可见": "visible",
+    "受制": "constrained",
 }
-_METRIC_WEIGHTS = {
-    "officer_count": 1.3,
-    "resource_count": 1.1,
-    "output_count": 1.15,
-    "visible_wealth_count": 1.45,
-    "hidden_wealth_count": 0.9,
-    "visible_spouse_count": 1.3,
-    "hidden_spouse_count": 0.8,
-    "spouse_palace_relation_count": 1.15,
-    "day_stem_combine_count": 1.0,
-    "root_pillar_count": 1.35,
-    "relation_count": 0.85,
-    "mobility_count": 0.8,
-    "shensha_count": 0.45,
+_LIFECYCLE_TRANSITIONS = {
+    "formation": (
+        frozenset(("inactive", "superseded", "undetermined")),
+        frozenset(("formed", "rescued", "mixed", "transformed")),
+    ),
+    "damage": (
+        frozenset(("formed", "rescued", "transformed")),
+        frozenset(("broken", "mixed")),
+    ),
+    "rescue": (
+        frozenset(("broken", "mixed")),
+        frozenset(("rescued",)),
+    ),
 }
 
-_ARCHETYPES = (
-    ("breaker", "破局型表达者", "把复杂局面说清楚，再把新路走出来", {"食神", "伤官"}),
-    ("strategist", "谋略型操盘手", "擅长在资源、节奏与关系之间找到最优解", {"偏印", "七杀"}),
-    ("builder", "长期主义建造者", "靠稳定积累把能力变成可持续成果", {"正印", "正财"}),
-    ("commander", "高压型领导者", "越是复杂和有约束的局面，越能显出掌控力", {"正官", "七杀"}),
-    ("creator", "天赋型创造者", "表达、审美与原创能力是最醒目的个人资产", {"食神", "伤官", "偏印"}),
-    ("connector", "资源型连接者", "能看见人与资源之间尚未被利用的连接", {"偏财", "正财"}),
-    ("scholar", "体系型研究者", "把知识变成判断框架，是你最稳定的优势", {"正印", "偏印"}),
-    ("challenger", "逆风型挑战者", "压力不会让你停下，反而会逼出行动速度", {"七杀", "劫财"}),
-    ("operator", "结果型经营者", "目标感强，善于把抽象机会落成现实结果", {"正财", "偏财", "正官"}),
-    ("independent", "独立型开拓者", "更适合凭判断与个人能力开出自己的路径", {"比肩", "劫财"}),
-    ("mentor", "影响型引导者", "善于把经验、知识与秩序传递给别人", {"正印", "食神"}),
-    ("diplomat", "关系型协调者", "能够同时理解不同立场并推动局面前进", {"正官", "正财", "正印"}),
-    ("visionary", "前瞻型策划者", "比多数人更早看见趋势、风险与第二条路", {"偏印", "伤官"}),
-    ("finisher", "执行型终结者", "不只提出想法，更擅长把事情推到完成", {"七杀", "正财"}),
-    ("guardian", "稳定型守成者", "在变化中维持秩序与长期价值", {"正官", "正印", "正财"}),
-    ("catalyst", "变化型催化者", "你的出现往往会加速环境、人和选择的变化", {"驿马", "伤官"}),
-    ("magnet", "魅力型影响者", "个人表达与关系感知很容易形成记忆点", {"桃花", "红鸾", "天喜"}),
-    ("integrator", "全局型整合者", "擅长把分散的信息、人和资源重新组织", set()),
-)
-
-_PATTERN_THEME_BONUS = {
-    "正官": {"career": 10, "wealth": 3, "relationship": 3, "health": 2},
-    "七杀": {"career": 11, "wealth": 4, "relationship": 2, "health": -2},
-    "正财": {"career": 4, "wealth": 12, "relationship": 5, "health": 2},
-    "偏财": {"career": 5, "wealth": 12, "relationship": 4, "health": 1},
-    "食神": {"career": 7, "wealth": 8, "relationship": 4, "health": 5},
-    "伤官": {"career": 9, "wealth": 7, "relationship": 5, "health": -1},
-    "正印": {"career": 9, "wealth": 3, "relationship": 3, "health": 6},
-    "偏印": {"career": 8, "wealth": 3, "relationship": 2, "health": 3},
-    "建禄": {"career": 8, "wealth": 5, "relationship": 2, "health": 7},
-    "阳刃": {"career": 9, "wealth": 4, "relationship": 1, "health": -3},
-    "从财": {"career": 6, "wealth": 15, "relationship": 5, "health": 1},
-    "从杀": {"career": 15, "wealth": 5, "relationship": 2, "health": -2},
-    "从儿": {"career": 10, "wealth": 9, "relationship": 5, "health": 3},
-    "从旺": {"career": 9, "wealth": 5, "relationship": 2, "health": 8},
-    "从强": {"career": 9, "wealth": 4, "relationship": 2, "health": 9},
+_CANONICAL_PATTERN_TITLES = {
+    "direct_officer": "正官",
+    "direct_resource": "正印",
+    "direct_wealth": "正财",
+    "eating_god": "食神",
+    "hurting_officer": "伤官",
+    "indirect_resource": "偏印",
+    "indirect_wealth": "偏财",
+    "month_prosperity": "建禄",
+    "month_robbery": "月劫",
+    "seven_killings": "七杀",
+    "yang_blade": "阳刃",
 }
-
-_PERIOD_EVENT_WEIGHTS = {"新增": 3.2, "联动": 4.4, "变化": 1.2, "冲突": -4.8}
-_PATTERN_STATUS_LABELS = {
+_CANONICAL_STATUS_TITLES = {
     "formed": "成格",
-    "effective": "得用",
-    "broken": "受制",
-    "rescued": "救成",
+    "broken": "受损",
+    "rescued": "破而有救",
     "mixed": "混杂",
     "transformed": "转化",
-    "candidate": "主导",
-}
-_SHENSHA_STATE_IDS = {"发力": "activated", "有力": "supported", "可见": "visible", "受制": "constrained"}
-
-_PATTERN_ARCHETYPES = {
-    "正官": "guardian",
-    "七杀": "commander",
-    "正财": "builder",
-    "偏财": "connector",
-    "食神": "creator",
-    "伤官": "breaker",
-    "正印": "scholar",
-    "偏印": "scholar",
-    "建禄": "independent",
-    "阳刃": "challenger",
-    "从财": "operator",
-    "从杀": "commander",
-    "从儿": "creator",
-    "从旺": "independent",
-    "从强": "guardian",
+    "candidate": "候选",
 }
 
 
-def _clamp(value: float, minimum: float = 0, maximum: float = 100) -> float:
-    return max(minimum, min(maximum, value))
+def _canonical_pattern_feature_records(
+    patterns: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    """Return incidence features from the promoted Shen authority only.
 
-
-def _stable_fraction(value: str) -> float:
-    return int(sha256(value.encode("utf-8")).hexdigest()[:8], 16) / 0xFFFFFFFF
-
-
-def _metric_percentile(comparison: Mapping[str, Any]) -> float | None:
-    if comparison.get("status") not in {"observed", "zero"}:
-        return None
-    metric_id = str(comparison.get("metric_id", ""))
-    if comparison.get("comparison_mode") == "incidence":
-        hit = float(comparison.get("hit_percentage", 0) or 0)
-        value = float(comparison.get("value", 0) or 0)
-        result = 100 - hit / 2 if value > 0 else (100 - hit) / 2
-    else:
-        lower = float(comparison.get("lower_percentage", 0) or 0)
-        same = float(comparison.get("same_percentage", comparison.get("exact_percentage", 0)) or 0)
-        higher = float(comparison.get("higher_percentage", max(0, 100 - lower - same)) or 0)
-        result = higher + same / 2 if metric_id in _CONSTRAINT_METRICS else lower + same / 2
-    return _clamp(result)
-
-
-def _profile_by_key(profiles: Iterable[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]]:
-    return {
-        PROFILE_THEME_KEYS[str(profile.get("theme", ""))]: profile
-        for profile in profiles
-        if str(profile.get("theme", "")) in PROFILE_THEME_KEYS
-    }
-
-
-def _theme_score(
-    key: str,
-    profile: Mapping[str, Any],
-    pattern: Mapping[str, Any],
-    enhanced_hits: Iterable[Mapping[str, Any]],
-    combinations: Iterable[Mapping[str, Any]],
-) -> tuple[int, float, list[str]]:
-    score = 43.0
-    drivers: list[str] = []
-    evidence = list(profile.get("evidence", ()))
-    supporting = [item for item in evidence if item.get("evidence_type") in {"支持", "活动", "背景"}]
-    constraints = [item for item in evidence if item.get("evidence_type") == "制约"]
-    structure_points = min(23.0, sum(3.2 if item.get("evidence_type") == "支持" else 2.0 for item in supporting))
-    score += structure_points
-    if supporting:
-        drivers.extend(str(item.get("title", "")) for item in supporting[:2])
-
-    for metric in profile.get("structure_metrics", ()):
-        metric_id = str(metric.get("metric_id", ""))
-        value = float(metric.get("value", 0) or 0)
-        weight = _METRIC_WEIGHTS.get(metric_id, 0.55)
-        score += (-1 if metric_id in _CONSTRAINT_METRICS else 1) * min(6.0, value * weight)
-
-    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
-    if isinstance(primary, Mapping):
-        pattern_name = str(primary.get("name", ""))
-        for token, bonuses in _PATTERN_THEME_BONUS.items():
-            if token in pattern_name:
-                score += bonuses.get(key, 0)
-                status = _PATTERN_STATUS_LABELS.get(str(primary.get("status", "")), str(primary.get("status", "成格")))
-                drivers.insert(0, f"{pattern_name}·{status}")
-                break
-        score -= min(8.0, len(primary.get("constraints", ())) * 2.5)
-
-    topic = {"career": "career", "wealth": "wealth", "relationship": "relationship", "health": "health"}[key]
-    combo_points = 0.0
-    for combination in combinations:
-        tags = {str(item) for item in combination.get("topic_tags", ())}
-        if tags and topic not in tags:
-            continue
-        tier = str(combination.get("tier", "product_cluster"))
-        combo_points += {"classical_named": 7.0, "classical_interaction": 5.0, "product_cluster": 3.5}.get(tier, 3.0)
-        if len(drivers) < 4:
-            drivers.append(str(combination.get("title", "结构共振")))
-    score += min(20.0, combo_points)
-
-    shensha_points = 0.0
-    for hit in enhanced_hits:
-        tags = {str(item) for item in hit.get("topic_tags", ())}
-        if topic not in tags:
-            continue
-        shensha_points += {"发力": 4.5, "有力": 3.0, "可见": 1.2, "受制": -2.4}.get(str(hit.get("state", "可见")), 1.0)
-    score += max(-8.0, min(15.0, shensha_points))
-    score -= min(12.0, len(constraints) * 3.5)
-
-    metric_percentiles = [
-        value for comparison in profile.get("comparisons", ())
-        if (value := _metric_percentile(comparison)) is not None
-        and str(comparison.get("metric_id", "")) != "shensha_count"
-    ]
-    empirical = sum(metric_percentiles) / len(metric_percentiles) if metric_percentiles else score
-    score = int(round(_clamp(score, 28, 98)))
-    global_percentile = round(_clamp(empirical * 0.62 + score * 0.38, 2, 99.5), 1)
-    return score, global_percentile, [item for item in dict.fromkeys(drivers) if item][:4]
-
-
-def score_bazi_consumer_themes(
-    *,
-    structure: Mapping[str, Any],
-    patterns: Mapping[str, Any] | None,
-    shensha_effects: Mapping[str, Any] | None,
-) -> dict[str, dict[str, Any]]:
-    """Return deterministic natal scores before any population ranking is applied.
-
-    The baseline generator calls this same function, so the checked-in score
-    distributions and the score shown for a live chart cannot drift apart.
+    The legacy pattern payload remains in the API for snapshot compatibility,
+    but it must never define a frequency that is stamped with the canonical
+    bundle digest.  Ambiguous candidates and the fail-closed special review
+    gate deliberately emit no incidence feature.
     """
-    profiles_by_key = _profile_by_key(structure.get("theme_profiles", ()))
-    effects = shensha_effects or {}
-    hits = list(effects.get("hits", ()))
-    combinations = list(effects.get("combinations", ()))
-    pattern = patterns or {}
-    result: dict[str, dict[str, Any]] = {}
-    for key in THEME_ORDER:
-        score, fallback_percentile, drivers = _theme_score(
-            key,
-            profiles_by_key.get(key, {}),
-            pattern,
-            hits,
-            combinations,
+
+    authority = patterns.get("source_backed_authority")
+    if not isinstance(authority, Mapping) or authority.get("authoritative") is not True:
+        return []
+    pattern_set = authority.get("pattern_set")
+    if not isinstance(pattern_set, Mapping):
+        return []
+    active_ids = {
+        str(value) for value in pattern_set.get("active_pattern_ids", ()) if value
+    }
+    records: list[dict[str, str]] = []
+    for value in pattern_set.get("patterns", ()):
+        if not isinstance(value, Mapping):
+            continue
+        pattern_id = str(value.get("pattern_id", ""))
+        status = str(value.get("status", ""))
+        if pattern_id not in active_ids or pattern_id not in _CANONICAL_PATTERN_TITLES:
+            continue
+        if status not in _CANONICAL_STATUS_TITLES:
+            continue
+        records.append(
+            {
+                "id": f"bazi.pattern.canonical.{pattern_id}.status.{status}",
+                "kind": "pattern",
+                "title": (
+                    f"{_CANONICAL_PATTERN_TITLES[pattern_id]}·"
+                    f"{_CANONICAL_STATUS_TITLES[status]}"
+                ),
+            }
         )
-        result[key] = {
-            "score": score,
-            "fallback_percentile": fallback_percentile,
-            "drivers": drivers,
-        }
-    result["overall"] = {
-        "score": int(round(sum(int(result[key]["score"]) for key in THEME_ORDER) / len(THEME_ORDER))),
-        "fallback_percentile": round(
-            sum(float(result[key]["fallback_percentile"]) for key in THEME_ORDER) / len(THEME_ORDER),
-            1,
-        ),
-        "drivers": [],
-    }
-    return result
-
-
-def _theme_path(
-    key: str,
-    profile: Mapping[str, Any],
-    pattern: Mapping[str, Any],
-) -> tuple[str, str]:
-    values = {
-        str(metric.get("metric_id", "")): int(metric.get("value", 0) or 0)
-        for metric in profile.get("structure_metrics", ())
-    }
-    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
-    pattern_name = str(primary.get("name", "")) if isinstance(primary, Mapping) else ""
-    if key == "career":
-        if "印" in pattern_name:
-            return "专业积累型", "更适合通过学习、研究、资质与长期能力建设形成位置。"
-        if any(token in pattern_name for token in ("官", "杀")):
-            return "责任推动型", "更容易在明确目标、责任与组织协作中建立影响力。"
-        if any(token in pattern_name for token in ("食神", "伤官")):
-            return "创造表达型", "更适合用作品、表达、解决问题与新方法打开局面。"
-        return "自主开拓型", "事业路径更依赖个人判断、持续行动与阶段机会。"
-    if key == "wealth":
-        visible = values.get("visible_wealth_count", 0)
-        hidden = values.get("hidden_wealth_count", 0)
-        if visible:
-            return "外显经营型", "资源与现实结果更容易直接进入选择和行动。"
-        if hidden:
-            return "潜藏兑现型", "财星主要藏于地支，资源更偏长期积累与阶段兑现；这不等于贫穷或没有财富。"
-        return "能力转化型", "财富更依赖专业能力、关系网络与运限机会转化，并非由单一财星数量决定。"
-    if key == "relationship":
-        if values.get("spouse_palace_relation_count", 0) >= 4:
-            return "高互动型", "关系与生活选择联动较多，重要关系更容易推动阶段变化。"
-        if values.get("day_stem_combine_count", 0):
-            return "关系牵引型", "亲密关系在选择、合作与人生节奏中具有较强牵引力。"
-        return "渐进建立型", "关系更适合通过理解、信任与共同经历逐步深化。"
-    pressure = values.get("pressure_relation_count", 0)
-    concentration = values.get("concentrated_element_count", 0)
-    if pressure >= 5:
-        return "敏感调节型", "结构变化较密集，需要在输出、休整与环境切换之间找到自己的节奏。"
-    if concentration >= 2:
-        return "内稳外紧型", "内在力量较集中，外部变化来临时更需要主动安排恢复与缓冲。"
-    return "均衡恢复型", "整体节奏更适合稳定推进，并为阶段变化保留恢复空间。"
+    return records
 
 
 def consumer_feature_records(
@@ -310,229 +126,287 @@ def consumer_feature_records(
     """Feature IDs shared by baseline generation and live-chart lookup."""
     records: list[dict[str, str]] = []
     pattern = patterns or {}
-    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
-    if isinstance(primary, Mapping) and primary.get("id"):
-        records.append({
-            "id": str(primary["id"]),
-            "kind": "pattern",
-            "title": str(primary.get("title", primary.get("name", "主导格局"))),
-        })
+    if isinstance(pattern, Mapping):
+        records.extend(_canonical_pattern_feature_records(pattern))
     effects = shensha_effects or {}
     for hit in effects.get("hits", ()):
         state = str(hit.get("state", "可见"))
         state_id = _SHENSHA_STATE_IDS.get(state, "visible")
-        records.append({
-            "id": f"bazi.consumer.shensha.{hit.get('rule_id', 'unknown')}.state.{state_id}",
-            "kind": "shensha_state",
-            "title": f"{hit.get('name', '神煞')}·{state}",
-        })
+        records.append(
+            {
+                "id": f"bazi.consumer.shensha.{hit.get('rule_id', 'unknown')}.state.{state_id}",
+                "kind": "shensha_state",
+                "title": f"{hit.get('name', '神煞')}·{state}",
+            }
+        )
     for combination in effects.get("combinations", ()):
         if combination.get("id"):
-            records.append({
-                "id": str(combination["id"]),
-                "kind": "combination",
-                "title": str(combination.get("title", "结构组合")),
-            })
+            records.append(
+                {
+                    "id": str(combination["id"]),
+                    "kind": "combination",
+                    "title": str(combination.get("title", "结构组合")),
+                }
+            )
     unique: dict[str, dict[str, str]] = {}
     for record in records:
         unique.setdefault(record["id"], record)
     return list(unique.values())
 
 
-def _feature_percentage_map(metrics: Iterable[Mapping[str, Any]]) -> dict[str, float]:
-    return {
-        str(metric.get("feature_id", "")): float(metric.get("percentage", 0) or 0)
-        for metric in metrics
-        if metric.get("status") in {"observed", "zero"}
+def _driver_from_event(event: Mapping[str, Any]) -> dict[str, Any] | None:
+    role = str(event.get("role", "neutral"))
+    # Formation, damage, and rescue are lifecycle verdicts, not generic period
+    # labels. They are admitted only through the exact provenance matcher below.
+    if role in {"formation", "damage", "rescue"}:
+        return None
+    raw_activity = event.get("activity", 1.0)
+    try:
+        activity = max(0.0, float(raw_activity))
+    except (TypeError, ValueError):
+        activity = 1.0
+    driver = {
+        "id": str(
+            event.get("id", f"bazi.period.{role}.{event.get('label', 'change')}")
+        ),
+        "layer": str(event.get("layer", "period")),
+        "role": "activity",
+        "label": str(event.get("label", "阶段变化")),
+        "delta": 0.0,
+        "activity": round(activity, 2),
     }
+    evidence_ids = [str(item) for item in event.get("evidenceIds", ()) if item]
+    rule_ids = [str(item) for item in event.get("ruleIds", ()) if item]
+    if evidence_ids:
+        driver["evidenceIds"] = evidence_ids
+    if rule_ids:
+        driver["ruleIds"] = rule_ids
+    return driver
 
 
-def _choose_archetype(
-    pillars: Iterable[Mapping[str, Any]],
-    shensha: Iterable[Mapping[str, Any]],
-    pattern: Mapping[str, Any],
-) -> tuple[str, str, str]:
-    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
-    pattern_name = str(primary.get("name", "")) if isinstance(primary, Mapping) else ""
-    preferred_id = next((archetype_id for token, archetype_id in _PATTERN_ARCHETYPES.items() if token in pattern_name), "")
-    if preferred_id:
-        preferred = next(item for item in _ARCHETYPES if item[0] == preferred_id)
-        return preferred[0], preferred[1], preferred[2]
-
-    pillar_list = list(pillars)
-    tokens = {str(pillar.get("ten_god", "")) for pillar in pillar_list}
-    tokens.update(
-        str(hidden.get("ten_god", ""))
-        for pillar in pillar_list
-        for hidden in pillar.get("hidden_stems", ())
-    )
-    tokens.update(str(hit.get("name", "")) for hit in shensha)
-    best = max(
-        _ARCHETYPES,
-        key=lambda item: (len(item[3] & tokens), _stable_fraction("|".join(sorted(tokens)) + item[0])),
-    )
-    return best[0], best[1], best[2]
-
-
-def _fingerprints(
-    profiles: Iterable[Mapping[str, Any]],
-    pattern: Mapping[str, Any],
-    shensha: Iterable[Mapping[str, Any]],
-    feature_percentages: Mapping[str, float],
-) -> list[dict[str, Any]]:
-    candidates: list[tuple[int, float, dict[str, Any]]] = []
-    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
-    if isinstance(primary, Mapping) and primary.get("name"):
-        pattern_incidence = feature_percentages.get(str(primary.get("id", "")))
-        sort_incidence = pattern_incidence if pattern_incidence is not None else 100.0
-        candidates.append((0, sort_incidence, {
-            "id": f"pattern.{primary.get('id', 'primary')}",
-            "title": f"{primary.get('title', primary['name'])} · {_PATTERN_STATUS_LABELS.get(str(primary.get('status', '')), str(primary.get('status', '主导')))}",
-            "detail": str(primary.get("summary", "这是命盘最醒目的格局结构。")),
-            "rarity_label": "主格结构" if pattern_incidence is None else "罕见" if pattern_incidence < 1 else "稀有" if pattern_incidence < 5 else "少见" if pattern_incidence < 20 else "核心格局",
-            "top_percentage": max(1, min(99, int(round(pattern_incidence)))) if pattern_incidence is not None else 100,
-            "incidence_percentage": round(pattern_incidence, 2) if pattern_incidence is not None else None,
-        }))
-    metric_priority = {
-        "root_pillar_count": 1,
-        "visible_wealth_count": 1,
-        "hidden_wealth_count": 1,
-        "visible_spouse_count": 1,
-        "hidden_spouse_count": 1,
-        "spouse_palace_relation_count": 1,
-        "day_stem_combine_count": 1,
-        "relation_count": 2,
-        "mobility_count": 2,
+def _pattern_driver_context(
+    claims: Iterable[Mapping[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    result = {key: [] for key in THEME_ORDER}
+    role_weights = {
+        "formation_path": "formation",
+        "damage": "damage",
+        "rescue": "rescue",
     }
-    for profile in profiles:
-        for comparison in profile.get("comparisons", ()):
-            if comparison.get("status") not in {"observed", "zero"}:
+    for claim in sorted(claims, key=lambda item: str(item.get("id", ""))):
+        classical_role = str(claim.get("classicalRole", ""))
+        role = role_weights.get(classical_role)
+        if not role:
+            continue
+        path_ids = _unique_driver_strings(
+            (
+                claim.get("pathId", ""),
+                *_unique_driver_strings(claim.get("pathIds", ())),
+            )
+        )
+        rule_ids = _unique_driver_strings(claim.get("ruleIds", ()))
+        source_ids = _unique_driver_strings(claim.get("sourceIds", ()))
+        pattern_id = str(claim.get("patternId", ""))
+        provenance: list[dict[str, Any]] = []
+        for value in claim.get("lifecycleProvenance", ()):
+            if not isinstance(value, Mapping):
                 continue
-            same = float(comparison.get("same_mass", comparison.get("exact_percentage", 100)) or 100)
-            value = comparison.get("value", 0)
-            title = str(comparison.get("label", comparison.get("metric_id", "结构特征")))
-            metric_id = str(comparison.get("metric_id", title))
-            candidates.append((metric_priority.get(metric_id, 3), same, {
-                "id": f"metric.{comparison.get('metric_id', title)}",
-                "title": title,
-                "detail": f"当前为 {value}{comparison.get('unit', '项')}；约 {same:.1f}% 的历法样本与此同值。",
-                "rarity_label": "罕见" if same < 1 else "稀有" if same < 5 else "少见" if same < 20 else "常见结构",
-                "top_percentage": max(1, min(99, int(round(same)))),
-                "incidence_percentage": round(same, 2),
-            }))
-    for hit in shensha:
-        state = str(hit.get("state", "可见"))
-        if state not in {"发力", "有力"}:
-            continue
-        state_feature_id = f"bazi.consumer.shensha.{hit.get('rule_id', 'unknown')}.state.{_SHENSHA_STATE_IDS.get(state, 'visible')}"
-        rarity = feature_percentages.get(
-            state_feature_id,
-            float(hit.get("rarity_percentage", 100) or 100),
-        )
-        if rarity >= 20:
-            continue
-        candidates.append((4, rarity + 0.1, {
-            "id": f"shensha.{hit.get('rule_id', hit.get('name', 'hit'))}",
-            "title": f"{hit.get('name', '神煞')} · {hit.get('state', '可见')}",
-            "detail": str(hit.get("state_reason", hit.get("trigger", "原局命中这一辅助结构。"))),
-            "rarity_label": "罕见" if rarity < 1 else "稀有" if rarity < 5 else "少见",
-            "top_percentage": max(1, int(round(rarity))),
-            "incidence_percentage": round(rarity, 2),
-        }))
-    unique: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for _, _, item in sorted(candidates, key=lambda pair: (pair[0], pair[1], pair[2]["id"])):
-        if item["id"] in seen:
-            continue
-        seen.add(item["id"])
-        unique.append(item)
-        if len(unique) == 5:
-            break
-    return unique
+            binding_path_id = str(value.get("pathId", ""))
+            binding_rule_id = str(value.get("ruleId", ""))
+            binding_source_ids = _unique_driver_strings(value.get("sourceIds", ()))
+            if (
+                not binding_path_id
+                or not binding_rule_id
+                or not binding_source_ids
+                or binding_path_id not in path_ids
+                or binding_rule_id not in rule_ids
+                or not set(binding_source_ids).issubset(source_ids)
+            ):
+                continue
+            provenance.append(
+                {
+                    "pathId": binding_path_id,
+                    "ruleId": binding_rule_id,
+                    "sourceIds": binding_source_ids,
+                }
+            )
+        source_backed = bool(pattern_id and provenance)
+        explicit_theme = str(claim.get("theme", ""))
+        themes = [explicit_theme] if explicit_theme in result else list(THEME_ORDER)
+        for theme in themes:
+            result[theme].append(
+                {
+                    "id": str(claim.get("id", f"bazi.claim.{role}")),
+                    "layer": "natal",
+                    "role": role,
+                    "label": str(claim.get("title", "主导结构")),
+                    # Natal facts define the personal baseline. Only an actual
+                    # period match receives a signed delta below.
+                    "delta": 0.0,
+                    "evidenceIds": [
+                        str(item) for item in claim.get("evidenceIds", ()) if item
+                    ],
+                    "ruleIds": rule_ids,
+                    "sourceIds": source_ids,
+                    "patternId": pattern_id,
+                    "pathIds": path_ids,
+                    "lifecycleProvenance": provenance,
+                    "_sourceBackedLifecycle": source_backed,
+                }
+            )
+    return result
 
 
-def _achievements(
-    combinations: Iterable[Mapping[str, Any]],
-    shensha: Iterable[Mapping[str, Any]],
-    feature_percentages: Mapping[str, float],
+def _unique_driver_strings(values: Any) -> list[str]:
+    if values is None:
+        return []
+    if isinstance(values, (str, bytes)):
+        values = (values,)
+    try:
+        return list(dict.fromkeys(str(value) for value in values if str(value)))
+    except TypeError:
+        return []
+
+
+def _matched_pattern_drivers(
+    events: Iterable[Mapping[str, Any]],
+    pattern_drivers: Iterable[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
-    results: list[dict[str, Any]] = []
-    member_names = {str(hit.get("rule_id", "")): str(hit.get("name", "")) for hit in shensha}
-    for combo in combinations:
-        member_count = len(combo.get("member_rule_ids", ()))
-        tier = str(combo.get("tier", "product_cluster"))
-        fallback_rarity = max(0.2, 14 / max(1, member_count) * {"classical_named": 0.45, "classical_interaction": 0.7, "product_cluster": 1.0}.get(tier, 1))
-        rarity = feature_percentages.get(str(combo.get("id", "")), fallback_rarity)
-        results.append({
-            "id": str(combo.get("id", "combination")),
-            "title": str(combo.get("title", "结构共振")),
-            "tier": "SSR" if tier == "classical_named" else "SR" if tier == "classical_interaction" else "R",
-            "state": "发力" if tier == "classical_named" else "有力" if tier == "classical_interaction" else "可见",
-            "rarity_percentage": round(rarity, 2),
-            "position": " · ".join(
-                str(item)
-                for item in (
-                    combo.get("member_names")
-                    or [member_names.get(str(rule_id), str(rule_id)) for rule_id in combo.get("member_rule_ids", ())]
-                )
-            ),
-            "summary": str(combo.get("summary", "多个结构在同一命盘中形成共振。")),
-            "member_ids": list(combo.get("member_rule_ids", ())),
-        })
-    for hit in shensha:
-        if str(hit.get("state", "可见")) not in {"发力", "有力"}:
-            continue
-        state = str(hit.get("state", "有力"))
-        state_feature_id = f"bazi.consumer.shensha.{hit.get('rule_id', 'unknown')}.state.{_SHENSHA_STATE_IDS.get(state, 'visible')}"
-        rarity = feature_percentages.get(
-            state_feature_id,
-            float(hit.get("rarity_percentage", 12.0) or 12.0),
-        )
-        if rarity >= 20:
-            continue
-        results.append({
-            "id": f"shensha.{hit.get('rule_id', hit.get('name', 'hit'))}",
-            "title": str(hit.get("name", "神煞")),
-            "tier": "SR" if hit.get("state") == "发力" else "R",
-            "state": str(hit.get("state", "有力")),
-            "rarity_percentage": rarity,
-            "position": " · ".join(str(item) for item in hit.get("pillar_labels", ())),
-            "summary": str(hit.get("state_reason", hit.get("trigger", "这一结构在原局得到呼应。"))),
-            "member_ids": [str(hit.get("rule_id", ""))],
-        })
-    return sorted(results, key=lambda item: (float(item["rarity_percentage"]), item["title"]))[:8]
-
-
-def _event_delta(events: Iterable[Mapping[str, Any]]) -> tuple[float, list[str], float]:
-    positive = 0.0
-    negative = 0.0
-    drivers: list[str] = []
-    seen: set[tuple[str, str]] = set()
+    matches: list[dict[str, Any]] = []
     for event in events:
-        kind = str(event.get("kind", "变化"))
-        label = str(event.get("label", "阶段变化"))
-        identity = (kind, label)
+        lifecycle = event.get("lifecycle")
+        if not isinstance(lifecycle, Mapping):
+            continue
+        before = str(lifecycle.get("before", ""))
+        after = str(lifecycle.get("after", ""))
+        event_pattern_id = str(lifecycle.get("patternId", ""))
+        event_path_id = str(lifecycle.get("pathId", ""))
+        event_rule_ids = set(_unique_driver_strings(lifecycle.get("ruleIds", ())))
+        event_source_ids = set(_unique_driver_strings(lifecycle.get("sourceIds", ())))
+        for driver in pattern_drivers:
+            if not driver.get("_sourceBackedLifecycle"):
+                continue
+            role = str(driver.get("role", "neutral"))
+            if str(event.get("role", "neutral")) != role:
+                continue
+            transition = _LIFECYCLE_TRANSITIONS.get(role)
+            if (
+                transition is None
+                or before not in transition[0]
+                or after not in transition[1]
+            ):
+                continue
+            if event_pattern_id != str(driver.get("patternId", "")):
+                continue
+            matching_bindings = [
+                binding
+                for binding in driver.get("lifecycleProvenance", ())
+                if isinstance(binding, Mapping)
+                and str(binding.get("pathId", "")) == event_path_id
+                and str(binding.get("ruleId", "")) in event_rule_ids
+            ]
+            matched_rule_ids = {
+                str(binding.get("ruleId", "")) for binding in matching_bindings
+            }
+            matched_source_ids = {
+                source_id
+                for binding in matching_bindings
+                for source_id in _unique_driver_strings(binding.get("sourceIds", ()))
+            }
+            if (
+                not event_rule_ids
+                or not event_source_ids
+                or matched_rule_ids != event_rule_ids
+                or matched_source_ids != event_source_ids
+            ):
+                continue
+            matches.append(
+                {
+                    **dict(driver),
+                    "id": f"{driver.get('id', 'bazi.claim')}.{event.get('id', event.get('layer', 'period'))}",
+                    "layer": str(event.get("layer", "period")),
+                    "label": f"{event.get('label', '运限变化')}呼应{driver.get('label', '原局结构')}",
+                    "delta": 0.0,
+                    "activity": 1.0,
+                    "lifecycle": {
+                        "before": before,
+                        "after": after,
+                        "patternId": event_pattern_id,
+                        "pathId": event_path_id,
+                        "ruleIds": sorted(event_rule_ids),
+                        "sourceIds": sorted(event_source_ids),
+                    },
+                }
+            )
+    return matches
+
+
+def _event_activity(
+    events: Iterable[Mapping[str, Any]],
+    pattern_drivers: Iterable[Mapping[str, Any]] = (),
+) -> tuple[float, list[dict[str, Any]], float]:
+    event_list = [dict(event) for event in events]
+    drivers = [
+        *(
+            driver
+            for event in event_list
+            if (driver := _driver_from_event(event)) is not None
+        ),
+        *_matched_pattern_drivers(event_list, pattern_drivers),
+    ]
+    density = 0.0
+    unique: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for driver in drivers:
+        identity = (
+            str(driver.get("layer", "period")),
+            str(driver.get("role", "neutral")),
+            str(driver.get("label", "阶段变化")),
+        )
         if identity in seen:
             continue
         seen.add(identity)
-        weight = _PERIOD_EVENT_WEIGHTS.get(kind, 1.0)
-        if weight >= 0:
-            positive += weight
-        else:
-            negative += abs(weight)
-        if len(drivers) < 4:
-            drivers.append(label)
+        unique.append(driver)
+        density += max(0.0, float(driver.get("activity", 1) or 0))
 
-    # Activation signals compound with diminishing returns. This keeps a year
-    # with many related rules visibly active without allowing repeated labels
-    # to pin an entire K-line at 99 or 1.
-    delta = sqrt(positive) * 1.35 - sqrt(negative) * 1.55
-    intensity = len(seen) * 4 + sqrt(positive + negative) * 2
-    return round(delta, 2), drivers, round(intensity, 2)
+    # Every observed Ten-God, ShenSha, or relation is an unsigned unit of
+    # theme activity. Conflict and non-conflict relations are both structural
+    # participation; neither is converted into quality or direction here.
+    intensity = density
+    ordered = sorted(
+        unique,
+        key=lambda item: (
+            -float(item.get("activity", 1) or 0),
+            str(item.get("layer", "")),
+            str(item.get("label", "")),
+        ),
+    )
+    return round(density, 2), ordered[:5], round(intensity, 2)
 
 
-def build_life_kline(cycles: Iterable[Mapping[str, Any]], natal_scores: Mapping[str, int]) -> dict[str, Any]:
-    expanded_cycles = [cycle for cycle in cycles if cycle.get("years")]
+def build_life_kline(
+    cycles: Iterable[Mapping[str, Any]],
+    natal_scores: Mapping[str, int] | None = None,
+    *,
+    claims: Iterable[Mapping[str, Any]] = (),
+    visible_years: set[int] | None = None,
+) -> dict[str, Any]:
+    """Build period activity without treating natal structure as quality.
+
+    ``natal_scores`` remains accepted so older callers keep working,
+    but intentionally has no effect. The client rebases each series to the
+    user's own available long-horizon average of 100.
+    """
+    del natal_scores
+    expanded_cycles = sorted(
+        (cycle for cycle in cycles if cycle.get("years")),
+        key=lambda cycle: (
+            int(cycle.get("start_year", 0) or 0),
+            int(cycle.get("index", 0) or 0),
+            str(cycle.get("label", "")),
+        ),
+    )
+    pattern_context = _pattern_driver_context(claims)
     bands = [
         {
             "label": str(cycle.get("label", "大运")),
@@ -543,105 +417,289 @@ def build_life_kline(cycles: Iterable[Mapping[str, Any]], natal_scores: Mapping[
     ]
     series: list[dict[str, Any]] = []
     all_years: set[int] = set()
-    for key in ("overall", *THEME_ORDER):
-        label = "综合" if key == "overall" else THEME_LABELS[key]
-        raw_natal = sum(natal_scores.values()) / 4 if key == "overall" else natal_scores.get(key, 60)
-        # Raw natal structure scores feed the trend, but a compressed plotting
-        # scale leaves enough headroom for actual period movement.
-        natal = 55 + (float(raw_natal) - 50) * 0.45
+    baseline_series: dict[str, dict[str, float]] = {}
+    for key in THEME_ORDER:
+        label = THEME_LABELS[key]
         points: list[dict[str, Any]] = []
+        all_raw_months: list[float] = []
         for cycle in expanded_cycles:
-            cycle_theme = []
             activations = cycle.get("theme_activations", {})
-            if key == "overall":
-                cycle_theme = [event for values in activations.values() for event in values]
-            else:
-                profile_label = "五行与承压结构" if key == "health" else THEME_LABELS[key]
-                cycle_theme = list(activations.get(profile_label, ()))
-            cycle_delta, _, _ = _event_delta(cycle_theme)
-            for year in cycle.get("years", ()):
+            profile_label = THEME_PROFILE_LABELS[key]
+            cycle_theme = list(activations.get(profile_label, ()))
+            cycle_activity, cycle_drivers, cycle_intensity = _event_activity(
+                cycle_theme, pattern_context[key]
+            )
+            for year in sorted(
+                cycle.get("years", ()), key=lambda item: int(item.get("year", 0) or 0)
+            ):
                 year_events_by_theme = year.get("theme_activations", {})
-                if key == "overall":
-                    year_events = [event for values in year_events_by_theme.values() for event in values]
-                else:
-                    profile_label = "五行与承压结构" if key == "health" else THEME_LABELS[key]
-                    year_events = list(year_events_by_theme.get(profile_label, ()))
-                year_delta, year_drivers, year_intensity = _event_delta(year_events)
+                year_events = list(year_events_by_theme.get(profile_label, ()))
+                year_activity, year_drivers, year_intensity = _event_activity(
+                    year_events, pattern_context[key]
+                )
                 months = []
-                month_values = []
-                for month in year.get("months", ()):
+                raw_month_values = []
+                for month in sorted(
+                    year.get("months", ()),
+                    key=lambda item: int(item.get("index", 0) or 0),
+                ):
                     month_by_theme = month.get("theme_activations", {})
-                    if key == "overall":
-                        month_events = [event for values in month_by_theme.values() for event in values]
-                    else:
-                        profile_label = "五行与承压结构" if key == "health" else THEME_LABELS[key]
-                        month_events = list(month_by_theme.get(profile_label, ()))
-                    month_delta, month_drivers, month_intensity = _event_delta(month_events)
-                    value = round(_clamp(natal + cycle_delta * 0.45 + year_delta * 0.9 + month_delta * 1.25, 12, 98), 1)
-                    month_values.append(value)
-                    months.append({
-                        "index": int(month.get("index", len(months))),
-                        "label": str(month.get("label", f"{len(months) + 1}月")),
-                        "ganzhi": str(month.get("ganzhi", "")),
-                        "value": value,
-                        "delta": round(cycle_delta * 0.45 + year_delta * 0.9 + month_delta * 1.25, 1),
-                        "drivers": list(dict.fromkeys([*year_drivers, *month_drivers]))[:4],
-                        "intensity": round(month_intensity, 1),
-                    })
-                if not month_values:
+                    month_events = list(month_by_theme.get(profile_label, ()))
+                    month_activity, month_drivers, month_intensity = _event_activity(
+                        month_events, pattern_context[key]
+                    )
+                    # The raw value is a transparent stacked event count with
+                    # a one-unit floor for zero-activity months. Each layer is
+                    # counted equally; normalization later compares only with
+                    # this chart's own full-horizon monthly mean.
+                    raw_value = round(
+                        1.0 + cycle_activity + year_activity + month_activity,
+                        3,
+                    )
+                    raw_month_values.append(raw_value)
+                    all_raw_months.append(raw_value)
+                    named_drivers = []
+                    for driver in [*cycle_drivers, *year_drivers, *month_drivers]:
+                        identity = (
+                            driver.get("id"),
+                            driver.get("layer"),
+                            driver.get("label"),
+                        )
+                        if any(
+                            (item.get("id"), item.get("layer"), item.get("label"))
+                            == identity
+                            for item in named_drivers
+                        ):
+                            continue
+                        named_drivers.append(
+                            {
+                                key: value
+                                for key, value in driver.items()
+                                if not key.startswith("_")
+                                and value not in ([], (), None, "")
+                            }
+                        )
+                    named_drivers.sort(
+                        key=lambda driver: (
+                            -float(driver.get("activity", 1) or 0),
+                            str(driver.get("layer", "")),
+                            str(driver.get("label", "")),
+                        )
+                    )
+                    months.append(
+                        {
+                            "index": int(month.get("index", len(months))),
+                            "label": str(month.get("label", f"{len(months) + 1}月")),
+                            "ganzhi": str(month.get("ganzhi", "")),
+                            "raw_value": raw_value,
+                            "drivers": named_drivers[:6],
+                            "intensity": round(
+                                cycle_intensity + year_intensity + month_intensity, 1
+                            ),
+                        }
+                    )
+                if not raw_month_values:
                     continue
                 year_number = int(year.get("year", 0) or 0)
                 all_years.add(year_number)
-                points.append({
-                    "year": year_number,
-                    "open": month_values[0],
-                    "close": month_values[-1],
-                    "high": max(month_values),
-                    "low": min(month_values),
-                    "volume": round(year_intensity + sum(float(item["intensity"]) for item in months), 1),
-                    "ma3": None,
-                    "ma5": None,
-                    "ma10": None,
-                    "months": months,
-                })
+                strongest_month_drivers = sorted(
+                    (driver for month in months for driver in month.get("drivers", ())),
+                    key=lambda item: -float(item.get("activity", 1) or 0),
+                )
+                point_drivers: list[dict[str, Any]] = []
+                for driver in [*cycle_drivers, *year_drivers, *strongest_month_drivers]:
+                    identity = (
+                        driver.get("id"),
+                        driver.get("layer"),
+                        driver.get("label"),
+                    )
+                    if any(
+                        (item.get("id"), item.get("layer"), item.get("label"))
+                        == identity
+                        for item in point_drivers
+                    ):
+                        continue
+                    point_drivers.append(
+                        {
+                            key: value
+                            for key, value in driver.items()
+                            if not key.startswith("_")
+                            and value not in ([], (), None, "")
+                        }
+                    )
+                points.append(
+                    {
+                        "year": year_number,
+                        "is_current": bool(year.get("is_current")),
+                        "raw_open": raw_month_values[0],
+                        "raw_close": raw_month_values[-1],
+                        "raw_high": max(raw_month_values),
+                        "raw_low": min(raw_month_values),
+                        "volume": round(
+                            year_intensity
+                            + sum(float(item["intensity"]) for item in months),
+                            1,
+                        ),
+                        "ma3": None,
+                        "ma5": None,
+                        "ma10": None,
+                        "drivers": point_drivers[:5],
+                        "months": months,
+                    }
+                )
+        baseline_raw = (
+            sum(all_raw_months) / len(all_raw_months) if all_raw_months else 1.0
+        )
+        baseline_series[key] = {"raw_value": round(baseline_raw, 6)}
+
+        def normalize(value: float) -> float:
+            raw_distance = (value / baseline_raw - 1) * 100
+            return round(100 + 35 * tanh(raw_distance / 35), 1)
+
+        for point in points:
+            point["open"] = normalize(float(point.pop("raw_open")))
+            point["close"] = normalize(float(point.pop("raw_close")))
+            point["high"] = normalize(float(point.pop("raw_high")))
+            point["low"] = normalize(float(point.pop("raw_low")))
+            for month in point["months"]:
+                month["value"] = normalize(float(month.pop("raw_value")))
+                month["delta"] = round(float(month["value"]) - 100, 1)
+        if visible_years is not None:
+            points = [point for point in points if int(point["year"]) in visible_years]
         closes: list[float] = []
         for point in points:
             closes.append(float(point["close"]))
             for window in (3, 5, 10):
-                point[f"ma{window}"] = round(sum(closes[-window:]) / window, 1) if len(closes) >= window else None
-        series.append({"key": key, "label": label, "color": THEME_COLORS[key], "points": points})
+                point[f"ma{window}"] = (
+                    round(sum(closes[-window:]) / window, 1)
+                    if len(closes) >= window
+                    else None
+                )
+        series.append(
+            {"key": key, "label": label, "color": THEME_COLORS[key], "points": points}
+        )
 
     years = sorted(year for year in all_years if year)
-    default_cycle = next((cycle for cycle in expanded_cycles if cycle.get("is_current")), None)
+    default_cycle = next(
+        (cycle for cycle in expanded_cycles if cycle.get("is_current")), None
+    )
     if default_cycle is None and expanded_cycles:
         default_cycle = expanded_cycles[0]
+    current_year = next(
+        (
+            int(year.get("year", 0) or 0)
+            for cycle in expanded_cycles
+            for year in cycle.get("years", ())
+            if year.get("is_current") and int(year.get("year", 0) or 0)
+        ),
+        0,
+    )
     default_years = sorted(
         int(year.get("year", 0) or 0)
         for year in (default_cycle or {}).get("years", ())
         if int(year.get("year", 0) or 0)
     )
-    default_year_set = set(default_years)
-    stages = []
+    if not current_year:
+        current_year = default_years[0] if default_years else years[0] if years else 0
+    candidates: list[dict[str, Any]] = []
     for item in series:
-        candidates = [point for point in item["points"] if not default_year_set or point["year"] in default_year_set]
-        sorted_points = sorted(candidates, key=lambda point: (point["high"], point["volume"]), reverse=True)
-        stages.extend({
-            "key": item["key"],
-            "label": ("突破窗口" if index == 0 else "扩张窗口" if index == 1 else "重要转折"),
-            "year": point["year"],
-            "score": point["high"],
-            "theme": item["label"],
-            "summary": f"全年峰值 {point['high']:.0f}，结构活跃度 {point['volume']:.0f}。",
-        } for index, point in enumerate(sorted_points[:3]))
+        for point in item["points"]:
+            if point["year"] < current_year or point["year"] > current_year + 9:
+                continue
+            high_distance = abs(float(point["high"]) - 100)
+            low_distance = abs(float(point["low"]) - 100)
+            relative_index = (
+                float(point["high"])
+                if high_distance >= low_distance
+                else float(point["low"])
+            )
+            target_month = (
+                max(point["months"], key=lambda month: float(month["value"]))
+                if high_distance >= low_distance
+                else min(point["months"], key=lambda month: float(month["value"]))
+            )
+            ordered_drivers = sorted(
+                target_month.get("drivers", ()),
+                key=lambda driver: (
+                    -float(driver.get("activity", 1) or 0),
+                    str(driver.get("label", "")),
+                ),
+            )
+            candidates.append(
+                {
+                    "key": item["key"],
+                    "year": point["year"],
+                    "theme": item["label"],
+                    "relative_index": relative_index,
+                    "volume": float(point["volume"]),
+                    "drivers": ordered_drivers[:4],
+                    "distance": max(high_distance, low_distance),
+                }
+            )
+    candidates.sort(
+        key=lambda item: (item["distance"], item["volume"], -item["year"]), reverse=True
+    )
+    selected: list[dict[str, Any]] = []
+    used_years: set[int] = set()
+    used_themes: set[str] = set()
+    for candidate in candidates:
+        if candidate["year"] in used_years or candidate["key"] in used_themes:
+            continue
+        selected.append(candidate)
+        used_years.add(candidate["year"])
+        used_themes.add(candidate["key"])
+        if len(selected) == 3:
+            break
+    if len(selected) < 3:
+        for candidate in candidates:
+            if candidate["year"] in used_years:
+                continue
+            selected.append(candidate)
+            used_years.add(candidate["year"])
+            if len(selected) == 3:
+                break
+    stages = []
+    for candidate in sorted(selected, key=lambda item: item["year"]):
+        relative_index = float(candidate["relative_index"])
+        label = (
+            "高活跃窗口"
+            if relative_index >= 105
+            else "低活跃窗口"
+            if relative_index <= 95
+            else "常态活跃窗口"
+        )
+        stages.append(
+            {
+                "key": candidate["key"],
+                "label": label,
+                "year": candidate["year"],
+                "relative_index": round(relative_index, 1),
+                "theme": candidate["theme"],
+                "drivers": candidate["drivers"][:4],
+                "summary": f"{candidate['theme']}活跃度相对个人常态来到 {relative_index:.0f}，表示这一主题在当年与月份出现的结构信号密度。",
+            }
+        )
+    horizon_start = years[0] if years else 0
+    horizon_end = years[-1] if years else 0
     return {
         "default_window": {
-            "start_year": default_years[0] if default_years else years[0] if years else 0,
-            "end_year": default_years[-1] if default_years else years[-1] if years else 0,
+            "start_year": current_year,
+            "end_year": min(current_year + 9, horizon_end)
+            if current_year and horizon_end
+            else horizon_end,
+        },
+        "baseline": {
+            "normalized_value": 100,
+            "scope": "full_horizon",
+            "start_year": horizon_start,
+            "end_year": horizon_end,
+            "method": "mean_monthly_activation_density_v2",
+            "series": baseline_series,
         },
         "series": series,
         "period_bands": bands,
         "stages": stages,
-        "method": "deterministic-period-activation-ohlcv-v1",
+        "method": "deterministic-period-activation-density-ohlcv-v3",
     }
 
 
@@ -654,60 +712,45 @@ def build_bazi_consumer_profile(
     cycles: Iterable[Mapping[str, Any]],
     consumer_distributions: Mapping[str, Any] | None = None,
     consumer_feature_metrics: Iterable[Mapping[str, Any]] = (),
+    kline_cycles: Iterable[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    pillar_list = list(pillars)
+    # Claims intentionally compile from already-derived chart facts, not raw
+    # pillars. The legacy arguments remain in the public signature.
+    del pillars, consumer_distributions
     profiles = list(structure.get("theme_profiles", ()))
-    effects = shensha_effects or {}
-    hits = list(effects.get("hits", ()))
-    combinations = list(effects.get("combinations", ()))
-    pattern = patterns or {}
-    feature_percentages = _feature_percentage_map(consumer_feature_metrics)
-    raw_scores = score_bazi_consumer_themes(
-        structure=structure,
-        patterns=pattern,
-        shensha_effects=effects,
-    )
-    profiles_by_key = _profile_by_key(profiles)
-    subjects: list[dict[str, Any]] = []
-    natal_scores: dict[str, int] = {}
-    for key in THEME_ORDER:
-        scored = raw_scores[key]
-        raw_score = int(scored["score"])
-        drivers = list(scored["drivers"])
-        profile = profiles_by_key.get(key, {})
-        path_label, path_summary = _theme_path(key, profile, pattern)
-        natal_scores[key] = raw_score
-        subjects.append({
-            "key": key,
-            "label": THEME_LABELS[key],
-            "headline": " · ".join(drivers[:2]) or "结构节奏鲜明",
-            "drivers": drivers,
-            "path_label": path_label,
-            "path_summary": path_summary,
-        })
-
-    archetype_id, archetype_title, archetype_subtitle = _choose_archetype(pillar_list, hits, pattern)
-    primary = pattern.get("primary") if isinstance(pattern, Mapping) else None
-    pattern_title = str(primary.get("title", primary.get("name", "主导结构"))) if isinstance(primary, Mapping) else "主导结构"
-    identity = {
-        "system_title": "八字命格",
-        "archetype_id": archetype_id,
-        "archetype_title": f"{pattern_title} · {archetype_title}",
-        "archetype_subtitle": archetype_subtitle,
-        "fusion_title": None,
-        "primary_arena": subjects[0]["path_label"] if subjects else "个人成长",
-        "signature": next((item["path_label"] for item in subjects if item["key"] == "relationship"), "关系节奏鲜明"),
-        "life_rhythm": next((item["path_label"] for item in subjects if item["key"] == "health"), "稳定推进型"),
+    cycle_list = list(cycles)
+    full_kline_cycles = list(kline_cycles) if kline_cycles is not None else cycle_list
+    visible_years = {
+        int(year.get("year", 0) or 0)
+        for cycle in cycle_list
+        for year in cycle.get("years", ())
+        if int(year.get("year", 0) or 0)
     }
+    effects = shensha_effects or {}
+    pattern = patterns or {}
+    claims = compile_consumer_claims(
+        patterns=pattern,
+        theme_profiles=profiles,
+        shensha_effects=effects,
+        cycles=cycle_list,
+        feature_metrics=consumer_feature_metrics,
+    )
+    compatibility = project_consumer_claims(claims)
     return {
         "version": CONSUMER_RULES_VERSION,
+        "claims_version": CONSUMER_CLAIMS_VERSION,
         "system": "bazi",
-        "identity": identity,
-        "subjects": subjects,
-        "achievements": _achievements(combinations, hits, feature_percentages),
-        "fingerprints": _fingerprints(profiles, pattern, hits, feature_percentages),
+        "claims": claims,
+        "identity": compatibility["identity"],
+        "subjects": compatibility["subjects"],
+        "achievements": compatibility["achievements"],
+        "fingerprints": compatibility["fingerprints"],
         # A day-master/month-command cohort is not a true structural twin.
         "twin": None,
-        "life_kline": build_life_kline(cycles, natal_scores),
+        "life_kline": build_life_kline(
+            full_kline_cycles,
+            claims=claims,
+            visible_years=visible_years if kline_cycles is not None else None,
+        ),
         "capability_key": None,
     }

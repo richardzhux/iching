@@ -60,12 +60,17 @@ def test_unknown_hour_never_claims_an_hour_pillar_hit() -> None:
 def test_chart_exposes_versioned_derived_metaphysics_payload() -> None:
     chart = build_metaphysics_chart(datetime(2004, 6, 26, 4), timezone_name="Asia/Shanghai", gender="male")
 
-    assert chart["derived_schema_version"] == 4
+    assert chart["derived_schema_version"] == 7
     assert chart["rules_version"] == RULES_VERSION
+    assert chart["rule_versions"]["shensha"] == RULES_VERSION
+    assert chart["rule_versions"]["pattern_bundle"] == "zzq-shen-canonical-v1"
+    assert len(chart["rule_versions"]["pattern_digest"]) == 64
     assert chart["statistics"]["baseline"]["kind"] == "calendar_sample_frequency"
     assert chart["statistics"]["disclaimer"]
     assert "rule_indices" not in chart["statistics"]
-    assert {item["theme"] for item in chart["theme_profiles"]} == {"事业", "财富", "感情", "健康"}
+    assert {item["theme"] for item in chart["theme_profiles"]} == {
+        "事业", "财富", "感情", "五行与承压结构"
+    }
     assert all(len(item["structure_metrics"]) == 6 for item in chart["theme_profiles"])
     assert all(len(item["comparisons"]) == 6 for item in chart["theme_profiles"])
     assert chart["period_layers"]["dayun"]

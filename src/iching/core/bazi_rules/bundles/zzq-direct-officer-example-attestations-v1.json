@@ -1,0 +1,62 @@
+{
+  "attestation_bundle_version": "bazi-example-attestations-v1",
+  "attestations": [
+    {
+      "affects_canonical_status": false,
+      "explanation": "壬财与丁印在相邻天干发生合关系，使两类支持不能同时独立作用。",
+      "id": "zzq.attestation.officer.anonymous-lesser-rank",
+      "mechanisms": [
+        "adjacent_wealth_seal_engagement",
+        "isolated_officer_support"
+      ],
+      "pillars": [
+        "壬戌",
+        "丁未",
+        "戊申",
+        "乙卯"
+      ],
+      "source_ids": [
+        "zzq.prop.officer.damage-dual-support-001"
+      ]
+    },
+    {
+      "affects_canonical_status": false,
+      "explanation": "丁与壬相合处理财星，丙另行制伤，两个作用由不同天干承担。",
+      "id": "zzq.attestation.officer.fan",
+      "mechanisms": [
+        "ding_ren_removes_wealth",
+        "bing_controls_output"
+      ],
+      "pillars": [
+        "丁丑",
+        "壬寅",
+        "己巳",
+        "丙寅"
+      ],
+      "source_ids": [
+        "zzq.prop.officer.rescue-fan-allocation-001"
+      ]
+    },
+    {
+      "affects_canonical_status": false,
+      "explanation": "亥卯未完整会成木局构成此例的伤官条件，两辛明透提供印星救应。",
+      "id": "zzq.attestation.officer.xuan",
+      "mechanisms": [
+        "complete_hai_mao_wei_output_group",
+        "exposed_seal_rescue"
+      ],
+      "pillars": [
+        "己卯",
+        "辛未",
+        "壬寅",
+        "辛亥"
+      ],
+      "source_ids": [
+        "zzq.prop.officer.example-xuan-001"
+      ]
+    }
+  ],
+  "bundle_digest": "2c88ee3c2026e441e5ceb500a7683c165f6ec5e473cb14a6b265a51b9942e2a1",
+  "bundle_id": "zzq-direct-officer-example-attestations-v1",
+  "generic_bundle_id": "zzq-shen-canonical-v1"
+}

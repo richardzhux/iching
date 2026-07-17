@@ -11,6 +11,7 @@ import type {
   DayunCycle,
   MetaphysicsChartSavePayload,
   MetaphysicsStatistics,
+  PatternRuleSummary,
   SessionHistoryResponse,
   SessionPayload,
   SessionRequest,
@@ -105,6 +106,14 @@ export async function fetchMetaphysicsStatistics(payload: { chart_type: "bazi" |
     body: JSON.stringify(payload),
   })
   return handleResponse<MetaphysicsStatistics>(response)
+}
+
+export async function fetchPatternRuleSummary(bundleId: string, ruleId: string): Promise<PatternRuleSummary> {
+  const response = await fetchWithTimeout(
+    `${getApiBaseUrl()}/api/tools/metaphysics/pattern-rules/${encodeURIComponent(bundleId)}/${encodeURIComponent(ruleId)}`,
+    { cache: "no-store" },
+  )
+  return handleResponse<PatternRuleSummary>(response)
 }
 
 export async function saveMetaphysicsChart(payload: MetaphysicsChartSavePayload, token: string): Promise<MetaphysicsChartRecord> {

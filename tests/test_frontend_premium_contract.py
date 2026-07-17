@@ -45,7 +45,9 @@ def test_homepage_leads_with_decision_outcomes_and_four_intent_paths():
 def test_primary_navigation_is_task_oriented_active_and_profile_is_not_duplicated():
     layout = read("frontend/src/app/[locale]/layout.tsx")
     navigation_path = ROOT / "frontend/src/components/navigation/primary-navigation.tsx"
-    assert navigation_path.exists(), "primary navigation should be a pathname-aware client component"
+    assert navigation_path.exists(), (
+        "primary navigation should be a pathname-aware client component"
+    )
     navigation = navigation_path.read_text(encoding="utf-8")
     english = read("frontend/src/i18n/catalog/en.ts")
     chinese = read("frontend/src/i18n/catalog/zh.ts")
@@ -76,7 +78,9 @@ def test_i18n_provider_sets_the_document_language_after_hydration():
 
 def test_task4_review_intents_map_to_backend_topics_and_hydrate_cast_form_safely():
     intent_path = ROOT / "frontend/src/lib/reading-intents.ts"
-    assert intent_path.exists(), "home intents need one stable mapping shared with CastForm"
+    assert intent_path.exists(), (
+        "home intents need one stable mapping shared with CastForm"
+    )
     intents = intent_path.read_text(encoding="utf-8")
     cast_form = read("frontend/src/components/workspace/cast-form.tsx")
     e2e = read("frontend/e2e/public-routes.spec.ts")
@@ -96,7 +100,10 @@ def test_task4_review_intents_map_to_backend_topics_and_hydrate_cast_form_safely
     assert "current.userQuestion" in cast_form
     assert "explicitQuestion" in cast_form
     assert "home intent hydrates a real topic and localized question hint" in e2e
-    assert "explicit intent overrides stale topic without replacing a draft question" in e2e
+    assert (
+        "explicit intent overrides stale topic without replacing a draft question"
+        in e2e
+    )
 
 
 def test_task4_review_navigation_search_and_home_hierarchy_are_unambiguous():
@@ -132,7 +139,7 @@ def test_workspace_has_graceful_backend_fallback_and_library_escape():
     assert "loadingConfigTitle" in messages
     assert "sampleReadingCta" in messages
     assert "libraryCta" in messages
-    assert "toLocalePath(\"/library\")" in workspace
+    assert 'toLocalePath("/library")' in workspace
     assert "refetch" in workspace
     assert "retry: 1" in queries
     assert "throw new Error" not in workspace
@@ -263,8 +270,12 @@ def test_p1_bazi_controls_separate_basic_and_professional_accessibly():
     assert 'aria-labelledby="bazi-gender-label"' in controls
     assert 'aria-labelledby="bazi-timezone-label"' in controls
     assert "BirthPlaceField" in controls
-    assert 'bazi-hour-uncertain' not in controls
-    assert 'required' in controls
+    assert 'id="bazi-hour-uncertain"' in controls
+    assert "checked={hourUncertain}" in controls
+    assert "onCheckedChange={setHourUncertain}" in controls
+    assert "先看不受时辰影响的部分" in controls
+    assert "Show the parts that stay stable across possible hours" in controls
+    assert "required" in controls
     assert 'htmlFor="bazi-true-solar"' in controls
     assert "trueSolar ?" in controls
     assert 'calendar === "lunar"' in controls
@@ -285,8 +296,12 @@ def test_p1_bazi_results_lead_with_factual_digest_and_split_solar_term_modes():
     chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
 
     assert '<BaziChartView chart={currentChart} locale={locale} mode="current"' in tools
-    assert '<BaziChartView chart={birthResult.chart} generatedAt={birthResult.generatedAt}' in tools
-    assert 'subjectName={birthResult.subjectName}' in tools
+    assert "chart={displayBirthChart ?? birthResult.chart}" in tools
+    assert "generatedAt={birthResult.generatedAt}" in tools
+    assert "subjectName={birthResult.subjectName}" in tools
+    assert "function UncertainBaziView" in chart
+    assert "先看不受时辰影响的部分" in chart
+    assert "Start with what stays stable" in chart
     assert "日主" in chart
     assert "Day master" in chart
     assert "四柱" in chart
@@ -295,15 +310,16 @@ def test_p1_bazi_results_lead_with_factual_digest_and_split_solar_term_modes():
     assert "Calculation rule" in chart
     assert "当前大运" in chart
     assert "Current Da Yun" in chart
-    assert "当前（按年份）" in chart
-    assert "Current by year" in chart
+    assert "当前标记按精确交接时刻定位" in chart
+    assert "Current markers use exact handoff instants" in chart
+    assert "cycle.is_current" in chart
     assert "start_year <= currentYear" in chart
     assert "currentYear <= cycle.end_year" in chart
-    assert "精确交接以所选起运规则为准" in chart
-    assert "Exact handoff follows the configured start rule" in chart
+    assert "按精确起运与交接时刻定位" in chart
+    assert "Located from the exact start and handoff instant" in chart
     assert "element_season_status" in chart
-    assert "四主题结构画像" in chart
-    assert "Four-theme structure profile" in chart
+    assert "哪些结构更有辨识度" in chart
+    assert "Which structures are more distinctive" in chart
     assert "BaziProfessionalTable" in chart
     assert "LiveSolarTermCountdown" in chart
     assert "HistoricalSolarTerm" in chart
@@ -351,20 +367,47 @@ def test_task6_location_lookup_is_pinned_local_guarded_and_capped():
     assert "try {" in route and "catch" in route
     assert "Unable to search locations" in route
     assert "city-timezones" in search
-    for remote_geocoder in ("open-meteo", "nominatim", "googleapis", "mapbox", "fetch("):
+    for remote_geocoder in (
+        "open-meteo",
+        "nominatim",
+        "googleapis",
+        "mapbox",
+        "fetch(",
+    ):
         assert remote_geocoder not in combined.lower()
 
 
 def test_task6_location_search_has_explicit_chinese_aliases_and_safe_results():
     search_path = ROOT / "frontend/src/lib/location-search.ts"
-    assert search_path.exists(), "Chinese aliases and city dataset search should share one module"
+    assert search_path.exists(), (
+        "Chinese aliases and city dataset search should share one module"
+    )
     search = search_path.read_text()
 
     assert "export type LocationResult" in search
     assert "CHINESE_CITY_ALIASES" in search
-    for city in ("北京", "上海", "广州", "深圳", "成都", "西安", "乌鲁木齐", "香港", "澳门", "台北"):
+    for city in (
+        "北京",
+        "上海",
+        "广州",
+        "深圳",
+        "成都",
+        "西安",
+        "乌鲁木齐",
+        "香港",
+        "澳门",
+        "台北",
+    ):
         assert city in search
-    for field in ("id", "name", "region", "country", "latitude", "longitude", "timezone"):
+    for field in (
+        "id",
+        "name",
+        "region",
+        "country",
+        "latitude",
+        "longitude",
+        "timezone",
+    ):
         assert f"{field}:" in search
     assert "cityMapping" in search
     assert "dedupe" in search.lower()
@@ -395,7 +438,9 @@ def test_task6_birth_place_combobox_requires_selection_and_applies_exact_locatio
     assert "onBirthPlaceSelect" in controls
     assert "handleBirthPlaceSelect" in tools
     selection_handler = tools[
-        tools.index("function handleBirthPlaceSelect") : tools.index("\n  }", tools.index("function handleBirthPlaceSelect"))
+        tools.index("function handleBirthPlaceSelect") : tools.index(
+            "\n  }", tools.index("function handleBirthPlaceSelect")
+        )
     ]
     assert "setBirthPlace(" in selection_handler
     assert "setTimezone(location.timezone)" in selection_handler
@@ -452,14 +497,22 @@ def test_task6_combobox_prevents_stale_results_and_uses_one_input_focus_model():
     assert "controller.abort()" in field
     assert "requestId === requestSequenceRef.current" in field
     assert "handleQueryChange" in field
-    query_handler = field[field.index("function handleQueryChange") : field.index("\n  }", field.index("function handleQueryChange"))]
+    query_handler = field[
+        field.index("function handleQueryChange") : field.index(
+            "\n  }", field.index("function handleQueryChange")
+        )
+    ]
     assert "setResults([])" in query_handler
     assert "setActiveIndex(-1)" in query_handler
-    assert 'tabIndex={-1}' in field
-    assert "scrollIntoView({ block: \"nearest\" })" in field
+    assert "tabIndex={-1}" in field
+    assert 'scrollIntoView({ block: "nearest" })' in field
     assert "aria-expanded={listboxOpen}" in field
     assert "aria-controls={listboxOpen ? listboxId : undefined}" in field
-    listbox = field[field.index('role="listbox"') : field.index("</ul>", field.index('role="listbox"'))]
+    listbox = field[
+        field.index('role="listbox"') : field.index(
+            "</ul>", field.index('role="listbox"')
+        )
+    ]
     assert 'role="status"' not in listbox
     assert 'role="alert"' not in listbox
 
@@ -471,7 +524,7 @@ def test_task6_current_location_is_gesture_triggered_local_and_confirmed_before_
     assert "Intl.DateTimeFormat().resolvedOptions().timeZone" in tools
     assert "useCurrentLocation" in field
     assert "navigator.geolocation.getCurrentPosition" in field
-    assert 'onClick={useCurrentLocation}' in field
+    assert "onClick={useCurrentLocation}" in field
     assert 'method: "POST"' in field
     assert "latitude: position.coords.latitude" in field
     assert "longitude: position.coords.longitude" in field
@@ -498,7 +551,11 @@ def test_task6_current_location_invalidates_stale_permission_and_nearest_city_re
     assert "signal: controller.signal" in field
     assert "requestId !== geolocationSequenceRef.current" in field
     assert "!query.trim() ? currentLocationCandidate : null" in field
-    query_handler = field[field.index("function handleQueryChange") : field.index("\n  }", field.index("function handleQueryChange"))]
+    query_handler = field[
+        field.index("function handleQueryChange") : field.index(
+            "\n  }", field.index("function handleQueryChange")
+        )
+    ]
     assert "invalidateGeolocation()" in query_handler
 
 
@@ -549,7 +606,7 @@ def test_task7_export_dependency_and_utility_are_lazy_safe_and_bounded():
     assert "Math.min(" in export
     assert "Math.sqrt(MAX_EXPORT_PIXEL_AREA / logicalPixelArea)" in export
     assert "pixelRatio" in export
-    assert 'data-export-exclude' in export
+    assert "data-export-exclude" in export
     assert "link.click()" in export
     assert export.count("link.click()") == 1
 
@@ -575,32 +632,57 @@ def test_task7_bazi_is_summary_first_share_ready_and_keeps_raw_facts_collapsed()
     tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
     css = read("frontend/src/app/globals.css")
 
-    assert chart.count("<ChartExportButton") == 1
+    consumer_result = chart[
+        chart.index("function BaziConsumerResult") : chart.index(
+            "function ShareExportMenu"
+        )
+    ]
+    share_menu = chart[
+        chart.index("function ShareExportMenu") : chart.index("function ExportMenuRow")
+    ]
+    assert consumer_result.count("<ShareExportMenu") == 1
+    assert share_menu.count("<ChartExportButton") == 1
+    assert share_menu.count("<ChartAssetExportButton") == 4
+    assert "分享与导出" in share_menu
+    assert "Share & export" in share_menu
     assert "useId" in chart
-    assert 'id={exportTargetId}' in chart
+    assert "id={exportTargetId}" in chart
     assert 'aria-hidden="true"' in chart
     assert "data-chart-export-root" in chart
     assert "chart-export-canvas" in chart
-    assert chart.index("<ChartExportButton") < chart.index('id={exportTargetId}')
-    assert 'generatedAt: new Date().toISOString()' in tools
-    assert 'generatedAt={birthResult.generatedAt}' in tools
-    assert "chart.calculation_timestamp, locale" not in chart[chart.index("function BaziExportCanvas") :]
+    assert consumer_result.index("<ShareExportMenu") < consumer_result.index(
+        "<BaziExportCanvas"
+    )
+    assert "generatedAt: new Date().toISOString()" in tools
+    assert "generatedAt={birthResult.generatedAt}" in tools
+    assert (
+        "chart.calculation_timestamp, locale"
+        not in chart[chart.index("function BaziExportCanvas") :]
+    )
     assert "chart.birth_profile.birth_place" in chart
     assert "chart.birth_profile.input_date" in chart
     assert "chart.day_master" in chart
     assert "calculationRule" in chart
     assert "currentCycle" in chart
-    assert "确定性历法事实" in chart
-    assert "Deterministic calendar facts" in chart
+    assert "按出生地时间与精确节气排盘" in chart
+    assert "Calculated from local birth time and exact solar terms" in chart
     assert "data-element={row.elements?.[index]}" in chart
     assert "grid-cols-[3.75rem_repeat(4" in chart
     assert "buildBaziMarkdown" in chart
-    assert "DayunTimeline" in chart
+    assert "BaziPeriodNavigator" in chart
     assert "overflow-x-auto" in chart
-    assert 'aria-current={isCurrent ? "step" : undefined}' in chart
-    assert "Four-theme structure profile" in chart
+    assert "aria-pressed={selected}" in chart
+    assert "current ?" in chart
+    assert "Which structures are more distinctive" in chart
     professional = chart[chart.index("function BaziProfessionalTable") :]
-    for raw_fact in ("hidden_stems", "ten_god", "nayin", "xunkong", "di_shi", "self_seat"):
+    for raw_fact in (
+        "hidden_stems",
+        "ten_god",
+        "nayin",
+        "xunkong",
+        "di_shi",
+        "self_seat",
+    ):
         assert raw_fact in professional
     assert ".chart-share-canvas" in css
     assert ".chart-export-canvas" in css
@@ -612,12 +694,20 @@ def test_task7_bazi_is_summary_first_share_ready_and_keeps_raw_facts_collapsed()
 def test_task7_ziwei_has_one_share_canvas_and_preserves_palace_interaction():
     chart = read("frontend/src/components/tools/ziwei-chart-view.tsx")
 
-    assert chart.count("<ChartExportButton") == 1
+    fallback_result = chart[: chart.index("type ZiweiConsumerTab")]
+    consumer_result = chart[
+        chart.index("function ZiweiConsumerResult") : chart.index(
+            "function ZiweiArchiveBanner"
+        )
+    ]
+    assert fallback_result.count("<ChartExportButton") == 1
+    assert consumer_result.count("<ChartExportButton") == 1
+    assert "if (consumer)" in chart
     assert "useId" in chart
-    assert 'id={exportTargetId}' in chart
+    assert "id={exportTargetId}" in chart
     assert 'aria-hidden="true"' in chart
     assert "data-chart-export-root" in chart
-    assert chart.index("<ChartExportButton") < chart.index('id={exportTargetId}')
+    assert chart.index("<ChartExportButton") < chart.index("id={exportTargetId}")
     assert "generatedAt" in chart
     assert "chart.fiveElementsClass" in chart
     assert "chart.soul" in chart and "chart.body" in chart
@@ -630,16 +720,27 @@ def test_task7_ziwei_has_one_share_canvas_and_preserves_palace_interaction():
     assert "chart.time" in chart
     assert "chart.gender" in chart
     assert "ZiweiPalaceChart" in chart
-    export_canvas = chart[chart.index("function ZiweiExportCanvas") : chart.index("function ZiweiIdentitySummary")]
+    export_canvas = chart[
+        chart.index("function ZiweiExportCanvas") : chart.index(
+            "function ZiweiIdentitySummary"
+        )
+    ]
     assert "<ZiweiPalaceChart" in export_canvas
-    palace_chart = chart[chart.index("function ZiweiPalaceChart") : chart.index("function PalaceButton")]
+    palace_chart = chart[
+        chart.index("function ZiweiPalaceChart") : chart.index("function PalaceButton")
+    ]
     assert "palace.name" in palace_chart
     assert "palace.heavenlyStem" in palace_chart
     assert "palace.earthlyBranch" in palace_chart
     assert "palace.majorStars" in palace_chart
     assert "star.mutagen" in palace_chart
-    assert "确定性星盘事实" in chart
-    assert "Deterministic chart facts" in chart
+    assert "按统一通行法排盘" in chart
+    assert "Calculated with one standard method" in chart
+    assert "频率样本暂时不可用；命盘事实不受影响" in chart
+    assert (
+        "Frequency samples are temporarily unavailable; chart facts are unaffected"
+        in chart
+    )
     assert 'type="button"' in chart
     assert "aria-pressed={isSelected}" in chart
     assert "horoscope?.decadal.index === palace.index" in chart
@@ -652,19 +753,67 @@ def test_task7_visible_summary_is_not_immediately_duplicated_and_details_are_fla
     bazi = read("frontend/src/components/tools/bazi-chart-view.tsx")
     ziwei = read("frontend/src/components/tools/ziwei-chart-view.tsx")
 
-    assert bazi.count("<BaziProfessionalTable chart={chart} locale={locale} />") == 2
+    bazi_consumer = bazi[
+        bazi.index("function BaziConsumerResult") : bazi.index(
+            "function ShareExportMenu"
+        )
+    ]
+    bazi_share_stage = bazi[
+        bazi.index("function BaziConsumerShareCanvases") : bazi.index(
+            "function BaziPatternSummary"
+        )
+    ]
+    bazi_full_export = bazi[bazi.index("function BaziExportCanvas") :]
+    assert (
+        bazi_consumer.count("<BaziProfessionalTable chart={chart} locale={locale} />")
+        == 1
+    )
+    assert (
+        bazi_share_stage.count(
+            "<BaziProfessionalTable chart={chart} locale={locale} />"
+        )
+        == 1
+    )
+    assert (
+        bazi_full_export.count(
+            "<BaziProfessionalTable chart={chart} locale={locale} />"
+        )
+        == 1
+    )
+    assert 'aria-hidden="true" inert className="chart-export-stage"' in bazi_share_stage
     assert "ZiweiDigest" not in ziwei
-    assert ziwei.count("<ZiweiIdentitySummary") == 2  # visible once, export-only once
+    ziwei_fallback = ziwei[: ziwei.index("type ZiweiConsumerTab")]
+    ziwei_consumer = ziwei[
+        ziwei.index("function ZiweiConsumerResult") : ziwei.index(
+            "function ZiweiArchiveBanner"
+        )
+    ]
+    ziwei_export = ziwei[
+        ziwei.index("function ZiweiExportCanvas") : ziwei.index("type ChartStar")
+    ]
+    assert ziwei_fallback.count("<ZiweiIdentitySummary") == 1
+    assert ziwei_consumer.count("<ZiweiIdentitySummary") == 1
+    assert ziwei_export.count("<ZiweiIdentitySummary") == 1
     assert 'className="chart-share-canvas chart-export-canvas"' in ziwei
-    assert "rounded-lg border" not in ziwei[ziwei.index("function SelectedPalaceDetail") :]
+    assert (
+        "rounded-lg border" not in ziwei[ziwei.index("function SelectedPalaceDetail") :]
+    )
     assert "rounded-md border" not in ziwei[ziwei.index("function StarGroup") :]
 
 
 def test_task7_reduced_motion_is_checked_before_imperative_dayun_scroll():
     chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    css = read("frontend/src/app/globals.css")
 
-    assert 'window.matchMedia("(prefers-reduced-motion: reduce)").matches' in chart
-    assert 'behavior: reduceMotion ? "auto" : "smooth"' in chart
+    assert "scrollIntoView" not in chart
+    assert 'window.matchMedia("(prefers-reduced-motion: reduce)").matches' in tools
+    assert (
+        'behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"'
+        in tools
+    )
+    assert "@media (prefers-reduced-motion: reduce)" in css
+    assert "scroll-behavior: auto !important" in css
 
 
 def test_task7_playwright_covers_single_safe_png_download_and_failure_recovery():
@@ -673,7 +822,7 @@ def test_task7_playwright_covers_single_safe_png_download_and_failure_recovery()
     assert "exports one mocked BaZi PNG with a safe filename" in e2e
     assert 'page.waitForEvent("download")' in e2e
     assert 'toHaveAttribute("aria-hidden", "true")' in e2e
-    assert 'locator("button, input, select, textarea")' in e2e
+    assert 'locator("button, input, select, textarea, details, summary")' in e2e
     assert "downloads).toBe(1)" in e2e
     assert "recovers when the export target is unavailable" in e2e
 
@@ -683,15 +832,30 @@ def test_task7_export_target_is_unpositioned_inside_hidden_staging_wrapper():
     ziwei = read("frontend/src/components/tools/ziwei-chart-view.tsx")
     css = read("frontend/src/app/globals.css")
 
-    stage_rule = css[css.index(".chart-export-stage") : css.index("}", css.index(".chart-export-stage"))]
-    target_rule = css[css.index(".chart-export-canvas") : css.index("}", css.index(".chart-export-canvas"))]
+    stage_rule = css[
+        css.index(".chart-export-stage") : css.index(
+            "}", css.index(".chart-export-stage")
+        )
+    ]
+    target_rule = css[
+        css.index(".chart-export-canvas") : css.index(
+            "}", css.index(".chart-export-canvas")
+        )
+    ]
     for positioning in ("position: fixed", "left: -12000px", "z-index: -1"):
         assert positioning in stage_rule
         assert positioning not in target_rule
     for chart in (bazi, ziwei):
-        assert 'aria-hidden="true" className="chart-export-stage"' in chart
-        assert chart.index('className="chart-export-stage"') < chart.index("data-chart-export-root")
-        assert 'data-chart-export-root className="chart-share-canvas chart-export-canvas"' in chart
+        assert chart.count('className="chart-export-stage"') == chart.count(
+            'aria-hidden="true" inert className="chart-export-stage"'
+        )
+        assert chart.index('className="chart-export-stage"') < chart.index(
+            "data-chart-export-root"
+        )
+        assert (
+            'data-chart-export-root className="chart-share-canvas chart-export-canvas"'
+            in chart
+        )
 
 
 def test_task7_playwright_decodes_png_and_checks_dimensions_and_pixels():
@@ -699,7 +863,7 @@ def test_task7_playwright_decodes_png_and_checks_dimensions_and_pixels():
 
     assert 'from "node:fs/promises"' in e2e
     assert "await download.path()" in e2e
-    assert 'data:image/png;base64,' in e2e
+    assert "data:image/png;base64," in e2e
     assert "image.naturalWidth" in e2e
     assert "image.naturalHeight" in e2e
     assert "getImageData" in e2e
@@ -715,7 +879,9 @@ def test_task7_ziwei_result_precedes_one_closed_edit_details_disclosure():
     assert 'id="ziwei-edit-details"' in tools
     assert "修改资料" in tools
     assert "Edit details" in tools
-    assert tools.index("ziweiResult ? <ZiweiChartView") < tools.index('id="ziwei-edit-details"')
+    assert tools.index("ziweiResult ? <ZiweiChartView") < tools.index(
+        'id="ziwei-edit-details"'
+    )
     assert tools.count('id="ziwei-basic-title"') == 1
     assert "generatedAt: new Date().toISOString()" in tools
     assert "generatedAt={ziweiResult.generatedAt}" in tools
@@ -750,7 +916,11 @@ def test_p1_ziwei_controls_keep_basic_inputs_visible_and_name_every_control():
     assert 'htmlFor="ziwei-birth-time"' in tools
     assert 'htmlFor="ziwei-horoscope-date"' in tools
     assert 'const ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"' in tools
-    assert "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启" in tools
+    assert 'standardRulesBody: "已为你采用通行法排盘"' in tools
+    assert (
+        'standardRulesBody: "The standard method is already selected for you"' in tools
+    )
+    assert "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启" not in tools
     assert 'role="status"' in tools
     assert "正在生成紫微星盘" in tools
     assert "Generating Zi Wei chart" in tools
@@ -758,7 +928,9 @@ def test_p1_ziwei_controls_keep_basic_inputs_visible_and_name_every_control():
 
 def test_p1_ziwei_chart_is_interactive_readable_and_period_aware():
     chart_path = ROOT / "frontend/src/components/tools/ziwei-chart-view.tsx"
-    assert chart_path.exists(), "Zi Wei chart view should be extracted into its own component"
+    assert chart_path.exists(), (
+        "Zi Wei chart view should be extracted into its own component"
+    )
 
     tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
     chart = chart_path.read_text()
@@ -833,7 +1005,9 @@ def test_p1_ziwei_digest_uses_selected_date_and_localized_provenance_values():
 def test_p1_ziwei_validates_target_date_and_commits_one_immutable_snapshot():
     tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
     generate = tools[
-        tools.index("async function generateZiwei") : tools.index("\n\n  return (", tools.index("async function generateZiwei"))
+        tools.index("async function generateZiwei") : tools.index(
+            "\n\n  return (", tools.index("async function generateZiwei")
+        )
     ]
 
     assert "type ZiweiResultSnapshot" in tools
@@ -844,10 +1018,14 @@ def test_p1_ziwei_validates_target_date_and_commits_one_immutable_snapshot():
     assert "请输入 1900-01-31 至 2100-12-31 之间的有效运限日期" in tools
     assert "Enter a valid horoscope date from 1900-01-31 through 2100-12-31" in tools
     assert "instantiateStandardZiwei(normalizedInput, locale)" in generate
-    assert generate.index("instantiateStandardZiwei(normalizedInput, locale)") < generate.index("setZiweiResult({")
+    assert generate.index(
+        "instantiateStandardZiwei(normalizedInput, locale)"
+    ) < generate.index("setZiweiResult({")
     assert "setZiwei(" not in generate
     assert "setZiweiHoroscope(" not in generate
-    assert generate.index("setZiweiResult({") < generate.index("requestZiweiStatistics(")
+    assert generate.index("setZiweiResult({") < generate.index(
+        "requestZiweiStatistics("
+    )
     assert "chart," in generate
     assert "horoscope," in generate
     assert "horoscopeDate," in generate
@@ -866,7 +1044,9 @@ def test_library_has_pinyin_search_and_public_metadata():
     assert "HEXAGRAM_PINYIN_BY_SLUG" in library_data
     assert 'qian: "Qián"' in library_data
     assert "LibrarySearch" in library_page
-    assert library_page.index("<LibrarySearch") < library_page.index("HEXAGRAM_LIBRARY.map")
+    assert library_page.index("<LibrarySearch") < library_page.index(
+        "HEXAGRAM_LIBRARY.map"
+    )
     assert "sourceSnippet" in library_page
     assert "Received text" in detail_page
     assert "Judgment · Takashima" not in library_page
@@ -887,8 +1067,12 @@ def test_public_hexagram_library_routes_and_data_exist():
     assert "qian" in library_data
     assert "kun" in library_data
     assert "difficulty-at-the-beginning" in library_data
-    assert "Explore the 64 hexagrams" in read("frontend/src/app/[locale]/library/page.tsx")
-    assert "generateStaticParams" in read("frontend/src/app/[locale]/hexagram/[slug]/page.tsx")
+    assert "Explore the 64 hexagrams" in read(
+        "frontend/src/app/[locale]/library/page.tsx"
+    )
+    assert "generateStaticParams" in read(
+        "frontend/src/app/[locale]/hexagram/[slug]/page.tsx"
+    )
 
 
 def test_reading_packet_has_first_class_journal_and_source_evidence():
@@ -942,14 +1126,17 @@ def test_p0_result_page_is_one_continuous_trustworthy_reading_flow():
     english = read("frontend/src/i18n/catalog/en.ts")
 
     assert "<TabsTrigger" not in results
-    assert '<HexResultBlock result={result}' in results
-    assert '<ChatPanel session={result} embedded' in results
+    assert "<HexResultBlock result={result}" in results
+    assert "<ChatPanel session={result} embedded" in results
     assert 'id="ai-followup"' in results
     assert 'reading: "解卦"' in chinese
     assert 'reading: "Read"' in english
     assert "{labels.confidence} {item.confidence}%" not in results
     assert 'noMoving: "无动爻，以本卦卦辞为主断。"' in results
-    assert 'noMoving: "No moving lines: the primary hexagram judgment carries the reading."' in results
+    assert (
+        'noMoving: "No moving lines: the primary hexagram judgment carries the reading."'
+        in results
+    )
     assert "格局稳定" not in results
     assert "Stable pattern" not in results
     assert "SourceReaderSheet" in results
@@ -957,7 +1144,9 @@ def test_p0_result_page_is_one_continuous_trustworthy_reading_flow():
     assert "来源待核" in results
     assert "Source unverified" in results
     mechanics = results[
-        results.index("function MechanicsInsightPanel") : results.index("function HexResultBlock")
+        results.index("function MechanicsInsightPanel") : results.index(
+            "function HexResultBlock"
+        )
     ]
     assert "labels.keyPassages" not in mechanics
 
@@ -967,7 +1156,14 @@ def test_p0_casting_surface_has_three_visible_steps_coin_default_and_no_latency_
     chinese = read("frontend/src/i18n/catalog/zh.ts")
     english = read("frontend/src/i18n/catalog/en.ts")
 
-    for label in ("1 问什么", "2 怎么起", "3 怎么解", "1 What to ask", "2 How to cast", "3 How to interpret"):
+    for label in (
+        "1 问什么",
+        "2 怎么起",
+        "3 怎么解",
+        "1 What to ask",
+        "2 How to cast",
+        "3 How to interpret",
+    ):
         assert label in cast_form or label in chinese or label in english
     assert 'method.label === "三枚铜钱法"' in cast_form
     assert "appendManualLine(result.value, COIN_METHOD_KEY)" in cast_form
@@ -978,7 +1174,10 @@ def test_p0_casting_surface_has_three_visible_steps_coin_default_and_no_latency_
     assert 'submitIdle: "Cast"' in english
     assert "methodUnknownDescription" in cast_form
     assert 'methodUnknownDescription: "其他起卦方法；请按当前方法说明操作。"' in chinese
-    assert 'methodUnknownDescription: "Another configured casting method; follow its supplied instructions."' in english
+    assert (
+        'methodUnknownDescription: "Another configured casting method; follow its supplied instructions."'
+        in english
+    )
 
 
 def test_source_drawer_has_classification_and_why_selected():
@@ -1061,7 +1260,9 @@ def test_library_page_is_a_consumer_browse_index_without_database_metrics():
     library_page = read("frontend/src/app/[locale]/library/page.tsx")
     search = read("frontend/src/components/library/library-search.tsx")
     copy_path = ROOT / "frontend/src/lib/hexagram-copy.ts"
-    assert copy_path.exists(), "localized hexagram copy should be shared by list and detail routes"
+    assert copy_path.exists(), (
+        "localized hexagram copy should be shared by list and detail routes"
+    )
     copy_helpers = copy_path.read_text(encoding="utf-8")
 
     for phrase in ("Source Library", "canonical slots", "source entries", "资料完整度"):
@@ -1103,14 +1304,20 @@ def test_hexagram_consumers_use_symmetric_glyphs_and_shared_quick_navigation():
     assert 'mode="anchors"' in library
     assert "HexagramQuickNav" in detail
     assert 'mode="routes"' in detail
-    assert 'id={`hexagram-${entry.number}`}' in library
+    assert "id={`hexagram-${entry.number}`}" in library
 
 
 def test_library_search_has_no_heuristic_theme_filter_controls():
     search = read("frontend/src/components/library/library-search.tsx")
     copy_helpers = read("frontend/src/lib/hexagram-copy.ts")
 
-    for token in ("activeTheme", "themeFilters", "HEXAGRAM_THEME_FILTERS", "matchesThemeFilter", "aria-pressed"):
+    for token in (
+        "activeTheme",
+        "themeFilters",
+        "HEXAGRAM_THEME_FILTERS",
+        "matchesThemeFilter",
+        "aria-pressed",
+    ):
         assert token not in search
     assert "HEXAGRAM_THEME_FILTERS" not in copy_helpers
     assert "matchesThemeFilter" not in copy_helpers
@@ -1123,8 +1330,8 @@ def test_cast_form_has_consumer_facing_step_order_and_compact_controls():
     assert 'data-cast-step="cast" className="order-2' in cast_form
     assert 'data-cast-step="interpret" className="order-3' in cast_form
     assert 'data-cast-page-title="true"' in cast_form
-    assert 'sm:grid-cols-3' in cast_form
-    assert 'xl:grid-cols-4' in cast_form
+    assert "sm:grid-cols-3" in cast_form
+    assert "xl:grid-cols-4" in cast_form
     assert 'data-ai-enable-switch="true"' not in cast_form
     assert 'aria-labelledby="reading-topic-label" className="h-11 w-full' in cast_form
 
@@ -1173,7 +1380,10 @@ def test_my_page_has_focused_signed_out_auth_and_preserves_signed_in_reading_act
     assert "auth.user ?" in profile
     assert "auth.user ? (" in profile
     assert 'autoComplete="email"' in profile
-    assert 'autoComplete={authMode === "signIn" ? "current-password" : "new-password"}' in profile
+    assert (
+        'autoComplete={authMode === "signIn" ? "current-password" : "new-password"}'
+        in profile
+    )
     assert 'htmlFor="profile-email"' in profile
     assert 'htmlFor="profile-password"' in profile
     assert profile.index("messages.common.continueWithGoogle") < profile.index("<form")
@@ -1207,13 +1417,16 @@ def test_task8_primary_paths_use_consumer_copy_without_duplicate_or_internal_chr
     profile = read("frontend/src/components/profile/profile-page.tsx")
     results = read("frontend/src/components/workspace/results-panel.tsx")
 
-    assert 'title: "八字与紫微排盘"' in tools
-    assert 'title: "BaZi & Zi Wei Charts"' in tools
+    assert 'title: "命盘与人生走势"' in tools
+    assert 'title: "Charts & Life Timeline"' in tools
     assert 'calculate: "生成我的命盘"' in tools
     assert 'calculate: "Generate my chart"' in tools
     assert "出生地文本不会自动生成此数值" not in tools
     assert "the birth-place text does not generate this value" not in tools
-    assert 'className="rounded-lg border border-border/60 bg-surface p-4 text-xs' not in tools
+    assert (
+        'className="rounded-lg border border-border/60 bg-surface p-4 text-xs'
+        not in tools
+    )
 
     assert bazi.count('locale === "zh" ? "八字命盘" : "BaZi chart"') == 0
     assert ziwei.count('locale === "zh" ? "紫微斗数命盘" : "Zi Wei Dou Shu chart"') == 0
@@ -1222,7 +1435,14 @@ def test_task8_primary_paths_use_consumer_copy_without_duplicate_or_internal_chr
 
     assert "检索经典档案" not in search
     assert "Search the archive" not in search
-    for phrase in ("私人卦例档案", "已登录档案", "游客档案", "卦例档案", "Reading archive", "Private divination archive"):
+    for phrase in (
+        "私人卦例档案",
+        "已登录档案",
+        "游客档案",
+        "卦例档案",
+        "Reading archive",
+        "Private divination archive",
+    ):
         assert phrase not in profile
 
     assert 'sameSlot: "同一爻位依据"' in results
@@ -1231,6 +1451,41 @@ def test_task8_primary_paths_use_consumer_copy_without_duplicate_or_internal_chr
     assert 'slot: "Slot"' not in results
     assert 'sourceDepth: "来源覆盖"' not in results
     assert 'sourceDepth: "Source coverage"' not in results
+
+
+def test_task9_frontend_reads_schema6_and_only_new_rule_versioned_charts_write_schema7():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+    types = read("frontend/src/types/api.ts")
+    markdown = read("frontend/src/lib/chart-markdown.ts")
+
+    assert (
+        "const snapshotSchemaVersion = Math.max(record.schema_version ?? 0, chart.derived_schema_version ?? 0)"
+        in tools
+    )
+    assert "if (snapshotSchemaVersion < 6)" in tools
+    assert "const snapshotSchemaVersion = chart.rule_versions ? 7 : 6" in tools
+    assert "derived_schema_version: snapshotSchemaVersion" in tools
+    assert "rule_versions: chart.rule_versions" in tools
+    assert "schema_version: snapshotSchemaVersion" in tools
+    assert (
+        "Present on schema 7 live charts; absent from readable schema 6 archives."
+        in types
+    )
+    assert "rule_versions?: RuleVersions" in types
+    assert "if (!versions)" in markdown
+    assert "chart.rules_version" in markdown
+
+
+def test_task9_incomplete_schema6_archive_is_not_rendered_or_silently_recalculated():
+    tools = read("frontend/src/components/tools/metaphysics-tools.tsx")
+
+    assert "function hasCompleteBaziArchiveChart" in tools
+    assert "if (!hasCompleteBaziArchiveChart(chart))" in tools
+    assert 'kind: "corrupt"' in tools
+    assert (
+        "为避免显示残缺或错误内容，旧快照未被打开。请核对下方出生资料并重新排盘。"
+        in tools
+    )
 
 
 def test_task8_review_uses_bilingual_saved_reading_copy_once_and_no_internal_fallbacks():
@@ -1253,12 +1508,23 @@ def test_task8_review_uses_bilingual_saved_reading_copy_once_and_no_internal_fal
     assert profile.count("{copy.readingArchiveBody}") == 1
     assert "isSignedIn" not in profile
     assert "copy.signedOut" not in profile
-    for obsolete in ("identity:", "signedOut:", "authRequired:", "accountAccess:", "emailAccount:", "googleAccount:", "useEmail:"):
+    for obsolete in (
+        "identity:",
+        "signedOut:",
+        "authRequired:",
+        "accountAccess:",
+        "emailAccount:",
+        "googleAccount:",
+        "useEmail:",
+    ):
         assert obsolete not in profile
 
     assert "slot or source group" not in results
     assert "槽位或来源组" not in results
-    assert 'empty: "No matching hexagram. Try a name, pinyin, number, or source phrase."' in search
+    assert (
+        'empty: "No matching hexagram. Try a name, pinyin, number, or source phrase."'
+        in search
+    )
     assert "source snippet" not in search.lower()
 
     assert "signed-in My shows saved readings and safe record controls" in e2e
@@ -1266,6 +1532,141 @@ def test_task8_review_uses_bilingual_saved_reading_copy_once_and_no_internal_fal
     assert 'name: "Saved readings"' in e2e
     for control in ("Download", "Open session", "Delete"):
         assert f'name: "{control}"' in e2e
+
+
+def test_task8_bazi_consumer_os_exposes_one_clear_identity_and_share_contract():
+    identity = read("frontend/src/components/tools/consumer-identity.tsx")
+    achievements = read("frontend/src/components/tools/metaphysics-achievements.tsx")
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+
+    for field in (
+        "pattern_title",
+        "pattern_status",
+        "formation_path",
+        "memorable_line",
+        "hero_tags",
+    ):
+        assert field in identity
+    for field in ("comparison_label", "next_activation", "month_preview"):
+        assert field in identity
+    assert "overflow-x-auto" in identity, (
+        "the twelve-month preview should scroll inside its own region"
+    )
+    for quality_label in ("高光窗口", "调整窗口", "同值约"):
+        assert quality_label not in f"{identity}\n{chart}"
+    for activity_label in ("活跃增强", "活跃减弱", "接近常态"):
+        assert activity_label in f"{identity}\n{chart}"
+    assert "出现约" in identity
+
+    assert "稀有结构组合" in achievements
+    assert "命盘成就" not in achievements
+    assert "命盘成就" not in chart
+    assert "分享成就卡" not in chart
+    assert chart.count("分享与导出") == 1
+    for decision_step in ("原局事实", "命中规则", "已核验命题"):
+        assert decision_step in chart
+
+
+def test_bazi_pattern_source_chain_uses_only_canonical_claim_ids_and_fetches_real_sources_on_demand():
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    api = read("frontend/src/lib/api.ts")
+    types = read("frontend/src/types/api.ts")
+
+    assert 'claim.slot === "hero"' in chart
+    assert "hero?.provenanceBindings" in chart
+    assert "heroBindings.map((binding) => binding.ruleId)" in chart
+    assert "heroBindings.flatMap((binding) => binding.sourceIds)" in chart
+    assert "claim.ruleIds.length && claim.sourceIds.length" in chart
+    assert "PatternSourceDisclosure" in chart
+    assert "fetchPatternRuleSummary" in chart
+    assert "命题索引" not in chart
+    assert "Classical proposition" not in chart
+    assert "已核验影印定位" in chart
+    assert "visually_verified" in chart
+    assert (
+        'key={`${patternBundleId}:${heroRuleIds.join(",")}:${heroSourceIds.join(",")}`}'
+        in chart
+    )
+    assert "requestedSources.has(source.proposition_id)" in chart
+    assert 'locator.review_state === "scan_verified"' in chart
+    assert "hero?.provenanceBindings" in chart
+    assert "binding.factRefs" in chart
+    assert "heroFacts" in chart
+    assert "原局事实到古籍影印的判断链" in chart
+    assert "Boolean(locator.quote)" in chart
+    assert (
+        "Boolean(locator.url || locator.pdf_page || locator.printed_page || locator.column_line)"
+        in chart
+    )
+    assert "打开影印页" in chart
+    assert 'target="_blank"' in chart
+
+    assert "export async function fetchPatternRuleSummary" in api
+    assert "/api/tools/metaphysics/pattern-rules/" in api
+    assert "encodeURIComponent(bundleId)" in api
+    assert "encodeURIComponent(ruleId)" in api
+
+    for type_name in (
+        "PatternRuleSourceLocator",
+        "PatternRuleSourceSummary",
+        "PatternRuleSummary",
+    ):
+        assert f"export type {type_name}" in types
+    for field in (
+        "proposition_id",
+        "witness_id",
+        "visually_verified",
+        "quote",
+        "pdf_page",
+        "url",
+    ):
+        assert field in types
+
+
+def test_task8_markdown_uses_consumer_display_semantics_not_raw_percentile_buckets():
+    markdown = read("frontend/src/lib/chart-markdown.ts")
+
+    assert "display_label" in markdown
+    assert "display_mode" in markdown
+    for internal_bucket in ("lower_percentage", "same_percentage", "higher_percentage"):
+        assert internal_bucket not in markdown
+    assert "稀有结构组合" in markdown
+    assert "命盘成就" not in markdown
+
+
+def test_task8_chart_report_contains_wide_content_at_390px_without_page_overflow():
+    css = read("frontend/src/app/globals.css")
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    identity = read("frontend/src/components/tools/consumer-identity.tsx")
+
+    report_rule_start = css.index(".chart-report {")
+    report_rule = css[report_rule_start : css.index("}", report_rule_start)]
+    scroll_rule_start = css.index(".chart-report .overflow-x-auto {")
+    scroll_rule = css[scroll_rule_start : css.index("}", scroll_rule_start)]
+    mobile_rule_start = css.index("@media (max-width: 390px)")
+    mobile_rule = css[mobile_rule_start:]
+
+    for declaration in (
+        "width: 100%",
+        "min-width: 0",
+        "max-width: 100%",
+        "overflow-x: clip",
+    ):
+        assert declaration in report_rule
+    for declaration in (
+        "max-width: 100%",
+        "overflow-x: auto",
+        "overscroll-behavior-inline: contain",
+    ):
+        assert declaration in scroll_rule
+    assert "overflow-wrap: anywhere" in mobile_rule
+    assert "overflow-wrap: normal" in mobile_rule
+    assert "overflow-x-auto" in chart, (
+        "professional tables should retain internal horizontal scrolling"
+    )
+    assert "overflow-x-auto" in identity, (
+        "the month preview should retain internal horizontal scrolling"
+    )
 
 
 def test_e2e_review_uses_one_source_trust_resolver_in_passages_and_chart_preview():
@@ -1293,15 +1694,30 @@ def test_e2e_review_waits_for_persisted_form_before_applying_url_precedence():
     assert "useWorkspaceStore.persist.onFinishHydration" in cast_form
     assert "useSyncExternalStore" in cast_form
     assert "storeHydrated" in cast_form
-    hydration_effect = cast_form[cast_form.index("const storeHydrated") : cast_form.index("const mutation = useSessionMutation")]
+    hydration_effect = cast_form[
+        cast_form.index("const storeHydrated") : cast_form.index(
+            "const mutation = useSessionMutation"
+        )
+    ]
     assert "setStoreHydrated" not in hydration_effect
     assert "if (!storeHydrated) return" in hydration_effect
     assert "unsubscribeFromStart()" in cast_form
     assert "unsubscribeFromFinish()" in cast_form
-    assert 'const persistedTopic = config.topics.some((topic) => topic.label === current.topic) ? current.topic : ""' in hydration_effect
-    assert "requestedIntent?.topic || persistedTopic || preferredTopic" in hydration_effect
-    assert "explicitQuestion || draftedQuestion || requestedIntent?.questionHint" in hydration_effect
-    assert "if (!value || !config.topics.some((topic) => topic.label === value)) return" in cast_form
+    assert (
+        'const persistedTopic = config.topics.some((topic) => topic.label === current.topic) ? current.topic : ""'
+        in hydration_effect
+    )
+    assert (
+        "requestedIntent?.topic || persistedTopic || preferredTopic" in hydration_effect
+    )
+    assert (
+        "explicitQuestion || draftedQuestion || requestedIntent?.questionHint"
+        in hydration_effect
+    )
+    assert (
+        "if (!value || !config.topics.some((topic) => topic.label === value)) return"
+        in cast_form
+    )
     assert 'updateForm("topic", value)' in cast_form
 
 
@@ -1319,7 +1735,7 @@ def test_e2e_review_export_button_has_parent_name_and_separate_live_status():
 def test_najia_table_uses_compact_rows_without_duplicate_line_preview():
     najia = read("frontend/src/components/workspace/najia-table.tsx")
 
-    assert 'overflow-hidden border-y' in najia
+    assert "overflow-hidden border-y" in najia
     assert "grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,1fr)]" in najia
     assert "row.movement_tag" in najia
     assert "×→" not in najia
@@ -1383,4 +1799,37 @@ def test_cloud_session_limit_defaults_to_500_saved_readings():
 
     assert 'ICHING_USER_SESSION_LIMIT", "500"' in chat_service
     assert "`ICHING_USER_SESSION_LIMIT` (default `500`)" in readme
-    assert "`ICHING_USER_SESSION_LIMIT` (saved sessions per user, default 500)" in deployment
+    assert (
+        "`ICHING_USER_SESSION_LIMIT` (saved sessions per user, default 500)"
+        in deployment
+    )
+
+
+def test_bazi_async_period_requests_ignore_stale_chart_responses():
+    chart = read("frontend/src/components/tools/bazi-chart-view.tsx")
+    api_types = read("frontend/src/types/api.ts")
+
+    assert "periodRequestGeneration" in chart
+    assert "fullLifeRequestGeneration" in chart
+    assert "requestGeneration !== periodRequestGeneration.current" in chart
+    assert "requestGeneration !== fullLifeRequestGeneration.current" in chart
+    assert "setShowFullLife(Boolean(loaded))" in read(
+        "frontend/src/components/tools/life-kline-chart.tsx"
+    )
+    assert "const klineChartIdentity = [" in chart
+    for identity_field in (
+        "chart.input_timestamp",
+        "chart.calculation_timestamp",
+        "chart.timezone",
+        "chart.day_boundary",
+        "chart.calculation_mode",
+        "chart.birth_profile.gender",
+        "chart.birth_profile.dayun.direction",
+        "chart.birth_profile.dayun.algorithm",
+    ):
+        assert identity_field in chart
+    assert "key={klineChartIdentity}" in chart
+    assert 'role: "activity"' in api_types
+    assert "activity: number" in api_types
+    assert "lifecycleProvenance?: PatternLifecycleBinding[]" in api_types
+    assert "provenanceBindings?: Array" in api_types

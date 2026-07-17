@@ -111,14 +111,62 @@ export type PatternAssessment = {
   source_refs?: string[]
 }
 
-export type ConsumerSubjectScore = {
+export type PatternRuleSourceSegment = {
+  id: string
+  text_type: string
+  review_state: string
+}
+
+export type PatternRuleSourceLocator = {
+  id: string
+  witness_id: string
+  rights_status: string
+  review_state: string
+  visually_verified: boolean
+  quote?: string | null
+  pdf_page?: number | null
+  printed_page?: string | null
+  column_line?: string | null
+  url?: string | null
+}
+
+export type PatternRuleSourceSummary = {
+  proposition_id: string
+  authority_layer: string
+  text_type: string
+  review_state: string
+  segments: PatternRuleSourceSegment[]
+  locators: PatternRuleSourceLocator[]
+}
+
+export type PatternRuleSummary = {
+  bundle_id: string
+  bundle_digest: string
+  rule_id: string
+  pattern_id: string
+  title: string
+  summary: string
+  stage: string
+  effect: string
+  path_id: string | null
+  authority_layer: string
+  sources: PatternRuleSourceSummary[]
+}
+
+export type ConsumerSubjectPath = {
   key: "career" | "wealth" | "relationship" | "health"
   label: string
-  /** Legacy score-era fields may exist on old snapshots, but are never presented as life quality. */
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   score?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
+  raw_score?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   global_percentile?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   global_top_percentage?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   cohort_percentile?: number
+  /** @deprecated Legacy snapshot only; new profile builders never populate this. */
   cohort_top_percentage?: number
   headline: string
   drivers?: string[]
@@ -126,12 +174,15 @@ export type ConsumerSubjectScore = {
   path_summary?: string
 }
 
+/** @deprecated Compatibility alias for components that still use the old type name. */
+export type ConsumerSubjectScore = ConsumerSubjectPath
+
 export type ConsumerAchievement = {
   id: string
   title: string
   tier: "SSR" | "SR" | "R" | string
   state: string
-  rarity_percentage: number
+  rarity_percentage: number | null
   position: string
   summary: string
   member_ids: string[]
@@ -142,7 +193,10 @@ export type ConsumerFingerprint = {
   title: string
   detail: string
   rarity_label: string
-  top_percentage: number
+  /** @deprecated Legacy ranking field; canonical claims do not populate it. */
+  top_percentage?: number
+  comparison_kind?: string | null
+  comparison_label?: string | null
   incidence_percentage?: number | null
 }
 
@@ -152,8 +206,39 @@ export type LifeKlineMonth = {
   ganzhi: string
   value: number
   delta: number
-  drivers: string[]
+  drivers: Array<string | LifeKlineDriver>
   intensity?: number
+}
+
+export type PatternLifecycleBinding = {
+  pathId: string
+  ruleId: string
+  sourceIds: string[]
+}
+
+export type PatternLifecycleTransition = {
+  before: string
+  after: string
+  patternId: string
+  pathId: string
+  ruleIds: string[]
+  sourceIds: string[]
+}
+
+export type LifeKlineDriver = {
+  id: string
+  layer: "natal" | "dayun" | "liunian" | "liuyue" | string
+  role: "formation" | "rescue" | "support" | "damage" | "conflict" | "neutral" | string
+  label: string
+  delta: number
+  activity?: number
+  evidenceIds?: string[]
+  ruleIds?: string[]
+  sourceIds?: string[]
+  patternId?: string
+  pathIds?: string[]
+  lifecycleProvenance?: PatternLifecycleBinding[]
+  lifecycle?: PatternLifecycleTransition
 }
 
 export type LifeKlinePoint = {
@@ -166,24 +251,104 @@ export type LifeKlinePoint = {
   ma3: number | null
   ma5: number | null
   ma10: number | null
+  drivers?: Array<string | LifeKlineDriver>
   months: LifeKlineMonth[]
 }
 
 export type LifeKlineSeries = {
   default_window: { start_year: number; end_year: number }
   series: Array<{
-    key: "overall" | "career" | "wealth" | "relationship" | "health" | string
+    key: "career" | "wealth" | "relationship" | "rhythm" | "health" | string
     label: string
     color: string
     points: LifeKlinePoint[]
   }>
   period_bands: Array<{ label: string; start_year: number; end_year: number }>
-  stages: Array<{ key: string; label: string; year: number; score: number; theme: string; summary: string }>
+  stages: Array<{
+    key: string
+    label: string
+    year: number
+    relative_index?: number
+    theme: string
+    summary: string
+    drivers?: Array<string | LifeKlineDriver>
+    /** @deprecated Old snapshots used a quality-like score field. */
+    score?: number
+  }>
+  baseline?: {
+    normalized_value: 100
+    scope: string
+    start_year: number
+    end_year: number
+    method: string
+    series: Record<string, { raw_value: number }>
+  }
   method: string
+}
+
+export type ConsumerClaim = {
+  id: string
+  slot: "hero" | "theme" | "signature" | "combination" | "timeline"
+  theme?: "career" | "wealth" | "relationship" | "rhythm"
+  title: string
+  summary: string
+  importance: "foundation" | "primary" | "major" | "supporting" | "auxiliary"
+  classicalRole: "pattern" | "formation_path" | "damage" | "rescue" | "expression" | "supporting_marker"
+  /** Canonical Task 5 IDs are present only after an exact source-backed match. */
+  patternId?: string
+  pathId?: string
+  pathIds?: string[]
+  lifecycleProvenance?: Array<{
+    pathId: string
+    ruleId: string
+    sourceIds: string[]
+  }>
+  provenanceBindings?: Array<{
+    ruleId: string
+    sourceIds: string[]
+    factRefs: Array<{
+      operator: string
+      path?: string
+      value?: unknown
+      matchIds?: string[]
+    }>
+  }>
+  /** Stable consumer expression path; distinct from a classical formation path. */
+  expressionPathId?: string
+  evidenceHighlights?: string[]
+  direction?: {
+    kind: "expression"
+    id: string
+    label: string
+  }
+  comparison?: {
+    kind: "incidence"
+    featureId: string
+    status: "observed" | "zero" | "unsupported"
+    percentage: number | null
+    display: string
+    baselineId: string | null
+  }
+  activation?: {
+    layer: "dayun" | "liunian" | "liuyue"
+    ganzhi: string
+    startTimestamp: string
+    endTimestamp: string
+    startYear?: number
+    endYear?: number
+    isCurrent: boolean
+    drivers?: Array<{ kind: string; label: string; detail: string; source: string }>
+  }
+  evidenceIds: string[]
+  ruleIds: string[]
+  sourceIds: string[]
 }
 
 export type ConsumerProfile = {
   version: string
+  claims_version?: string
+  /** Canonical for new BaZi snapshots; optional for Zi Wei and old archives. */
+  claims?: ConsumerClaim[]
   system: "bazi" | "ziwei"
   identity: {
     system_title: string
@@ -199,7 +364,7 @@ export type ConsumerProfile = {
     cohort_top_percentage?: number
     cohort_label?: string
   }
-  subjects: ConsumerSubjectScore[]
+  subjects: ConsumerSubjectPath[]
   achievements: ConsumerAchievement[]
   fingerprints: ConsumerFingerprint[]
   twin: {
@@ -260,6 +425,13 @@ export type ThemeComparison = ThemeStructureMetric & {
   normalized_entropy?: number
   effective_support?: number
   resolution?: "high" | "medium" | "low"
+  display_mode?: "incidence" | "exact_tail" | "directional" | "common_value" | "reference_zero" | "unavailable"
+  display_label?: string
+  display_direction?: "low" | "typical" | "high"
+  semantic_pole?: string
+  semantic_poles?: { low: string; typical: string; high: string }
+  tail_side?: "lower" | "upper"
+  tail_percentage?: number
   histogram?: Array<{ value: number | string; weight: number; percentage: number }>
   baseline_id: string
   method: "weighted_empirical_metric_distribution"
@@ -307,6 +479,8 @@ export type MetaphysicsStatistics = {
     sample_weight: number
     unique_state_count?: number
     config_id?: string
+    pattern_bundle_id?: string
+    pattern_bundle_digest?: string
     schema_version?: number
     feature_catalog_hash?: string
     registry_hash?: string
@@ -322,6 +496,14 @@ export type MetaphysicsStatistics = {
   disclaimer: string
   status?: "available" | "unavailable" | "version_mismatch"
   unavailable_reason?: string
+}
+
+export type RuleVersions = {
+  calendar: string
+  pattern_bundle: string
+  pattern_digest: string
+  shensha: string
+  consumer: string
 }
 
 export type PeriodMonth = {
@@ -340,10 +522,20 @@ export type PeriodMonth = {
 }
 
 export type PeriodThemeActivation = {
+  id: string
+  layer: "dayun" | "liunian" | "liuyue" | "period" | string
   kind: "新增" | "联动" | "冲突" | "变化"
+  role: "activity" | "formation" | "rescue" | "support" | "damage" | "conflict" | "neutral" | string
+  delta: number
+  activity: number
+  feature: string
   label: string
   detail: string
   source: string
+  evidenceIds?: string[]
+  ruleIds?: string[]
+  sourceIds?: string[]
+  lifecycle?: PatternLifecycleTransition
 }
 
 export type PeriodThemeActivations = Record<"事业" | "财富" | "感情" | "五行与承压结构", PeriodThemeActivation[]>
@@ -416,6 +608,8 @@ export type MetaphysicsChart = {
   boundary_flags: { near_solar_term?: boolean; nearest_solar_term_seconds?: number }
   derived_schema_version: number
   rules_version: string
+  /** Present on schema 7 live charts; absent from readable schema 6 archives. */
+  rule_versions?: RuleVersions
   shen_sha: ShenShaHit[]
   structure: {
     day_master: { stem: string; element: string; rooted: boolean; root_pillars: string[]; month_status: string }
