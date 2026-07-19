@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { ChevronRight, Share2 } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
+import { BaziDiagnosticWorkspace } from "@/components/tools/bazi-diagnostic-workspace"
+import { BaziPeriodInsightPanel } from "@/components/tools/bazi-period-insight-panel"
 import {
   ConsumerIdentity,
   type ConsumerIdentityProfile,
@@ -431,6 +433,7 @@ function BaziConsumerResult({
   const [lifeKline, setLifeKline] = useState(consumer.life_kline)
   const [fullLifeLoading, setFullLifeLoading] = useState(false)
   const [fullLifeError, setFullLifeError] = useState<string | null>(null)
+  const [selectedKlineTheme, setSelectedKlineTheme] = useState("overall")
   useEffect(() => {
     fullLifeRequestGeneration.current += 1
     setLifeKline(consumer.life_kline)
@@ -457,8 +460,8 @@ function BaziConsumerResult({
     .filter((item) => achievementStates.has(item.state) && item.member_ids.length > 1) as MetaphysicsAchievement[]
   const tabs: Array<{ key: ConsumerTab; label: string; description: string }> = locale === "zh"
     ? [
-      { key: "identity", label: "我是谁", description: "命格、路径与稀有结构" },
-      { key: "kline", label: "人生 K 线", description: "未来十年与月份节奏" },
+      { key: "identity", label: "命格诊断", description: "格局、路径与结构指纹" },
+      { key: "kline", label: "人生走势", description: "K 线、运限与阶段触发" },
       { key: "chart", label: "完整命盘", description: "四柱、运限与全部依据" },
     ]
     : [
@@ -466,6 +469,17 @@ function BaziConsumerResult({
       { key: "kline", label: "Life K-line", description: "Ten-year and monthly rhythm" },
       { key: "chart", label: "Full chart", description: "Pillars, periods, all details" },
     ]
+  const selectedCycle = periodCycles.find((cycle) => cycle.index === selectedCycleIndex)
+  const selectedYearRecord = selectedCycle?.years.find((year) => year.year === selectedYear)
+  const selectedMonthRecord = selectedYearRecord?.months.find((month) => month.index === selectedMonthIndex)
+
+  function selectKlineYear(yearValue: number) {
+    const cycle = periodCycles.find((item) => item.start_year <= yearValue && yearValue <= item.end_year)
+    if (!cycle) return
+    if (cycle.index !== selectedCycleIndex) onCycleChange(cycle)
+    const year = cycle.years.find((item) => item.year === yearValue)
+    if (year) onYearChange(year)
+  }
 
   async function loadFullLifeKline() {
     const request = chart.birth_profile.period_query
@@ -505,14 +519,25 @@ function BaziConsumerResult({
     </nav>
 
     {tab === "identity" ? <div className="space-y-9">
-      <ConsumerIdentity profile={profile} locale={locale} comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined} />
-      <MetaphysicsAchievements achievements={achievements} locale={locale} />
+      <BaziDiagnosticWorkspace chart={chart} locale={locale} />
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.34fr)]">
+        <MetaphysicsAchievements achievements={achievements} locale={locale} />
+        <aside className="border-l border-border/55 pl-5 sm:pl-7">
+          <p className="text-sm font-semibold text-primary">{locale === "zh" ? "结构指纹" : "Structure fingerprint"}</p>
+          <h2 className="mt-2 text-2xl font-semibold">{locale === "zh" ? "最能区分这张命盘的结构" : "What most distinguishes this chart"}</h2>
+          <div className="mt-5 divide-y divide-border/50">
+            {profile.fingerprints.map((item) => <article key={item.id} className="py-4 first:pt-0"><div className="flex items-start justify-between gap-3"><h3 className="font-semibold">{item.title}</h3><span className="shrink-0 text-xs font-semibold text-primary">{item.rarity_label}</span></div><p className="mt-1.5 text-sm leading-6 text-muted-foreground">{item.detail}</p></article>)}
+          </div>
+          {onCompare ? <button type="button" onClick={onCompare} className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl border border-primary/35 bg-primary/[0.06] px-4 py-2.5 text-sm font-semibold text-primary transition hover:border-primary/60 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "双人命盘比较" : "Compare two charts"}<ChevronRight aria-hidden="true" className="ml-1.5 size-4" /></button> : null}
+        </aside>
+      </div>
     </div> : null}
 
     {tab === "kline" ? <div className="space-y-8">
-      <LifeKlineChart key={klineChartIdentity} lifeKline={lifeKline} locale={locale} currentYear={currentYear} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} />
+      <LifeKlineChart key={klineChartIdentity} lifeKline={lifeKline} locale={locale} currentYear={currentYear} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} onSeriesChange={(key) => setSelectedKlineTheme(String(key))} onYearChange={selectKlineYear} />
       {fullLifeError ? <p role="alert" className="text-sm text-destructive">{fullLifeError}</p> : null}
       <section className="rounded-3xl border border-border/60 bg-surface p-5 sm:p-7"><h2 className="text-xl font-semibold">{locale === "zh" ? "点开阶段看细节" : "Open a period"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "选择大运、流年和流月，查看这一阶段新增、联动和冲突的具体结构。" : "Choose a cycle, year, and month to inspect its activated structures."}</p><div className="mt-5"><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></div></section>
+      <BaziPeriodInsightPanel cycle={selectedCycle} year={selectedYearRecord} month={selectedMonthRecord} selectedTheme={selectedKlineTheme} locale={locale} />
     </div> : null}
 
     {tab === "chart" ? <div className="space-y-9">
@@ -520,6 +545,7 @@ function BaziConsumerResult({
       <ReportChapter title={locale === "zh" ? "四柱命盘" : "Four pillars"} intro={locale === "zh" ? "四柱、十神、藏干、神煞与状态集中在同一张专业表。" : "Pillars, Ten Gods, hidden stems, and Shen Sha in one table."}><BaziProfessionalTable chart={chart} locale={locale} /></ReportChapter>
       <ReportChapter title={locale === "zh" ? "格局与核心判断" : "Pattern and findings"}><BaziPatternSummary chart={chart} locale={locale} /><div className="mt-7"><BaziSynthesisPanel chart={chart} locale={locale} /></div></ReportChapter>
       <ReportChapter title={locale === "zh" ? "运限" : "Periods"}><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></ReportChapter>
+      <BaziPeriodInsightPanel cycle={selectedCycle} year={selectedYearRecord} month={selectedMonthRecord} locale={locale} />
       <ReportChapter title={locale === "zh" ? "结构对照" : "Structure comparisons"}>{hasAvailableStatistics(chart) ? <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /> : <StatisticsUnavailable locale={locale} />}</ReportChapter>
       <ReportChapter title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ReportChapter>
       <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看排盘规则与原始统计" : "Chart rules and raw statistics"}</summary><div className="mt-6 space-y-7"><BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />{hasAvailableStatistics(chart) ? null : <StatisticsUnavailable locale={locale} />}<p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {baziRuleVersionSummary(chart, locale)}</p></div></details>

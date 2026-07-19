@@ -345,6 +345,33 @@ class PatternRuleSummaryResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class PatternExampleSummary(BaseModel):
+    id: str
+    chapter_id: str
+    pattern_id: str
+    name: str
+    pillars: List[str] = Field(default_factory=list)
+    author_claim: str = ""
+    classification: str = ""
+    review_state: str = ""
+    locator_ids: List[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class PatternLibraryResponse(BaseModel):
+    version: str
+    digest: str
+    pattern_id: str
+    label: str
+    candidate_count: int = Field(ge=0)
+    executable_count: int = Field(ge=0)
+    status_counts: Dict[str, int] = Field(default_factory=dict)
+    examples: List[PatternExampleSummary] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class MetaphysicsStatisticsRequest(BaseModel):
     chart_type: Literal["bazi", "ziwei"]
     baseline_id: str = Field(min_length=1, max_length=120)

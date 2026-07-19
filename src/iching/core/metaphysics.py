@@ -964,6 +964,7 @@ def _period_theme_activations(
         source: str,
         *,
         feature: str = "",
+        role: str = "activity",
     ) -> None:
         key = (theme, kind, label)
         if theme not in activations or key in seen:
@@ -974,12 +975,10 @@ def _period_theme_activations(
                 "id": f"bazi.period.{layer}.{theme}.{len(activations[theme]) + 1}",
                 "layer": layer,
                 "kind": kind,
-                # Period features are observations of theme activity. A relation
-                # being a conflict does not make the period worse, and a
-                # non-conflict does not make it better. The K-line counts both as
-                # unsigned activity and compares that density only with the
-                # chart's own long-horizon baseline.
-                "role": "activity",
+                # Role explains how the event participates in the structure.
+                # K-line magnitude remains unsigned activity density, so a
+                # conflict is not silently converted into a bad-life score.
+                "role": role,
                 "delta": 0.0,
                 "activity": 1.0,
                 "feature": feature,
@@ -1039,6 +1038,7 @@ def _period_theme_activations(
                     str(hit.get("trigger", "")),
                     "版本化神煞注册表",
                     feature=str(hit.get("rule_id", hit["name"])),
+                    role="neutral",
                 )
 
     for relation in relations:
@@ -1055,6 +1055,7 @@ def _period_theme_activations(
                 str(relation.get("label", "")),
                 "结构化干支关系",
                 feature=relation_type,
+                role="conflict" if conflict else "support",
             )
     return activations
 

@@ -153,6 +153,27 @@ export type PatternRuleSummary = {
   sources: PatternRuleSourceSummary[]
 }
 
+export type PatternLibrary = {
+  version: string
+  digest: string
+  pattern_id: string
+  label: string
+  candidate_count: number
+  executable_count: number
+  status_counts: Record<"executable" | "contextual" | "example_only" | "deferred", number>
+  examples: Array<{
+    id: string
+    chapter_id: string
+    pattern_id: string
+    name: string
+    pillars: string[]
+    author_claim: string
+    classification: string
+    review_state: string
+    locator_ids: string[]
+  }>
+}
+
 export type ConsumerSubjectPath = {
   key: "career" | "wealth" | "relationship" | "health"
   label: string

@@ -11,6 +11,7 @@ import type {
   DayunCycle,
   MetaphysicsChartSavePayload,
   MetaphysicsStatistics,
+  PatternLibrary,
   PatternRuleSummary,
   SessionHistoryResponse,
   SessionPayload,
@@ -114,6 +115,14 @@ export async function fetchPatternRuleSummary(bundleId: string, ruleId: string):
     { cache: "no-store" },
   )
   return handleResponse<PatternRuleSummary>(response)
+}
+
+export async function fetchPatternLibrary(patternId: string): Promise<PatternLibrary> {
+  const response = await fetchWithTimeout(
+    `${getApiBaseUrl()}/api/tools/metaphysics/pattern-library/${encodeURIComponent(patternId)}`,
+    { cache: "force-cache" },
+  )
+  return handleResponse<PatternLibrary>(response)
 }
 
 export async function saveMetaphysicsChart(payload: MetaphysicsChartSavePayload, token: string): Promise<MetaphysicsChartRecord> {

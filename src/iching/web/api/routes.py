@@ -12,6 +12,7 @@ from iching.integrations.supabase_client import SupabaseAuthError
 from iching.core.bazi_rules.registry import load_packaged_shen_registry
 from iching.core.metaphysics import build_metaphysics_chart
 from iching.core.metaphysics_statistics import lookup_statistics
+from iching.core.pattern_product_catalog import pattern_library
 from iching.web.chat_service import ChatRateLimitError
 from iching.web.chart_service import ChartArchiveService
 from iching.web.models import (
@@ -26,6 +27,7 @@ from iching.web.models import (
     MetaphysicsPeriodRequest,
     MetaphysicsPeriodResponse,
     PatternRuleSummaryResponse,
+    PatternLibraryResponse,
     MetaphysicsStatisticsRequest,
     MetaphysicsStatisticsResponse,
     MetaphysicsChartSaveRequest,
@@ -289,6 +291,24 @@ def read_metaphysics_pattern_rule(
         authority_layer=rule.authority_layer,
         sources=sources,
     )
+
+
+@router.get(
+    "/tools/metaphysics/pattern-library/{pattern_id}",
+    response_model=PatternLibraryResponse,
+)
+def read_metaphysics_pattern_library(pattern_id: str) -> PatternLibraryResponse:
+    """Return the compact research and historical-example projection for a pattern."""
+    if not _RULE_PATH_ID.fullmatch(pattern_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="未找到该格局资料。"
+        )
+    result = pattern_library(pattern_id)
+    if not result["candidate_count"] and not result["examples"]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="未找到该格局资料。"
+        )
+    return PatternLibraryResponse(**result)
 
 
 @router.post(

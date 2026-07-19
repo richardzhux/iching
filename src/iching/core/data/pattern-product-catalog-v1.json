@@ -1,0 +1,3527 @@
+{
+  "version": "pattern-product-catalog-v1",
+  "digest": "1fd835ff5ab3f13939ef6c1128ff579ce82f325405dbad7022d67d2fc5b3a6ed",
+  "candidate_count": 138,
+  "example_count": 108,
+  "status_counts": {
+    "contextual": 4,
+    "deferred": 86,
+    "example_only": 2,
+    "executable": 46
+  },
+  "groups": [
+    {
+      "pattern_id": "direct_officer",
+      "label": "正官格",
+      "candidate_count": 15,
+      "executable_count": 11,
+      "example_count": 6,
+      "rules": [
+        {
+          "id": "zzq.rule.officer.form-wealth-support-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.form-wealth-support-001",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.officer.form-seal-support-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.form-seal-support-001",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.officer.form-dual-support-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.form-dual-support-001",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.officer.form-single-support-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.form-single-support-001",
+          "effect": "source_precedence",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule-candidate.officer.form-transform-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.form-transform-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_transformation_fact_definition",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.officer.damage-punishment-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.damage-punishment-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_same_relation_branch_binding",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.officer.damage-mixed-killing-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.damage-mixed-killing-001",
+          "effect": "officer_killing_mixture",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.officer.damage-hurting-officer-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.damage-hurting-officer-001",
+          "effect": "damage",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.officer.damage-wealth-breaks-seal-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.damage-wealth-breaks-seal-001",
+          "effect": "rescue_invalidation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.officer.rescue-hurting-seal-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.rescue-hurting-seal-001",
+          "effect": "rescue",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule-candidate.officer.rescue-mixed-killing-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.rescue-mixed-killing-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_generic_useful_rescue_proposition",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.officer.rescue-branch-combination-001",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.rescue-branch-combination-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_same_relation_branch_binding",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.direct-officer.candidate-confirm",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.direct-officer.candidate-possible",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.officer.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.useful.rescue-officer-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "direct_officer",
+          "proposition_id": "zzq.prop.useful.rescue-officer-002",
+          "effect": "rescue",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        }
+      ],
+      "examples": [
+        {
+          "id": "zzq.example.officer.xue",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "name": "薛相公",
+          "pillars": [
+            "甲申",
+            "壬申",
+            "乙巳",
+            "戊寅"
+          ],
+          "author_claim": "壬印與戊財由乙隔開，水土不相礙，原文據此稱大貴。",
+          "classification": "historical_author_claim_not_rule_weight",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.officer.57",
+            "loc.gc.officer.58",
+            "loc.qin.officer.136",
+            "loc.qin.officer.137"
+          ]
+        },
+        {
+          "id": "zzq.example.officer.anonymous-lesser-rank",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "name": "匿名七品例",
+          "pillars": [
+            "壬戌",
+            "丁未",
+            "戊申",
+            "乙卯"
+          ],
+          "author_claim": "壬財與丁印相合，原文判為孤官無輔並稱不上七品。",
+          "classification": "historical_author_claim_not_rule_weight",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.officer.58",
+            "loc.qin.officer.137"
+          ]
+        },
+        {
+          "id": "zzq.example.officer.jin",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "name": "金狀元",
+          "pillars": [
+            "乙卯",
+            "丁亥",
+            "丁未",
+            "庚戌"
+          ],
+          "author_claim": "原文稱此例並用財印、無傷官而不雜煞。",
+          "classification": "historical_author_claim_not_rule_weight",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.officer.58",
+            "loc.qin.officer.137"
+          ]
+        },
+        {
+          "id": "zzq.example.officer.xuan",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "name": "宣參國",
+          "pillars": [
+            "己卯",
+            "辛未",
+            "壬寅",
+            "辛亥"
+          ],
+          "author_claim": "原文稱此例未中己官透干、支會木局而兩辛解傷，為遇傷佩印。",
+          "classification": "historical_author_claim_not_rule_weight",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.officer.58",
+            "loc.qin.officer.137"
+          ]
+        },
+        {
+          "id": "zzq.example.officer.li",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "name": "李參政",
+          "pillars": [
+            "庚寅",
+            "乙酉",
+            "甲子",
+            "戊辰"
+          ],
+          "author_claim": "原文稱乙合庚煞而留酉官，為雜煞取清。",
+          "classification": "historical_author_claim_not_rule_weight",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.officer.58",
+            "loc.qin.officer.137"
+          ]
+        },
+        {
+          "id": "zzq.example.officer.fan",
+          "chapter_id": "zzq.pattern.direct-officer",
+          "pattern_id": "direct_officer",
+          "name": "范太傅",
+          "pillars": [
+            "丁丑",
+            "壬寅",
+            "己巳",
+            "丙寅"
+          ],
+          "author_claim": "原文以丁合壬去財、丙制傷清官解釋此例的多作用救應。",
+          "classification": "historical_author_claim_not_rule_weight",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.officer.59",
+            "loc.qin.officer.137"
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "direct_resource",
+      "label": "direct_resource",
+      "candidate_count": 3,
+      "executable_count": 3,
+      "example_count": 0,
+      "rules": [
+        {
+          "id": "zzq.rule.direct-resource.candidate-confirm",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "direct_resource",
+          "proposition_id": "zzq.prop.resource.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.direct-resource.candidate-possible",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "direct_resource",
+          "proposition_id": "zzq.prop.resource.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.direct-resource.form-officer-resource",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "direct_resource",
+          "proposition_id": "zzq.prop.resource.form-officer-resource",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        }
+      ],
+      "examples": []
+    },
+    {
+      "pattern_id": "direct_wealth",
+      "label": "direct_wealth",
+      "candidate_count": 2,
+      "executable_count": 2,
+      "example_count": 0,
+      "rules": [
+        {
+          "id": "zzq.rule.direct-wealth.candidate-confirm",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "direct_wealth",
+          "proposition_id": "zzq.prop.wealth.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.direct-wealth.candidate-possible",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "direct_wealth",
+          "proposition_id": "zzq.prop.wealth.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        }
+      ],
+      "examples": []
+    },
+    {
+      "pattern_id": "eating_god",
+      "label": "食神格",
+      "candidate_count": 8,
+      "executable_count": 4,
+      "example_count": 1,
+      "rules": [
+        {
+          "id": "zzq.rule.eating-god.candidate-confirm",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "proposition_id": "zzq.prop.food.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.eating-god.candidate-possible",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "proposition_id": "zzq.prop.food.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule-candidate.food.form-output-wealth-rooted",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "proposition_id": "zzq.prop.food.form-output-wealth",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_root_binding_to_wealth_activation",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.food.form-abandon-follow-killing",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "proposition_id": "zzq.prop.food.form-abandon-follow-killing",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_split_source_alternatives_and_single_exposed_killing_binding",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.food.form-killing-resource-no-wealth",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "proposition_id": "zzq.prop.food.form-killing-resource-no-wealth",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.food.form-single-exposed-killing",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "proposition_id": "zzq.prop.food.form-single-exposed-killing",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.food.damage-owl",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "proposition_id": "zzq.prop.food.rescue-owl-wealth",
+          "effect": "damage",
+          "terminal_status": "example_only",
+          "semantic_status": "requires_complete_gengcun_damage_subject_witness",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.food.rescue-owl-wealth",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "proposition_id": "zzq.prop.food.rescue-owl-wealth",
+          "effect": "rescue",
+          "terminal_status": "example_only",
+          "semantic_status": "requires_complete_gengcun_damage_subject_witness",
+          "execution_ready": false
+        }
+      ],
+      "examples": [
+        {
+          "id": "zzq.example.food.liang",
+          "chapter_id": "zzq.pattern.eating-god",
+          "pattern_id": "eating_god",
+          "name": "梁丞相",
+          "pillars": [
+            "丁未",
+            "癸卯",
+            "癸亥",
+            "癸丑"
+          ],
+          "author_claim": "原文以此命例證食神生財。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.food.68",
+            "loc.gc.food.audit-f1"
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "hurting_officer",
+      "label": "伤官格",
+      "candidate_count": 6,
+      "executable_count": 3,
+      "example_count": 1,
+      "rules": [
+        {
+          "id": "zzq.rule.hurting-officer.candidate-confirm",
+          "chapter_id": "zzq.pattern.hurting-officer",
+          "pattern_id": "hurting_officer",
+          "proposition_id": "zzq.prop.hurting.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.hurting-officer.candidate-possible",
+          "chapter_id": "zzq.pattern.hurting-officer",
+          "pattern_id": "hurting_officer",
+          "proposition_id": "zzq.prop.hurting.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.hurting.form-wealth",
+          "chapter_id": "zzq.pattern.hurting-officer",
+          "pattern_id": "hurting_officer",
+          "proposition_id": "zzq.prop.hurting.form-wealth",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule-candidate.hurting.form-resource",
+          "chapter_id": "zzq.pattern.hurting-officer",
+          "pattern_id": "hurting_officer",
+          "proposition_id": "zzq.prop.hurting.form-resource",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_non_numeric_strength_semantics",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.hurting.form-killing-resource-no-wealth",
+          "chapter_id": "zzq.pattern.hurting-officer",
+          "pattern_id": "hurting_officer",
+          "proposition_id": "zzq.prop.hurting.form-killing-resource-no-wealth",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_hurting_many_body_weak_strength_semantics",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.hurting.form-metal-water-officer",
+          "chapter_id": "zzq.pattern.hurting-officer",
+          "pattern_id": "hurting_officer",
+          "proposition_id": "zzq.prop.hurting.form-metal-water-officer",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_same_exposed_officer_hurting_binding",
+          "execution_ready": false
+        }
+      ],
+      "examples": [
+        {
+          "id": "zzq.example.hurting.shi",
+          "chapter_id": "zzq.pattern.hurting-officer",
+          "pattern_id": "hurting_officer",
+          "name": "史春坊",
+          "pillars": [
+            "壬午",
+            "己酉",
+            "戊午",
+            "庚申"
+          ],
+          "author_claim": "原文以此命例證傷官生財。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.hurting.76-wealth-path"
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "indirect_resource",
+      "label": "indirect_resource",
+      "candidate_count": 3,
+      "executable_count": 3,
+      "example_count": 0,
+      "rules": [
+        {
+          "id": "zzq.rule.indirect-resource.candidate-confirm",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "indirect_resource",
+          "proposition_id": "zzq.prop.resource.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.indirect-resource.candidate-possible",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "indirect_resource",
+          "proposition_id": "zzq.prop.resource.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.indirect-resource.form-officer-resource",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "indirect_resource",
+          "proposition_id": "zzq.prop.resource.form-officer-resource",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        }
+      ],
+      "examples": []
+    },
+    {
+      "pattern_id": "indirect_wealth",
+      "label": "indirect_wealth",
+      "candidate_count": 2,
+      "executable_count": 2,
+      "example_count": 0,
+      "rules": [
+        {
+          "id": "zzq.rule.indirect-wealth.candidate-confirm",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "indirect_wealth",
+          "proposition_id": "zzq.prop.wealth.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.indirect-wealth.candidate-possible",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "indirect_wealth",
+          "proposition_id": "zzq.prop.wealth.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        }
+      ],
+      "examples": []
+    },
+    {
+      "pattern_id": "lifecycle",
+      "label": "用神成败救应",
+      "candidate_count": 62,
+      "executable_count": 0,
+      "example_count": 0,
+      "rules": [
+        {
+          "id": "zzq.rule-candidate.useful.form-officer-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-officer-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-wealth-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-wealth-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-wealth-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-wealth-002",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-wealth-003",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-wealth-003",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-seal-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-seal-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-seal-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-seal-002",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-seal-003",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-seal-003",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-seal-004",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-seal-004",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-food-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-food-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-food-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-food-002",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-food-003",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-food-003",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-kill-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-kill-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-hurting-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-hurting-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-hurting-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-hurting-002",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-hurting-003",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-hurting-003",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-hurting-004",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-hurting-004",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-blade-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-blade-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-lu-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-lu-001",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-lu-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-lu-002",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.form-lu-003",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.form-lu-003",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-officer-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-officer-001",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-wealth-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-wealth-001",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-wealth-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-wealth-002",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-seal-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-seal-001",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-seal-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-seal-002",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-food-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-food-001",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-food-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-food-002",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-kill-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-kill-001",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-hurting-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-hurting-001",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-hurting-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-hurting-002",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-hurting-003",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-hurting-003",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-blade-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-blade-001",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.fail-lu-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.fail-lu-001",
+          "effect": "failure",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-officer-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-officer-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-officer-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-officer-002",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-wealth-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-wealth-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-wealth-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-wealth-002",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-seal-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-seal-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-seal-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-seal-002",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-food-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-food-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-kill-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-kill-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-hurting-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-hurting-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-hurting-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-hurting-002",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-blade-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-blade-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-blade-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-blade-002",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-lu-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-lu-001",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.mix-lu-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.mix-lu-002",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_predicate_definitions",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-officer-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-officer-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-officer-003",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-officer-003",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-wealth-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-wealth-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-wealth-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-wealth-002",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-wealth-003",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-wealth-003",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-wealth-004",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-wealth-004",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-seal-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-seal-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-seal-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-seal-002",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-food-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-food-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-food-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-food-002",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-kill-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-kill-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-hurting-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-hurting-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-blade-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-blade-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-lu-001",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-lu-001",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.useful.rescue-lu-002",
+          "chapter_id": "zzq.useful-god.success-failure-rescue",
+          "pattern_id": "lifecycle",
+          "proposition_id": "zzq.prop.useful.rescue-lu-002",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_inference_resolution",
+          "execution_ready": false
+        }
+      ],
+      "examples": []
+    },
+    {
+      "pattern_id": "month_prosperity",
+      "label": "month_prosperity",
+      "candidate_count": 6,
+      "executable_count": 6,
+      "example_count": 0,
+      "rules": [
+        {
+          "id": "zzq.rule.month-prosperity.candidate-confirm",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_prosperity",
+          "proposition_id": "zzq.prop.lu-robbery.route-prosperity",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-prosperity.candidate-possible",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_prosperity",
+          "proposition_id": "zzq.prop.lu-robbery.route-prosperity",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-prosperity.form-officer-resource-support",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_prosperity",
+          "proposition_id": "zzq.prop.lu-robbery.form-officer-resource-support",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-prosperity.form-officer-wealth-support",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_prosperity",
+          "proposition_id": "zzq.prop.lu-robbery.form-officer-wealth-support",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-prosperity.form-wealth-output",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_prosperity",
+          "proposition_id": "zzq.prop.lu-robbery.form-wealth-output",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-prosperity.form-killing-control",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_prosperity",
+          "proposition_id": "zzq.prop.lu-robbery.form-killing-control",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        }
+      ],
+      "examples": []
+    },
+    {
+      "pattern_id": "month_robbery",
+      "label": "month_robbery",
+      "candidate_count": 6,
+      "executable_count": 6,
+      "example_count": 0,
+      "rules": [
+        {
+          "id": "zzq.rule.month-robbery.candidate-confirm",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_robbery",
+          "proposition_id": "zzq.prop.lu-robbery.route-robbery",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-robbery.candidate-possible",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_robbery",
+          "proposition_id": "zzq.prop.lu-robbery.route-robbery",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-robbery.form-officer-resource-support",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_robbery",
+          "proposition_id": "zzq.prop.lu-robbery.form-officer-resource-support",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-robbery.form-officer-wealth-support",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_robbery",
+          "proposition_id": "zzq.prop.lu-robbery.form-officer-wealth-support",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-robbery.form-wealth-output",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_robbery",
+          "proposition_id": "zzq.prop.lu-robbery.form-wealth-output",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.month-robbery.form-killing-control",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "month_robbery",
+          "proposition_id": "zzq.prop.lu-robbery.form-killing-control",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        }
+      ],
+      "examples": []
+    },
+    {
+      "pattern_id": "pattern_plates",
+      "label": "格局总表",
+      "candidate_count": 0,
+      "executable_count": 0,
+      "example_count": 93,
+      "rules": [],
+      "examples": [
+        {
+          "id": "zzq.attestation.appendix.p91.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "薛相公命",
+          "pillars": [
+            "甲申",
+            "壬申",
+            "乙巳",
+            "戊寅"
+          ],
+          "author_claim": "耕寸集命式附表將薛相公命甲申壬申乙巳戊寅列入正官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.91"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p91.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "金狀元命",
+          "pillars": [
+            "乙卯",
+            "丁亥",
+            "丁未",
+            "庚戌"
+          ],
+          "author_claim": "耕寸集命式附表將金狀元命乙卯丁亥丁未庚戌列入正官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.91"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p91.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "雜氣正官",
+          "pillars": [
+            "壬戌",
+            "丁未",
+            "戊申",
+            "乙卯"
+          ],
+          "author_claim": "耕寸集命式附表將雜氣正官壬戌丁未戊申乙卯列入正官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.91"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p91.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "宣參國命",
+          "pillars": [
+            "己卯",
+            "辛未",
+            "壬寅",
+            "辛亥"
+          ],
+          "author_claim": "耕寸集命式附表將宣參國命己卯辛未壬寅辛亥列入正官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.91"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p92.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "李參政命",
+          "pillars": [
+            "庚寅",
+            "乙酉",
+            "甲子",
+            "戊辰"
+          ],
+          "author_claim": "耕寸集命式附表將李參政命庚寅乙酉甲子戊辰列入正官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.92"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p92.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "范太傅命",
+          "pillars": [
+            "丁丑",
+            "壬寅",
+            "己巳",
+            "丙寅"
+          ],
+          "author_claim": "耕寸集命式附表將范太傅命丁丑壬寅己巳丙寅列入正官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.92"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p92.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "萬參政命",
+          "pillars": [
+            "壬申",
+            "壬子",
+            "戊午",
+            "乙卯"
+          ],
+          "author_claim": "耕寸集命式附表將萬參政命壬申壬子戊午乙卯列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.92"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p92.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "楊侍郎命",
+          "pillars": [
+            "壬寅",
+            "壬寅",
+            "庚辰",
+            "辛巳"
+          ],
+          "author_claim": "耕寸集命式附表將楊侍郎命壬寅壬寅庚辰辛巳列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.92"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p92.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "曾參政命",
+          "pillars": [
+            "乙未",
+            "甲申",
+            "丙申",
+            "庚寅"
+          ],
+          "author_claim": "耕寸集命式附表將曾參政命乙未甲申丙申庚寅列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.92"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p92.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "小富命",
+          "pillars": [
+            "乙未",
+            "己卯",
+            "庚寅",
+            "辛巳"
+          ],
+          "author_claim": "耕寸集命式附表將小富命乙未己卯庚寅辛巳列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.92"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p92.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "吳榜眼命",
+          "pillars": [
+            "庚戌",
+            "戊子",
+            "戊子",
+            "丙辰"
+          ],
+          "author_claim": "耕寸集命式附表將吳榜眼命庚戌戊子戊子丙辰列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.92"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p92.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "平江伯命",
+          "pillars": [
+            "壬辰",
+            "乙巳",
+            "癸巳",
+            "辛酉"
+          ],
+          "author_claim": "耕寸集命式附表將平江伯命壬辰乙巳癸巳辛酉列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.92"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p93.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "汪學士命",
+          "pillars": [
+            "甲子",
+            "辛未",
+            "辛酉",
+            "壬辰"
+          ],
+          "author_claim": "耕寸集命式附表將汪學士命甲子辛未辛酉壬辰列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.93"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p93.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "毛狀元命",
+          "pillars": [
+            "乙酉",
+            "庚辰",
+            "甲午",
+            "戊辰"
+          ],
+          "author_claim": "耕寸集命式附表將毛狀元命乙酉庚辰甲午戊辰列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.93"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p93.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "李御史命",
+          "pillars": [
+            "庚辰",
+            "戊子",
+            "戊寅",
+            "甲寅"
+          ],
+          "author_claim": "耕寸集命式附表將李御史命庚辰戊子戊寅甲寅列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.93"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p93.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "趙侍郎命",
+          "pillars": [
+            "乙丑",
+            "丁亥",
+            "己亥",
+            "乙亥"
+          ],
+          "author_claim": "耕寸集命式附表將趙侍郎命乙丑丁亥己亥乙亥列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.93"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p93.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "林尚書命",
+          "pillars": [
+            "丙寅",
+            "癸巳",
+            "癸未",
+            "壬戌"
+          ],
+          "author_claim": "耕寸集命式附表將林尚書命丙寅癸巳癸未壬戌列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.93"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p93.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "王太僕命",
+          "pillars": [
+            "丙辰",
+            "癸巳",
+            "壬戌",
+            "壬寅"
+          ],
+          "author_claim": "耕寸集命式附表將王太僕命丙辰癸巳壬戌壬寅列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.93"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p93.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "尚書命",
+          "pillars": [
+            "丙辰",
+            "丙申",
+            "丙午",
+            "壬辰"
+          ],
+          "author_claim": "耕寸集命式附表將尚書命丙辰丙申丙午壬辰列入財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.93"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p93.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "張參政命",
+          "pillars": [
+            "丙寅",
+            "戊戌",
+            "辛酉",
+            "戊子"
+          ],
+          "author_claim": "耕寸集命式附表將張參政命丙寅戊戌辛酉戊子列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.93"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p94.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "朱尚書命",
+          "pillars": [
+            "丙戌",
+            "戊戌",
+            "辛未",
+            "壬辰"
+          ],
+          "author_claim": "耕寸集命式附表將朱尚書命丙戌戊戌辛未壬辰列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.94"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p94.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "臨淮侯命",
+          "pillars": [
+            "乙亥",
+            "己卯",
+            "丁酉",
+            "壬寅"
+          ],
+          "author_claim": "耕寸集命式附表將臨淮侯命乙亥己卯丁酉壬寅列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.94"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p94.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "李狀元命",
+          "pillars": [
+            "戊戌",
+            "乙卯",
+            "丙午",
+            "己亥"
+          ],
+          "author_claim": "耕寸集命式附表將李狀元命戊戌乙卯丙午己亥列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.94"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p94.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "茅狀元命",
+          "pillars": [
+            "己巳",
+            "癸酉",
+            "癸未",
+            "庚申"
+          ],
+          "author_claim": "耕寸集命式附表將茅狀元命己巳癸酉癸未庚申列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.94"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p94.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "馬參政命",
+          "pillars": [
+            "壬寅",
+            "戊申",
+            "壬辰",
+            "壬寅"
+          ],
+          "author_claim": "耕寸集命式附表將馬參政命壬寅戊申壬辰壬寅列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.94"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p94.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "孫布政命",
+          "pillars": [
+            "乙丑",
+            "辛巳",
+            "己巳",
+            "庚午"
+          ],
+          "author_claim": "耕寸集命式附表將孫布政命乙丑辛巳己巳庚午列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.94"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p94.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "汪侍郎命",
+          "pillars": [
+            "辛酉",
+            "丙申",
+            "壬申",
+            "辛亥"
+          ],
+          "author_claim": "耕寸集命式附表將汪侍郎命辛酉丙申壬申辛亥列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.94"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p94.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "牛監簿命",
+          "pillars": [
+            "庚寅",
+            "乙酉",
+            "癸亥",
+            "丙辰"
+          ],
+          "author_claim": "耕寸集命式附表將牛監簿命庚寅乙酉癸亥丙辰列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.94"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p95.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "趙知府命",
+          "pillars": [
+            "丙午",
+            "庚寅",
+            "丙午",
+            "癸巳"
+          ],
+          "author_claim": "耕寸集命式附表將趙知府命丙午庚寅丙午癸巳列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.95"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p95.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "貴命",
+          "pillars": [
+            "壬子",
+            "癸卯",
+            "丙子",
+            "己亥"
+          ],
+          "author_claim": "耕寸集命式附表將貴命壬子癸卯丙子己亥列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.95"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p95.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "貴命",
+          "pillars": [
+            "庚戌",
+            "戊子",
+            "甲戌",
+            "乙亥"
+          ],
+          "author_claim": "耕寸集命式附表將貴命庚戌戊子甲戌乙亥列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.95"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p95.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "貴命",
+          "pillars": [
+            "辛亥",
+            "庚子",
+            "甲辰",
+            "乙亥"
+          ],
+          "author_claim": "耕寸集命式附表將貴命辛亥庚子甲辰乙亥列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.95"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p95.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "貴命",
+          "pillars": [
+            "己未",
+            "甲戌",
+            "辛未",
+            "癸巳"
+          ],
+          "author_claim": "耕寸集命式附表將貴命己未甲戌辛未癸巳列入印格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.95"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p95.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "謝閣老命",
+          "pillars": [
+            "己未",
+            "壬申",
+            "戊子",
+            "庚申"
+          ],
+          "author_claim": "耕寸集命式附表將謝閣老命己未壬申戊子庚申列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.95"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p95.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "梁丞相命",
+          "pillars": [
+            "丁未",
+            "癸卯",
+            "癸亥",
+            "癸丑"
+          ],
+          "author_claim": "耕寸集命式附表將梁丞相命丁未癸卯癸亥癸丑列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.95"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p95.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "沈路分命",
+          "pillars": [
+            "丁亥",
+            "癸卯",
+            "癸卯",
+            "甲寅"
+          ],
+          "author_claim": "耕寸集命式附表將沈路分命丁亥癸卯癸卯甲寅列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.95"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p96.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "龔知縣命",
+          "pillars": [
+            "甲午",
+            "丁卯",
+            "癸丑",
+            "丙辰"
+          ],
+          "author_claim": "耕寸集命式附表將龔知縣命甲午丁卯癸丑丙辰列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.96"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p96.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "黃都督命",
+          "pillars": [
+            "己未",
+            "己巳",
+            "甲寅",
+            "丙寅"
+          ],
+          "author_claim": "耕寸集命式附表將黃都督命己未己巳甲寅丙寅列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.96"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p96.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "常國公命",
+          "pillars": [
+            "辛卯",
+            "辛卯",
+            "癸酉",
+            "己未"
+          ],
+          "author_claim": "耕寸集命式附表將常國公命辛卯辛卯癸酉己未列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.96"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p96.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "吳會元命",
+          "pillars": [
+            "戊戌",
+            "壬戌",
+            "丙子",
+            "戊戌"
+          ],
+          "author_claim": "耕寸集命式附表將吳會元命戊戌壬戌丙子戊戌列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.96"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p96.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "舒尚書命",
+          "pillars": [
+            "丁亥",
+            "壬子",
+            "辛巳",
+            "丁酉"
+          ],
+          "author_claim": "耕寸集命式附表將舒尚書命丁亥壬子辛巳丁酉列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.96"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p96.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "錢參政命",
+          "pillars": [
+            "丙午",
+            "癸巳",
+            "甲子",
+            "丙寅"
+          ],
+          "author_claim": "耕寸集命式附表將錢參政命丙午癸巳甲子丙寅列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.96"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p96.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "劉提督命",
+          "pillars": [
+            "癸酉",
+            "辛酉",
+            "己卯",
+            "乙亥"
+          ],
+          "author_claim": "耕寸集命式附表將劉提督命癸酉辛酉己卯乙亥列入食神格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.96"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p96.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "極貴命",
+          "pillars": [
+            "乙亥",
+            "乙酉",
+            "乙卯",
+            "丁丑"
+          ],
+          "author_claim": "耕寸集命式附表將極貴命乙亥乙酉乙卯丁丑列入偏官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.96"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p97.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "脫脫丞相命",
+          "pillars": [
+            "壬辰",
+            "甲辰",
+            "丙戌",
+            "戊戌"
+          ],
+          "author_claim": "耕寸集命式附表將脫脫丞相命壬辰甲辰丙戌戊戌列入偏官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.97"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p97.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "何參政命",
+          "pillars": [
+            "丙寅",
+            "戊戌",
+            "壬戌",
+            "辛丑"
+          ],
+          "author_claim": "耕寸集命式附表將何參政命丙寅戊戌壬戌辛丑列入偏官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.97"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p97.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "周丞相命",
+          "pillars": [
+            "戊戌",
+            "甲子",
+            "丁未",
+            "庚戌"
+          ],
+          "author_claim": "耕寸集命式附表將周丞相命戊戌甲子丁未庚戌列入偏官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.97"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p97.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "劉運使命",
+          "pillars": [
+            "甲申",
+            "乙亥",
+            "丙戌",
+            "庚寅"
+          ],
+          "author_claim": "耕寸集命式附表將劉運使命甲申乙亥丙戌庚寅列入偏官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.97"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p97.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "岳統制命",
+          "pillars": [
+            "癸卯",
+            "丁巳",
+            "庚寅",
+            "庚辰"
+          ],
+          "author_claim": "耕寸集命式附表將岳統制命癸卯丁巳庚寅庚辰列入偏官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.97"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p97.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "沈郎中命",
+          "pillars": [
+            "丙子",
+            "甲午",
+            "辛亥",
+            "辛卯"
+          ],
+          "author_claim": "耕寸集命式附表將沈郎中命丙子甲午辛亥辛卯列入偏官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.97"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p97.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "趙員外命",
+          "pillars": [
+            "戊辰",
+            "甲寅",
+            "戊寅",
+            "戊午"
+          ],
+          "author_claim": "耕寸集命式附表將趙員外命戊辰甲寅戊寅戊午列入偏官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.97"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p97.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "史春坊命",
+          "pillars": [
+            "壬午",
+            "己酉",
+            "戊午",
+            "庚申"
+          ],
+          "author_claim": "耕寸集命式附表將史春坊命壬午己酉戊午庚申列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.97"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p98.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "羅狀元命",
+          "pillars": [
+            "甲子",
+            "乙亥",
+            "辛未",
+            "戊子"
+          ],
+          "author_claim": "耕寸集命式附表將羅狀元命甲子乙亥辛未戊子列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.98"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p98.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "秦龍圖命",
+          "pillars": [
+            "己卯",
+            "丁丑",
+            "丙寅",
+            "庚寅"
+          ],
+          "author_claim": "耕寸集命式附表將秦龍圖命己卯丁丑丙寅庚寅列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.98"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p98.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "孛羅平章命",
+          "pillars": [
+            "壬申",
+            "丙午",
+            "甲午",
+            "壬申"
+          ],
+          "author_claim": "耕寸集命式附表將孛羅平章命壬申丙午甲午壬申列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.98"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p98.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "都統制命",
+          "pillars": [
+            "丁酉",
+            "己酉",
+            "戊子",
+            "壬子"
+          ],
+          "author_claim": "耕寸集命式附表將都統制命丁酉己酉戊子壬子列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.98"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p98.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "丞相命",
+          "pillars": [
+            "壬戌",
+            "己酉",
+            "戊午",
+            "丁巳"
+          ],
+          "author_claim": "耕寸集命式附表將丞相命壬戌己酉戊午丁巳列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.98"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p98.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "蔡貴妃命",
+          "pillars": [
+            "己未",
+            "丙子",
+            "庚子",
+            "丙子"
+          ],
+          "author_claim": "耕寸集命式附表將蔡貴妃命己未丙子庚子丙子列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.98"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p98.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "夏閣老命",
+          "pillars": [
+            "壬寅",
+            "丁未",
+            "丙寅",
+            "壬辰"
+          ],
+          "author_claim": "耕寸集命式附表將夏閣老命壬寅丁未丙寅壬辰列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.98"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p98.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "丞相命",
+          "pillars": [
+            "戊申",
+            "甲子",
+            "庚午",
+            "丁丑"
+          ],
+          "author_claim": "耕寸集命式附表將丞相命戊申甲子庚午丁丑列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.98"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "賈平章命",
+          "pillars": [
+            "甲寅",
+            "庚午",
+            "戊申",
+            "甲寅"
+          ],
+          "author_claim": "耕寸集命式附表將賈平章命甲寅庚午戊申甲寅列入陽刃格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "鄭丞相命",
+          "pillars": [
+            "丙申",
+            "己亥",
+            "辛未",
+            "己亥"
+          ],
+          "author_claim": "耕寸集命式附表將鄭丞相命丙申己亥辛未己亥列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "章丞相命",
+          "pillars": [
+            "甲子",
+            "壬申",
+            "己亥",
+            "辛未"
+          ],
+          "author_claim": "耕寸集命式附表將章丞相命甲子壬申己亥辛未列入傷官格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "丞相命",
+          "pillars": [
+            "己酉",
+            "丙子",
+            "壬寅",
+            "丙午"
+          ],
+          "author_claim": "耕寸集命式附表將丞相命己酉丙子壬寅丙午列入陽刃格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "丞相命",
+          "pillars": [
+            "辛丑",
+            "甲午",
+            "丙申",
+            "壬辰"
+          ],
+          "author_claim": "耕寸集命式附表將丞相命辛丑甲午丙申壬辰列入陽刃格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "穆同知命",
+          "pillars": [
+            "甲午",
+            "癸酉",
+            "庚寅",
+            "戊寅"
+          ],
+          "author_claim": "耕寸集命式附表將穆同知命甲午癸酉庚寅戊寅列入陽刃格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "賈平章命",
+          "pillars": [
+            "丙戌",
+            "丁酉",
+            "庚申",
+            "壬午"
+          ],
+          "author_claim": "耕寸集命式附表將賈平章命丙戌丁酉庚申壬午列入陽刃格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "金丞相命",
+          "pillars": [
+            "庚戌",
+            "戊子",
+            "癸酉",
+            "癸亥"
+          ],
+          "author_claim": "耕寸集命式附表將金丞相命庚戌戊子癸酉癸亥列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p99.09",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "李知府命",
+          "pillars": [
+            "丁酉",
+            "丙午",
+            "丁巳",
+            "壬寅"
+          ],
+          "author_claim": "耕寸集命式附表將李知府命丁酉丙午丁巳壬寅列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.99"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p100.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "王少師命",
+          "pillars": [
+            "庚午",
+            "戊子",
+            "癸卯",
+            "丁巳"
+          ],
+          "author_claim": "耕寸集命式附表將王少師命庚午戊子癸卯丁巳列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.100"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p100.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "貴命",
+          "pillars": [
+            "己未",
+            "己巳",
+            "丁未",
+            "辛丑"
+          ],
+          "author_claim": "耕寸集命式附表將貴命己未己巳丁未辛丑列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.100"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p100.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "張都統命",
+          "pillars": [
+            "甲子",
+            "丙子",
+            "癸丑",
+            "壬辰"
+          ],
+          "author_claim": "耕寸集命式附表將張都統命甲子丙子癸丑壬辰列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.100"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p100.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "高尚書命",
+          "pillars": [
+            "庚子",
+            "甲申",
+            "庚子",
+            "甲申"
+          ],
+          "author_claim": "耕寸集命式附表將高尚書命庚子甲申庚子甲申列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.100"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p100.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "婁參政命",
+          "pillars": [
+            "丁巳",
+            "壬子",
+            "癸卯",
+            "己未"
+          ],
+          "author_claim": "耕寸集命式附表將婁參政命丁巳壬子癸卯己未列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.100"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p100.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "袁內閣命",
+          "pillars": [
+            "戊辰",
+            "癸亥",
+            "壬午",
+            "丙午"
+          ],
+          "author_claim": "耕寸集命式附表將袁內閣命戊辰癸亥壬午丙午列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.100"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p100.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "張狀元命",
+          "pillars": [
+            "甲子",
+            "丙寅",
+            "甲子",
+            "丙寅"
+          ],
+          "author_claim": "耕寸集命式附表將張狀元命甲子丙寅甲子丙寅列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.100"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p100.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "貴命",
+          "pillars": [
+            "癸卯",
+            "庚申",
+            "庚子",
+            "庚辰"
+          ],
+          "author_claim": "耕寸集命式附表將貴命癸卯庚申庚子庚辰列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.100"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p101.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "茹平章命",
+          "pillars": [
+            "辛丑",
+            "庚寅",
+            "甲辰",
+            "乙亥"
+          ],
+          "author_claim": "耕寸集命式附表將茹平章命辛丑庚寅甲辰乙亥列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.101"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p101.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "貴命",
+          "pillars": [
+            "辛亥",
+            "庚寅",
+            "甲申",
+            "丙寅"
+          ],
+          "author_claim": "耕寸集命式附表將貴命辛亥庚寅甲申丙寅列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.101"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p101.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "王總兵命",
+          "pillars": [
+            "己酉",
+            "乙亥",
+            "壬戌",
+            "庚子"
+          ],
+          "author_claim": "耕寸集命式附表將王總兵命己酉乙亥壬戌庚子列入祿劫格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.101"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p101.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "吳相公命",
+          "pillars": [
+            "癸亥",
+            "乙卯",
+            "乙未",
+            "壬午"
+          ],
+          "author_claim": "耕寸集命式附表將吳相公命癸亥乙卯乙未壬午列入一方秀氣格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.101"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p101.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "一品命",
+          "pillars": [
+            "甲戌",
+            "丁卯",
+            "壬寅",
+            "甲辰"
+          ],
+          "author_claim": "耕寸集命式附表將一品命甲戌丁卯壬寅甲辰列入從化格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.101"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p101.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "倒沖格",
+          "pillars": [
+            "戊午",
+            "戊午",
+            "戊午",
+            "戊午"
+          ],
+          "author_claim": "耕寸集命式附表將倒沖格戊午戊午戊午戊午列入倒沖格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.101"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p101.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "倒沖格",
+          "pillars": [
+            "甲寅",
+            "庚午",
+            "丙午",
+            "甲午"
+          ],
+          "author_claim": "耕寸集命式附表將倒沖格甲寅庚午丙午甲午列入倒沖格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.101"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p101.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "張知縣命",
+          "pillars": [
+            "戊辰",
+            "辛酉",
+            "辛酉",
+            "戊子"
+          ],
+          "author_claim": "耕寸集命式附表將張知縣命戊辰辛酉辛酉戊子列入朝陽格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.101"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p102.01",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "蜀王命",
+          "pillars": [
+            "己未",
+            "戊辰",
+            "戊辰",
+            "庚申"
+          ],
+          "author_claim": "耕寸集命式附表將蜀王命己未戊辰戊辰庚申列入合祿格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.102"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p102.02",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "王十萬命",
+          "pillars": [
+            "庚申",
+            "乙酉",
+            "丙申",
+            "己丑"
+          ],
+          "author_claim": "耕寸集命式附表將王十萬命庚申乙酉丙申己丑列入棄命從財格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.102"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p102.03",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "趙丞相命",
+          "pillars": [
+            "乙酉",
+            "癸未",
+            "癸未",
+            "庚申"
+          ],
+          "author_claim": "耕寸集命式附表將趙丞相命乙酉癸未癸未庚申列入合祿格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.102"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p102.04",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "李侍郎命",
+          "pillars": [
+            "乙酉",
+            "乙酉",
+            "乙酉",
+            "甲申"
+          ],
+          "author_claim": "耕寸集命式附表將李侍郎命乙酉乙酉乙酉甲申列入棄命從煞格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.102"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p102.05",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "郭統制命",
+          "pillars": [
+            "戊子",
+            "庚申",
+            "庚申",
+            "庚辰"
+          ],
+          "author_claim": "耕寸集命式附表將郭統制命戊子庚申庚申庚辰列入井欄格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.102"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p102.06",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "章統制命",
+          "pillars": [
+            "辛丑",
+            "辛丑",
+            "辛丑",
+            "庚寅"
+          ],
+          "author_claim": "耕寸集命式附表將章統制命辛丑辛丑辛丑庚寅列入遙合格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.102"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p102.07",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "節度使命",
+          "pillars": [
+            "乙未",
+            "癸卯",
+            "癸卯",
+            "甲寅"
+          ],
+          "author_claim": "耕寸集命式附表將節度使命乙未癸卯癸卯甲寅列入刑合格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.102"
+          ]
+        },
+        {
+          "id": "zzq.attestation.appendix.p102.08",
+          "chapter_id": "zzq.appendix.pattern-plates",
+          "pattern_id": "pattern_plates",
+          "name": "羅御史命",
+          "pillars": [
+            "甲申",
+            "甲戌",
+            "甲子",
+            "甲子"
+          ],
+          "author_claim": "耕寸集命式附表將羅御史命甲申甲戌甲子甲子列入遙合格。",
+          "classification": "appendix_chart_plate_attestation_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.appendix.102"
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "prosperity_robbery",
+      "label": "建禄月劫",
+      "candidate_count": 1,
+      "executable_count": 0,
+      "example_count": 2,
+      "rules": [
+        {
+          "id": "zzq.rule-candidate.lu-robbery.rescue-mixture-clear",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "prosperity_robbery",
+          "proposition_id": "zzq.prop.lu-robbery.rescue-mixture-clear",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_same_officer_killing_clearance_binding",
+          "execution_ready": false
+        }
+      ],
+      "examples": [
+        {
+          "id": "zzq.example.lu-robbery.zhang",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "prosperity_robbery",
+          "name": "張都統",
+          "pillars": [
+            "甲子",
+            "丙子",
+            "癸丑",
+            "壬辰"
+          ],
+          "author_claim": "原文以此命例證祿劫用財須帶傷食。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.lu-robbery.82-heading"
+          ]
+        },
+        {
+          "id": "zzq.example.lu-robbery.yuan-l7",
+          "chapter_id": "zzq.pattern.prosperity-robbery",
+          "pattern_id": "prosperity_robbery",
+          "name": "袁內閣",
+          "pillars": [
+            "己巳",
+            "癸亥",
+            "壬午",
+            "丙午"
+          ],
+          "author_claim": "原文以此命例證祿劫用煞帶財而合煞存財。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.lu-robbery.audit-l7"
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "resource",
+      "label": "印格",
+      "candidate_count": 2,
+      "executable_count": 0,
+      "example_count": 2,
+      "rules": [
+        {
+          "id": "zzq.rule-candidate.resource.form-output-release",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "resource",
+          "proposition_id": "zzq.prop.resource.form-output-release",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_non_numeric_strength_semantics",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.resource.form-rooted-wealth-regulation",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "resource",
+          "proposition_id": "zzq.prop.resource.form-rooted-wealth-regulation",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_light_heavy_and_no_deep_root_semantics",
+          "execution_ready": false
+        }
+      ],
+      "examples": [
+        {
+          "id": "zzq.example.resource.zhang",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "resource",
+          "name": "張參政",
+          "pillars": [
+            "丙寅",
+            "戊戌",
+            "辛酉",
+            "戊子"
+          ],
+          "author_claim": "原文以此命例證印格透官。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.resource.64-opening",
+            "loc.gc.resource.audit-r2"
+          ]
+        },
+        {
+          "id": "zzq.example.resource.li-zhuangyuan-r3",
+          "chapter_id": "zzq.pattern.resource",
+          "pattern_id": "resource",
+          "name": "李狀元",
+          "pillars": [
+            "戊戌",
+            "乙卯",
+            "丙午",
+            "乙亥"
+          ],
+          "author_claim": "原文以此命例證印格用傷食，身強印旺而洩秀。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.resource.audit-r3"
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "seven_killings",
+      "label": "七杀格",
+      "candidate_count": 6,
+      "executable_count": 3,
+      "example_count": 1,
+      "rules": [
+        {
+          "id": "zzq.rule.seven-killings.candidate-confirm",
+          "chapter_id": "zzq.pattern.seven-killings",
+          "pattern_id": "seven_killings",
+          "proposition_id": "zzq.prop.kill.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.seven-killings.candidate-possible",
+          "chapter_id": "zzq.pattern.seven-killings",
+          "pattern_id": "seven_killings",
+          "proposition_id": "zzq.prop.kill.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule-candidate.kill.form-output-control",
+          "chapter_id": "zzq.pattern.seven-killings",
+          "pattern_id": "seven_killings",
+          "proposition_id": "zzq.prop.kill.form-output-control",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_non_numeric_strength_semantics",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.kill.form-blade-no-output",
+          "chapter_id": "zzq.pattern.seven-killings",
+          "pattern_id": "seven_killings",
+          "proposition_id": "zzq.prop.kill.form-blade-no-output",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule-candidate.kill.damage-output-control-interference",
+          "chapter_id": "zzq.pattern.seven-killings",
+          "pattern_id": "seven_killings",
+          "proposition_id": "zzq.prop.kill.damage-output-control-interference",
+          "effect": "damage",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_executable_output_control_path",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.kill.rescue-mixture-clear",
+          "chapter_id": "zzq.pattern.seven-killings",
+          "pattern_id": "seven_killings",
+          "proposition_id": "zzq.prop.kill.rescue-mixture-clear",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_same_member_clearance_binding",
+          "execution_ready": false
+        }
+      ],
+      "examples": [
+        {
+          "id": "zzq.example.kill.zhao",
+          "chapter_id": "zzq.pattern.seven-killings",
+          "pattern_id": "seven_killings",
+          "name": "趙員外",
+          "pillars": [
+            "戊辰",
+            "甲寅",
+            "戊寅",
+            "戊午"
+          ],
+          "author_claim": "原文以此命例證七煞無食制而用刃承當。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.kill.73-blade-path"
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "special_gate",
+      "label": "特别格",
+      "candidate_count": 4,
+      "executable_count": 0,
+      "example_count": 0,
+      "rules": [
+        {
+          "id": "zzq.rule-candidate.special.gate-ordinary-use",
+          "chapter_id": "zzq.pattern.special-gate",
+          "pattern_id": "special_gate",
+          "proposition_id": "zzq.prop.special.gate-ordinary-use",
+          "effect": "special_candidate_rejected",
+          "terminal_status": "contextual",
+          "semantic_status": "requires_special_review_candidate_contract",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.special.gate-officer-killing",
+          "chapter_id": "zzq.pattern.special-gate",
+          "pattern_id": "special_gate",
+          "proposition_id": "zzq.prop.special.gate-officer-killing",
+          "effect": "ordinary_route_precedence",
+          "terminal_status": "contextual",
+          "semantic_status": "requires_special_review_candidate_contract",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.special.gate-rooted-wealth",
+          "chapter_id": "zzq.pattern.special-gate",
+          "pattern_id": "special_gate",
+          "proposition_id": "zzq.prop.special.gate-rooted-wealth",
+          "effect": "ordinary_route_precedence",
+          "terminal_status": "contextual",
+          "semantic_status": "requires_rooted_wealth_binding_and_special_review_contract",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.special.gate-double-wealth",
+          "chapter_id": "zzq.pattern.special-gate",
+          "pattern_id": "special_gate",
+          "proposition_id": "zzq.prop.special.gate-double-wealth",
+          "effect": "ordinary_route_precedence",
+          "terminal_status": "contextual",
+          "semantic_status": "requires_special_review_candidate_contract",
+          "execution_ready": false
+        }
+      ],
+      "examples": []
+    },
+    {
+      "pattern_id": "wealth",
+      "label": "财格",
+      "candidate_count": 5,
+      "executable_count": 0,
+      "example_count": 1,
+      "rules": [
+        {
+          "id": "zzq.rule-candidate.wealth.form-officer",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "wealth",
+          "proposition_id": "zzq.prop.wealth.form-officer",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_body_and_wealth_strength_semantics",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.wealth.form-output",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "wealth",
+          "proposition_id": "zzq.prop.wealth.form-output",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_body_strength_semantics",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.direct-wealth.form-position-safe-resource",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "wealth",
+          "proposition_id": "zzq.prop.wealth.form-position-safe-resource",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_adjudicated_position_safety_semantics_not_global_no_control",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule.indirect-wealth.form-position-safe-resource",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "wealth",
+          "proposition_id": "zzq.prop.wealth.form-position-safe-resource",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_adjudicated_position_safety_semantics_not_global_no_control",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.wealth.rescue-killing-clear",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "wealth",
+          "proposition_id": "zzq.prop.wealth.rescue-killing-clear",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_same_killing_damage_binding",
+          "execution_ready": false
+        }
+      ],
+      "examples": [
+        {
+          "id": "zzq.example.wealth.yang",
+          "chapter_id": "zzq.pattern.wealth",
+          "pattern_id": "wealth",
+          "name": "楊侍郎",
+          "pillars": [
+            "壬寅",
+            "壬寅",
+            "庚辰",
+            "辛巳"
+          ],
+          "author_claim": "原文以此命例證財用食生並略帶一位比肩。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.wealth.61-officer-path",
+            "loc.gc.wealth.audit-w4"
+          ]
+        }
+      ]
+    },
+    {
+      "pattern_id": "yang_blade",
+      "label": "阳刃格",
+      "candidate_count": 7,
+      "executable_count": 3,
+      "example_count": 1,
+      "rules": [
+        {
+          "id": "zzq.rule.yang-blade.candidate-confirm",
+          "chapter_id": "zzq.pattern.yang-blade",
+          "pattern_id": "yang_blade",
+          "proposition_id": "zzq.prop.blade.route",
+          "effect": "candidate_confirm",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.yang-blade.candidate-possible",
+          "chapter_id": "zzq.pattern.yang-blade",
+          "pattern_id": "yang_blade",
+          "proposition_id": "zzq.prop.blade.route",
+          "effect": "candidate_possible",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule.blade.form-officer-killing-support",
+          "chapter_id": "zzq.pattern.yang-blade",
+          "pattern_id": "yang_blade",
+          "proposition_id": "zzq.prop.blade.form-officer-killing-support",
+          "effect": "formation",
+          "terminal_status": "executable",
+          "semantic_status": "resolved",
+          "execution_ready": true
+        },
+        {
+          "id": "zzq.rule-candidate.blade.rescue-output-resource",
+          "chapter_id": "zzq.pattern.yang-blade",
+          "pattern_id": "yang_blade",
+          "proposition_id": "zzq.prop.blade.rescue-output-resource",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_formation_path_that_allows_output_damage",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.blade.rescue-heavy-killing-reduction",
+          "chapter_id": "zzq.pattern.yang-blade",
+          "pattern_id": "yang_blade",
+          "proposition_id": "zzq.prop.blade.rescue-heavy-killing-reduction",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_killing_strength_and_bound_damage_semantics",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.blade.rescue-clearance",
+          "chapter_id": "zzq.pattern.yang-blade",
+          "pattern_id": "yang_blade",
+          "proposition_id": "zzq.prop.blade.rescue-clearance",
+          "effect": "rescue",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_strength_and_same_member_clearance_binding",
+          "execution_ready": false
+        },
+        {
+          "id": "zzq.rule-candidate.blade.form-rooted-wealth-output",
+          "chapter_id": "zzq.pattern.yang-blade",
+          "pattern_id": "yang_blade",
+          "proposition_id": "zzq.prop.blade.form-rooted-wealth-output",
+          "effect": "formation",
+          "terminal_status": "deferred",
+          "semantic_status": "requires_root_binding_to_wealth_activation",
+          "execution_ready": false
+        }
+      ],
+      "examples": [
+        {
+          "id": "zzq.example.blade.mu",
+          "chapter_id": "zzq.pattern.yang-blade",
+          "pattern_id": "yang_blade",
+          "name": "穆同知",
+          "pillars": [
+            "甲午",
+            "癸酉",
+            "庚寅",
+            "戊寅"
+          ],
+          "author_claim": "原文以此命例證官煞制刃帶傷食而由印護。",
+          "classification": "historical_author_claim_not_generic_rule",
+          "review_state": "scan_verified",
+          "locator_ids": [
+            "loc.gc.blade.80-output-alternatives"
+          ]
+        }
+      ]
+    }
+  ]
+}

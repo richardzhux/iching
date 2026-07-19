@@ -102,7 +102,10 @@ def test_metaphysics_period_endpoint_returns_typed_activity_cycle() -> None:
         for activation in items
     ]
     assert activations
-    assert all(activation["role"] == "activity" for activation in activations)
+    assert all(
+        activation["role"] in {"activity", "support", "conflict", "neutral"}
+        for activation in activations
+    )
     assert all(activation["activity"] >= 0 for activation in activations)
 
 
@@ -143,6 +146,17 @@ def test_pattern_rule_endpoint_rejects_unknown_bundle_and_rule() -> None:
         ).status_code
         == 404
     )
+
+
+def test_pattern_library_endpoint_returns_compact_research_projection() -> None:
+    response = client.get("/api/tools/metaphysics/pattern-library/direct_officer")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["pattern_id"] == "direct_officer"
+    assert data["candidate_count"] >= data["executable_count"] > 0
+    assert data["examples"]
+    assert "predicate" not in response.text
+    assert "full_trace" not in response.text
 
 
 def test_metaphysics_chart_survives_statistics_version_failure(monkeypatch) -> None:
