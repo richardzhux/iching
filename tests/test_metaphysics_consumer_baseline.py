@@ -93,7 +93,7 @@ def test_consumer_profile_keeps_empirical_scores_internal() -> None:
         subject for subject in profile["subjects"] if subject["key"] == "wealth"
     )
     assert wealth["path_label"] == "潜藏兑现型"
-    assert "不等于贫穷" in wealth["path_summary"]
+    assert wealth["path_summary"] == "财星主要藏于地支，资源更偏长期积累与阶段兑现。"
     assert not hasattr(consumer_module, "score_bazi_consumer_themes")
 
 

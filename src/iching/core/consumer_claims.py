@@ -661,7 +661,7 @@ def _theme_path(
             return (
                 "hidden_accumulation",
                 "潜藏兑现型",
-                "财星主要藏于地支，资源更偏长期积累与阶段兑现；这不等于贫穷或没有财富。",
+                "财星主要藏于地支，资源更偏长期积累与阶段兑现。",
             )
         return (
             "capability_conversion",

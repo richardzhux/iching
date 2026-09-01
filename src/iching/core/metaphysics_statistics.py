@@ -1126,7 +1126,7 @@ def lookup_statistics(
         "baseline": _baseline_public(baseline),
         "rarity_metrics": metrics,
         "theme_profile": [],
-        "disclaimer": "此处为指定规则、配置与历法范围内的边际出现频率，并非真实人口比例、联合命盘概率，也不代表吉凶或命运确定性。",
+        "disclaimer": "出现率采用指定规则、排盘配置与历法范围内的历法样本计算。",
     }
     if chart_type == "ziwei" and isinstance(baseline.get("consumer_baseline"), dict):
         # Compact histograms only: no birth dates, raw charts, names, or sample

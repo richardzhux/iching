@@ -1356,7 +1356,7 @@ function ziweiSubjectPath(context: ChartContext, key: ZiweiThemeKey): Pick<Ziwei
   }
   if (key === "wealth") {
     if (hasAny("wuqu", "tianfu", "taiyin")) return locale === "zh"
-      ? { headline, path_label: "经营配置型", path_summary: "资源更适合通过配置、积累与长期经营逐步放大，而不是被理解成一次性的高低成绩。" }
+      ? { headline, path_label: "经营配置型", path_summary: "资源通过配置、积累与长期经营逐步放大。" }
       : { headline, path_label: "Resource allocation", path_summary: "Resources are better amplified through allocation, compounding, and stewardship than read as a one-time grade." }
     if (hasAny("tanlang", "pojun")) return locale === "zh"
       ? { headline, path_label: "机会流动型", path_summary: "财富主题更容易随机会、人群与阶段变化流动，关键在识别窗口并留下成果。" }
@@ -1383,7 +1383,7 @@ function ziweiSubjectPath(context: ChartContext, key: ZiweiThemeKey): Pick<Ziwei
     ? { headline, path_label: "张弛调节型", path_summary: "盘面张力较容易集中到节奏与恢复上，适合主动安排停顿、切换与日常秩序。" }
     : { headline, path_label: "Active regulation", path_summary: "Chart tension can gather around rhythm and recovery, making deliberate pauses and routines especially useful." }
   return locale === "zh"
-    ? { headline, path_label: "节奏续航型", path_summary: "这一栏描述传统盘面里的节奏与恢复方式，不把星曜结构当作健康成绩。" }
+    ? { headline, path_label: "节奏续航型", path_summary: "规律与恢复空间会让你的状态保持长期稳定。" }
     : { headline, path_label: "Sustainable rhythm", path_summary: "This describes rhythm and recovery in the chart rather than grading real-world health." }
 }
 

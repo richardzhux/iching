@@ -158,8 +158,8 @@ export function describeConsumerSubject(subject: ConsumerSubjectScore, locale: C
     const visible = includesAny(headline, ["明干", "明透", "透干", "visible"])
     if (hidden && !visible) {
       return locale === "zh"
-        ? { label: "财富路径", title: "潜藏兑现型", description: "资源更常藏在能力、关系与长期积累里，等待合适阶段兑现；深藏不代表贫乏。" }
-        : { label: "Wealth path", title: "Quiet compounding", description: "Resources tend to build through skill, relationships, and time before becoming visible; hidden does not mean lacking." }
+        ? { label: "财富路径", title: "潜藏兑现型", description: "资源更常藏在能力、关系与长期积累里，等待合适阶段集中兑现。" }
+        : { label: "Wealth path", title: "Quiet compounding", description: "Resources build through skill, relationships, and time, then surface at the right stage." }
     }
     if (includesAny(headline, ["比劫", "peer"])) {
       return locale === "zh"
@@ -172,8 +172,8 @@ export function describeConsumerSubject(subject: ConsumerSubjectScore, locale: C
         : { label: "Wealth path", title: "Visible builder", description: "Your resource orientation is easier to see and grows through clear goals, stewardship, and tangible results." }
     }
     return locale === "zh"
-      ? { label: "财富路径", title: "长期积累型", description: "财富更适合被理解为积累方式与兑现节奏，而不是一张命盘里的高低成绩。" }
-      : { label: "Wealth path", title: "Long-term compounding", description: "This describes how resources accumulate and surface, not a grade for wealth." }
+      ? { label: "财富路径", title: "长期积累型", description: "你的财富路径重在长期积累、持续经营与把握兑现节奏。" }
+      : { label: "Wealth path", title: "Long-term compounding", description: "Your wealth path grows through patient accumulation, active stewardship, and well-timed realization." }
   }
 
   if (key === "relationship" || key === "relationships" || includesAny(subject.label, ["感情", "关系", "relationship", "love"])) {
@@ -199,11 +199,11 @@ export function describeConsumerSubject(subject: ConsumerSubjectScore, locale: C
         : { label: "Mind-body rhythm", title: "Active regulation", description: "Concentrated and interacting signals make rhythm, recovery, and steady routines especially valuable." }
     }
     return locale === "zh"
-      ? { label: "身心节奏", title: "稳定续航型", description: "这一栏描述传统五行中的节奏与恢复方式，不把命盘结构当作健康成绩。" }
-      : { label: "Mind-body rhythm", title: "Steady endurance", description: "This describes rhythm and recovery in the chart rather than grading real-world health." }
+      ? { label: "身心节奏", title: "稳定续航型", description: "稳定日常与清晰的恢复节奏，能让你保持更长久的续航。" }
+      : { label: "Mind-body rhythm", title: "Steady endurance", description: "Stable routines and a clear recovery rhythm help you sustain your energy over time." }
   }
 
-  return { label: subject.label, title: headline, description: locale === "zh" ? "这是一种命盘表达路径，不代表人生优劣。" : "This is a chart expression path, not a grade for a life." }
+  return { label: subject.label, title: headline, description: locale === "zh" ? "这条路径显示你的命盘力量会怎样进入现实生活。" : "This path shows how your chart's energy enters real life." }
 }
 
 function ComparisonEntry({ action }: { action: ConsumerComparisonAction }) {
@@ -293,7 +293,6 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
               </li>
             ))}
           </ol>
-          <p className="mt-4 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "少见程度只说明结构辨识度，不代表吉凶或人生高低。" : "Rarity describes distinctiveness, not fortune or the quality of a life."}</p>
           {comparisonAction ? <div data-export-exclude className="mt-6"><ComparisonEntry action={comparisonAction} /></div> : null}
         </section>
       </div>

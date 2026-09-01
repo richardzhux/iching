@@ -487,7 +487,7 @@ def _theme_profiles(
             if hidden_wealth:
                 add("财星藏根", "背景", "财星见于藏干", "、".join(hidden_wealth), "日主中心十神关系")
             if any(god in all_gods for god in ("食神", "伤官")) and any(god in all_gods for god in ("正财", "偏财")):
-                add("食伤财星", "支持", "食伤与财星同见", "原局同时出现食伤与财星；这是结构共现，不代表财富多少。", "十神生克关系")
+                add("食伤财星", "支持", "食伤与财星同见", "原局食伤与财星同见，价值创造与资源兑现相互衔接。", "十神生克关系")
             _add_god_evidence(add, all_gods, visible_gods, {"比肩", "劫财"}, "比劫", "财富")
             if relation_topics[theme]:
                 add("干支关系", "活动", "财富相关关系", f"{relation_topics[theme]} 条关系涉及财星、比劫或食伤。", "结构化干支关系")
