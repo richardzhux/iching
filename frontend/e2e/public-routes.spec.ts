@@ -459,7 +459,7 @@ test("divination desk does not regress to the stale loading-only state", async (
   await page.goto("/en/app")
   await expect(page.locator("body")).not.toContainText("Loading workspace configuration...")
   await expect(
-    page.getByText(/What are you actually deciding|The divination desk could not load|Preparing the divination desk/i).first(),
+    page.getByText(/Ask one clear question and choose how to cast|The divination desk could not load|Preparing the divination desk/i).first(),
   ).toBeVisible()
   if (await page.locator(".oracle-mark").isVisible()) {
     await expect(page.locator(".oracle-mark")).toContainText("🔮")
@@ -470,15 +470,17 @@ test("mobile divination desk exposes question coaching and casting controls", as
   test.skip(!isMobile, "mobile-only smoke")
   await page.goto("/en/app")
   await expect(
-    page.getByText(/What are you actually deciding|你现在真正要判断什么|The divination desk could not load|占卜台暂时无法加载/i).first(),
+    page.getByText(/Ask one clear question and choose how to cast|请提出一个清晰的问题并选择起卦方式|The divination desk could not load|占卜台暂时无法加载|Preparing the divination desk|正在准备占卜台/i).first(),
   ).toBeVisible()
   const question = page.getByRole("textbox", { name: /question|specific question|具体问题/i }).first()
+  const unavailable = page.getByText(/The divination desk could not load|占卜台暂时无法加载/i).first()
+  await expect(question.or(unavailable)).toBeVisible({ timeout: 15_000 })
   if (await question.isVisible()) {
     await question.fill("Will I get the job?")
     await expect(page.getByText(/Better as an inquiry question|更适合作为探索式问题/)).toBeVisible()
     await expect(page.getByRole("button", { name: /Toss one coin line|掷一爻铜钱/i })).toBeVisible()
   } else {
-    await expect(page.getByText(/The divination desk could not load|占卜台暂时无法加载/i)).toBeVisible()
+    await expect(unavailable).toBeVisible()
   }
 })
 

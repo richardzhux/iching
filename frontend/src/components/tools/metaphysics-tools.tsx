@@ -323,7 +323,7 @@ export function MetaphysicsTools() {
   const displayZiweiConsumer = useMemo(() => {
     if (!ziweiResult) return null
     const baziArchetype = birthResult?.chart.consumer?.identity.archetype_title ?? birthResult?.chart.consumer?.identity.archetype_id
-    if (!baziArchetype) return ziweiResult.consumer
+    if (!baziArchetype || locale === "en") return ziweiResult.consumer
     return {
       ...ziweiResult.consumer,
       identity: {
@@ -331,7 +331,7 @@ export function MetaphysicsTools() {
         fusion_title: resolveZiweiBaziFusionTitle(ziweiResult.consumer.metadata.archetype_id, baziArchetype),
       },
     }
-  }, [birthResult, ziweiResult])
+  }, [birthResult, locale, ziweiResult])
   const displayBirthChart = useMemo(() => {
     const chart = birthResult?.chart
     const consumer = chart?.consumer
@@ -417,8 +417,8 @@ export function MetaphysicsTools() {
     male: "男",
     female: "女",
     loadingCurrent: "正在读取当前时令…",
-    loadingResult: "正在生成命盘…",
-    loadingZiwei: "正在生成紫微星盘…",
+    loadingResult: "正在计算命盘与解读…",
+    loadingZiwei: "正在构建紫微命盘…",
     invalidHoroscopeDate: "请输入 1900-01-31 至 2100-12-31 之间的有效运限日期。",
     ziweiBasicSettings: "紫微基础信息",
     ziweiProfessionalSettings: "紫微专业设置",
@@ -479,8 +479,8 @@ export function MetaphysicsTools() {
     male: "Male",
     female: "Female",
     loadingCurrent: "Loading current calendar…",
-    loadingResult: "Generating chart…",
-    loadingZiwei: "Generating Zi Wei chart…",
+    loadingResult: "Calculating chart and interpretation…",
+    loadingZiwei: "Constructing Zi Wei chart…",
     invalidHoroscopeDate: "Enter a valid horoscope date from 1900-01-31 through 2100-12-31.",
     ziweiBasicSettings: "Zi Wei basic details",
     ziweiProfessionalSettings: "Zi Wei professional settings",
@@ -1145,6 +1145,7 @@ export function MetaphysicsTools() {
       setZiweiEditorOpen(false)
       persistZiweiWorkspace(normalizedInput, generatedAt, subjectName)
       requestZiweiStatistics(statisticsChart, generatedAt)
+      setZiweiLoading(false)
       await ziweiPeriodSaveQueueRef.current
       const saved = await persistGeneratedChart({
         id: activeZiweiChartId,

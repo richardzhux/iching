@@ -922,8 +922,8 @@ def test_p1_ziwei_controls_keep_basic_inputs_visible_and_name_every_control():
     )
     assert "通行法 · 天盘 · 立春年界及运限年界 · 晚子时换日 · 闰月修正开启" not in tools
     assert 'role="status"' in tools
-    assert "正在生成紫微星盘" in tools
-    assert "Generating Zi Wei chart" in tools
+    assert "正在构建紫微命盘" in tools
+    assert "Constructing Zi Wei chart" in tools
 
 
 def test_p1_ziwei_chart_is_interactive_readable_and_period_aware():
@@ -1547,16 +1547,14 @@ def test_task8_bazi_consumer_os_exposes_one_clear_identity_and_share_contract():
         "hero_tags",
     ):
         assert field in identity
-    for field in ("comparison_label", "next_activation", "month_preview"):
+    for field in ("comparison_label", "cause", "current_effect", "next_activation"):
         assert field in identity
-    assert "overflow-x-auto" in identity, (
-        "the twelve-month preview should scroll inside its own region"
-    )
+    assert "MonthPreview" not in identity
     for quality_label in ("高光窗口", "调整窗口", "同值约"):
         assert quality_label not in f"{identity}\n{chart}"
     for activity_label in ("活跃增强", "活跃减弱", "接近常态"):
         assert activity_label in f"{identity}\n{chart}"
-    assert "出现约" in identity
+    assert "formatFrequency" in identity
 
     assert "稀有结构组合" in achievements
     assert "命盘成就" not in achievements
@@ -1664,9 +1662,7 @@ def test_task8_chart_report_contains_wide_content_at_390px_without_page_overflow
     assert "overflow-x-auto" in chart, (
         "professional tables should retain internal horizontal scrolling"
     )
-    assert "overflow-x-auto" in identity, (
-        "the month preview should retain internal horizontal scrolling"
-    )
+    assert "md:grid-cols-2" in identity
 
 
 def test_e2e_review_uses_one_source_trust_resolver_in_passages_and_chart_preview():
@@ -1828,7 +1824,7 @@ def test_bazi_async_period_requests_ignore_stale_chart_responses():
         "chart.birth_profile.dayun.algorithm",
     ):
         assert identity_field in chart
-    assert "key={klineChartIdentity}" in chart
+    assert 'key={`${klineChartIdentity}-${selectedTheme}`}' in chart
     assert 'role: "activity"' in api_types
     assert "activity: number" in api_types
     assert "lifecycleProvenance?: PatternLifecycleBinding[]" in api_types
