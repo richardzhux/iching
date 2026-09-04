@@ -1,6 +1,7 @@
 import type { ConsumerProfile, MetaphysicsChart, MetaphysicsStatistics, ThemeComparison } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
+import { canonicalZiweiPalaceName, canonicalZiweiStarName, canonicalZiweiTransformationName } from "@/lib/ziwei-terms"
 
 type Locale = "en" | "zh"
 
@@ -112,10 +113,11 @@ function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
 }
 
 function ziweiMetricMarkdownLabel(featureId: string, chart: IFunctionalAstrolabe, zh: boolean) {
+  const locale: Locale = zh ? "zh" : "en"
   const life = chart.palaces.find((palace) => palace.name === "命宫" || palace.name.toLowerCase().includes("soul"))
   const body = chart.palaces.find((palace) => palace.isBodyPalace)
-  if (featureId.includes(".life_combo.")) return zh ? `命宫主星 · ${life?.majorStars.map((star) => star.name).join("、") || "空宫"}` : `Life-palace stars · ${life?.majorStars.map((star) => star.name).join(", ") || "empty"}`
-  if (featureId.includes(".body_branch.")) return zh ? `身宫位置 · ${body?.name ?? "—"}` : `Body-palace position · ${body?.name ?? "—"}`
+  if (featureId.includes(".life_combo.")) return `${zh ? "命宫主星" : "Life-palace stars"} · ${life?.majorStars.map((star) => canonicalZiweiStarName(star.name, locale)).join(zh ? "、" : ", ") || (zh ? "空宫" : "empty")}`
+  if (featureId.includes(".body_branch.")) return `${zh ? "身宫位置" : "Body-palace position"} · ${body ? canonicalZiweiPalaceName(body.name, locale) : "—"}`
   if (featureId.includes(".five_elements.")) return zh ? `五行局 · ${chart.fiveElementsClass}` : `Five-element class · ${chart.fiveElementsClass}`
   if (featureId.includes(".empty_palaces.")) return zh ? `空宫数量 · ${featureId.split(".").at(-1)}` : `Empty palaces · ${featureId.split(".").at(-1)}`
   if (featureId.includes(".brightness.")) {
@@ -129,7 +131,8 @@ function ziweiMetricMarkdownLabel(featureId: string, chart: IFunctionalAstrolabe
     const parts = featureId.split(".")
     const mutagen = ({ lu: "禄", quan: "权", ke: "科", ji: "忌" } as Record<string, string>)[parts.at(-2) ?? ""] ?? parts.at(-2)
     const palaceIndex = Number(parts.at(-1)?.replace("palace-", ""))
-    return zh ? `化${mutagen}落宫 · ${chart.palaces.find((item) => item.index === palaceIndex)?.name ?? parts.at(-1)}` : `Transformation ${mutagen} placement · ${chart.palaces.find((item) => item.index === palaceIndex)?.name ?? parts.at(-1)}`
+    const placement = chart.palaces.find((item) => item.index === palaceIndex)
+    return `${canonicalZiweiTransformationName(`化${mutagen}`, locale)} · ${placement ? canonicalZiweiPalaceName(placement.name, locale) : parts.at(-1)}`
   }
   if (featureId.includes(".auspicious_palaces.")) return zh ? `六吉星分布宫数 · ${featureId.split(".").at(-1)}` : `Six-auxiliary distribution · ${featureId.split(".").at(-1)} palaces`
   if (featureId.includes(".auspicious_max_density.")) return zh ? `六吉星单宫最高数 · ${featureId.split(".").at(-1)}` : `Max six-auxiliary density · ${featureId.split(".").at(-1)}`
@@ -251,11 +254,14 @@ export function buildZiweiMarkdown(
   },
 ) {
   const zh = locale === "zh"
+  const starName = (value: string) => canonicalZiweiStarName(value, locale)
+  const palaceName = (value: string) => canonicalZiweiPalaceName(value, locale)
+  const transformationName = (value: string) => canonicalZiweiTransformationName(value.startsWith("化") ? value : `化${value}`, locale)
   const title = subjectName.trim() || (zh ? "匿名命主" : "Anonymous chart")
   const transformations = chart.palaces
     .flatMap((palace) => [...palace.majorStars, ...palace.minorStars]
       .filter((star) => star.mutagen)
-      .map((star) => `${star.name}化${star.mutagen}（${palace.name}）`))
+      .map((star) => `${starName(star.name)}·${transformationName(star.mutagen ?? "")}（${palaceName(palace.name)}）`))
     .join(" / ") || "—"
   const summary = [
     [zh ? "阳历" : "Solar date", `${chart.solarDate} ${chart.time}（${chart.gender}）`],
@@ -277,9 +283,9 @@ export function buildZiweiMarkdown(
     "| --- | --- | --- | --- | --- |",
     ...chart.palaces.map((palace) => {
       const stars = [...palace.majorStars, ...palace.minorStars, ...palace.adjectiveStars]
-        .map((star) => `${star.name}${star.brightness ? `(${star.brightness})` : ""}${star.mutagen ? `·化${star.mutagen}` : ""}`)
+        .map((star) => `${starName(star.name)}${star.brightness ? `(${star.brightness})` : ""}${star.mutagen ? `·${transformationName(star.mutagen)}` : ""}`)
       const states = [palace.changsheng12, palace.boshi12, palace.jiangqian12, palace.suiqian12].filter(Boolean)
-      return `| ${cell(`${palace.heavenlyStem}${palace.earthlyBranch}`)} | ${cell(`${palace.name}${palace.isBodyPalace ? (zh ? "（身宫）" : " (Body)") : ""}`)} | ${cell(`${palace.decadal.range[0]}–${palace.decadal.range[1]}`)} | ${cell(palace.ages.join(" "))} | ${cell([...stars, ...states].join("、"))} |`
+      return `| ${cell(`${palace.heavenlyStem}${palace.earthlyBranch}`)} | ${cell(`${palaceName(palace.name)}${palace.isBodyPalace ? (zh ? "（身宫）" : " (Body)") : ""}`)} | ${cell(`${palace.decadal.range[0]}–${palace.decadal.range[1]}`)} | ${cell(palace.ages.join(" "))} | ${cell([...stars, ...states].join("、"))} |`
     }),
   ]
   const periodItems = [
@@ -293,7 +299,7 @@ export function buildZiweiMarkdown(
     `| ${zh ? "层级" : "Layer"} | ${zh ? "干支" : "Pillar"} | ${zh ? "名称" : "Name"} | ${zh ? "四化" : "Transformations"} |`,
     "| --- | --- | --- | --- |",
     `| ${zh ? "本命" : "Natal"} | ${cell(chart.chineseDate)} | ${cell(`${zh ? "命主" : "Soul"} ${chart.soul} · ${zh ? "身主" : "Body"} ${chart.body}`)} | ${cell(transformations)} |`,
-    ...periodItems.map(([label, item]) => `| ${cell(label)} | ${cell(`${item.heavenlyStem}${item.earthlyBranch}`)} | ${cell(item.name)} | ${cell(item.mutagen.map((star, index) => `${["禄", "权", "科", "忌"][index]} ${star}`).join(" / "))} |`),
+    ...periodItems.map(([label, item]) => `| ${cell(label)} | ${cell(`${item.heavenlyStem}${item.earthlyBranch}`)} | ${cell(item.name)} | ${cell(item.mutagen.map((star, index) => `${canonicalZiweiTransformationName(["化禄", "化权", "化科", "化忌"][index], locale)} ${starName(star)}`).join(" / "))} |`),
   ]
   const themeDefinitions = zh
     ? [
@@ -313,7 +319,7 @@ export function buildZiweiMarkdown(
       const palace = chart.palaces.find((item) => aliases.some((alias) => item.name.toLowerCase().includes(alias.toLowerCase())))
       return palace ? [palace] : []
     }).filter((palace, index, values) => values.findIndex((item) => item.index === palace.index) === index)
-    return [`### ${title}`, ...palaces.map((palace) => `- ${palace.name}：${palace.majorStars.map((star) => `${star.name}${star.brightness ? `(${star.brightness})` : ""}${star.mutagen ? `·化${star.mutagen}` : ""}`).join(" / ") || (zh ? "空宫" : "Empty palace")}`)]
+    return [`### ${title}`, ...palaces.map((palace) => `- ${palaceName(palace.name)}：${palace.majorStars.map((star) => `${starName(star.name)}${star.brightness ? `(${star.brightness})` : ""}${star.mutagen ? `·${transformationName(star.mutagen)}` : ""}`).join(" / ") || (zh ? "空宫" : "Empty palace")}`)]
   })
   const rarity = statistics?.rarity_metrics.map((metric) => {
     const display = metric.status === "unsupported" ? (zh ? "暂无基线数据" : "No baseline data") : metric.status === "zero" ? (zh ? "0% · 本参考周期未出现" : "0% · Not observed in this reference") : metric.display_percentage

@@ -63,6 +63,14 @@ def test_frequency_labels_do_not_render_false_zeroes() -> None:
     assert frequency_label(12.345) == "12.35%"
 
 
+@pytest.mark.parametrize(
+    ("percentage", "expected"),
+    [(0, "very_rare"), (2, "very_rare"), (2.01, "very_rare"), (5, "very_rare"), (5.01, "rare"), (10, "rare"), (10.01, "less_common"), (20, "less_common"), (20.01, "common")],
+)
+def test_frequency_level_boundaries_match_executive_labels(percentage: float, expected: str) -> None:
+    assert statistics.frequency_level(percentage) == expected
+
+
 def test_baseline_generator_uses_the_live_exact_lichun_boundary() -> None:
     zone = ZoneInfo("Asia/Shanghai")
     before = baseline_pillars(datetime(2024, 2, 4, 10, tzinfo=zone), "forward")

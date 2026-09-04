@@ -475,11 +475,11 @@ def load_baseline(baseline_id: str) -> dict[str, Any]:
 
 
 def frequency_level(percentage: float) -> str:
-    if percentage >= 20:
+    if percentage > 20:
         return "common"
-    if percentage >= 5:
+    if percentage > 10:
         return "less_common"
-    if percentage >= 1:
+    if percentage > 5:
         return "rare"
     return "very_rare"
 

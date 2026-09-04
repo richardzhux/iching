@@ -2,6 +2,8 @@ import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 import type { IFunctionalPalace } from "iztro/lib/astro/FunctionalPalace"
 import type { HoroscopeItem } from "iztro/lib/data/types"
+import { frequencyLabel } from "@/lib/frequency-display"
+import { canonicalZiweiStarName } from "@/lib/ziwei-terms"
 
 export const ZIWEI_CONSUMER_RULES_VERSION = "ziwei-consumer-c1"
 
@@ -90,6 +92,9 @@ export type ZiweiConsumerSubject = {
   headline: string
   path_label?: string
   path_summary?: string
+  cause?: string | null
+  current_effect?: string | null
+  next_activation?: string | null
 }
 
 export type ZiweiConsumerFingerprint = {
@@ -98,6 +103,7 @@ export type ZiweiConsumerFingerprint = {
   detail: string
   rarity_label: string
   top_percentage: number
+  incidence_percentage?: number
 }
 
 export type ZiweiConsumerAchievement = {
@@ -299,10 +305,10 @@ const MAJOR_STAR_ALIASES: Record<string, MajorStarId> = {
 }
 
 const MAJOR_STAR_LABELS: Record<MajorStarId, { zh: string; en: string }> = {
-  ziwei: { zh: "紫微", en: "Emperor" }, tianji: { zh: "天机", en: "Advisor" }, taiyang: { zh: "太阳", en: "Sun" }, wuqu: { zh: "武曲", en: "General" },
-  tiantong: { zh: "天同", en: "Fortunate" }, lianzhen: { zh: "廉贞", en: "Judge" }, tianfu: { zh: "天府", en: "Empress" }, taiyin: { zh: "太阴", en: "Moon" },
-  tanlang: { zh: "贪狼", en: "Wolf" }, jumen: { zh: "巨门", en: "Advocator" }, tianxiang: { zh: "天相", en: "Minister" }, tianliang: { zh: "天梁", en: "Sage" },
-  qisha: { zh: "七杀", en: "Marshal" }, pojun: { zh: "破军", en: "Rebel" },
+  ziwei: { zh: "紫微", en: "紫微 · Zǐ Wēi" }, tianji: { zh: "天机", en: "天机 · Tiān Jī" }, taiyang: { zh: "太阳", en: "太阳 · Tài Yáng" }, wuqu: { zh: "武曲", en: "武曲 · Wǔ Qǔ" },
+  tiantong: { zh: "天同", en: "天同 · Tiān Tóng" }, lianzhen: { zh: "廉贞", en: "廉贞 · Lián Zhēn" }, tianfu: { zh: "天府", en: "天府 · Tiān Fǔ" }, taiyin: { zh: "太阴", en: "太阴 · Tài Yīn" },
+  tanlang: { zh: "贪狼", en: "贪狼 · Tān Láng" }, jumen: { zh: "巨门", en: "巨门 · Jù Mén" }, tianxiang: { zh: "天相", en: "天相 · Tiān Xiàng" }, tianliang: { zh: "天梁", en: "天梁 · Tiān Liáng" },
+  qisha: { zh: "七杀", en: "七杀 · Qī Shā" }, pojun: { zh: "破军", en: "破军 · Pò Jūn" },
 }
 
 const PALACE_ALIASES: Record<string, CanonicalPalace> = {
@@ -321,9 +327,9 @@ const PALACE_ALIASES: Record<string, CanonicalPalace> = {
 }
 
 const PALACE_LABELS: Record<CanonicalPalace, { zh: string; en: string }> = {
-  life: { zh: "命宫", en: "Life" }, siblings: { zh: "兄弟宫", en: "Siblings" }, spouse: { zh: "夫妻宫", en: "Relationship" }, children: { zh: "子女宫", en: "Children" },
-  wealth: { zh: "财帛宫", en: "Wealth" }, health: { zh: "疾厄宫", en: "Health" }, travel: { zh: "迁移宫", en: "Travel" }, friends: { zh: "交友宫", en: "Network" },
-  career: { zh: "官禄宫", en: "Career" }, property: { zh: "田宅宫", en: "Property" }, spirit: { zh: "福德宫", en: "Spirit" }, parents: { zh: "父母宫", en: "Parents" },
+  life: { zh: "命宫", en: "命宫 · Mìng Gōng" }, siblings: { zh: "兄弟宫", en: "兄弟宫 · Xiōng Dì Gōng" }, spouse: { zh: "夫妻宫", en: "夫妻宫 · Fū Qī Gōng" }, children: { zh: "子女宫", en: "子女宫 · Zǐ Nǚ Gōng" },
+  wealth: { zh: "财帛宫", en: "财帛宫 · Cái Bó Gōng" }, health: { zh: "疾厄宫", en: "疾厄宫 · Jí È Gōng" }, travel: { zh: "迁移宫", en: "迁移宫 · Qiān Yí Gōng" }, friends: { zh: "交友宫", en: "交友宫 · Jiāo Yǒu Gōng" },
+  career: { zh: "官禄宫", en: "官禄宫 · Guān Lù Gōng" }, property: { zh: "田宅宫", en: "田宅宫 · Tián Zhái Gōng" }, spirit: { zh: "福德宫", en: "福德宫 · Fú Dé Gōng" }, parents: { zh: "父母宫", en: "父母宫 · Fù Mǔ Gōng" },
   unknown: { zh: "未知宫位", en: "Unknown palace" },
 }
 
@@ -346,16 +352,16 @@ const CHALLENGING_ALIASES: Record<string, string> = {
 }
 
 const AUSPICIOUS_LABELS: Record<string, { zh: string; en: string }> = {
-  zuofu: { zh: "左辅", en: "Officer" }, youbi: { zh: "右弼", en: "Helper" }, wenchang: { zh: "文昌", en: "Scholar" }, wenqu: { zh: "文曲", en: "Artist" }, tiankui: { zh: "天魁", en: "Assistant" }, tianyue: { zh: "天钺", en: "Aide" },
+  zuofu: { zh: "左辅", en: "左辅 · Zuǒ Fǔ" }, youbi: { zh: "右弼", en: "右弼 · Yòu Bì" }, wenchang: { zh: "文昌", en: "文昌 · Wén Chāng" }, wenqu: { zh: "文曲", en: "文曲 · Wén Qǔ" }, tiankui: { zh: "天魁", en: "天魁 · Tiān Kuí" }, tianyue: { zh: "天钺", en: "天钺 · Tiān Yuè" },
 }
 
 const CHALLENGING_LABELS: Record<string, { zh: string; en: string }> = {
-  qingyang: { zh: "擎羊", en: "Driven" }, tuoluo: { zh: "陀罗", en: "Tangled" }, huoxing: { zh: "火星", en: "Impulsive" }, lingxing: { zh: "铃星", en: "Spark" }, dikong: { zh: "地空", en: "Ideologue" }, dijie: { zh: "地劫", en: "Fickle" },
+  qingyang: { zh: "擎羊", en: "擎羊 · Qíng Yáng" }, tuoluo: { zh: "陀罗", en: "陀罗 · Tuó Luó" }, huoxing: { zh: "火星", en: "火星 · Huǒ Xīng" }, lingxing: { zh: "铃星", en: "铃星 · Líng Xīng" }, dikong: { zh: "地空", en: "地空 · Dì Kōng" }, dijie: { zh: "地劫", en: "地劫 · Dì Jié" },
 }
 
 const MUTAGEN_ALIASES: Record<string, MutagenId> = { 禄: "lu", 祿: "lu", A: "lu", 权: "quan", 權: "quan", B: "quan", 科: "ke", C: "ke", 忌: "ji", D: "ji" }
 const MUTAGEN_LABELS: Record<MutagenId, { zh: string; en: string }> = {
-  lu: { zh: "化禄", en: "Prosperity" }, quan: { zh: "化权", en: "Power" }, ke: { zh: "化科", en: "Merit" }, ji: { zh: "化忌", en: "Obstacle" },
+  lu: { zh: "化禄", en: "化禄 · Huà Lù" }, quan: { zh: "化权", en: "化权 · Huà Quán" }, ke: { zh: "化科", en: "化科 · Huà Kē" }, ji: { zh: "化忌", en: "化忌 · Huà Jì" },
 }
 
 const BRIGHTNESS_ADJUSTMENT: Record<string, number> = {
@@ -939,10 +945,7 @@ type FingerprintCandidate = {
 }
 
 function rarityLabel(percentage: number, locale: ConsumerLocale): string {
-  if (percentage <= 2) return locale === "zh" ? "极少见" : "Ultra rare"
-  if (percentage <= 8) return locale === "zh" ? "少见" : "Rare"
-  if (percentage <= 20) return locale === "zh" ? "鲜明" : "Distinctive"
-  return locale === "zh" ? "可辨识" : "Recognizable"
+  return frequencyLabel(percentage, locale)
 }
 
 function featurePercentage(featureId: string, rarityMetrics: Map<string, RarityMetricSnapshot>, fallback: number): number {
@@ -973,7 +976,7 @@ function buildFingerprints(context: ChartContext, horoscope: IFunctionalHoroscop
 
   context.placements.filter((placement) => placement.mutagen_id).forEach((placement) => {
     const mutagen = placement.mutagen_id as MutagenId
-    const starLabel = placement.major_id ? localized(MAJOR_STAR_LABELS[placement.major_id], locale) : placement.raw_name
+    const starLabel = placement.major_id ? localized(MAJOR_STAR_LABELS[placement.major_id], locale) : canonicalZiweiStarName(placement.raw_name, locale)
     const palaceLabel = localized(PALACE_LABELS[placement.palace_id], locale)
     candidates.push({
       id: `mutagen-${mutagen}-${placement.palace_index}`,
@@ -1033,14 +1036,14 @@ function buildFingerprints(context: ChartContext, horoscope: IFunctionalHoroscop
   }).slice(0, 5).map((candidate) => {
     const fallback = clamp(42 - candidate.salience * 0.36, 1.2, 38)
     const percentage = featurePercentage(candidate.feature_id, rarityMetrics, fallback)
-    return { id: candidate.id, title: candidate.title, detail: candidate.detail, rarity_label: rarityLabel(percentage, locale), top_percentage: percentage }
+    return { id: candidate.id, title: candidate.title, detail: candidate.detail, rarity_label: rarityLabel(percentage, locale), top_percentage: percentage, incidence_percentage: percentage }
   })
 }
 
 type AchievementCandidate = Omit<ZiweiConsumerAchievement, "tier" | "rarity_percentage"> & { fallback_percentage: number; feature_id: string }
 
 function achievementTier(percentage: number): "SSR" | "SR" | "R" {
-  return percentage <= 2 ? "SSR" : percentage <= 8 ? "SR" : "R"
+  return percentage <= 2 ? "SSR" : percentage <= 5 ? "SR" : "R"
 }
 
 function buildAchievements(context: ChartContext, rarityMetrics: Map<string, RarityMetricSnapshot>): ZiweiConsumerAchievement[] {
@@ -1055,14 +1058,14 @@ function buildAchievements(context: ChartContext, rarityMetrics: Map<string, Rar
   }
   addPair("ziwei-tianfu", ["ziwei", "tianfu"], "紫府同轴", "Emperor–Empress axis", 3.2)
   addPair("sun-moon", ["taiyang", "taiyin"], "日月并明", "Sun–Moon resonance", 5.8)
-  addPair("left-right", ["zuofu", "youbi"], "左右同援", "Officer–Helper support", 7.2)
-  addPair("chang-qu", ["wenchang", "wenqu"], "昌曲同频", "Scholar–Artist resonance", 6.4)
+  addPair("left-right", ["zuofu", "youbi"], "左右同援", "左辅 · Zuǒ Fǔ and 右弼 · Yòu Bì", 7.2)
+  addPair("chang-qu", ["wenchang", "wenqu"], "昌曲同频", "文昌 · Wén Chāng and 文曲 · Wén Qǔ", 6.4)
   addPair("kui-yue", ["tiankui", "tianyue"], "魁钺夹持", "Assistant–Aide support", 5.9)
-  addPair("sha-po-lang", ["qisha", "pojun"], "杀破先锋", "Marshal–Rebel vanguard", 4.6)
+  addPair("sha-po-lang", ["qisha", "pojun"], "杀破先锋", "七杀 · Qī Shā and 破军 · Pò Jūn", 4.6)
 
   const positiveMutagens = networkPlacements.filter((placement) => placement.mutagen_id && placement.mutagen_id !== "ji")
   if (new Set(positiveMutagens.map((placement) => placement.mutagen_id)).size >= 3) candidates.push({
-    id: "three-positive-transformations", title: locale === "zh" ? "禄权科成链" : "Prosperity–Power–Merit chain", state: "发力", position: locale === "zh" ? "命宫三方四正" : "Life-palace network", summary: locale === "zh" ? "三条正向四化在主轴网络内同时可用。" : "All three constructive transformations are active in the main network.", member_ids: positiveMutagens.map((placement) => placement.raw_name), fallback_percentage: 1.8, feature_id: "ziwei.achievement.three-positive-transformations",
+    id: "three-positive-transformations", title: locale === "zh" ? "禄权科成链" : "化禄 · Huà Lù, 化权 · Huà Quán, 化科 · Huà Kē", state: "发力", position: locale === "zh" ? "命宫三方四正" : "Life-palace network", summary: locale === "zh" ? "三条正向四化在主轴网络内同时可用。" : "All three constructive transformations are active in the main network.", member_ids: positiveMutagens.map((placement) => placement.raw_name), fallback_percentage: 1.8, feature_id: "ziwei.achievement.three-positive-transformations",
   })
   const supportCount = new Set(networkPlacements.flatMap((placement) => placement.auspicious_id ? [placement.auspicious_id] : [])).size
   if (supportCount >= 4) candidates.push({
@@ -1073,7 +1076,7 @@ function buildAchievements(context: ChartContext, rarityMetrics: Map<string, Rar
   })
   const lifeJi = networkPlacements.find((placement) => placement.mutagen_id === "ji")
   if (lifeJi) candidates.push({
-    id: "main-axis-obstacle", title: locale === "zh" ? "主轴化忌淬炼" : "Main-axis obstacle forge", state: "受制", position: String(lifeJi.palace.name), summary: locale === "zh" ? "压力点进入主轴网络；把边界做早，反而能变成辨识度。" : "Pressure enters the main network; early boundaries can turn it into distinction.", member_ids: [lifeJi.raw_name], fallback_percentage: 9.6, feature_id: "ziwei.achievement.main-axis-obstacle",
+    id: "main-axis-obstacle", title: locale === "zh" ? "主轴化忌淬炼" : "Main-axis 化忌 · Huà Jì", state: "受制", position: String(lifeJi.palace.name), summary: locale === "zh" ? "压力点进入主轴网络；把边界做早，反而能变成辨识度。" : "Pressure enters the main network; early boundaries can turn it into distinction.", member_ids: [lifeJi.raw_name], fallback_percentage: 9.6, feature_id: "ziwei.achievement.main-axis-obstacle",
   })
   if (candidates.length === 0) candidates.push({
     id: "life-axis-defined", title: locale === "zh" ? "主轴成形" : "Defined life axis", state: "可见", position: String(context.life_palace.name), summary: locale === "zh" ? "命宫结构已形成稳定、可识别的主轴。" : "The life palace forms a stable, recognizable axis.", member_ids: context.life_major_ids, fallback_percentage: 22, feature_id: "ziwei.achievement.life-axis-defined",
@@ -1399,11 +1402,23 @@ export function buildZiweiConsumerProfile(chart: IFunctionalAstrolabe, horoscope
   const rarityMetrics = extractRarityMetrics(statistics)
   const archetype = selectArchetype(context)
   const metadata = baselineMetadata(statistics, baseline)
-  const subjects = SUBJECT_KEYS.map((key): ZiweiConsumerSubject => ({
-    key,
-    label: context.locale === "zh" ? SUBJECT_COPY[key].label_zh : SUBJECT_COPY[key].label_en,
-    ...ziweiSubjectPath(context, key),
-  }))
+  const periodImpacts = periodAdjustedScores(context, horoscope).impacts
+  const subjects = SUBJECT_KEYS.map((key): ZiweiConsumerSubject => {
+    const path = ziweiSubjectPath(context, key)
+    const impact = periodImpacts[key]
+    const currentEffect = impact.intensity >= 0.75
+      ? (context.locale === "zh"
+          ? `${impact.drivers.join("、") || "所选运限"}正在放大这条主线。`
+          : `${impact.drivers.join(", ") || "The selected period"} is activating this theme.`)
+      : null
+    return {
+      key,
+      label: context.locale === "zh" ? SUBJECT_COPY[key].label_zh : SUBJECT_COPY[key].label_en,
+      ...path,
+      cause: path.headline,
+      current_effect: currentEffect,
+    }
+  })
   return {
     version: ZIWEI_CONSUMER_RULES_VERSION,
     system: "ziwei",

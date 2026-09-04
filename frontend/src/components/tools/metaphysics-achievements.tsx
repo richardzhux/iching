@@ -2,6 +2,7 @@
 
 import { useId } from "react"
 import { cn } from "@/lib/utils"
+import { formatFrequency, frequencyBadge, frequencyLabel } from "@/lib/frequency-display"
 
 export type AchievementLocale = "en" | "zh"
 export type AchievementTier = "SSR" | "SR" | "R"
@@ -52,10 +53,6 @@ function stateLabel(state: string, locale: AchievementLocale) {
   return englishState[state as AchievementState] ?? state
 }
 
-function formatPercentage(value: number, locale: AchievementLocale) {
-  return new Intl.NumberFormat(locale === "zh" ? "zh-CN" : "en-US", { maximumFractionDigits: 2 }).format(value)
-}
-
 export function MetaphysicsAchievements({
   achievements,
   locale = "zh",
@@ -86,17 +83,17 @@ export function MetaphysicsAchievements({
             <li key={achievement.id} className="min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-surface px-4 py-5 shadow-[var(--surface-shadow-soft)] sm:px-5">
               <article className="min-w-0">
                 <div className="flex items-center justify-between gap-3">
-                  <span
-                    className={cn("inline-flex min-h-9 min-w-14 items-center justify-center rounded-xl border px-2.5 py-1.5 text-sm font-black tracking-[0.08em]", tierClass(achievement.tier))}
-                    aria-label={locale === "zh" ? `稀有度层级 ${achievement.tier}` : `Rarity tier ${achievement.tier}`}
+                  {frequencyBadge(achievement.rarity_percentage) ? <span
+                    className={cn("inline-flex min-h-9 min-w-14 items-center justify-center rounded-xl border px-2.5 py-1.5 text-sm font-black tracking-[0.08em]", tierClass(frequencyBadge(achievement.rarity_percentage)!))}
+                    aria-label={locale === "zh" ? `结构频率层级 ${frequencyBadge(achievement.rarity_percentage)}` : `Frequency tier ${frequencyBadge(achievement.rarity_percentage)}`}
                   >
-                    {achievement.tier}
-                  </span>
+                    {frequencyBadge(achievement.rarity_percentage)}
+                  </span> : <span className="text-xs font-semibold text-muted-foreground">{frequencyLabel(achievement.rarity_percentage, locale)}</span>}
                   <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", stateClass(achievement.state))}>{stateLabel(achievement.state, locale)}</span>
                 </div>
                 <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-5 gap-y-2">
                   <h3 className="mt-4 text-xl font-semibold leading-7">{achievement.title}</h3>
-                  {achievement.rarity_percentage != null ? <p className="mt-4 shrink-0 rounded-full bg-primary/[0.08] px-2.5 py-1 text-xs font-semibold text-primary">{locale === "zh" ? `出现率 ${formatPercentage(achievement.rarity_percentage, locale)}%` : `${formatPercentage(achievement.rarity_percentage, locale)}% incidence`}</p> : null}
+                  {achievement.rarity_percentage != null ? <p className="mt-4 shrink-0 rounded-full bg-primary/[0.08] px-2.5 py-1 text-xs font-semibold text-primary">{locale === "zh" ? `出现率 ${formatFrequency(achievement.rarity_percentage, locale)}%` : `${formatFrequency(achievement.rarity_percentage, locale)}% incidence`}</p> : null}
                 </div>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">{achievement.summary}</p>
                 <dl className="mt-4 flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/55 pt-3 text-xs">
