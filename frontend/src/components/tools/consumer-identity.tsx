@@ -1,6 +1,8 @@
 "use client"
 
 import { useId } from "react"
+import type { ThemeKey } from "@/lib/executive-view"
+import { formatFrequency, frequencyLabel } from "@/lib/frequency-display"
 import { cn } from "@/lib/utils"
 
 export type ConsumerLocale = "en" | "zh"
@@ -35,6 +37,8 @@ export interface ConsumerSubjectScore {
   path_label?: string
   path_summary?: string
   comparison_label?: string | null
+  cause?: string | null
+  current_effect?: string | null
   next_activation?: string | null
 }
 
@@ -57,20 +61,11 @@ export interface ConsumerStructuralTwin {
   representatives: string[]
 }
 
-export interface ConsumerMonthPreview {
-  label: string
-  ganzhi?: string | null
-  value: number
-  theme: string
-  state: "high" | "steady" | "adjustment"
-}
-
 export interface ConsumerIdentityProfile {
   identity: ConsumerIdentitySummary
   subjects: ConsumerSubjectScore[]
   fingerprints: ConsumerFingerprint[]
   twin: ConsumerStructuralTwin | null
-  month_preview?: ConsumerMonthPreview[]
 }
 
 interface ConsumerComparisonActionBase {
@@ -86,18 +81,8 @@ export interface ConsumerIdentityProps {
   profile: ConsumerIdentityProfile
   locale?: ConsumerLocale
   comparisonAction?: ConsumerComparisonAction
+  selectedTheme?: ThemeKey
   className?: string
-}
-
-function formatNumber(value: number, locale: ConsumerLocale, maximumFractionDigits = 1) {
-  return new Intl.NumberFormat(locale === "zh" ? "zh-CN" : "en-US", {
-    maximumFractionDigits,
-  }).format(value)
-}
-
-function incidenceLabel(value: number, locale: ConsumerLocale) {
-  const formatted = formatNumber(value, locale)
-  return locale === "zh" ? `出现约 ${formatted}%` : `Occurs in about ${formatted}%`
 }
 
 export interface ConsumerSubjectPath {
@@ -216,17 +201,28 @@ function ComparisonEntry({ action }: { action: ConsumerComparisonAction }) {
   return <button type="button" aria-label={action.ariaLabel} onClick={action.onClick} className={className}>{action.label}<span aria-hidden="true" className="ml-2">→</span></button>
 }
 
-export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, className }: ConsumerIdentityProps) {
+export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, selectedTheme = "overall", className }: ConsumerIdentityProps) {
   const headingId = `${useId()}-consumer-identity-title`
   const { identity, subjects, fingerprints } = profile
   const legacyTitle = identity.fusion_title || identity.archetype_title
-  const title = identity.pattern_title || legacyTitle
+  const selectedSubject = selectedTheme === "overall" ? null : subjects.find((subject) => (selectedTheme === "rhythm" ? ["health", "rhythm"] : [selectedTheme]).includes(subject.key)) ?? null
+  const selectedPath = selectedSubject ? describeConsumerSubject(selectedSubject, locale) : null
+  const title = selectedPath?.title || identity.pattern_title || legacyTitle
   const supportingTitle = identity.pattern_title
     && legacyTitle !== identity.pattern_title
     && !legacyTitle.includes(identity.pattern_title)
     ? legacyTitle
     : null
   const heroTags = (identity.hero_tags ?? []).filter(Boolean).slice(0, 3)
+  const chartFingerprints = fingerprints.filter((fingerprint, index, values) => values.findIndex((item) => item.title === fingerprint.title) === index).slice(0, 3)
+  const topFingerprints: ConsumerFingerprint[] = selectedSubject && selectedPath ? [
+    { id: `${selectedSubject.key}-judgment`, title: selectedPath.title, detail: selectedPath.description, rarity_label: "" },
+    { id: `${selectedSubject.key}-cause`, title: locale === "zh" ? "主要成因" : "Primary cause", detail: selectedSubject.cause || selectedSubject.headline, rarity_label: "", comparison_label: selectedSubject.comparison_label },
+    { id: `${selectedSubject.key}-change`, title: locale === "zh" ? "当前与下一变化" : "Now and next", detail: selectedSubject.current_effect || selectedSubject.next_activation || (locale === "zh" ? "当前没有足以改变结论的新触发。" : "No new activation materially changes the conclusion."), rarity_label: "" },
+  ] : chartFingerprints
+  const visibleSubjects = selectedTheme === "overall"
+    ? subjects
+    : subjects.filter((subject) => (selectedTheme === "rhythm" ? ["health", "rhythm"] : [selectedTheme]).includes(subject.key))
 
   return (
     <section
@@ -234,6 +230,18 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
       aria-labelledby={headingId}
       className={cn("min-w-0 overflow-hidden rounded-3xl border border-primary/25 bg-surface/95 shadow-[var(--surface-shadow)]", className)}
     >
+      <section className="min-w-0 border-b border-primary/20 px-5 py-6 sm:px-7 lg:px-9" aria-labelledby={`${headingId}-fingerprints`}>
+        <p className="kicker">{locale === "zh" ? "先看重点" : "START HERE"}</p>
+        <h2 id={`${headingId}-fingerprints`} className="mt-2 text-2xl font-semibold">{selectedTheme === "overall" ? (locale === "zh" ? "这张盘最特别的三点" : "What makes this chart distinctive") : (locale === "zh" ? "这个主题最重要的三点" : "The three things that matter here")}</h2>
+        <ol className="mt-5 grid gap-px overflow-hidden rounded-2xl border border-border/60 bg-border/60 md:grid-cols-3">
+          {topFingerprints.map((fingerprint, index) => {
+            const incidence = fingerprint.incidence_percentage
+            const exactFrequency = incidence != null ? `${frequencyLabel(incidence, locale)} · ${formatFrequency(incidence, locale)}%` : fingerprint.comparison_label || ""
+            return <li key={fingerprint.id} className="min-w-0 bg-surface p-4"><span className="text-xs font-semibold tabular-nums text-primary">0{index + 1}</span><h3 className="mt-2 font-semibold leading-6">{fingerprint.title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{fingerprint.detail}</p>{exactFrequency ? <p className="mt-3 text-xs font-semibold text-primary">{exactFrequency}</p> : null}</li>
+          })}
+        </ol>
+      </section>
+
       <header className="imperial-highlight-panel min-w-0 border-0 border-b border-primary/20 px-5 py-7 shadow-none sm:px-7 lg:px-9 lg:py-9">
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -241,21 +249,14 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
             {identity.pattern_status ? <span className="rounded-full border border-primary/25 bg-primary/[0.07] px-2.5 py-1 text-xs font-semibold text-primary">{identity.pattern_status}</span> : null}
           </div>
           <h2 id={headingId} className="mt-3 text-balance text-3xl font-semibold leading-tight sm:text-4xl">{title}</h2>
-          {supportingTitle ? <p className="mt-2 text-sm font-semibold text-primary">{supportingTitle}</p> : null}
-          {identity.formation_path ? (
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-foreground/80">
-              <span className="font-semibold text-foreground">{locale === "zh" ? "成格路径" : "Formation path"}</span>
-              <span aria-hidden="true" className="mx-2 text-primary/50">·</span>
-              {identity.formation_path}
-            </p>
-          ) : null}
-          {identity.memorable_line ? (
+          {selectedTheme === "overall" && supportingTitle ? <p className="mt-2 text-sm font-semibold text-primary">{supportingTitle}</p> : null}
+          {(selectedPath?.description || identity.memorable_line) ? (
             <blockquote className="mt-5 max-w-3xl border-l-2 border-primary/45 pl-4 text-pretty text-lg font-semibold leading-8 sm:text-xl">
-              {identity.memorable_line}
+              {selectedPath?.description || identity.memorable_line}
             </blockquote>
           ) : null}
-          <p className={cn("max-w-3xl text-pretty text-base leading-7 sm:text-lg sm:leading-8", identity.memorable_line ? "mt-3 text-foreground/75" : "mt-4 font-semibold")}>{identity.archetype_subtitle}</p>
-          {heroTags.length > 0 ? (
+          {selectedTheme === "overall" ? <p className={cn("max-w-3xl text-pretty text-base leading-7 sm:text-lg sm:leading-8", identity.memorable_line ? "mt-3 text-foreground/75" : "mt-4 font-semibold")}>{identity.archetype_subtitle}</p> : null}
+          {selectedTheme === "overall" && heroTags.length > 0 ? (
             <ul className="mt-5 flex min-w-0 flex-wrap gap-2" aria-label={locale === "zh" ? "命盘关键词" : "Chart highlights"}>
               {heroTags.map((tag) => <li key={tag} className="rounded-full border border-primary/20 bg-background/55 px-3 py-1.5 text-xs font-semibold text-foreground/80">{tag}</li>)}
             </ul>
@@ -263,39 +264,13 @@ export function ConsumerIdentity({ profile, locale = "zh", comparisonAction, cla
         </div>
       </header>
 
-      <div role="group" className="grid min-w-0 gap-px border-b border-border/60 bg-border/55 sm:grid-cols-2 lg:grid-cols-4" aria-label={locale === "zh" ? "四条人生路径" : "Four life paths"}>
-        {subjects.map((subject, index) => (
+      <div role="group" className="grid min-w-0 gap-px border-b border-border/60 bg-border/55 md:grid-cols-2" aria-label={locale === "zh" ? "四条人生路径" : "Four life paths"}>
+        {visibleSubjects.map((subject, index) => (
           <SubjectPathCard key={subject.key} subject={subject} locale={locale} index={index} />
         ))}
       </div>
 
-      <div className="grid min-w-0">
-        {profile.month_preview && profile.month_preview.length > 0 ? <MonthPreview months={profile.month_preview} locale={locale} headingId={`${headingId}-month-preview`} /> : null}
-        <section className="min-w-0 px-5 py-7 sm:px-7 lg:px-9" aria-labelledby={`${headingId}-fingerprints`}>
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="kicker">{locale === "zh" ? "核心结构" : "CORE STRUCTURES"}</p>
-              <h3 id={`${headingId}-fingerprints`} className="mt-2 text-xl font-semibold">{locale === "zh" ? "最值得先看的五个命盘特征" : "Five chart features worth seeing first"}</h3>
-            </div>
-            <span className="text-xs tabular-nums text-muted-foreground">{fingerprints.length}</span>
-          </div>
-          <ol className="mt-5 divide-y divide-border/55 border-y border-border/55">
-            {fingerprints.map((fingerprint, index) => (
-              <li key={fingerprint.id} className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] gap-3 py-4">
-                <span aria-hidden="true" className="pt-0.5 text-sm font-semibold tabular-nums text-primary/70">{String(index + 1).padStart(2, "0")}</span>
-                <div className="min-w-0">
-                  <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <h4 className="font-semibold leading-6">{fingerprint.title}</h4>
-                    <p className="text-xs font-semibold text-primary">{fingerprint.rarity_label}{fingerprint.comparison_label ? ` · ${fingerprint.comparison_label}` : fingerprint.incidence_percentage != null ? ` · ${incidenceLabel(fingerprint.incidence_percentage, locale)}` : ""}</p>
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{fingerprint.detail}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          {comparisonAction ? <div data-export-exclude className="mt-6"><ComparisonEntry action={comparisonAction} /></div> : null}
-        </section>
-      </div>
+      {comparisonAction ? <div data-export-exclude className="px-5 py-5 sm:px-7 lg:px-9"><ComparisonEntry action={comparisonAction} /></div> : null}
     </section>
   )
 }
@@ -310,72 +285,15 @@ function SubjectPathCard({ subject, locale, index }: { subject: ConsumerSubjectS
       </div>
       <h3 className="mt-3 text-xl font-semibold leading-tight text-primary">{path.title}</h3>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{path.description}</p>
-      {subject.comparison_label ? <p className="mt-4 inline-flex rounded-full bg-primary/[0.07] px-2.5 py-1 text-xs font-semibold leading-5 text-primary">{subject.comparison_label}</p> : null}
-      <p className="mt-4 border-t border-border/50 pt-3 text-xs leading-5 text-foreground/75">{subject.headline}</p>
+      <p className="mt-4 border-t border-border/50 pt-3 text-sm leading-6 text-foreground/85"><span className="font-semibold text-foreground">{locale === "zh" ? "成因" : "Cause"}</span><span aria-hidden="true"> · </span>{subject.cause || subject.headline}</p>
+      {subject.current_effect ? <p className="mt-3 text-sm leading-6 text-foreground/85"><span className="font-semibold text-foreground">{locale === "zh" ? "当前" : "Now"}</span><span aria-hidden="true"> · </span>{subject.current_effect}</p> : null}
       {subject.next_activation ? (
         <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-foreground/80">
           <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
           <span><span className="font-semibold text-foreground">{locale === "zh" ? "下一次节奏变化" : "Next rhythm shift"}</span><span aria-hidden="true"> · </span>{subject.next_activation}</span>
         </p>
       ) : null}
+      <details className="mt-4 border-t border-border/50 pt-3"><summary className="cursor-pointer text-xs font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "为什么" : "Why"}</summary><div className="mt-3 space-y-2 text-xs leading-5 text-muted-foreground"><p><strong className="text-foreground">{locale === "zh" ? "结构" : "Structure"}</strong><span aria-hidden="true"> · </span>{subject.headline}</p>{subject.comparison_label ? <p><strong className="text-foreground">{locale === "zh" ? "出现率" : "Frequency"}</strong><span aria-hidden="true"> · </span>{subject.comparison_label}</p> : null}</div></details>
     </article>
-  )
-}
-
-const MONTH_STATE_STYLES: Record<ConsumerMonthPreview["state"], { bar: string; surface: string }> = {
-  high: { bar: "bg-primary", surface: "border-primary/25 bg-primary/[0.06]" },
-  steady: { bar: "bg-primary/40", surface: "border-border/55 bg-background/55" },
-  adjustment: { bar: "bg-muted-foreground/40", surface: "border-border/55 bg-muted/20" },
-}
-
-function monthStateLabel(state: ConsumerMonthPreview["state"], locale: ConsumerLocale) {
-  const labels: Record<ConsumerMonthPreview["state"], { zh: string; en: string }> = {
-    high: { zh: "活跃增强", en: "Higher activity" },
-    steady: { zh: "接近常态", en: "Near baseline" },
-    adjustment: { zh: "活跃减弱", en: "Lower activity" },
-  }
-  return labels[state][locale]
-}
-
-function monthBarHeight(value: number) {
-  if (!Number.isFinite(value)) return 30
-  return Math.min(100, Math.max(22, 42 + Math.abs(value - 100) * 1.8))
-}
-
-function MonthPreview({ months, locale, headingId }: { months: ConsumerMonthPreview[]; locale: ConsumerLocale; headingId: string }) {
-  const visibleMonths = months.slice(0, 12)
-  return (
-    <section className="min-w-0 border-b border-border/55 px-5 py-7 sm:px-7 lg:px-9" aria-labelledby={headingId}>
-      <p className="kicker">{locale === "zh" ? "未来十二月" : "NEXT 12 MONTHS"}</p>
-      <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
-        <h3 id={headingId} className="text-xl font-semibold">{locale === "zh" ? "月度节奏预览" : "Monthly rhythm preview"}</h3>
-        <p className="text-xs text-muted-foreground">{locale === "zh" ? "快速查看相对个人常态的活跃变化" : "See activity changes relative to your personal baseline"}</p>
-      </div>
-      <div
-        className="custom-scrollbar mt-5 max-w-full overflow-x-auto pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        tabIndex={0}
-        role="region"
-        aria-label={locale === "zh" ? "未来十二个月预览，可横向滚动" : "Next twelve months preview, horizontally scrollable"}
-      >
-        <ol className="grid min-w-[48rem] grid-cols-12 gap-2" aria-label={locale === "zh" ? "月份" : "Months"}>
-          {visibleMonths.map((month, index) => {
-            const stateLabel = monthStateLabel(month.state, locale)
-            const style = MONTH_STATE_STYLES[month.state]
-            const accessibleLabel = [month.label, month.ganzhi, month.theme, stateLabel].filter(Boolean).join(" · ")
-            return (
-              <li key={`${month.label}-${month.ganzhi ?? index}`} aria-label={accessibleLabel} className={cn("flex min-h-36 min-w-0 flex-col rounded-2xl border p-2.5", style.surface)}>
-                <p className="truncate text-xs font-semibold text-foreground">{month.label}</p>
-                {month.ganzhi ? <p className="mt-0.5 text-[11px] text-muted-foreground">{month.ganzhi}</p> : null}
-                <div className="my-2 flex min-h-12 flex-1 items-end justify-center rounded-lg bg-primary/[0.04] px-2" aria-hidden="true">
-                  <span className={cn("w-2 rounded-t-full", style.bar)} style={{ height: `${monthBarHeight(month.value)}%` }} />
-                </div>
-                <p className="truncate text-[11px] font-semibold text-foreground/75" title={month.theme}>{month.theme}</p>
-                <p className="mt-0.5 text-[11px] font-semibold text-primary">{stateLabel}</p>
-              </li>
-            )
-          })}
-        </ol>
-      </div>
-    </section>
   )
 }

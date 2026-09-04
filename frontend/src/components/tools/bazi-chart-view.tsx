@@ -6,16 +6,18 @@ import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
 import { BaziDiagnosticWorkspace } from "@/components/tools/bazi-diagnostic-workspace"
 import { BaziPeriodInsightPanel } from "@/components/tools/bazi-period-insight-panel"
+import { ComparisonUniverseBar } from "@/components/tools/comparison-universe-bar"
 import {
   ConsumerIdentity,
   type ConsumerIdentityProfile,
-  type ConsumerMonthPreview,
   type ConsumerSubjectScore,
 } from "@/components/tools/consumer-identity"
 import { LifeKlineChart } from "@/components/tools/life-kline-chart"
 import { MetaphysicsAchievements, type MetaphysicsAchievement } from "@/components/tools/metaphysics-achievements"
+import { OverallThemeTimeline, ThemeSelector } from "@/components/tools/theme-selector"
 import { baziRuleVersionSummary, buildBaziMarkdown } from "@/lib/chart-markdown"
 import { calculateMetaphysicsChart, fetchMetaphysicsPeriod, fetchPatternRuleSummary } from "@/lib/api"
+import { normalizeThemeKey, type ThemeKey } from "@/lib/executive-view"
 import type { DayunCycle, MetaphysicsChart, PatternRuleSourceLocator, PatternRuleSummary, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeComparison, ThemeProfile } from "@/types/api"
 
 type Locale = "en" | "zh"
@@ -142,33 +144,6 @@ function activationLabel(subject: ConsumerSubjectScore, lifeKline: ConsumerLifeK
   return `${point.year} · ${state}`
 }
 
-function buildMonthPreview(lifeKline: ConsumerLifeKline, currentYear: number, currentMonthIndex: number): ConsumerMonthPreview[] {
-  const candidates = lifeKline.series.map((series) => ({
-    series,
-    months: series.points
-      .filter((point) => point.year >= currentYear)
-      .sort((left, right) => left.year - right.year)
-      .flatMap((point) => point.months
-        .filter((month) => point.year > currentYear || month.index >= currentMonthIndex)
-        .map((month) => ({ year: point.year, month, value: relativeKlineValue(lifeKline, series, month.value) })))
-      .slice(0, 12),
-  }))
-  const monthCount = Math.min(12, Math.max(0, ...candidates.map(({ months }) => months.length)))
-  return Array.from({ length: monthCount }, (_, index) => index).flatMap((index) => {
-    const options = candidates.flatMap(({ series, months }) => months[index] ? [{ series, ...months[index] }] : [])
-    const selected = options.sort((left, right) => Math.abs(right.value - 100) - Math.abs(left.value - 100))[0]
-    if (!selected) return []
-    const theme = selected.series.key === "health" || selected.series.key === "rhythm" ? "身心节奏" : selected.series.label
-    return [{
-      label: selected.month.label,
-      ganzhi: selected.month.ganzhi,
-      value: selected.value,
-      theme,
-      state: selected.value >= 108 ? "high" : selected.value <= 92 ? "adjustment" : "steady",
-    } satisfies ConsumerMonthPreview]
-  })
-}
-
 function buildConsumerIdentityProfile(chart: MetaphysicsChart, lifeKline: ConsumerLifeKline, currentYear: number, locale: Locale): ConsumerIdentityProfile {
   const consumer = chart.consumer!
   const primary = chart.structure.patterns?.primary
@@ -194,14 +169,18 @@ function buildConsumerIdentityProfile(chart: MetaphysicsChart, lifeKline: Consum
       memorable_line: memorable,
       hero_tags: heroTags,
     },
-    subjects: consumer.subjects.map((subject) => ({
-      ...subject,
-      comparison_label: subjectComparisonLabel(subject, profiles),
-      next_activation: activationLabel(subject, lifeKline, currentYear, currentMonthIndex, locale),
-    })),
+    subjects: consumer.subjects.map((subject) => {
+      const activeClaim = consumer.claims?.find((claim) => claim.theme === (subject.key === "health" ? "rhythm" : subject.key) && claim.activation?.isCurrent)
+      return {
+        ...subject,
+        cause: subject.drivers?.[0] ?? subject.headline,
+        current_effect: activeClaim?.activation ? `${activeClaim.activation.ganzhi} · ${activeClaim.title}` : null,
+        comparison_label: subjectComparisonLabel(subject, profiles),
+        next_activation: activationLabel(subject, lifeKline, currentYear, currentMonthIndex, locale),
+      }
+    }),
     fingerprints: consumer.fingerprints,
     twin: consumer.twin,
-    month_preview: buildMonthPreview(lifeKline, currentYear, currentMonthIndex),
   }
 }
 
@@ -433,12 +412,13 @@ function BaziConsumerResult({
   const [lifeKline, setLifeKline] = useState(consumer.life_kline)
   const [fullLifeLoading, setFullLifeLoading] = useState(false)
   const [fullLifeError, setFullLifeError] = useState<string | null>(null)
-  const [selectedKlineTheme, setSelectedKlineTheme] = useState("overall")
+  const [selectedTheme, setSelectedTheme] = useState<ThemeKey>("overall")
   useEffect(() => {
     fullLifeRequestGeneration.current += 1
     setLifeKline(consumer.life_kline)
     setFullLifeLoading(false)
     setFullLifeError(null)
+    setSelectedTheme("overall")
     return () => {
       fullLifeRequestGeneration.current += 1
     }
@@ -461,12 +441,12 @@ function BaziConsumerResult({
   const tabs: Array<{ key: ConsumerTab; label: string; description: string }> = locale === "zh"
     ? [
       { key: "identity", label: "命盘总览", description: "先看结论与四条人生路径" },
-      { key: "kline", label: "人生走势", description: "K 线、运限与阶段触发" },
+      { key: "kline", label: "结构活跃时间线", description: "趋势、运限与阶段触发" },
       { key: "chart", label: "完整命盘", description: "四柱、运限与全部依据" },
     ]
     : [
       { key: "identity", label: "Overview", description: "Your conclusion and four life paths" },
-      { key: "kline", label: "Life K-line", description: "Ten-year and monthly rhythm" },
+      { key: "kline", label: "Activity timeline", description: "Ten-year and monthly rhythm" },
       { key: "chart", label: "Full chart", description: "Pillars, periods, all details" },
     ]
   const selectedCycle = periodCycles.find((cycle) => cycle.index === selectedCycleIndex)
@@ -514,21 +494,27 @@ function BaziConsumerResult({
       pillarTableId={tableExportTargetId}
     />
 
+    <ThemeSelector value={selectedTheme} locale={locale} onChange={setSelectedTheme} />
+
     <nav data-export-exclude aria-label={locale === "zh" ? "八字结果主导航" : "BaZi result navigation"} className="sticky top-20 z-20 grid grid-cols-3 gap-1 rounded-2xl border border-border/60 bg-background/90 p-1.5 shadow-sm backdrop-blur">
       {tabs.map((item) => <button key={item.key} type="button" aria-pressed={tab === item.key} onClick={() => setTab(item.key)} className={`min-w-0 rounded-xl px-2 py-3 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${tab === item.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-primary/8 hover:text-foreground"}`}><span className="block text-sm font-semibold sm:text-base">{item.label}</span><span className={`mt-1 hidden text-[0.68rem] sm:block ${tab === item.key ? "text-primary-foreground/75" : "text-muted-foreground"}`}>{item.description}</span></button>)}
     </nav>
 
-    {tab === "identity" ? <ConsumerIdentity
-      profile={profile}
-      locale={locale}
-      comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined}
-    /> : null}
+    {tab === "identity" ? <div className="space-y-6">
+      {chart.birth_profile.hour_uncertain ? <BirthTimeSensitivity chart={chart} locale={locale} /> : null}
+      <ConsumerIdentity
+        profile={profile}
+        locale={locale}
+        selectedTheme={selectedTheme}
+        comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined}
+      />
+    </div> : null}
 
     {tab === "kline" ? <div className="space-y-8">
-      <LifeKlineChart key={klineChartIdentity} lifeKline={lifeKline} locale={locale} currentYear={currentYear} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} onSeriesChange={(key) => setSelectedKlineTheme(String(key))} onYearChange={selectKlineYear} />
+      {selectedTheme === "overall" ? <OverallThemeTimeline lifeKline={lifeKline} locale={locale} currentYear={currentYear} /> : <LifeKlineChart key={`${klineChartIdentity}-${selectedTheme}`} lifeKline={lifeKline} locale={locale} currentYear={currentYear} initialSeriesKey={selectedTheme} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} onSeriesChange={(key) => setSelectedTheme(normalizeThemeKey(String(key)))} onYearChange={selectKlineYear} />}
       {fullLifeError ? <p role="alert" className="text-sm text-destructive">{fullLifeError}</p> : null}
       <section className="rounded-3xl border border-border/60 bg-surface p-5 sm:p-7"><h2 className="text-xl font-semibold">{locale === "zh" ? "点开阶段看细节" : "Open a period"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "选择大运、流年和流月，查看这一阶段新增、联动和冲突的具体结构。" : "Choose a cycle, year, and month to inspect its activated structures."}</p><div className="mt-5"><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></div></section>
-      <BaziPeriodInsightPanel cycle={selectedCycle} year={selectedYearRecord} month={selectedMonthRecord} selectedTheme={selectedKlineTheme} locale={locale} />
+      <BaziPeriodInsightPanel cycle={selectedCycle} year={selectedYearRecord} month={selectedMonthRecord} selectedTheme={selectedTheme} locale={locale} />
     </div> : null}
 
     {tab === "chart" ? <div className="space-y-9">
@@ -541,7 +527,7 @@ function BaziConsumerResult({
       <BaziPeriodInsightPanel cycle={selectedCycle} year={selectedYearRecord} month={selectedMonthRecord} locale={locale} />
       <ReportChapter title={locale === "zh" ? "结构对照" : "Structure comparisons"}>{hasAvailableStatistics(chart) ? <ThemeProfilePanel profiles={chart.theme_profiles ?? chart.structure?.theme_profiles ?? []} baselineLabel={chart.statistics.baseline.label} locale={locale} /> : <StatisticsUnavailable locale={locale} />}</ReportChapter>
       <ReportChapter title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ReportChapter>
-      <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看排盘规则与原始统计" : "Chart rules and raw statistics"}</summary><div className="mt-6 space-y-7"><BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />{hasAvailableStatistics(chart) ? null : <StatisticsUnavailable locale={locale} />}<p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {baziRuleVersionSummary(chart, locale)}</p></div></details>
+      <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看排盘规则与原始统计" : "Chart rules and raw statistics"}</summary><div className="mt-6 space-y-7">{hasAvailableStatistics(chart) ? <ComparisonUniverseBar statistics={chart.statistics} locale={locale} /> : null}<BaziStatistics chart={chart} locale={locale} currentYear={currentYear} />{hasAvailableStatistics(chart) ? null : <StatisticsUnavailable locale={locale} />}<p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {baziRuleVersionSummary(chart, locale)}</p></div></details>
     </div> : null}
 
     <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} consumerProfile={profile} lifeKline={lifeKline} periodCycles={periodCycles} />
@@ -558,6 +544,14 @@ function BaziConsumerResult({
       pillarTableId={tableExportTargetId}
     />
   </section>
+}
+
+function BirthTimeSensitivity({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+  const stability = chart.birth_profile.stability
+  if (!stability) return null
+  const stable = [...(stability.stable_pillars ?? []).map((item) => `${item.label}：${item.text}`), ...(chart.synthesis?.conclusions ?? []).map((item) => item.headline)].slice(0, 3)
+  const variable = (stability.sensitive_items ?? []).slice(0, 3).map((item) => `${item.label}：${item.detail}`)
+  return <section className="rounded-3xl border border-primary/30 bg-primary/[0.05] p-5 sm:p-7" aria-labelledby="birth-time-sensitivity"><p className="kicker">{locale === "zh" ? "时辰敏感性" : "BIRTH-TIME SENSITIVITY"}</p><h2 id="birth-time-sensitivity" className="mt-2 text-xl font-semibold">{locale === "zh" ? `已对照 ${stability.candidate_count ?? 13} 个可能时辰` : `${stability.candidate_count ?? 13} possible hours compared`}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "精确大运交接暂不展示；先看所有候选时辰都成立的结论。" : "Precise cycle handoffs are withheld; start with conclusions that survive every possible hour."}</p><div className="mt-5 grid gap-5 md:grid-cols-2"><div><h3 className="text-sm font-semibold">{locale === "zh" ? "稳定结论" : "Stable conclusions"}</h3><ul className="mt-2 space-y-2 text-sm leading-6 text-foreground/85">{stable.map((item) => <li key={item}>• {item}</li>)}</ul></div><div><h3 className="text-sm font-semibold">{locale === "zh" ? "会随时辰改变" : "Depends on the hour"}</h3><ul className="mt-2 space-y-2 text-sm leading-6 text-foreground/85">{variable.map((item) => <li key={item}>• {item}</li>)}</ul></div></div></section>
 }
 
 function ShareExportMenu({

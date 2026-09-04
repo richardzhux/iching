@@ -59,8 +59,8 @@ export function BaziPeriodInsightPanel({
     ...(month ? [{ key: "liuyue", label: locale === "zh" ? "流月" : "Month", title: `${month.label} · ${month.ganzhi}`, data: month.theme_activations }] : []),
   ]
   const selectedCanonical = selectedTheme === "health" ? "rhythm" : selectedTheme
-  const orderedThemes = selectedCanonical
-    ? [...THEMES].sort((left, right) => Number(right[1] === selectedCanonical) - Number(left[1] === selectedCanonical))
+  const orderedThemes = selectedCanonical && selectedCanonical !== "overall"
+    ? THEMES.filter((item) => item[1] === selectedCanonical)
     : THEMES
 
   return (
@@ -80,7 +80,7 @@ export function BaziPeriodInsightPanel({
         </p>
       </header>
 
-      <div className="grid min-w-0 border-t border-border/55 lg:grid-cols-4">
+      <div className={cn("grid min-w-0 border-t border-border/55", orderedThemes.length > 1 && "lg:grid-cols-4")}>
         {orderedThemes.map(([theme, key, label]) => {
           const items = dedupe(layers.flatMap((layer) =>
             (layer.data?.[theme] ?? []).map((item) => ({ ...item, layer: item.layer || layer.key })),
@@ -128,6 +128,7 @@ export function BaziPeriodInsightPanel({
         <ArrowRight aria-hidden="true" className="size-3.5" />
         <span>{locale === "zh" ? "流月显示具体触发" : "the month shows the immediate trigger"}</span>
       </footer>
+      <details className="border-t border-border/55 px-5 py-4 sm:px-7"><summary className="cursor-pointer text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "为什么" : "Why"}</summary><p className="mt-3 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "这里只列相对本命底盘新增或加强的合、冲、刑、害、破与成格路径变化；不重复没有变化的本命事实。" : "This lists combinations, clashes, pressures, and formation-path changes newly added or strengthened relative to the natal chart; unchanged natal facts are omitted."}</p></details>
     </section>
   )
 }
