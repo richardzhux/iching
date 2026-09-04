@@ -18,6 +18,7 @@ type HexagramHeaderProps = {
   baziText?: string
   elementsText?: string
   baziDetail?: BaziPillar[]
+  compact?: boolean
 }
 
 const POLARITY_COLORS: Record<string, string> = {
@@ -67,6 +68,7 @@ export function HexagramHeader({
   baziText,
   elementsText,
   baziDetail = [],
+  compact = false,
 }: HexagramHeaderProps) {
   const { messages } = useI18n()
   if (!overview) {
@@ -78,8 +80,8 @@ export function HexagramHeader({
   return (
     <Card className="surface-card border-border/40">
       <CardContent className="p-5">
-        <p className="kicker">{messages.workspace.results.overviewLabel}</p>
-        {(baziText || elementsText || baziDetail.length) && (
+        {!compact ? <p className="kicker">{messages.workspace.results.overviewLabel}</p> : null}
+        {!compact && (baziText || elementsText || baziDetail.length) && (
           <div className="surface-soft mt-3 grid gap-4 rounded-lg p-4">
             {baziText && (
               <InfoRow label={messages.workspace.results.baziTimeLabel}>
@@ -109,6 +111,7 @@ export function HexagramHeader({
             lines={overview.lines}
             sections={sections}
             hexagramType="main"
+            compact={compact}
           />
           {overview.changed_hexagram && (
             <>
@@ -125,6 +128,7 @@ export function HexagramHeader({
                 sections={sections}
                 hexagramType="changed"
                 accent
+                compact={compact}
               />
             </>
           )}
@@ -143,6 +147,7 @@ type HexagramCardProps = {
   sections?: HexSection[]
   hexagramType: "main" | "changed"
   accent?: boolean
+  compact?: boolean
 }
 
 function HexagramCard({
@@ -154,6 +159,7 @@ function HexagramCard({
   sections = [],
   hexagramType,
   accent = false,
+  compact = false,
 }: HexagramCardProps) {
   const orderedLines = useMemo(
     () => [...lines].sort((a, b) => b.position - a.position),
@@ -192,7 +198,7 @@ function HexagramCard({
           {explanation && <p className="mt-2 text-sm leading-6 text-muted-foreground">{explanation}</p>}
         </div>
       </div>
-      <HexagramSourcePreview section={activeSection} />
+      {!compact ? <HexagramSourcePreview section={activeSection} /> : null}
     </div>
   )
 }

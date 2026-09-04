@@ -75,6 +75,8 @@ def test_session_service_uses_custom_timestamp_for_meihua_lines(monkeypatch):
 def _assert_brief_contract(brief):
     assert brief["headline"]
     assert brief["stance"]
+    assert brief["direction"]["kind"] in {"advance", "wait", "adjust", "stop", "observe"}
+    assert brief["direction"]["summary"]
     assert brief["plain_language"]
     assert brief["evidence"]
     assert brief["key_passages"]
@@ -82,7 +84,7 @@ def _assert_brief_contract(brief):
     assert brief["archive_sources"]
     assert isinstance(brief["timing"], list)
     assert brief["actions"]
-    assert brief["risks"]
+    assert isinstance(brief["risks"], list)
     assert brief["followup_prompts"]
     assert brief["personal_context"]["status"] == "reserved"
     assert {"source_id", "excerpt", "plain_language", "source", "why_it_matters"} <= set(brief["key_passages"][0])
@@ -182,6 +184,8 @@ def test_chart_only_fallback_does_not_invent_timing_precision_or_near_term_claim
     )
 
     assert result.reading_brief["timing"] == []
+    assert result.reading_brief["risks"] == []
+    assert len(result.reading_brief["actions"]) == 1
     assert all(
         "一到两周" not in str(item.get("cadence") or "")
         for item in result.reading_brief["actions"]

@@ -193,6 +193,9 @@ export type ConsumerSubjectPath = {
   drivers?: string[]
   path_label?: string
   path_summary?: string
+  cause?: string | null
+  current_effect?: string | null
+  next_activation?: string | null
 }
 
 /** @deprecated Compatibility alias for components that still use the old type name. */
@@ -923,6 +926,10 @@ export type ReadingBriefKeyPassage = ReadingBriefSourcePassage & {
 export type ReadingBrief = {
   headline: string
   stance: "stable" | "changing" | "transforming" | string
+  direction?: {
+    kind: "advance" | "wait" | "adjust" | "stop" | "observe"
+    summary: string
+  }
   plain_language: string
   evidence: ReadingBriefEvidence[]
   key_passages?: ReadingBriefKeyPassage[]

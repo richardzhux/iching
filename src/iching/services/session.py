@@ -258,6 +258,23 @@ def _extract_ai_headline(ai_text: Optional[str]) -> Optional[str]:
     return None
 
 
+def _reading_direction(headline: str, stance: str) -> Dict[str, str]:
+    normalized = str(headline or "")
+    if any(token in normalized for token in ("不利", "停止", "止步", "不要推进")):
+        return {"kind": "stop", "summary": "当前条件不支持继续加码。"}
+    if any(token in normalized for token in ("延迟", "等待", "暂缓", "待时")):
+        return {"kind": "wait", "summary": "条件尚未成熟，先等关键触发出现。"}
+    if any(token in normalized for token in ("调整", "转向", "改变", "修正")):
+        return {"kind": "adjust", "summary": "先改变推进方式，再决定是否加速。"}
+    if any(token in normalized for token in ("利成", "推进", "可行", "有利")):
+        return {"kind": "advance", "summary": "方向可行，按关键条件向前推进。"}
+    if stance == "transforming":
+        return {"kind": "adjust", "summary": "旧局正在转换，下一步以新条件为准。"}
+    if stance == "changing":
+        return {"kind": "adjust", "summary": "变化已经开始，先处理最关键的触发点。"}
+    return {"kind": "observe", "summary": "先守住当前条件，等待明确变化。"}
+
+
 def _extract_ai_plain_language(ai_text: Optional[str]) -> Optional[str]:
     if not ai_text:
         return None
@@ -739,28 +756,11 @@ def _build_reading_brief(
     archive_sources = _build_archive_sources(source_passages)
 
     fallback_timing: List[Dict[str, object]] = []
-    fallback_actions = [
-        {
-            "action": "先做一个低成本验证，不要一次性押上全部资源。",
-            "cadence": "下一步",
-            "signal": "记录实际反馈、资源是否到位，以及前提条件是否成立。",
-        },
-        {
-            "action": "把关键风险写成可观察条件，再决定是否推进。",
-            "cadence": "每次重大动作前",
-            "signal": "条件满足则进，不满足则缓。",
-        },
-        {
-            "action": "保留复盘记录，后续追问不要重新起卦。",
-            "cadence": "出现新事实时",
-            "signal": "同一问题的判断链保持连续。",
-        },
-    ]
-    fallback_risks = [
-        "只看结论而忽略动爻和文本依据，容易把复杂局势看得过于简单。",
-        "如果问题本身过宽，判断会更偏趋势而不是具体执行方案。",
-        "外部条件发生实质变化时，需要基于同一会话继续追问，而不是混用多个卦。",
-    ]
+    fallback_actions = [{
+        "action": "先验证一个决定成败的条件，再决定是否加码。",
+        "cadence": "下一步",
+        "signal": "关键条件是否真实到位。",
+    }]
     fallback_followups = [
         "这卦最关键的风险信号是什么？",
         "如果我要推进，第一步应该做什么？",
@@ -770,6 +770,7 @@ def _build_reading_brief(
     return {
         "headline": headline,
         "stance": stance,
+        "direction": _reading_direction(headline, stance),
         "plain_language": plain,
         "evidence": evidence,
         "key_passages": key_passages,
@@ -783,7 +784,7 @@ def _build_reading_brief(
         },
         "timing": _extract_ai_timing(ai_analysis_text) or fallback_timing,
         "actions": _extract_ai_actions(ai_analysis_text) or fallback_actions,
-        "risks": _extract_ai_risks(ai_analysis_text) or fallback_risks,
+        "risks": _extract_ai_risks(ai_analysis_text),
         "followup_prompts": _extract_ai_followups(ai_analysis_text) or fallback_followups,
         "generated_at": current_time_str,
     }

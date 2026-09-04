@@ -64,9 +64,6 @@ export function ResultsPanel() {
         <CardHeader className="flex flex-col gap-3 border-b border-border/50 pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <CardTitle className="text-lg">{locale === "zh" ? "解卦" : "Reading"}</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {locale === "zh" ? "卦象、纳甲、经典依据与 AI 追问都保留在这一页。" : "Hexagram mechanics, Najia, source evidence, and AI follow-up stay on this page."}
-            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => router.push(toLocalePath("/app"))}>
@@ -831,6 +828,69 @@ function MechanicsInsightPanel({
   )
 }
 
+function readingDirectionLabel(brief: ReadingBrief, locale: "en" | "zh") {
+  const kind = brief.direction?.kind ?? (brief.stance === "stable" ? "observe" : "adjust")
+  const labels = locale === "zh"
+    ? { advance: "推进", wait: "等待", adjust: "调整", stop: "止步", observe: "观察" }
+    : { advance: "Advance", wait: "Wait", adjust: "Adjust", stop: "Stop", observe: "Observe" }
+  return labels[kind]
+}
+
+function ReadingQuestion({ result }: { result: SessionPayload }) {
+  const { locale } = useI18n()
+  const question = result.session_dict?.["user_question"] as string | undefined
+  const topic = result.session_dict?.["topic"] as string | undefined
+  return (
+    <section className="border-b border-border/60 pb-5">
+      <p className="text-xs font-semibold text-muted-foreground">{locale === "zh" ? "你问" : "Your question"}</p>
+      <h2 className="mt-2 text-balance text-2xl font-semibold leading-9 text-foreground sm:text-3xl">
+        {question || topic || (locale === "zh" ? "这件事接下来怎么走？" : "What happens next?")}
+      </h2>
+    </section>
+  )
+}
+
+function ReadingDecisionSummary({ brief }: { brief: ReadingBrief }) {
+  const { locale } = useI18n()
+  const timing = brief.timing[0]
+  const action = brief.actions[0]
+  const directionSummary = brief.direction?.summary || brief.plain_language
+  const rows = [
+    {
+      label: locale === "zh" ? "方向" : "Direction",
+      value: `${readingDirectionLabel(brief, locale)}${directionSummary ? ` · ${directionSummary}` : ""}`,
+    },
+    timing ? {
+      label: locale === "zh" ? "时机" : "Timing",
+      value: `${timing.window}${timing.condition ? ` · ${timing.condition}` : ""}`,
+    } : null,
+    action ? {
+      label: locale === "zh" ? "下一步" : "Next step",
+      value: action.action,
+    } : null,
+  ].filter((row): row is { label: string; value: string } => Boolean(row?.value))
+
+  return (
+    <section className="border-y border-border/60 py-6" aria-labelledby="reading-bottom-line">
+      <p className="text-sm font-semibold text-primary">{locale === "zh" ? "一句话结论" : "Bottom line"}</p>
+      <h2 id="reading-bottom-line" className="mt-3 max-w-4xl text-balance text-2xl font-semibold leading-9 text-foreground sm:text-3xl">
+        {brief.headline}
+      </h2>
+      {brief.plain_language && brief.plain_language !== directionSummary ? (
+        <p className="mt-3 max-w-4xl text-base leading-7 text-foreground/75">{brief.plain_language}</p>
+      ) : null}
+      <dl className="mt-6 divide-y divide-border/55 border-y border-border/55">
+        {rows.map((row) => (
+          <div key={row.label} className="grid gap-1 py-4 sm:grid-cols-[7rem_1fr] sm:gap-5">
+            <dt className="font-semibold text-primary">{row.label}</dt>
+            <dd className="text-sm leading-6 text-foreground/85 sm:text-base">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
 function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayload; brief: ReadingBrief; onSourceSelect: (sourceId: string) => void }) {
   const { messages, locale } = useI18n()
 
@@ -892,6 +952,7 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
 
   return (
     <div className="mt-4 space-y-5">
+      <ReadingQuestion result={result} />
       <HexagramHeader
         overview={result.hex_overview}
         najiaMeta={result.najia_table?.meta}
@@ -899,48 +960,57 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
         baziText={baziText}
         elementsText={elementsText}
         baziDetail={baziDetail}
+        compact
       />
-      <MechanicsInsightPanel
-        result={result}
-        brief={brief}
-        primarySections={primarySections}
-        secondarySections={secondarySections}
-        onSourceSelect={onSourceSelect}
-      />
-      {result.najia_table?.rows?.length ? (
-        <div className="space-y-2">
-          <p className="kicker">{messages.workspace.results.sixGodLabel}</p>
-          <NajiaTableView table={result.najia_table} />
-        </div>
-      ) : null}
-      <div className="border-t border-border/60 pt-4 text-sm leading-relaxed text-foreground">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="kicker">{messages.workspace.results.hexLabel}</p>
-          {(hasHiddenSections || drawerSourceSection) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs font-semibold tracking-wide text-foreground hover:text-foreground"
-              onClick={() => {
-                if (drawerSourceSection) {
-                  onSourceSelect(sectionSourceIdForDrawer(drawerSourceSection))
-                }
-              }}
-            >
-              {sourceButtonLabel}
-            </Button>
-          )}
-        </div>
-        {hasPrimary ? (
-          <HexSectionGroup
-            title={messages.workspace.results.primarySectionTitle}
-            sections={primarySections}
-            variant="primary"
+      <ReadingDecisionSummary brief={brief} />
+      <details className="group border-b border-border/60 pb-5">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-base font-semibold text-foreground marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <span>{locale === "zh" ? "为什么这样断" : "Why this reading"}</span>
+          <span className="text-sm text-primary group-open:hidden">{locale === "zh" ? "展开" : "Open"}</span>
+          <span className="hidden text-sm text-primary group-open:inline">{locale === "zh" ? "收起" : "Close"}</span>
+        </summary>
+        <div className="space-y-6 pt-2">
+          <MechanicsInsightPanel
+            result={result}
+            brief={brief}
+            primarySections={primarySections}
+            secondarySections={secondarySections}
+            onSourceSelect={onSourceSelect}
           />
-        ) : (
-          <MarkdownContent content={result.hex_text} />
-        )}
-      </div>
+          {result.najia_table?.rows?.length ? (
+            <div className="space-y-2">
+              <p className="kicker">{messages.workspace.results.sixGodLabel}</p>
+              <NajiaTableView table={result.najia_table} />
+            </div>
+          ) : null}
+          <div className="border-t border-border/60 pt-4 text-sm leading-relaxed text-foreground">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="kicker">{messages.workspace.results.hexLabel}</p>
+              {(hasHiddenSections || drawerSourceSection) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs font-semibold tracking-wide text-foreground hover:text-foreground"
+                  onClick={() => {
+                    if (drawerSourceSection) onSourceSelect(sectionSourceIdForDrawer(drawerSourceSection))
+                  }}
+                >
+                  {sourceButtonLabel}
+                </Button>
+              )}
+            </div>
+            {hasPrimary ? (
+              <HexSectionGroup
+                title={messages.workspace.results.primarySectionTitle}
+                sections={primarySections}
+                variant="primary"
+              />
+            ) : (
+              <MarkdownContent content={result.hex_text} />
+            )}
+          </div>
+        </div>
+      </details>
     </div>
   )
 }
