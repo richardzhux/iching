@@ -188,7 +188,7 @@ function EvidenceSourcePanel({
 
   if (!claim) return null
   return (
-    <aside className="min-w-0 border-l border-border/55 pl-5 lg:pl-7">
+    <aside className="autumn-node-detail min-w-0 border-l border-border/55 pl-5 lg:pl-7">
       <div className="flex items-center gap-2 text-primary">
         <BookOpen aria-hidden="true" className="size-4" />
         <h3 className="text-sm font-semibold">{locale === "zh" ? "为什么这样判断" : "Why this conclusion"}</h3>
@@ -341,7 +341,7 @@ export function BaziDiagnosticWorkspace({ chart, locale }: { chart: MetaphysicsC
                   onClick={() => step.claim && setSelectedClaimId(step.claim.id)}
                   aria-pressed={selectedClaim?.id === step.claim?.id}
                   className={cn(
-                    "group flex h-full w-full min-w-0 items-start gap-3 px-3 py-4 text-left transition sm:px-4",
+                    "autumn-diagnostic-node group flex h-full w-full min-w-0 items-start gap-3 px-3 py-4 text-left transition sm:px-4",
                     selectedClaim?.id === step.claim?.id ? "bg-primary/[0.06]" : "hover:bg-muted/35",
                   )}
                 >

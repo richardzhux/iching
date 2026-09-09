@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { ArrowRight, CalendarRange, CircleDot, Layers3 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -52,6 +53,7 @@ export function BaziPeriodInsightPanel({
   selectedTheme?: string
   locale: Locale
 }) {
+  const [inspectionTheme, setInspectionTheme] = useState("career")
   if (!cycle) return null
   const layers = [
     { key: "dayun", label: locale === "zh" ? "大运" : "Da Yun", title: `${cycle.ganzhi} · ${cycle.start_year}–${cycle.end_year}`, data: cycle.theme_activations },
@@ -59,12 +61,11 @@ export function BaziPeriodInsightPanel({
     ...(month ? [{ key: "liuyue", label: locale === "zh" ? "流月" : "Month", title: `${month.label} · ${month.ganzhi}`, data: month.theme_activations }] : []),
   ]
   const selectedCanonical = selectedTheme === "health" ? "rhythm" : selectedTheme
-  const orderedThemes = selectedCanonical && selectedCanonical !== "overall"
-    ? THEMES.filter((item) => item[1] === selectedCanonical)
-    : THEMES
+  const activeTheme = selectedCanonical && selectedCanonical !== "overall" ? selectedCanonical : inspectionTheme
+  const orderedThemes = THEMES.filter((item) => item[1] === activeTheme)
 
   return (
-    <section className="border-y border-border/60 bg-surface">
+    <section className="autumn-period-inspector border-y border-border/60 bg-surface">
       <header className="flex flex-wrap items-end justify-between gap-4 px-5 py-5 sm:px-7">
         <div>
           <div className="flex items-center gap-2 text-primary">
@@ -80,6 +81,8 @@ export function BaziPeriodInsightPanel({
         </p>
       </header>
 
+      {!selectedCanonical || selectedCanonical === "overall" ? <div className="mx-5 mb-4 flex" role="group" aria-label={locale === "zh" ? "阶段解读主题" : "Period detail theme"}>{THEMES.map(([, key, label]) => <button type="button" key={key} aria-pressed={activeTheme === key} onClick={() => setInspectionTheme(key)} className="flex-1 px-2 py-2 text-xs">{locale === "zh" ? label : key === "rhythm" ? "Rhythm" : key.charAt(0).toUpperCase() + key.slice(1)}</button>)}</div> : null}
+
       <div className={cn("grid min-w-0 border-t border-border/55", orderedThemes.length > 1 && "lg:grid-cols-4")}>
         {orderedThemes.map(([theme, key, label]) => {
           const items = dedupe(layers.flatMap((layer) =>
@@ -94,7 +97,7 @@ export function BaziPeriodInsightPanel({
               </div>
               {items.length ? (
                 <div className="mt-4 space-y-4">
-                  {items.slice(0, 5).map((item) => (
+                  {items.map((item) => (
                     <div key={`${item.layer}-${item.id}-${item.label}`} className="min-w-0">
                       <div className="flex items-start gap-2">
                         <CircleDot aria-hidden="true" className="mt-1 size-3.5 shrink-0 text-primary" />

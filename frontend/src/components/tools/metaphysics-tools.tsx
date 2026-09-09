@@ -386,7 +386,7 @@ export function MetaphysicsTools() {
   const copy = locale === "zh" ? {
     subjectName: "命主称呼",
     title: "命盘与人生走势",
-    subtitle: "八字、紫微、稀有成就与未来十年，一次看清。",
+    subtitle: "从命盘结构到历法模拟，从人生主线到每一段运限。",
     current: "当前时令",
     bazi: "八字排盘",
     ziwei: "紫微斗数",
@@ -435,7 +435,7 @@ export function MetaphysicsTools() {
     lunarYear: "农历正月初一",
     exactYear: "立春",
     horoscopeDate: "运限日期",
-    chartNote: "精确节气排盘 · 历法样本对照 · 确定性人生 K 线",
+    chartNote: "精确节气排盘 · 120 年历法对照 · 结构与时间联动",
     newChart: "新建命盘",
     savedCloud: "已自动保存到我的档案",
     savingCloud: "正在保存…",
@@ -448,7 +448,7 @@ export function MetaphysicsTools() {
   } : {
     subjectName: "Chart name",
     title: "Charts & Life Timeline",
-    subtitle: "BaZi, Zi Wei, rare achievements, and your next ten years in one place.",
+    subtitle: "Explore chart structure, calendar simulations, life themes, and every period.",
     current: "Current Time",
     bazi: "BaZi",
     ziwei: "Zi Wei Dou Shu",
@@ -497,7 +497,7 @@ export function MetaphysicsTools() {
     lunarYear: "Lunar New Year",
     exactYear: "Start of Spring",
     horoscopeDate: "Horoscope date",
-    chartNote: "Exact solar terms · calendar-sample comparisons · deterministic Life K-line",
+    chartNote: "Exact solar terms · 120-year calendar reference · structure across time",
     newChart: "New chart",
     savedCloud: "Automatically saved to My Charts",
     savingCloud: "Saving…",
@@ -1291,10 +1291,10 @@ export function MetaphysicsTools() {
   }
 
   return (
-    <main className="mx-auto max-w-[92rem] space-y-6">
-      <header className="border-b border-border/60 pb-5">
+    <div className="autumn-study autumn-tools mx-auto max-w-[92rem] space-y-6">
+      <header className="autumn-page-header">
         <p className="kicker">{locale === "zh" ? "命理排盘" : "Personal charts"}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">{copy.title}</h1>
+        <h1 className="autumn-page-title">{copy.title}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">{copy.subtitle}</p>
         <p className="mt-3 max-w-3xl text-xs leading-5 text-muted-foreground">{copy.chartNote}</p>
       </header>
@@ -1378,7 +1378,7 @@ export function MetaphysicsTools() {
         </TabsContent>
       </Tabs>
       {comparisonKind && comparisonCurrentProfile ? <MetaphysicsComparisonDialog open={comparisonOpen} onOpenChange={setComparisonOpen} kind={comparisonKind} locale={locale} currentName={comparisonKind === "bazi" ? birthResult?.subjectName ?? "" : ziweiResult?.subjectName ?? ""} currentProfile={comparisonCurrentProfile} onCalculate={calculateComparison} /> : null}
-    </main>
+    </div>
   )
 }
 

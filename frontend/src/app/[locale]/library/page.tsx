@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { ArrowUpRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { defaultLocale, isLocale, type Locale } from "@/i18n/config"
 import { withLocale } from "@/i18n/path"
 import { HexagramGlyph } from "@/components/hexagram/hexagram-glyph"
@@ -89,19 +91,14 @@ export default async function LibraryPage({ params }: Props) {
         }
 
   return (
-    <div className="space-y-8">
-      <header className="grid gap-5 border-b border-border/60 pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
+    <div className="autumn-study autumn-library space-y-8">
+      <header className="autumn-page-header grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
           <p className="kicker">{copy.eyebrow}</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">{copy.title}</h1>
+          <h1 className="autumn-page-title">{copy.title}</h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">{copy.subtitle}</p>
         </div>
-        <Link
-          href={withLocale(locale, "/app")}
-          className="inline-flex min-h-11 items-center justify-center rounded-md border border-border/70 px-4 text-sm font-semibold text-foreground outline-none transition hover:border-primary/50 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          {copy.deskCta}
-        </Link>
+        <Button asChild variant="secondary"><Link href={withLocale(locale, "/app")}>{copy.deskCta}<ArrowUpRight aria-hidden="true" /></Link></Button>
       </header>
 
       <LibrarySearch locale={locale} documents={searchDocuments} />
@@ -119,7 +116,7 @@ export default async function LibraryPage({ params }: Props) {
                 key={entry.slug}
                 id={`hexagram-${entry.number}`}
                 href={withLocale(locale, `/hexagram/${entry.slug}`)}
-                className="group min-h-44 scroll-mt-24 border-b border-border/60 py-5 outline-none transition hover:border-primary/60 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="autumn-library-entry group min-h-44 scroll-mt-24 border-b border-border/60 py-5 outline-none transition hover:border-primary/60 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -134,7 +131,7 @@ export default async function LibraryPage({ params }: Props) {
                 <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   {themes.map((theme) => <span key={theme}>#{theme}</span>)}
                 </div>
-                <p className="mt-4 text-xs font-semibold text-primary">{copy.open}</p>
+                <span className="autumn-entry-action">{copy.open}<ArrowUpRight size={14} aria-hidden="true" /></span>
               </Link>
             )
           })}

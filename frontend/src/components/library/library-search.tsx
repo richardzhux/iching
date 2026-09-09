@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
+import { Search, X } from "lucide-react"
 import type { Locale } from "@/i18n/config"
 import { withLocale } from "@/i18n/path"
 import { trackProductEvent } from "@/lib/analytics"
@@ -49,6 +50,7 @@ export function LibrarySearch({ locale, documents }: Props) {
           title: "查卦名与卦意",
           placeholder: "乾、qian、第 3 卦、利贞...",
           empty: "没有找到匹配的卦，试试卦名、拼音、编号或原文。",
+          browseHint: "六十四卦，依次陈列于下。输入关键词可查找卦名与原文。",
           open: "打开卦页",
           best: "最佳匹配",
           reasons: ["卦名或编号", "相近卦名", "卦意或主题", "原文提及"],
@@ -58,6 +60,7 @@ export function LibrarySearch({ locale, documents }: Props) {
           title: "Search the Yi",
           placeholder: "qian, hexagram 3, difficulty, judgment...",
           empty: "No matching hexagram. Try a name, pinyin, number, or source phrase.",
+          browseHint: "All 64 hexagrams are collected below. Enter a word or phrase to search the names and texts.",
           open: "Open hexagram",
           best: "Best match",
           reasons: ["Exact name or number", "Close name match", "Meaning or theme", "Source-text mention"],
@@ -84,13 +87,16 @@ export function LibrarySearch({ locale, documents }: Props) {
       .sort((a, b) => b.tier - a.tier || a.document.number - b.document.number)
   }, [documents, query])
 
-  const displayedResults = matchedResults.slice(0, query.trim() ? 12 : 8)
+  const hasQuery = Boolean(query.trim())
+  const displayedResults = hasQuery ? matchedResults.slice(0, 12) : []
 
   return (
-    <section className="border-b border-border/60 pb-7">
+    <section className="autumn-library-search border-b border-border/60 pb-7">
       <label htmlFor="library-search" className="text-sm font-semibold text-foreground">
         {labels.title}
       </label>
+      <div className="autumn-search-field">
+      <Search size={19} aria-hidden="true" />
       <input
         id="library-search"
         value={query}
@@ -102,18 +108,20 @@ export function LibrarySearch({ locale, documents }: Props) {
           }
         }}
         placeholder={labels.placeholder}
-        className="mt-3 h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="min-w-0 flex-1 border-0 bg-transparent text-sm text-foreground outline-none"
       />
+      {hasQuery && <button type="button" onClick={() => setQuery("")} aria-label={locale === "zh" ? "清除搜索" : "Clear search"}><X size={17} aria-hidden="true" /></button>}
+      </div>
       <p className="mt-3 text-sm text-muted-foreground" role="status" aria-live="polite">
-        {labels.showing(displayedResults.length, matchedResults.length)}
+        {hasQuery ? labels.showing(displayedResults.length, matchedResults.length) : labels.browseHint}
       </p>
-      <div className="mt-4 grid gap-2 md:grid-cols-2">
+      {hasQuery && <div className="mt-4 grid gap-x-8 md:grid-cols-2">
         {displayedResults.map(({ document: result, tier, excerpt }, index) => (
           <Link
             key={result.slug}
             href={withLocale(locale, `/hexagram/${result.slug}`)}
             aria-label={`${result.number} ${result.nameZh} · ${tier ? labels.reasons[4 - tier] : labels.open}`}
-            className="rounded-md border border-border/60 bg-surface-elevated p-3 outline-none transition hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="border-b border-border/60 py-5 outline-none transition hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -131,8 +139,8 @@ export function LibrarySearch({ locale, documents }: Props) {
             <p className="mt-2 text-[11px] text-muted-foreground">{result.localizedThemes.join(" · ")}</p>
           </Link>
         ))}
-      </div>
-      {!matchedResults.length && <p className="mt-4 text-sm text-muted-foreground">{labels.empty}</p>}
+      </div>}
+      {hasQuery && !matchedResults.length && <p className="mt-4 text-sm text-muted-foreground">{labels.empty}</p>}
     </section>
   )
 }

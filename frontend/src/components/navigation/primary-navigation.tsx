@@ -24,7 +24,7 @@ export function PrimaryNavigation({ className, mobile = false }: Props) {
     <nav
       aria-label={mobile ? messages.nav.mobileMenuAria : undefined}
       className={cn(
-        "items-center gap-1",
+        "autumn-navigation items-center gap-1",
         mobile ? "flex w-full gap-2 overflow-x-auto px-4 py-2 sm:px-6" : "flex",
         className,
       )}

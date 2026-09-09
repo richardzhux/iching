@@ -1,4 +1,5 @@
 import type {
+  CastingPreview,
   ChatTranscriptResponse,
   ChatMessage,
   ChatTurnPayload,
@@ -79,6 +80,15 @@ export async function fetchConfig(): Promise<ConfigResponse> {
     cache: "no-store",
   })
   return handleResponse<ConfigResponse>(response)
+}
+
+export async function prepareCasting(methodKey: "s" | "m", timestamp: string): Promise<CastingPreview> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/casting/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ method_key: methodKey, timestamp }),
+  })
+  return handleResponse<CastingPreview>(response)
 }
 
 export async function calculateMetaphysicsChart(payload: MetaphysicsChartRequest): Promise<MetaphysicsChart> {

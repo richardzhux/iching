@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 
 from iching.integrations.supabase_client import SupabaseAuthError
+from iching.core.divination import MeihuaMethod, ShicaoMethod
 from iching.core.bazi_rules.registry import load_packaged_shen_registry
 from iching.core.metaphysics import build_metaphysics_chart
 from iching.core.metaphysics_statistics import lookup_statistics
@@ -16,6 +17,8 @@ from iching.core.pattern_product_catalog import pattern_library
 from iching.web.chat_service import ChatRateLimitError
 from iching.web.chart_service import ChartArchiveService
 from iching.web.models import (
+    CastingPreviewRequest,
+    CastingPreviewResponse,
     MetaphysicsChartListResponse,
     MetaphysicsChartRecord,
     ChatTranscriptResponse,
@@ -105,6 +108,26 @@ def healthcheck() -> dict[str, str]:
 @router.get("/config", response_model=ConfigResponse)
 def read_config(runner: SessionRunner = Depends(_get_runner)) -> ConfigResponse:
     return runner.config_response()
+
+
+@router.post("/casting/preview", response_model=CastingPreviewResponse)
+def prepare_cast(payload: CastingPreviewRequest) -> CastingPreviewResponse:
+    """Prepare the actual cast for progressive display, without creating a reading."""
+    if payload.method_key == "s":
+        steps = [ShicaoMethod.calculate_line_steps() for _ in range(6)]
+        return CastingPreviewResponse(
+            method_key="s", timestamp=payload.timestamp,
+            lines=[line_steps[-1] // 4 for line_steps in steps], yarrow_steps=steps,
+        )
+    try:
+        upper, lower, moving = MeihuaMethod._calculate_trigrams(payload.timestamp)
+        return CastingPreviewResponse(
+            method_key="m", timestamp=payload.timestamp,
+            lines=MeihuaMethod._construct_hexagram(upper, lower, moving),
+            upper_trigram=upper, lower_trigram=lower, changing_line=moving,
+        )
+    except (ValueError, OverflowError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/tools/metaphysics", response_model=MetaphysicsChartResponse)

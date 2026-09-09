@@ -77,14 +77,16 @@ export function CastWorkspace() {
   }
 
   return (
-    <div className="space-y-5 xl:space-y-6">
+    <div>
       <CastForm config={data} />
+      <div className="mx-auto max-w-5xl space-y-4 px-6 py-8">
       {hasResult ? (
         <Button asChild variant="outline" className="w-full rounded-lg">
           <Link href={toLocalePath("/reading")}>{messages.workspace.viewLastResult}</Link>
         </Button>
       ) : null}
       <HistoryDrawer />
+      </div>
     </div>
   )
 }

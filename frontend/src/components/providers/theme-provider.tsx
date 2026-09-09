@@ -9,7 +9,7 @@ type Props = {
 
 export function ThemeProvider({ children }: Props) {
   return (
-    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem enableColorScheme>
+    <NextThemesProvider attribute="class" defaultTheme="light" storageKey="iching-appearance" enableSystem enableColorScheme>
       {children}
     </NextThemesProvider>
   )

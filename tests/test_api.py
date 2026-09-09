@@ -24,6 +24,35 @@ def test_healthcheck() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_casting_preview_preserves_timestamp_and_meihua_orientation() -> None:
+    response = client.post("/api/casting/preview", json={
+        "method_key": "m", "timestamp": "2026-07-12T10:30:00+08:00",
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["timestamp"] == "2026-07-12T10:30:00+08:00"
+    assert (data["upper_trigram"], data["lower_trigram"], data["changing_line"]) == (8, 6, 4)
+    assert data["lines"] == [8, 7, 8, 6, 8, 8]
+
+
+def test_yarrow_preview_stages_are_the_values_used_by_the_reading() -> None:
+    from iching.core.divination import ShicaoMethod
+
+    response = client.post("/api/casting/preview", json={
+        "method_key": "s", "timestamp": "2026-07-12T10:30:00+08:00",
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["lines"]) == len(data["yarrow_steps"]) == 6
+    for value, steps in zip(data["lines"], data["yarrow_steps"]):
+        assert len(steps) == 3
+        assert 49 - steps[0] in (5, 9)
+        assert steps[0] - steps[1] in (4, 8)
+        assert steps[1] - steps[2] in (4, 8)
+        assert steps[-1] // 4 == value
+    assert ShicaoMethod().generate_lines(interactive=False, manual_lines=data["lines"]) == data["lines"]
+
+
 def test_config_endpoint() -> None:
     response = client.get("/api/config")
     data = response.json()

@@ -14,6 +14,15 @@ class LineGenerator(Protocol):
         ...
 
 
+def _validated_lines(manual_lines: Iterable[int]) -> List[int]:
+    values = list(manual_lines)
+    if len(values) != 6 or any(
+        type(value) is not int or value not in {6, 7, 8, 9} for value in values
+    ):
+        raise ValueError("manual_lines 必须是六个介于 6-9 之间的整数")
+    return values
+
+
 def _default_sleep(seconds: float) -> None:
     time.sleep(seconds)
 
@@ -58,6 +67,8 @@ class ShicaoMethod:
         now_func: Callable[[], datetime] = _default_now,
         manual_lines: Optional[Iterable[int]] = None,
     ) -> List[int]:
+        if manual_lines is not None:
+            return _validated_lines(manual_lines)
         if interactive:
             print("\n您选择了五十蓍草法占卜。")
             sleep_func(1)
@@ -65,12 +76,19 @@ class ShicaoMethod:
 
     @staticmethod
     def _calculate_line(rng: Optional[random.Random] = None) -> int:
+        return ShicaoMethod.calculate_line_steps(rng)[-1] // 4
+
+    @staticmethod
+    def calculate_line_steps(rng: Optional[random.Random] = None) -> List[int]:
+        """Remaining stalks after each of the three changes for one line."""
         rng = rng or random
         remaining_stalks = 49
         remaining_stalks -= 5 if rng.random() < 0.75 else 9
+        steps = [remaining_stalks]
         for _ in range(2):
             remaining_stalks -= 4 if rng.random() < 0.5 else 8
-        return remaining_stalks // 4
+            steps.append(remaining_stalks)
+        return steps
 
 
 @dataclass(slots=True)
@@ -91,13 +109,7 @@ class CoinMethod:
             print("\n您选择了三枚铜钱法占卜。")
             sleep_func(1)
         if manual_lines is not None:
-            values = list(manual_lines)
-            if len(values) != 6 or any(
-                type(value) is not int or value not in {6, 7, 8, 9}
-                for value in values
-            ):
-                raise ValueError("manual_lines 必须是六个介于 6-9 之间的整数")
-            return values
+            return _validated_lines(manual_lines)
         return [self._throw_coins() for _ in range(6)]
 
     @staticmethod
@@ -122,6 +134,8 @@ class MeihuaMethod:
         now_func: Callable[[], datetime] = _default_now,
         manual_lines: Optional[Iterable[int]] = None,
     ) -> List[int]:
+        if manual_lines is not None:
+            return _validated_lines(manual_lines)
         if interactive:
             print("\n您选择了梅花易数法占卜。")
             print("注意：数字卦只可以用较简单的小事，不可以用与人生大事。")

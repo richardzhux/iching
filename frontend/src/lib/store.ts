@@ -26,6 +26,7 @@ export type WorkspaceForm = {
   userContext: string
   methodKey: string
   manualLines: string
+  castingTimestamp?: string
   useCurrentTime: boolean
   customTimestamp: string
   enableAi: boolean

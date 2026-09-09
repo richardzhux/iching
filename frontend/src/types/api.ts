@@ -27,6 +27,16 @@ export type ConfigResponse = {
   model_aliases: Record<string, string>
 }
 
+export type CastingPreview = {
+  method_key: "s" | "m"
+  timestamp: string
+  lines: number[]
+  yarrow_steps: number[][]
+  upper_trigram: number | null
+  lower_trigram: number | null
+  changing_line: number | null
+}
+
 export type MetaphysicsPillar = {
   label: string
   stem: string

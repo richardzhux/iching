@@ -35,13 +35,13 @@ export function ThemeToggle({ className }: { className?: string }) {
         aria-label={messages.theme.toDark}
         title={messages.theme.toDark}
         className={cn(
-          "rounded-full border-border/70 bg-background/80 text-foreground shadow-lg backdrop-blur",
+          "autumn-theme-toggle border-transparent bg-transparent text-muted-foreground",
           className
         )}
         data-state="loading"
         disabled
       >
-        <span className="h-3 w-12 animate-pulse rounded-full bg-foreground/20" />
+        <span className="size-4 animate-pulse rounded-sm bg-foreground/20" />
       </Button>
     )
   }
@@ -63,7 +63,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={label}
       onClick={nextTheme}
       className={cn(
-        "rounded-full border-border/70 bg-background/80 text-foreground shadow-lg backdrop-blur data-[state=loading]:pointer-events-none",
+        "autumn-theme-toggle border-transparent bg-transparent text-muted-foreground data-[state=loading]:pointer-events-none",
         className
       )}
       data-state={mounted ? undefined : "loading"}
@@ -71,7 +71,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       {mounted ? (
         <>
           {icon}
-          <span className="text-xs font-medium">
+          <span className="hidden text-xs font-medium lg:inline">
             {resolvedTheme === "dark"
               ? messages.theme.dark
               : resolvedTheme === "light"
@@ -80,7 +80,7 @@ export function ThemeToggle({ className }: { className?: string }) {
           </span>
         </>
       ) : (
-        <span className="h-3 w-12 animate-pulse rounded-full bg-foreground/20" />
+        <span className="size-4 animate-pulse rounded-sm bg-foreground/20" />
       )}
     </Button>
   )

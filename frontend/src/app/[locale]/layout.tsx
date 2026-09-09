@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import { I18nProvider } from "@/components/providers/i18n-provider"
+import { AutumnMotionProvider } from "@/components/autumn/autumn-motion"
 import { PrimaryNavigation } from "@/components/navigation/primary-navigation"
 import { ProfileMenu } from "@/components/profile/profile-menu"
 import { LanguageToggle } from "@/components/theme/language-toggle"
@@ -52,12 +54,15 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <I18nProvider locale={locale} messages={messages}>
+      <AutumnMotionProvider>
       <div className={cn("app-shell relative min-h-screen", locale === "en" ? "locale-en" : "locale-zh")}>
+        <a href="#main-content" className="autumn-skip-link">{locale === "zh" ? "跳至正文" : "Skip to content"}</a>
         <div className="pointer-events-none absolute inset-0 app-overlay" />
         <header className="shell-header sticky top-0 z-30 border-b border-border/50">
-          <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
+          <div className="autumn-header-inner mx-auto flex h-[72px] w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
             <div className="flex items-center gap-3">
-              <Link href={withLocale(locale, "/")} className="text-sm font-semibold tracking-wide text-foreground">
+              <Link href={withLocale(locale, "/")} className="autumn-brand text-foreground">
+                <Image src="/autumn/ginkgo-leaf.webp" alt="" width={28} height={28} />
                 {messages.nav.brand}
               </Link>
               <PrimaryNavigation className="hidden md:flex" />
@@ -74,10 +79,11 @@ export default async function LocaleLayout({ children, params }: Props) {
             <PrimaryNavigation mobile />
           </div>
         </header>
-        <main className="relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
+        <main id="main-content" lang={locale} className="autumn-main relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
           {children}
         </main>
       </div>
+      </AutumnMotionProvider>
     </I18nProvider>
   )
 }

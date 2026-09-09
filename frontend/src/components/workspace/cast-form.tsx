@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { CircleHelp } from "lucide-react"
+import { ArrowRight, CircleHelp, Settings2 } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
+import { AutumnFrame } from "@/components/autumn/autumn-frame"
+import { useAutumnMotion } from "@/components/autumn/autumn-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -27,12 +29,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuthContext } from "@/components/providers/auth-provider"
 import { useSessionMutation } from "@/lib/queries"
-import { parseManualLines } from "@/lib/api"
+import { parseManualLines, prepareCasting } from "@/lib/api"
+import { CastingMethodPicker, ManualLineEditor, MeihuaSteps } from "./casting-controls"
 import { trackProductEvent } from "@/lib/analytics"
 import { resolveReadingIntent } from "@/lib/reading-intents"
 import { useWorkspaceStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
-import type { ConfigResponse, ModelInfo, SessionRequest } from "@/types/api"
+import type { CastingPreview, ConfigResponse, ModelInfo, SessionRequest } from "@/types/api"
 import { toast } from "sonner"
 
 type Props = {
@@ -43,13 +46,6 @@ const QUESTION_LIMIT = 2000
 const MANUAL_METHOD_KEY = "x"
 const COIN_METHOD_KEY = "c"
 type ReadingPreset = "chart" | "standard" | "deep"
-
-const LINE_VALUE_OPTIONS = [
-  { value: 6, en: "6 · old yin", zh: "6 · 老阴" },
-  { value: 7, en: "7 · young yang", zh: "7 · 少阳" },
-  { value: 8, en: "8 · young yin", zh: "8 · 少阴" },
-  { value: 9, en: "9 · old yang", zh: "9 · 老阳" },
-] as const
 
 const pad = (value: number) => value.toString().padStart(2, "0")
 
@@ -180,7 +176,7 @@ function analyzeQuestion(question: string, locale: "en" | "zh") {
           : "What should I revisit from the earlier reading now?",
     }
   }
-  if (prediction) {
+  if (prediction && !/^(what|how|which|where|when|why)\b/i.test(trimmed)) {
     return {
       tone: "caution",
       title: locale === "zh" ? "建议改成理解型问题" : "Better as an inquiry question",
@@ -215,6 +211,19 @@ export function CastForm({ config }: Props) {
     getStoreHydrationSnapshot,
     getServerHydrationSnapshot,
   )
+  const { paused } = useAutumnMotion()
+  const [isTossing, setIsTossing] = useState(false)
+  const [tossId, setTossId] = useState(0)
+  const tossing = useRef(false)
+  const tossTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const operation = useRef(0)
+  const preparedCastRef = useRef<CastingPreview | null>(null)
+  const [preparedCast, setPreparedCast] = useState<CastingPreview | null>(null)
+  const meihuaStepRef = useRef(0)
+  const [meihuaStep, setMeihuaStep] = useState(0)
+  const [ritualPhase, setRitualPhase] = useState(0)
+  const [remainingStalks, setRemainingStalks] = useState(49)
+  useEffect(() => () => { operation.current++; if (tossTimer.current) clearTimeout(tossTimer.current) }, [])
   const [lastCoinToss, setLastCoinToss] = useState<number[] | null>(null)
   const form = useWorkspaceStore((state) => state.form)
   const updateForm = useWorkspaceStore((state) => state.updateForm)
@@ -224,7 +233,9 @@ export function CastForm({ config }: Props) {
   const questionLength = form.userQuestion?.length ?? 0
   const canUseAi = Boolean(auth.user)
   const questionCoaching = useMemo(() => analyzeQuestion(form.userQuestion, locale), [form.userQuestion, locale])
-  const currentManualValues = manualLineValues(form.manualLines)
+  const currentManualValues = form.methodKey === MANUAL_METHOD_KEY
+    ? form.manualLines.replace(/[,\s]+/g, "").split("").slice(0, 6).map((value) => [6, 7, 8, 9].includes(Number(value)) ? Number(value) : 0)
+    : manualLineValues(form.manualLines)
   const defaultModel = config.ai_models.find((model) => model.name === config.default_model) ?? config.ai_models[0]
   const standardModel = config.ai_models.find((model) => model.tier === "standard") ?? defaultModel
   const deepModel = config.ai_models.find((model) => model.tier === "deep") ?? standardModel
@@ -274,7 +285,13 @@ export function CastForm({ config }: Props) {
       methodKey: current.methodKey || preferredMethod,
       aiModel: current.aiModel || config.default_model || config.ai_models[0]?.name || "",
       ...(requestedDate && !Number.isNaN(requestedDate.getTime())
-        ? { useCurrentTime: false, customTimestamp: formatLocalDateTime(requestedDate) }
+        ? {
+            useCurrentTime: false,
+            customTimestamp: formatLocalDateTime(requestedDate),
+            ...(current.customTimestamp !== formatLocalDateTime(requestedDate)
+              ? { manualLines: "", castingTimestamp: undefined }
+              : {}),
+          }
         : {}),
     })
     defaultsHydrated.current = true
@@ -322,43 +339,24 @@ export function CastForm({ config }: Props) {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (tossing.current || mutation.isPending) return
 
     let manualLines: number[] | undefined
     try {
       manualLines = parseManualLines(form.manualLines)
     } catch (error) {
-      if (form.methodKey === MANUAL_METHOD_KEY || form.methodKey === COIN_METHOD_KEY) {
-        const reason = (error as Error).message
-        if (reason === "manual_lines_count_error") {
-          toast.error(messages.workspace.cast.manualLinesCountError)
-        } else if (reason === "manual_lines_value_error") {
-          toast.error(messages.workspace.cast.manualLinesValueError)
-        } else {
-          toast.error(messages.workspace.cast.requestFailed)
-        }
-        return
-      }
+      const reason = (error as Error).message
+      if (reason === "manual_lines_count_error") toast.error(messages.workspace.cast.manualLinesCountError)
+      else if (reason === "manual_lines_value_error") toast.error(messages.workspace.cast.manualLinesValueError)
+      else toast.error(messages.workspace.cast.requestFailed)
+      return
     }
 
-    let timestamp: string | null = null
-
-    if (form.useCurrentTime) {
-      timestamp = formatOffsetISOString(new Date())
-    } else {
-      if (!form.customTimestamp) {
-        toast.error(messages.workspace.cast.timestampRequired)
-        return
-      }
-      const customDate = new Date(form.customTimestamp)
-      if (Number.isNaN(customDate.getTime())) {
-        toast.error(messages.workspace.cast.invalidTimestamp)
-        return
-      }
-      timestamp = formatOffsetISOString(customDate)
-    }
-
-    if (!timestamp) {
-      toast.error(messages.workspace.cast.parseTimestampFailed)
+    let timestamp: string
+    try {
+      timestamp = castingTime()
+    } catch (error) {
+      toast.error((error as Error).message)
       return
     }
 
@@ -388,31 +386,117 @@ export function CastForm({ config }: Props) {
 	  }
 
   const reasoningLines = getReasoningLines(activeModel?.name, locale)
-  const appendManualLine = (value: number, methodKey = MANUAL_METHOD_KEY) => {
-    const nextValues = currentManualValues.length >= 6 ? [value] : [...currentManualValues, value]
-    setForm({
-      methodKey,
-      manualLines: nextValues.join(""),
-    })
+  function castingTime() {
+    const current = useWorkspaceStore.getState().form
+    if (current.castingTimestamp) return current.castingTimestamp
+    const date = current.useCurrentTime ? new Date() : new Date(current.customTimestamp)
+    if (Number.isNaN(date.getTime())) throw new Error(messages.workspace.cast.invalidTimestamp)
+    return formatOffsetISOString(date)
   }
-  const clearManualLines = () => {
+  function clearManualLines() {
+    if (tossing.current || mutation.isPending) return
+    operation.current++
     setLastCoinToss(null)
-    setForm({
-      methodKey: form.methodKey,
-      manualLines: "",
-    })
+    preparedCastRef.current = null
+    setPreparedCast(null)
+    meihuaStepRef.current = 0
+    setMeihuaStep(0)
+    setRitualPhase(0)
+    setRemainingStalks(49)
+    setForm({ manualLines: "", castingTimestamp: undefined })
   }
-  const tossCoinLine = () => {
+  function changeMethod(methodKey: string) {
+    if (tossing.current || mutation.isPending || methodKey === form.methodKey) return
+    clearManualLines()
+    updateForm("methodKey", methodKey)
+  }
+  function editManualLine(index: number, value?: number) {
+    if (tossing.current || mutation.isPending) return
+    const raw = useWorkspaceStore.getState().form.manualLines
+    const values = Array.from({ length: 6 }, (_, i) => Number(raw[i]) || 0)
+    values[index] = value ?? (values[index] === 7 ? 8 : values[index] === 9 ? 6 : values[index] === 6 ? 9 : 7)
+    updateForm("manualLines", values.join(""))
+  }
+  function tossCoinLine(allRemaining = false) {
+    const current = useWorkspaceStore.getState().form
+    if (tossing.current || mutation.isPending || current.methodKey !== COIN_METHOD_KEY || manualLineValues(current.manualLines).length >= 6) return
+    try { setForm({ castingTimestamp: castingTime() }) } catch (error) { toast.error((error as Error).message); return }
+    tossing.current = true
+    setIsTossing(true)
     const result = coinLineValue()
     setLastCoinToss(result.coins)
-    appendManualLine(result.value, COIN_METHOD_KEY)
+    setTossId((value) => value + 1)
+    tossTimer.current = setTimeout(() => {
+      const values = manualLineValues(useWorkspaceStore.getState().form.manualLines)
+      const next = [...values, result.value].slice(0, 6)
+      setForm({ manualLines: next.join("") })
+      tossing.current = false
+      setIsTossing(false)
+      if (allRemaining && next.length < 6) tossCoinLine(true)
+    }, paused ? 40 : allRemaining && manualLineValues(current.manualLines).length < 5 ? 380 : 1280)
+  }
+  async function castRitual(allRemaining = false) {
+    const current = useWorkspaceStore.getState().form
+    const method = current.methodKey
+    if (tossing.current || mutation.isPending || !["s", "m"].includes(method) || manualLineValues(current.manualLines).length >= 6) return
+    tossing.current = true
+    setIsTossing(true)
+    const token = ++operation.current
+    try {
+      const timestamp = castingTime()
+      const cast = preparedCastRef.current ?? await prepareCasting(method as "s" | "m", timestamp)
+      if (token !== operation.current) return
+      preparedCastRef.current = cast
+      setPreparedCast(cast)
+      setForm({ castingTimestamp: cast.timestamp })
+      setTossId((value) => value + 1)
+      const finish = (continueCasting: boolean) => {
+        tossing.current = false
+        setIsTossing(false)
+        if (allRemaining && continueCasting) void castRitual(true)
+      }
+      if (method === "s") {
+        const index = manualLineValues(current.manualLines).length
+        const steps = cast.yarrow_steps[index]
+        setRitualPhase(0)
+        setRemainingStalks(49)
+        const change = (phase: number) => {
+          if (token !== operation.current) return
+          setRitualPhase(phase)
+          setRemainingStalks(steps[phase - 1])
+          tossTimer.current = setTimeout(() => {
+            if (phase < 3) change(phase + 1)
+            else {
+              const values = [...manualLineValues(useWorkspaceStore.getState().form.manualLines), cast.lines[index]]
+              updateForm("manualLines", values.join(""))
+              finish(values.length < 6)
+            }
+          }, paused ? 15 : allRemaining ? 130 : 530)
+        }
+        tossTimer.current = setTimeout(() => change(1), paused ? 15 : allRemaining ? 80 : 300)
+      } else {
+        const next = meihuaStepRef.current + 1
+        setRitualPhase(next)
+        tossTimer.current = setTimeout(() => {
+          if (token !== operation.current) return
+          meihuaStepRef.current = next
+          setMeihuaStep(next)
+          if (next === 3) updateForm("manualLines", cast.lines.join(""))
+          finish(next < 3)
+        }, paused ? 40 : allRemaining && next < 3 ? 420 : 1000)
+      }
+    } catch (error) {
+      if (token !== operation.current) return
+      tossing.current = false
+      setIsTossing(false)
+      toast.error((error as Error).message || messages.workspace.cast.requestFailed)
+    }
   }
   const copy =
     locale === "zh"
       ? {
           contextLabel: "相关背景",
           contextPlaceholder: "例如：对方已经催了两次，但预算、负责人、时间表还没完全确定。",
-          modeLabel: "解读方式",
           chartTitle: "仅排盘",
           chartBody: "生成卦盘、纳甲与经典依据，不调用 AI。",
           standardTitle: "标准解读",
@@ -422,22 +506,12 @@ export function CastForm({ config }: Props) {
           advanced: "时间与原始输入",
           advancedDescription: "调整起卦时间与原始六爻输入。",
           questionApply: "采用建议问题",
-          ritualTitle: "六爻起卦",
-          ritualBody: "用铜钱逐爻生成，或直接选择 6/7/8/9；右侧实时显示本次卦象。六爻始终自下而上。",
-          coinButton: "掷一爻铜钱",
-          clearLines: "清空六爻",
-          lineProgress: "已生成",
-          lastCoins: "上次铜钱",
-          lineBuilder: "六爻构建器",
-          previewTitle: "实时卦象",
-          previewBody: "第 1 爻在最下方，老阴/老阳会以金色标记为动爻。",
           aiSettingsTitle: "AI 解读设置",
           aiSettingsBody: "按需要调整模型、推理力度、输出篇幅与语气。",
         }
       : {
           contextLabel: "Relevant context",
           contextPlaceholder: "Example: They are pushing for a fast answer, but budget, owner, and timeline are still unclear.",
-          modeLabel: "Interpretation",
           chartTitle: "Chart only",
           chartBody: "Generate the chart, Najia, and classical basis without AI.",
           standardTitle: "Standard",
@@ -447,15 +521,6 @@ export function CastForm({ config }: Props) {
           advanced: "Time and raw input",
           advancedDescription: "Adjust the cast time and raw six-line input.",
           questionApply: "Use suggested question",
-          ritualTitle: "Six-line cast",
-          ritualBody: "Use the coin button line by line, or choose exact 6/7/8/9 values. The live hexagram updates beside the builder. Lines are bottom to top.",
-          coinButton: "Toss one coin line",
-          clearLines: "Clear lines",
-          lineProgress: "Built",
-          lastCoins: "Last coins",
-          lineBuilder: "Line builder",
-          previewTitle: "Live hexagram",
-          previewBody: "Line 1 is at the bottom; old yin and old yang are marked as moving in gold.",
           aiSettingsTitle: "AI reading settings",
           aiSettingsBody: "Adjust the model, reasoning, response length, and tone when needed.",
         }
@@ -526,77 +591,47 @@ export function CastForm({ config }: Props) {
             ? messages.workspace.cast.methodManualDescription
             : messages.workspace.cast.methodUnknownDescription
 
+  const isCoinMethod = form.methodKey === COIN_METHOD_KEY
+  const isYarrowMethod = form.methodKey === "s"
+  const isMeihuaMethod = form.methodKey === "m"
+  const isManualMethod = form.methodKey === MANUAL_METHOD_KEY
+  const lineCount = currentManualValues.filter((value) => value >= 6 && value <= 9).length
+  const complete = lineCount === 6
+  const methodName = locale === "zh" ? config.methods.find((method) => method.key === form.methodKey)?.label : ({ c: "Three coins", s: "Yarrow stalks", m: "Plum blossom", x: "Your own cast" }[form.methodKey] ?? form.methodKey)
+  const displayValues = isMeihuaMethod && preparedCast && !complete && meihuaStep > 0
+    ? preparedCast.lines.map((value, index) => meihuaStep === 1 && index < 3 ? 0 : value === 6 ? 8 : value === 9 ? 7 : value)
+    : currentManualValues
+  const visibleMeihuaStep = complete ? 3 : meihuaStep
+  const trigramIndex = (lines: number[]) => ["111", "011", "101", "001", "110", "010", "100", "000"].indexOf([...lines].reverse().map((line) => line % 2).join("")) + 1
+  const upperTrigram = preparedCast?.upper_trigram ?? (complete ? trigramIndex(currentManualValues.slice(3)) : null)
+  const lowerTrigram = preparedCast?.lower_trigram ?? (complete ? trigramIndex(currentManualValues.slice(0, 3)) : null)
+  const changingLine = preparedCast?.changing_line ?? (complete ? currentManualValues.findIndex((value) => value === 6 || value === 9) + 1 : null)
+  const actionLabel = isCoinMethod
+    ? (locale === "zh" ? `掷第 ${lineCount + 1} 爻` : `Cast line ${lineCount + 1}`)
+    : isYarrowMethod
+      ? (locale === "zh" ? `揲蓍 · 起第 ${lineCount + 1} 爻` : `Gather stalks · line ${lineCount + 1}`)
+      : (locale === "zh" ? ["取上卦", "取下卦", "定动爻"][meihuaStep] : ["Reveal the upper trigram", "Reveal the lower trigram", "Reveal the changing line"][meihuaStep])
+  const ritualStatus = isYarrowMethod
+    ? (locale === "zh" ? `${["蓍草待分", "第一变", "第二变", "第三变"][ritualPhase]} · ${remainingStalks} 策` : `${ritualPhase ? `Change ${ritualPhase}` : "Stalks gathered"} · ${remainingStalks} stalks`)
+    : isMeihuaMethod
+      ? (locale === "zh" ? ["以时取象", "上卦初现", "上下成象", "动爻已定"][visibleMeihuaStep] : ["A moment becomes a sign", "Upper trigram revealed", "Two trigrams, one figure", "The changing line is set"][visibleMeihuaStep])
+      : ""
+
   return (
-    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[88rem] px-3 sm:px-5">
-      <header className="mb-4 px-1" data-cast-page-title="true">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          {locale === "zh" ? "起卦" : "Cast"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {locale === "zh" ? "问清一件事，选一种起卦方式。" : "Ask one clear question and choose how to cast."}
-        </p>
-      </header>
-      <section className="surface-card rounded-lg p-5 sm:p-6">
-        <ol className="mb-6 grid border-y border-border/60 md:grid-cols-3 md:divide-x md:divide-border/60" aria-label={locale === "zh" ? "起卦步骤" : "Casting steps"}>
-          {[
-            [messages.workspace.cast.stepQuestion, messages.workspace.cast.stepQuestionBody],
-            [messages.workspace.cast.stepCast, messages.workspace.cast.stepCastBody],
-            [messages.workspace.cast.stepInterpret, messages.workspace.cast.stepInterpretBody],
-          ].map(([title, body]) => (
-            <li key={title} className="border-b border-border/60 px-2 py-3 last:border-b-0 md:border-b-0 md:px-4">
-              <p className="text-sm font-semibold text-foreground">{title}</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">{body}</p>
-            </li>
-          ))}
-        </ol>
-        <div className="flex flex-col gap-6">
-        <div data-cast-step="question" className="order-1 space-y-5">
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="reading-question" className="text-sm font-medium text-foreground">
-                    {messages.workspace.cast.questionLabel}
-                  </label>
-                  <span className="text-xs text-muted-foreground">
-                    {questionLength}/{QUESTION_LIMIT}
-                  </span>
-                </div>
-                <Textarea
-                  id="reading-question"
-                  placeholder={messages.workspace.cast.questionPlaceholder}
-                  value={form.userQuestion}
-                  onChange={(event) => updateForm("userQuestion", event.target.value)}
-                  rows={5}
-                  maxLength={QUESTION_LIMIT}
-                  className="min-h-[10rem] text-base leading-relaxed"
-                />
-              </div>
+    <form onSubmit={handleSubmit} className="autumn-cast-form">
+      <AutumnFrame className="autumn-casting" values={displayValues} coins={lastCoinToss} toss={tossId} showCoins={isCoinMethod} showStalks={isYarrowMethod} showCompass={isMeihuaMethod} ritualPhase={isMeihuaMethod ? Math.max(ritualPhase, visibleMeihuaStep) : ritualPhase} remainingStalks={remainingStalks} upperTrigram={upperTrigram} lowerTrigram={lowerTrigram} onToss={isCoinMethod && !complete ? () => tossCoinLine() : undefined} onLineSelect={isManualMethod ? (position) => editManualLine(position - 1) : undefined} caption={complete ? (locale === "zh" ? "六爻已成 · 静观其变" : "Six lines complete · a moment to reflect") : null} sceneOverlay={ritualStatus ? <div className="autumn-ritual-status"><span>{methodName}</span><strong role="status" aria-live="polite">{ritualStatus}</strong></div> : undefined}>
+        <fieldset disabled={mutation.isPending || isTossing} className="min-w-0">
+          <div className="autumn-question-copy">
+          <h1 className="autumn-title" lang="zh">一念之间</h1>
+          <p className="autumn-eyebrow">{locale === "zh" ? "以一念，观万象" : "A moment of change"}</p>
 
-              <div className="space-y-2">
-                <label id="reading-topic-label" className="text-sm font-medium text-foreground">
-                  {messages.workspace.cast.topicLabel}
-                </label>
-                <Select
-                  value={form.topic}
-                  onValueChange={(value) => {
-                    if (!value || !config.topics.some((topic) => topic.label === value)) return
-                    updateForm("topic", value)
-                  }}
-                >
-                  <SelectTrigger aria-labelledby="reading-topic-label" className="h-11 w-full rounded-md bg-surface-elevated px-3 text-base">
-                    <SelectValue placeholder={messages.workspace.cast.topicLabel} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {config.topics.map((topic) => (
-                      <SelectItem value={topic.label} key={topic.key}>
-                        {topic.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
+          <label htmlFor="reading-question" className="autumn-question-label">{locale === "zh" ? "此刻，你想理解什么？" : "What would you like to understand?"}</label>
+          <textarea id="reading-question" className="autumn-textarea" value={form.userQuestion} onChange={(event) => updateForm("userQuestion", event.target.value)} maxLength={QUESTION_LIMIT} rows={4} placeholder={locale === "zh" ? "我该如何理解眼前的变化……" : "What should I understand about this change…"} />
+          <span className="sr-only">{questionLength}/{QUESTION_LIMIT}</span>
+          <details className="autumn-context">
+            <summary>{locale === "zh" ? "补充一点背景" : "Add a little context"}</summary>
+            <Textarea id="reading-context" aria-label={copy.contextLabel} value={form.userContext} onChange={(event) => updateForm("userContext", event.target.value)} rows={3} maxLength={1200} placeholder={copy.contextPlaceholder} className="mt-3" />
+          </details>
             {questionCoaching && questionCoaching.tone !== "good" && (
               <div
                 className={cn(
@@ -620,23 +655,56 @@ export function CastForm({ config }: Props) {
               </div>
             )}
 
-            <details className="rounded-lg border border-border/60 bg-surface px-4 py-3">
-              <summary className="cursor-pointer text-sm font-medium text-foreground">{copy.contextLabel}</summary>
-              <Textarea
-                id="reading-context"
-                placeholder={copy.contextPlaceholder}
-                value={form.userContext}
-                onChange={(event) => updateForm("userContext", event.target.value)}
-                rows={3}
-                maxLength={1200}
-                className="mt-3 min-h-24 text-sm leading-relaxed"
-              />
-            </details>
-        </div>
 
-        <aside data-cast-step="interpret" className="order-3 surface-soft space-y-4 rounded-lg p-4 sm:p-5">
+          <p className="sr-only">{activeMethodDescription}</p>
+          <CastingMethodPicker locale={locale} value={form.methodKey} available={config.methods.map((method) => method.key)} onChange={changeMethod} />
+          <a href="#casting-scene" className="autumn-mobile-cast-jump">{isCoinMethod ? (locale === "zh" ? "准备好，让铜钱落下" : "Ready? Bring your question to the coins") : (locale === "zh" ? "继续起卦" : "Continue to the hexagram")}<ArrowRight size={14} aria-hidden="true" /></a>
+          </div>
+          <div className="autumn-cast-controls">
+          {isManualMethod && <ManualLineEditor locale={locale} values={currentManualValues} raw={form.manualLines} onLineChange={editManualLine} onRawChange={(value) => updateForm("manualLines", value)} />}
+          {isMeihuaMethod && <><MeihuaSteps locale={locale} step={visibleMeihuaStep} upper={upperTrigram} lower={lowerTrigram} moving={changingLine} /><ol className="sr-only" aria-label={locale === "zh" ? "卦象六爻，自下而上" : "Hexagram lines, bottom to top"}>{displayValues.map((value, index) => <li key={index}>{index + 1}: {value || "—"}</li>)}</ol></>}
+          {!isManualMethod && !complete
+            ? <button type="button" className="autumn-primary" disabled={isTossing} onClick={() => isCoinMethod ? tossCoinLine() : void castRitual()}>{isTossing ? (locale === "zh" ? "静待成象…" : "Let the figure take shape…") : actionLabel}<ArrowRight size={15} aria-hidden="true" /></button>
+            : <button type="submit" className="autumn-primary" disabled={!complete || mutation.isPending}>{mutation.isPending ? messages.workspace.cast.submitLoading : (locale === "zh" ? "解读此卦" : "Read this hexagram")}<ArrowRight size={15} aria-hidden="true" /></button>}
+          <div className="autumn-actions-row">
+            {!isManualMethod && !complete ? <button type="button" className="autumn-link" onClick={() => isCoinMethod ? tossCoinLine(true) : void castRitual(true)}>{locale === "zh" ? "快速完成余下步骤" : "Complete the remaining steps"}</button> : <span className="autumn-link">{activeReadingMode.title}</span>}
+            {(lineCount > 0 || meihuaStep > 0) && <button type="button" className="autumn-link" onClick={clearManualLines}>{locale === "zh" ? "重新起卦" : "Start over"}</button>}
+          </div>
+          {!isMeihuaMethod && !isManualMethod && <div className="autumn-cast-progress">
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground"><span>{locale === "zh" ? "自下而上，一爻一念" : "From the bottom, one line at a time"}</span><span role="status" aria-live="polite">{lineCount} / 6</span></div>
+            <ol className="autumn-line-values" aria-label={locale === "zh" ? "六爻，自下而上" : "Six lines, from bottom to top"}>{Array.from({ length: 6 }, (_, index) => <li key={index} data-moving={currentManualValues[index] === 6 || currentManualValues[index] === 9} aria-label={`${locale === "zh" ? "爻" : "Line"} ${index + 1}: ${currentManualValues[index] || (locale === "zh" ? "未起" : "uncast")}`}>{currentManualValues[index] || "·"}</li>)}</ol>
+            <p className="autumn-footnote">{isCoinMethod && lastCoinToss ? `${lastCoinToss.join(" + ")} = ${lastCoinToss.reduce((sum, value) => sum + value, 0)} · ` : ""}{locale === "zh" ? "金色为动爻，示其变化。" : "Gold marks a changing line."}</p>
+          </div>}
+          <div className="autumn-method-row">
+            <span className="autumn-link">{methodName} · {activeReadingMode.title}</span>
+            <Sheet>
+              <SheetTrigger asChild><button type="button" className="autumn-link inline-flex items-center gap-1.5"><Settings2 size={15} aria-hidden="true" />{locale === "zh" ? "解读设置" : "Reading settings"}</button></SheetTrigger>
+              <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+                <SheetHeader><SheetTitle>{locale === "zh" ? "解读设置" : "Reading settings"}</SheetTitle><SheetDescription>{locale === "zh" ? "选择主题，调整解读深度。" : "Choose a topic and how deeply you would like to explore."}</SheetDescription></SheetHeader>
+                <div className="mt-6 space-y-6">
+                  <div className="space-y-2"><label id="reading-topic-label" className="text-sm font-medium">{messages.workspace.cast.topicLabel}</label>
+                <Select
+                  value={form.topic}
+                  onValueChange={(value) => {
+                    if (!value || !config.topics.some((topic) => topic.label === value)) return
+                    updateForm("topic", value)
+                  }}
+                >
+                  <SelectTrigger aria-labelledby="reading-topic-label" className="h-11 w-full rounded-md bg-surface-elevated px-3 text-base">
+                    <SelectValue placeholder={messages.workspace.cast.topicLabel} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {config.topics.map((topic) => (
+                      <SelectItem value={topic.label} key={topic.key}>
+                        {locale === "zh" ? topic.label : ({ "事业": "Career", "感情": "Relationships", "财运": "Finances", "身体健康": "Wellbeing", "整体运势": "The present moment", "其他/跳过": "Something else" }[topic.label] ?? topic.label)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                  </div>
+        <aside data-cast-step="interpret" className="space-y-4 border-t border-border/60 pt-6">
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-foreground">{messages.workspace.cast.stepInterpret}</p>
+              <p className="text-sm font-semibold text-foreground">{locale === "zh" ? "解读方式" : "Interpretation"}</p>
               <div className="grid gap-2 sm:grid-cols-3">
                 {readingModes.map((mode) => (
                   <button
@@ -690,7 +758,7 @@ export function CastForm({ config }: Props) {
                     />
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-foreground">{messages.workspace.cast.modelLabel}</p>
@@ -813,107 +881,6 @@ export function CastForm({ config }: Props) {
             </div>
             )}
           </aside>
-
-        <div data-cast-step="cast" className="order-2 space-y-4 border-t border-border/60 pt-6">
-          <div className="grid gap-3 sm:grid-cols-[14rem_minmax(0,1fr)] sm:items-end">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">{messages.workspace.cast.stepCast}</p>
-              <label id="casting-method-label" className="text-xs text-muted-foreground">
-                {messages.workspace.cast.methodLabel}
-              </label>
-              <Select
-                value={form.methodKey}
-                onValueChange={(value) => {
-                  setLastCoinToss(null)
-                  setForm({ methodKey: value, manualLines: "" })
-                }}
-              >
-                <SelectTrigger aria-labelledby="casting-method-label">
-                  <SelectValue placeholder={messages.workspace.cast.methodLabel} />
-                </SelectTrigger>
-                <SelectContent>
-                  {config.methods.map((method) => (
-                    <SelectItem key={method.key} value={method.key}>
-                      {method.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs leading-5 text-muted-foreground">
-              {activeMethodDescription}
-            </p>
-          </div>
-
-          {(form.methodKey === MANUAL_METHOD_KEY || form.methodKey === COIN_METHOD_KEY) && (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,0.55fr)]">
-          <div className="rounded-lg border border-border/60 bg-surface p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">{copy.ritualTitle}</p>
-                <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">{copy.ritualBody}</p>
-              </div>
-              <span
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-                aria-label={`${copy.lineProgress} ${currentManualValues.length}/6${lastCoinToss ? ` · ${copy.lastCoins}: ${lastCoinToss.join(" + ")}` : ""}`}
-                className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground"
-              >
-                {copy.lineProgress} {currentManualValues.length}/6
-              </span>
-            </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {form.methodKey === COIN_METHOD_KEY ? (
-                <Button type="button" variant="secondary" className="rounded-md" onClick={tossCoinLine}>
-                  {copy.coinButton}
-                </Button>
-              ) : <span />}
-              <Button type="button" variant="outline" className="rounded-md" onClick={clearManualLines}>
-                {copy.clearLines}
-              </Button>
-            </div>
-            {lastCoinToss && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {copy.lastCoins}: {lastCoinToss.join(" + ")} = {lastCoinToss.reduce((sum, coin) => sum + coin, 0)}
-              </p>
-            )}
-            {form.methodKey === MANUAL_METHOD_KEY && <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16rem] text-muted-foreground">{copy.lineBuilder}</p>
-              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {LINE_VALUE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => appendManualLine(option.value)}
-                    className="rounded-md border border-border/60 bg-surface-elevated px-2 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50"
-                  >
-                    {locale === "zh" ? option.zh : option.en}
-                  </button>
-                ))}
-              </div>
-            </div>}
-            <ol className="mt-4 grid grid-cols-6 gap-1 text-center text-xs" aria-label={messages.workspace.cast.manualLinesLabel}>
-              {Array.from({ length: 6 }).map((_, index) => (
-                <li key={index} className="rounded-md border border-border/50 bg-background px-1 py-1 text-muted-foreground">
-                  {currentManualValues[index] ?? "·"}
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <CastHexagramPreview
-            values={currentManualValues}
-            title={copy.previewTitle}
-            body={copy.previewBody}
-            locale={locale}
-          />
-          </div>
-          )}
-        </div>
-        </div>
-
-        <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Sheet>
             <SheetTrigger asChild>
               <Button type="button" variant="outline" className="rounded-md">
@@ -962,110 +929,26 @@ export function CastForm({ config }: Props) {
                     <span className="text-sm text-muted-foreground">{messages.workspace.cast.useCurrentTime}</span>
                     <Switch
                       checked={form.useCurrentTime}
-                      onCheckedChange={(checked) => updateForm("useCurrentTime", checked)}
+                      onCheckedChange={(checked) => { clearManualLines(); updateForm("useCurrentTime", checked) }}
                     />
                   </div>
                   <Input
                     type="datetime-local"
                     value={form.customTimestamp}
                     disabled={form.useCurrentTime}
-                    onChange={(event) => updateForm("customTimestamp", event.target.value)}
+                    onChange={(event) => { clearManualLines(); updateForm("customTimestamp", event.target.value) }}
                   />
                 </div>
               </div>
             </SheetContent>
           </Sheet>
-
-          <Button
-            type="submit"
-            size="lg"
-            disabled={mutation.isPending}
-            className="h-11 w-full rounded-md text-sm font-semibold sm:w-72"
-          >
-            {mutation.isPending ? messages.workspace.cast.submitLoading : messages.workspace.cast.submitIdle}
-          </Button>
-        </div>
-      </section>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+          </div>
+        </fieldset>
+      </AutumnFrame>
     </form>
-  )
-}
-
-function CastHexagramPreview({
-  values,
-  title,
-  body,
-  locale,
-}: {
-  values: number[]
-  title: string
-  body: string
-  locale: "en" | "zh"
-}) {
-  const lines = Array.from({ length: 6 }, (_, index) => {
-    const position = 6 - index
-    const value = values[position - 1]
-    return { position, value }
-  })
-
-  return (
-    <div className="imperial-highlight-panel rounded-lg p-4">
-      <p className="text-sm font-semibold text-foreground">{title}</p>
-      <p className="mt-1 text-xs leading-5 text-muted-foreground">{body}</p>
-      <div className="mt-4 grid gap-2" aria-label={locale === "zh" ? "实时六爻预览" : "Live six-line preview"}>
-        {lines.map(({ position, value }) => {
-          const filled = [6, 7, 8, 9].includes(value)
-          const moving = value === 6 || value === 9
-          const type = value === 7 || value === 9 ? "yang" : "yin"
-          return (
-            <div
-              key={position}
-              className={cn(
-                "grid min-h-9 grid-cols-[1fr_auto] items-center gap-3 rounded-md border px-2 py-1",
-                filled ? "border-primary/30 bg-primary/10" : "border-border/40 bg-background/70",
-              )}
-            >
-              <PreviewLineSvg type={type} filled={filled} moving={moving} />
-              <span className={cn("w-8 text-center text-xs", moving ? "imperial-text font-semibold" : "text-muted-foreground")}>
-                {filled ? value : position}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-      <ol className="sr-only">
-        {values.map((value, index) => (
-          <li key={`${index}-${value}`}>
-            {locale === "zh" ? `第${index + 1}爻：${value}` : `Line ${index + 1}: ${value}`}
-          </li>
-        ))}
-      </ol>
-    </div>
-  )
-}
-
-function PreviewLineSvg({
-  type,
-  filled,
-  moving,
-}: {
-  type: "yang" | "yin"
-  filled: boolean
-  moving: boolean
-}) {
-  const fillClass = !filled ? "fill-muted-foreground/30" : moving ? "imperial-fill" : "fill-foreground/85"
-  return (
-    <svg viewBox="0 0 120 18" className="h-5 w-full" role="presentation">
-      {type === "yang" ? (
-        <rect x="6" y="6" width="108" height="6" rx="2" className={fillClass} />
-      ) : (
-        <>
-          <rect x="6" y="6" width="43" height="6" rx="2" className={fillClass} />
-          <rect x="71" y="6" width="43" height="6" rx="2" className={fillClass} />
-        </>
-      )}
-      {moving ? (
-        <rect x="2" y="2" width="116" height="14" rx="4" className="imperial-stroke fill-transparent" strokeWidth="1" />
-      ) : null}
-    </svg>
   )
 }

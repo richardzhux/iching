@@ -233,7 +233,7 @@ test("public tools, library search, and hexagram sources expose consumer control
   await expect(quickNav.getByRole("link").last()).toHaveAttribute("href", "#hexagram-64")
   await expect(page.getByRole("button", { name: /^(All|Change|Relationships|Work|Timing|Challenges)$/ })).toHaveCount(0)
   await expect(page.getByLabel(/search the yi/i)).toBeVisible()
-  await expect(page.getByRole("status")).toHaveText("Showing 8 of 64 results")
+  await expect(page.getByRole("status")).toHaveText("All 64 hexagrams are collected below. Enter a word or phrase to search the names and texts.")
   await page.getByLabel(/search the yi/i).fill("qian")
   await expect(page.getByRole("status")).toContainText(/result/i)
   await expect(page.getByText(/Qián/).first()).toBeVisible()

@@ -523,10 +523,10 @@ function AuthPanel({
   setPassword,
 }: AuthPanelProps) {
   return (
-    <section className="mx-auto w-full max-w-3xl rounded-lg border border-border/60 bg-surface p-6 sm:p-8">
+    <section className="autumn-study autumn-auth mx-auto w-full max-w-3xl border-y border-border/60 bg-surface p-6 sm:p-10">
       <div className="text-center">
         <p className="kicker">{messages.profile.kicker}</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        <h1 className="autumn-page-title">
           {authMode === "signIn" ? messages.profile.authCardSignIn : messages.profile.authCardSignUp}
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{messages.profile.authCardDescription}</p>
@@ -786,11 +786,11 @@ export default function ProfilePage() {
   }
 
   return auth.user ? (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
-      <header className="border-b border-border/60 pb-6">
+    <div className="autumn-study autumn-profile mx-auto w-full max-w-7xl space-y-6">
+      <header className="autumn-page-header">
         <div>
           <p className="kicker">{messages.profile.kicker}</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">{messages.profile.title}</h1>
+          <h1 className="autumn-page-title">{messages.profile.title}</h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">{copy.readingArchiveBody}</p>
         </div>
       </header>

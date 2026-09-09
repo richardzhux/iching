@@ -101,6 +101,7 @@ export interface LifeKlineChartProps {
   locale?: LifeKlineLocale
   currentYear?: number
   initialSeriesKey?: LifeKlineKey
+  initialFullLife?: boolean
   fullLifeLoading?: boolean
   onRequestFullLife?: () => boolean | Promise<boolean>
   onSeriesChange?: (key: LifeKlineKey) => void
@@ -187,6 +188,12 @@ function normalizePoint(point: LifeKlinePoint, baseline: number, valuesAreRelati
       delta: (month.delta / baseline) * 100,
     })),
   }
+}
+
+export function personalActivityPoints(lifeKline: LifeKlineSeries, series: LifeKlineThemeSeries) {
+  const baseline = personalBaseline(lifeKline, series)
+  const valuesAreRelative = usesServerRelativeValues(lifeKline)
+  return series.points.map((point) => normalizePoint(point, baseline, valuesAreRelative))
 }
 
 function driverLabel(driver: string | LifeKlineDriver) {
@@ -310,6 +317,7 @@ export function LifeKlineChart({
   locale = "zh",
   currentYear,
   initialSeriesKey = "career",
+  initialFullLife = false,
   fullLifeLoading = false,
   onRequestFullLife,
   onSeriesChange,
@@ -332,7 +340,7 @@ export function LifeKlineChart({
   const initialStart = initialSeries ? defaultStartIndex(initialSeries.points, lifeKline.default_window.start_year) : 0
   const [activeKey, setActiveKey] = useState<LifeKlineKey>(initialSeries?.key ?? initialSeriesKey)
   const [windowStart, setWindowStart] = useState(initialStart)
-  const [showFullLife, setShowFullLife] = useState(false)
+  const [showFullLife, setShowFullLife] = useState(initialFullLife)
   const [viewMode, setViewMode] = useState<LifeKlineViewMode>("trend")
   const [selectedYear, setSelectedYear] = useState<number | null>(() => preferredPoint(initialSeries?.points ?? [], initialStart, currentYear)?.year ?? null)
   const [hoveredYear, setHoveredYear] = useState<number | null>(null)
@@ -683,7 +691,7 @@ export function LifeKlineChart({
       </div>
 
       {selectedPoint ? (
-        <section className="min-w-0 border-t border-border/60 px-4 py-6 sm:px-6" aria-labelledby={`${id}-selected-year`}>
+        <section className="autumn-node-detail min-w-0 border-t border-border/60 px-4 py-6 sm:px-6" aria-labelledby={`${id}-selected-year`}>
           <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
             <div>
               <p className="kicker">{locale === "zh" ? "所选年份" : "SELECTED YEAR"}</p>

@@ -46,7 +46,7 @@ export function LanguageToggle({ className }: { className?: string }) {
       role="group"
       aria-label={messages.language.label}
       className={cn(
-        "inline-flex items-center rounded-full border border-border/60 bg-background/75 p-1 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/65",
+        "autumn-language inline-flex items-center gap-1",
         className,
       )}
     >
@@ -57,11 +57,12 @@ export function LanguageToggle({ className }: { className?: string }) {
             key={option.value}
             type="button"
             size="sm"
-            variant={active ? "default" : "ghost"}
+            variant="ghost"
+            aria-pressed={active}
             onClick={() => handleSwitch(option.value)}
             className={cn(
-              "h-7 rounded-full px-3 text-xs font-semibold",
-              active ? "shadow-sm" : "text-muted-foreground",
+              "min-h-9 rounded-none border-b px-2 text-xs font-medium",
+              active ? "border-primary text-primary" : "border-transparent text-muted-foreground",
             )}
             disabled={isPending}
           >

@@ -37,8 +37,8 @@ def test_yarrow_elementary_outcomes_have_exact_canonical_weights():
     assert outcomes == {6: 1, 7: 5, 8: 7, 9: 3}
 
 
-def test_coin_method_preserves_valid_browser_lines_and_rejects_invalid_values():
-    method = CoinMethod()
+@pytest.mark.parametrize("method", [CoinMethod(), ShicaoMethod(), MeihuaMethod()])
+def test_methods_preserve_displayed_browser_lines_and_reject_invalid_values(method):
     provided = [6, 7, 8, 9, 7, 6]
 
     assert method.generate_lines(interactive=False, manual_lines=provided) == provided

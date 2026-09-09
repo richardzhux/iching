@@ -16,11 +16,11 @@ export function HexagramGlyph({ lines, className, lineClassName }: Props) {
         return (
           <span key={`${line}-${index}`} className={cn("flex h-2 w-full items-center", lineClassName)}>
             {isYang ? (
-              <span className="h-full w-full rounded-full bg-current" />
+              <span className="h-full w-full rounded-[2px] bg-current" />
             ) : (
               <span className="flex h-full w-full items-center gap-[18%]">
-                <span className="h-full flex-1 rounded-full bg-current" />
-                <span className="h-full flex-1 rounded-full bg-current" />
+                <span className="h-full flex-1 rounded-[2px] bg-current" />
+                <span className="h-full flex-1 rounded-[2px] bg-current" />
               </span>
             )}
           </span>

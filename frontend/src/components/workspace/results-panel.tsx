@@ -4,6 +4,8 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, useReducedMotion } from "framer-motion"
 import { useI18n } from "@/components/providers/i18n-provider"
+import { ArrowDown, ArrowRight } from "lucide-react"
+import { AutumnFrame } from "@/components/autumn/autumn-frame"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -35,6 +37,8 @@ export function ResultsPanel() {
   const setPendingChatPrompt = useWorkspaceStore((state) => state.setPendingChatPrompt)
   const journal = useWorkspaceStore((state) => state.journal)
   const updateJournal = useWorkspaceStore((state) => state.updateJournal)
+  const [showChanged, setShowChanged] = useState(false)
+  const [selectedLine, setSelectedLine] = useState<number | null>(null)
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null)
   const brief = result ? resolveReadingBrief(result, locale) : null
 
@@ -60,7 +64,18 @@ export function ResultsPanel() {
 
   return (
     <motion.div initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}>
-      <Card className="surface-card rounded-lg border-border/40 text-foreground">
+      <AutumnFrame className="autumn-reading" values={[...result.hex_overview.lines].sort((a, b) => a.position - b.position).map((line) => line.value)} changed={showChanged} showCoins={false} selectedLine={selectedLine} onLineSelect={setSelectedLine}>
+        <p className="autumn-eyebrow">{locale === "zh" ? "静观其变" : "Your reading unfolds"}</p>
+        <h1 className="autumn-reading-title">{showChanged ? result.hex_overview.changed_hexagram?.name : result.hex_overview.main_hexagram.name}</h1>
+        <p className="autumn-intro !mb-0">{showChanged ? result.hex_overview.changed_hexagram?.explanation : result.hex_overview.main_hexagram.explanation}</p>
+        {result.hex_overview.changed_hexagram ? <div className="autumn-reading-toggle"><button type="button" aria-pressed={!showChanged} onClick={() => setShowChanged(false)}>{locale === "zh" ? "本卦" : "Present"}</button><ArrowRight size={13} className="mt-1 text-muted-foreground" aria-hidden="true" /><button type="button" aria-pressed={showChanged} onClick={() => setShowChanged(true)}>{locale === "zh" ? "之卦" : "Becoming"}</button></div> : null}
+        <div className="autumn-reading-question"><p className="autumn-eyebrow mb-2">{locale === "zh" ? "你问" : "You asked"}</p>{String(result.session_dict?.user_question || result.session_dict?.topic || "")}</div>
+        <p className="text-sm leading-7 text-muted-foreground">{brief.headline}</p>
+        <a href="#reading-meaning" className="autumn-primary mt-6">{locale === "zh" ? "展开解读" : "Explore the meaning"}<ArrowDown size={14} aria-hidden="true" /></a>
+        <div className="autumn-reading-line-buttons" aria-label={locale === "zh" ? "选择一爻" : "Explore a line"}>{[...result.hex_overview.lines].sort((a, b) => a.position - b.position).map((line) => <button type="button" key={line.position} aria-label={`${locale === "zh" ? "爻" : "Line"} ${line.position}: ${line.value}${line.is_moving ? (locale === "zh" ? "，动爻" : ", changing") : ""}`} aria-pressed={selectedLine === line.position} onClick={() => setSelectedLine(line.position)}>{line.position}</button>)}</div>
+        <p className="autumn-footnote" aria-live="polite">{selectedLine ? `${locale === "zh" ? "所选爻" : "Selected line"} ${selectedLine} · ${result.hex_overview.lines.find((line) => line.position === selectedLine)?.value}` : (locale === "zh" ? "轻触石爻，观其位置。金色为动爻。" : "Touch a stone line to explore. Gold marks change.")}</p>
+      </AutumnFrame>
+      <Card id="reading-meaning" className="autumn-reading-document text-foreground">
         <CardHeader className="flex flex-col gap-3 border-b border-border/50 pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <CardTitle className="text-lg">{locale === "zh" ? "解卦" : "Reading"}</CardTitle>
@@ -836,20 +851,6 @@ function readingDirectionLabel(brief: ReadingBrief, locale: "en" | "zh") {
   return labels[kind]
 }
 
-function ReadingQuestion({ result }: { result: SessionPayload }) {
-  const { locale } = useI18n()
-  const question = result.session_dict?.["user_question"] as string | undefined
-  const topic = result.session_dict?.["topic"] as string | undefined
-  return (
-    <section className="border-b border-border/60 pb-5">
-      <p className="text-xs font-semibold text-muted-foreground">{locale === "zh" ? "你问" : "Your question"}</p>
-      <h2 className="mt-2 text-balance text-2xl font-semibold leading-9 text-foreground sm:text-3xl">
-        {question || topic || (locale === "zh" ? "这件事接下来怎么走？" : "What happens next?")}
-      </h2>
-    </section>
-  )
-}
-
 function ReadingDecisionSummary({ brief }: { brief: ReadingBrief }) {
   const { locale } = useI18n()
   const timing = brief.timing[0]
@@ -952,7 +953,6 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
 
   return (
     <div className="mt-4 space-y-5">
-      <ReadingQuestion result={result} />
       <HexagramHeader
         overview={result.hex_overview}
         najiaMeta={result.najia_table?.meta}
@@ -966,8 +966,8 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
       <details className="group border-b border-border/60 pb-5">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-base font-semibold text-foreground marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <span>{locale === "zh" ? "为什么这样断" : "Why this reading"}</span>
-          <span className="text-sm text-primary group-open:hidden">{locale === "zh" ? "展开" : "Open"}</span>
-          <span className="hidden text-sm text-primary group-open:inline">{locale === "zh" ? "收起" : "Close"}</span>
+          <span className="ml-auto text-sm text-primary group-open:hidden">{locale === "zh" ? "展开" : "Open"}</span>
+          <span className="ml-auto hidden text-sm text-primary group-open:inline">{locale === "zh" ? "收起" : "Close"}</span>
         </summary>
         <div className="space-y-6 pt-2">
           <MechanicsInsightPanel

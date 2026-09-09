@@ -192,7 +192,7 @@ export default async function HexagramDetailPage({ params }: Props) {
       }
 
   return (
-    <div className="mx-auto grid max-w-[90rem] items-start gap-7 lg:grid-cols-[11rem_minmax(0,1fr)]">
+    <div className="autumn-study autumn-archive mx-auto grid max-w-[90rem] items-start gap-7 lg:grid-cols-[11rem_minmax(0,1fr)]">
       <HexagramQuickNav locale={locale} mode="routes" activeSlug={entry.slug} />
       <article className="min-w-0 space-y-8">
       <nav className="flex flex-wrap gap-4 text-sm">
@@ -200,17 +200,17 @@ export default async function HexagramDetailPage({ params }: Props) {
         <Link href={withLocale(locale, "/app")} className="min-h-11 rounded-md py-3 text-primary outline-none underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring">{copy.desk}</Link>
       </nav>
 
-      <header className="grid gap-7 border-b border-border/60 pb-8 lg:grid-cols-[1fr_14rem]">
+      <header className="autumn-page-header grid gap-7 lg:grid-cols-[1fr_14rem]">
         <div>
           <p className="kicker">{copy.eyebrow}</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">{copy.number} {entry.number} {copy.gua} · {entry.nameZh}</h1>
+          <h1 className="autumn-page-title">{copy.number} {entry.number} {copy.gua} · {entry.nameZh}</h1>
           <p className="mt-3 text-xl text-muted-foreground">{pinyin}{locale === "en" ? ` · ${entry.titleEn}` : ""}</p>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-foreground">{meaning}</p>
           <div className="mt-4 flex flex-wrap gap-2" aria-label={copy.situations}>
             {themes.map((theme) => <span key={theme} className="rounded-full bg-primary/10 px-3 py-1.5 text-sm text-primary">{theme}</span>)}
           </div>
         </div>
-        <div className="grid place-items-center rounded-lg bg-surface-elevated p-5">
+        <div className="autumn-archive-glyph grid place-items-center border border-border/60 bg-surface p-5">
           <HexagramGlyph lines={hexagramLines(entry.binary)} className="w-28 gap-3" lineClassName="h-2" />
         </div>
       </header>

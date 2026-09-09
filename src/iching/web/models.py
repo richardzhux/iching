@@ -32,6 +32,23 @@ class ModelInfo(BaseModel):
     default_verbosity: Optional[str] = None
 
 
+class CastingPreviewRequest(BaseModel):
+    method_key: Literal["s", "m"]
+    timestamp: datetime
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class CastingPreviewResponse(BaseModel):
+    method_key: Literal["s", "m"]
+    timestamp: datetime
+    lines: List[int]
+    yarrow_steps: List[List[int]] = Field(default_factory=list)
+    upper_trigram: Optional[int] = None
+    lower_trigram: Optional[int] = None
+    changing_line: Optional[int] = None
+
+
 class SessionCreateRequest(BaseModel):
     topic: str
     user_question: Optional[str] = None

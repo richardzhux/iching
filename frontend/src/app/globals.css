@@ -3,66 +3,33 @@
 @tailwind utilities;
 
 :root {
-  --radius: 0.5rem;
-  --background: 258 42% 98%;
-  --foreground: 258 28% 14%;
-  --surface: 0 0% 100%;
-  --surface-elevated: 260 38% 95%;
-  --card: 0 0% 100%;
-  --card-foreground: 258 28% 14%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 258 28% 14%;
-  --primary: 258 68% 48%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 260 34% 92%;
-  --secondary-foreground: 258 28% 18%;
-  --muted: 260 28% 91%;
-  --muted-foreground: 260 14% 40%;
-  --accent: 262 38% 91%;
-  --accent-foreground: 260 42% 22%;
-  --destructive: 7 73% 52%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 260 24% 82%;
-  --input: 260 24% 82%;
-  --ring: 258 68% 48%;
-  --imperial-metal: 46 50% 52%;
-  --oracle-violet: 258 68% 48%;
-  --app-gradient: linear-gradient(180deg, #fbf9ff 0%, #f1ecfb 52%, #faf8ff 100%);
-  --app-overlay: radial-gradient(circle at 10% 0%, rgba(126, 87, 194, 0.12), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent 36%);
-  --surface-shadow: 0 16px 34px -26px rgba(45, 26, 78, 0.28);
-  --surface-shadow-soft: 0 10px 24px -20px rgba(45, 26, 78, 0.2);
+  --radius: 0.4rem;
+  --background: 40 38% 96%; --foreground: 29 23% 22%;
+  --surface: 42 45% 98%; --surface-elevated: 37 28% 92%;
+  --card: 42 45% 98%; --card-foreground: 29 23% 22%;
+  --popover: 42 45% 98%; --popover-foreground: 29 23% 22%;
+  --primary: 9 51% 41%; --primary-foreground: 42 45% 98%;
+  --secondary: 36 28% 89%; --secondary-foreground: 29 23% 22%;
+  --muted: 36 25% 90%; --muted-foreground: 29 12% 43%;
+  --accent: 37 36% 88%; --accent-foreground: 29 23% 22%;
+  --destructive: 7 73% 45%; --destructive-foreground: 0 0% 98%;
+  --border: 33 21% 78%; --input: 33 21% 78%; --ring: 9 51% 41%;
+  --imperial-metal: 37 55% 39%; --oracle-violet: 9 51% 41%;
+  --app-gradient: none; --app-overlay: none;
+  --surface-shadow: 0 12px 36px -28px rgba(71, 46, 28, 0.2);
+  --surface-shadow-soft: none;
 }
-
 .dark {
-  --background: 260 42% 5%;
-  --foreground: 260 34% 94%;
-  --surface: 258 32% 9%;
-  --surface-elevated: 258 28% 14%;
-  --card: 258 32% 9%;
-  --card-foreground: 260 34% 94%;
-  --popover: 258 32% 9%;
-  --popover-foreground: 260 34% 94%;
-  --primary: 255 90% 76%;
-  --primary-foreground: 258 45% 8%;
-  --secondary: 258 28% 18%;
-  --secondary-foreground: 260 34% 94%;
-  --muted: 258 18% 21%;
-  --muted-foreground: 260 13% 72%;
-  --accent: 260 30% 18%;
-  --accent-foreground: 260 34% 94%;
-  --destructive: 7 70% 55%;
-  --destructive-foreground: 260 34% 98%;
-  --border: 258 22% 27%;
-  --input: 258 22% 27%;
-  --ring: 255 90% 76%;
-  --imperial-metal: 47 68% 74%;
-  --oracle-violet: 255 90% 76%;
-  --app-gradient: linear-gradient(180deg, #0b0714 0%, #151021 52%, #090711 100%);
-  --app-overlay: radial-gradient(circle at 12% 0%, rgba(167, 139, 250, 0.16), transparent 30%),
-    linear-gradient(180deg, rgba(167, 139, 250, 0.06), transparent 38%);
-  --surface-shadow: 0 22px 44px -30px rgba(0, 0, 0, 0.82);
-  --surface-shadow-soft: 0 14px 30px -24px rgba(0, 0, 0, 0.68);
+  --background: 29 20% 9%; --foreground: 39 28% 90%;
+  --surface: 29 18% 12%; --surface-elevated: 29 17% 17%;
+  --card: 29 18% 12%; --card-foreground: 39 28% 90%;
+  --popover: 29 18% 12%; --popover-foreground: 39 28% 90%;
+  --primary: 20 62% 67%; --primary-foreground: 29 20% 9%;
+  --secondary: 29 17% 20%; --secondary-foreground: 39 28% 90%;
+  --muted: 29 15% 21%; --muted-foreground: 35 17% 70%;
+  --accent: 29 17% 22%; --accent-foreground: 39 28% 90%;
+  --border: 29 16% 29%; --input: 29 16% 29%; --ring: 20 62% 67%;
+  --imperial-metal: 39 55% 65%; --oracle-violet: 20 62% 67%;
 }
 
 @layer base {
@@ -96,7 +63,7 @@
 }
 
 .locale-en {
-  font-family: Georgia, "Times New Roman", Times, serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
 .locale-zh {
