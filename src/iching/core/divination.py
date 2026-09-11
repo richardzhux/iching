@@ -90,6 +90,31 @@ class ShicaoMethod:
             steps.append(remaining_stalks)
         return steps
 
+    @staticmethod
+    def calculate_line_trace(rng: Optional[random.Random] = None) -> List[dict[str, int]]:
+        """Realizable divisions matching the canonical removal probabilities.
+
+        Select the three removals first, then a valid division for each removal.
+        This preserves the 1:5:7:3 line distribution rather than treating every
+        possible physical cut as equally probable.
+        """
+        rng = rng or random
+        steps = ShicaoMethod.calculate_line_steps(rng)
+        before = 49
+        trace = []
+        for after in steps:
+            removed = before - after
+            cuts = [left for left in range(1, before - 1)
+                    if 1 + (left % 4 or 4) + ((before - left - 1) % 4 or 4) == removed]
+            left = rng.choice(cuts)
+            right = before - left
+            trace.append(dict(before=before, left=left, right=right, hanging=1,
+                              left_remainder=left % 4 or 4,
+                              right_remainder=(right - 1) % 4 or 4,
+                              removed=removed, after=after))
+            before = after
+        return trace
+
 
 @dataclass(slots=True)
 class CoinMethod:
@@ -144,7 +169,7 @@ class MeihuaMethod:
                 numbers = self._get_three_numbers(input_func)
                 upper_gua, lower_gua, changing_line = self._calculate_from_numbers(numbers)
             else:
-                print("将使用当前年月日时分起卦。")
+                print("将使用当前农历年月日与时支起卦。")
                 current_time = now_func()
                 upper_gua, lower_gua, changing_line = self._calculate_trigrams(current_time)
         else:
@@ -174,6 +199,16 @@ class MeihuaMethod:
 
     @staticmethod
     def _calculate_trigrams(dt: datetime) -> tuple[int, int, int]:
+        upper, lower, moving, _ = MeihuaMethod.calculate_time(dt)
+        return upper, lower, moving
+
+    @staticmethod
+    def calculate_time(dt: datetime, mode: str = "traditional") -> tuple[int, int, int, dict[str, int]]:
+        if mode == "original":
+            inputs = dict(year=dt.year, month=dt.month, day=dt.day, hour=dt.hour, minute=dt.minute)
+            return ((dt.month + dt.day) % 8 or 8,
+                    (dt.hour + dt.minute) % 8 or 8,
+                    (dt.year + dt.month + dt.day + dt.hour + dt.minute) % 6 or 6, inputs)
         lunar_day = sxtwl.fromSolar(dt.year, dt.month, dt.day)
         year_branch = lunar_day.getYearGZ(True).dz + 1
         hour_branch = lunar_day.getHourGZ(dt.hour).dz + 1
@@ -182,7 +217,10 @@ class MeihuaMethod:
         upper = date_total % 8 or 8
         lower = time_total % 8 or 8
         changing_line = time_total % 6 or 6
-        return upper, lower, changing_line
+        inputs = dict(year_branch=year_branch, lunar_month=lunar_day.getLunarMonth(),
+                      lunar_day=lunar_day.getLunarDay(), hour_branch=hour_branch,
+                      leap_month=int(lunar_day.isLunarLeap()))
+        return upper, lower, changing_line, inputs
 
     @staticmethod
     def _construct_hexagram(upper: int, lower: int, changing_line: int) -> List[int]:

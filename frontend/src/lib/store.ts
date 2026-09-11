@@ -27,6 +27,9 @@ export type WorkspaceForm = {
   methodKey: string
   manualLines: string
   castingTimestamp?: string
+  presetTimestamp?: string
+  castingTimezone?: string
+  meihuaMode?: "traditional" | "original"
   useCurrentTime: boolean
   customTimestamp: string
   enableAi: boolean

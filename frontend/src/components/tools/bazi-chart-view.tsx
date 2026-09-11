@@ -881,14 +881,7 @@ function CurrentBaziView({ chart, locale }: { chart: MetaphysicsChart; locale: L
   return (
     <section className="space-y-6" aria-label={locale === "zh" ? "当前时令结果" : "Current calendar result"}>
       <header className="border-b border-border/60 pb-5"><p className="kicker">{chart.lunar_date}</p><p className="mt-2 text-xs text-muted-foreground">{formatChartTimestamp(facts.gregorian, locale, chart.timezone)} · {chart.timezone}</p></header>
-      <div className="overflow-hidden rounded-xl border border-border/50 bg-surface-elevated/35">
-        <div className="grid grid-cols-4 border-b border-border/40 bg-primary/[0.05]">
-          {chart.pillars.map((pillar) => <div key={pillar.label} className="border-l border-border/30 px-2 py-2.5 text-center text-xs font-semibold first:border-l-0">{pillar.label}{locale === "zh" ? "柱" : ""}</div>)}
-        </div>
-        <div className="grid grid-cols-4">
-          {chart.pillars.map((pillar) => <div key={pillar.label} className="border-l border-border/30 px-2 py-4 text-center first:border-l-0"><p data-element={pillar.stem_element} className="chart-element-text text-3xl font-semibold leading-none">{pillar.stem}</p><p data-element={pillar.branch_element} className="chart-element-text mt-2 text-3xl font-semibold leading-none">{pillar.branch}</p></div>)}
-        </div>
-      </div>
+      <div><h2 className="mb-4 text-xl font-semibold">{locale === "zh" ? "此刻的完整四柱" : "The complete chart for this moment"}</h2><BaziProfessionalTable chart={chart} locale={locale} /></div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><RawFact label={locale === "zh" ? "月建" : "Month command"} value={facts.month_command} /><RawFact label={locale === "zh" ? "日辰" : "Day branch"} value={`${facts.day_pillar} · ${facts.day_branch}`} /><RawFact label={locale === "zh" ? "旬空" : "Void branches"} value={chart.xunkong} /><RawFact label={locale === "zh" ? "六神起点" : "Six-spirit start"} value={facts.six_spirit_start} /></div>
       <div className="border-t border-border/60 pt-5"><h3 className="text-sm font-semibold">{locale === "zh" ? "下一节气" : "Next solar term"}</h3><p className="mt-2 text-sm">{chart.previous_solar_term?.name || "—"} → {chart.next_solar_term?.name || "—"}</p>{chart.next_solar_term ? <LiveSolarTermCountdown key={chart.next_solar_term.timestamp} term={chart.next_solar_term} locale={locale} /> : null}</div>
     </section>

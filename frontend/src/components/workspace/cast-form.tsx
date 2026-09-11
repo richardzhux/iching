@@ -30,6 +30,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuthContext } from "@/components/providers/auth-provider"
 import { useSessionMutation } from "@/lib/queries"
 import { parseManualLines, prepareCasting } from "@/lib/api"
+import { YarrowRitual } from "./yarrow-ritual"
+import { MeihuaCalculation } from "./meihua-calculation"
 import { CastingMethodPicker, ManualLineEditor, MeihuaSteps } from "./casting-controls"
 import { trackProductEvent } from "@/lib/analytics"
 import { resolveReadingIntent } from "@/lib/reading-intents"
@@ -223,6 +225,8 @@ export function CastForm({ config }: Props) {
   const [meihuaStep, setMeihuaStep] = useState(0)
   const [ritualPhase, setRitualPhase] = useState(0)
   const [remainingStalks, setRemainingStalks] = useState(49)
+  const [yarrowPhase, setYarrowPhase] = useState(0)
+  const [yarrowLine, setYarrowLine] = useState(0)
   useEffect(() => () => { operation.current++; if (tossTimer.current) clearTimeout(tossTimer.current) }, [])
   const [lastCoinToss, setLastCoinToss] = useState<number[] | null>(null)
   const form = useWorkspaceStore((state) => state.form)
@@ -282,15 +286,16 @@ export function CastForm({ config }: Props) {
     setForm({
       topic: requestedIntent?.topic || persistedTopic || preferredTopic,
       userQuestion: explicitQuestion || draftedQuestion || requestedIntent?.questionHint || "",
-      methodKey: current.methodKey || preferredMethod,
+      methodKey: config.methods.some((method) => method.key === searchParams.get("method")) ? searchParams.get("method")! : current.methodKey || preferredMethod,
       aiModel: current.aiModel || config.default_model || config.ai_models[0]?.name || "",
       ...(requestedDate && !Number.isNaN(requestedDate.getTime())
         ? {
             useCurrentTime: false,
             customTimestamp: formatLocalDateTime(requestedDate),
-            ...(current.customTimestamp !== formatLocalDateTime(requestedDate)
-              ? { manualLines: "", castingTimestamp: undefined }
-              : {}),
+            presetTimestamp: requestedTimestamp!,
+            castingTimezone: searchParams.get("timezone") || undefined,
+            meihuaMode: "traditional",
+            manualLines: "", castingTimestamp: undefined,
           }
         : {}),
     })
@@ -365,6 +370,7 @@ export function CastForm({ config }: Props) {
       user_question: form.userQuestion || undefined,
       user_context: form.userContext || undefined,
       method_key: form.methodKey,
+      meihua_mode: form.meihuaMode ?? "traditional",
       manual_lines: manualLines,
       use_current_time: false,
       timestamp,
@@ -389,6 +395,7 @@ export function CastForm({ config }: Props) {
   function castingTime() {
     const current = useWorkspaceStore.getState().form
     if (current.castingTimestamp) return current.castingTimestamp
+    if (!current.useCurrentTime && current.presetTimestamp) return current.presetTimestamp
     const date = current.useCurrentTime ? new Date() : new Date(current.customTimestamp)
     if (Number.isNaN(date.getTime())) throw new Error(messages.workspace.cast.invalidTimestamp)
     return formatOffsetISOString(date)
@@ -402,6 +409,8 @@ export function CastForm({ config }: Props) {
     meihuaStepRef.current = 0
     setMeihuaStep(0)
     setRitualPhase(0)
+    setYarrowPhase(0)
+    setYarrowLine(0)
     setRemainingStalks(49)
     setForm({ manualLines: "", castingTimestamp: undefined })
   }
@@ -444,7 +453,7 @@ export function CastForm({ config }: Props) {
     const token = ++operation.current
     try {
       const timestamp = castingTime()
-      const cast = preparedCastRef.current ?? await prepareCasting(method as "s" | "m", timestamp)
+      const cast = preparedCastRef.current ?? await prepareCasting(method as "s" | "m", timestamp, current.meihuaMode ?? "traditional", current.castingTimezone)
       if (token !== operation.current) return
       preparedCastRef.current = cast
       setPreparedCast(cast)
@@ -457,23 +466,26 @@ export function CastForm({ config }: Props) {
       }
       if (method === "s") {
         const index = manualLineValues(current.manualLines).length
-        const steps = cast.yarrow_steps[index]
-        setRitualPhase(0)
+        const trace = cast.yarrow_trace[index]
+        setYarrowLine(index)
         setRemainingStalks(49)
-        const change = (phase: number) => {
+        const change = (tick: number) => {
           if (token !== operation.current) return
-          setRitualPhase(phase)
-          setRemainingStalks(steps[phase - 1])
+          const changeIndex = Math.floor(tick / 4)
+          const phase = tick % 4
+          setRitualPhase(changeIndex + 1)
+          setYarrowPhase(phase)
+          setRemainingStalks(phase === 3 ? trace[changeIndex].after : trace[changeIndex].before - (phase >= 1 ? 1 : 0))
           tossTimer.current = setTimeout(() => {
-            if (phase < 3) change(phase + 1)
+            if (tick < 11) change(tick + 1)
             else {
               const values = [...manualLineValues(useWorkspaceStore.getState().form.manualLines), cast.lines[index]]
               updateForm("manualLines", values.join(""))
               finish(values.length < 6)
             }
-          }, paused ? 15 : allRemaining ? 130 : 530)
+          }, paused ? 15 : allRemaining ? 90 : 650)
         }
-        tossTimer.current = setTimeout(() => change(1), paused ? 15 : allRemaining ? 80 : 300)
+        change(0)
       } else {
         const next = meihuaStepRef.current + 1
         setRitualPhase(next)
@@ -619,7 +631,7 @@ export function CastForm({ config }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="autumn-cast-form">
-      <AutumnFrame className="autumn-casting" values={displayValues} coins={lastCoinToss} toss={tossId} showCoins={isCoinMethod} showStalks={isYarrowMethod} showCompass={isMeihuaMethod} ritualPhase={isMeihuaMethod ? Math.max(ritualPhase, visibleMeihuaStep) : ritualPhase} remainingStalks={remainingStalks} upperTrigram={upperTrigram} lowerTrigram={lowerTrigram} onToss={isCoinMethod && !complete ? () => tossCoinLine() : undefined} onLineSelect={isManualMethod ? (position) => editManualLine(position - 1) : undefined} caption={complete ? (locale === "zh" ? "六爻已成 · 静观其变" : "Six lines complete · a moment to reflect") : null} sceneOverlay={ritualStatus ? <div className="autumn-ritual-status"><span>{methodName}</span><strong role="status" aria-live="polite">{ritualStatus}</strong></div> : undefined}>
+      <AutumnFrame className="autumn-casting" values={displayValues} coins={lastCoinToss} toss={tossId} showCoins={isCoinMethod} sceneContent={isYarrowMethod ? <YarrowRitual locale={locale} change={preparedCast?.yarrow_trace[yarrowLine]?.[ritualPhase - 1] ?? null} phase={yarrowPhase} changeNumber={ritualPhase} values={currentManualValues} remaining={remainingStalks} /> : undefined} showCompass={isMeihuaMethod} ritualPhase={isMeihuaMethod ? Math.max(ritualPhase, visibleMeihuaStep) : ritualPhase} upperTrigram={upperTrigram} lowerTrigram={lowerTrigram} onToss={isCoinMethod && !complete ? () => tossCoinLine() : undefined} onLineSelect={isManualMethod ? (position) => editManualLine(position - 1) : undefined} caption={complete ? (locale === "zh" ? "六爻已成 · 静观其变" : "Six lines complete · a moment to reflect") : null} sceneOverlay={ritualStatus && !isYarrowMethod ? <div className="autumn-ritual-status"><span>{methodName}</span><strong role="status" aria-live="polite">{ritualStatus}</strong></div> : undefined}>
         <fieldset disabled={mutation.isPending || isTossing} className="min-w-0">
           <div className="autumn-question-copy">
           <h1 className="autumn-title" lang="zh">一念之间</h1>
@@ -662,7 +674,17 @@ export function CastForm({ config }: Props) {
           </div>
           <div className="autumn-cast-controls">
           {isManualMethod && <ManualLineEditor locale={locale} values={currentManualValues} raw={form.manualLines} onLineChange={editManualLine} onRawChange={(value) => updateForm("manualLines", value)} />}
+          {isMeihuaMethod && <div className="meihua-method-choice">
+            <label htmlFor="meihua-mode">{locale === "zh" ? "时间起卦法" : "Time calculation"}</label>
+            <select id="meihua-mode" value={form.meihuaMode ?? "traditional"} onChange={(event) => { clearManualLines(); updateForm("meihuaMode", event.target.value as "traditional" | "original") }}>
+              <option value="traditional">{locale === "zh" ? "传统农历时辰法" : "Traditional lunar / hour branch"}</option>
+              <option value="original">{locale === "zh" ? "项目原始分钟法" : "Original project / minute formula"}</option>
+            </select>
+            <p>{locale === "zh" ? ((form.meihuaMode ?? "traditional") === "traditional" ? "取年支、农历月日与时支；同日同一时辰，所得卦相同。" : "恢复最早版本的公历取数公式；同一分钟所得卦相同。") : ((form.meihuaMode ?? "traditional") === "traditional" ? "Year branch, lunar date and hour branch. The same date and hour branch produce the same cast." : "The project's original Gregorian formula. The same minute produces the same cast.")}</p>
+            <p className="meihua-clock">{locale === "zh" ? "起卦时间：" : "Cast time: "}{form.castingTimestamp || (!form.useCurrentTime ? form.presetTimestamp || form.customTimestamp : (locale === "zh" ? "点击取上卦时锁定" : "Set when you reveal the upper trigram"))}{form.castingTimezone ? ` · ${form.castingTimezone}` : ""}</p>
+          </div>}
           {isMeihuaMethod && <><MeihuaSteps locale={locale} step={visibleMeihuaStep} upper={upperTrigram} lower={lowerTrigram} moving={changingLine} /><ol className="sr-only" aria-label={locale === "zh" ? "卦象六爻，自下而上" : "Hexagram lines, bottom to top"}>{displayValues.map((value, index) => <li key={index}>{index + 1}: {value || "—"}</li>)}</ol></>}
+          {isMeihuaMethod && preparedCast && <MeihuaCalculation cast={preparedCast} locale={locale} />}
           {!isManualMethod && !complete
             ? <button type="button" className="autumn-primary" disabled={isTossing} onClick={() => isCoinMethod ? tossCoinLine() : void castRitual()}>{isTossing ? (locale === "zh" ? "静待成象…" : "Let the figure take shape…") : actionLabel}<ArrowRight size={15} aria-hidden="true" /></button>
             : <button type="submit" className="autumn-primary" disabled={!complete || mutation.isPending}>{mutation.isPending ? messages.workspace.cast.submitLoading : (locale === "zh" ? "解读此卦" : "Read this hexagram")}<ArrowRight size={15} aria-hidden="true" /></button>}
@@ -929,14 +951,14 @@ export function CastForm({ config }: Props) {
                     <span className="text-sm text-muted-foreground">{messages.workspace.cast.useCurrentTime}</span>
                     <Switch
                       checked={form.useCurrentTime}
-                      onCheckedChange={(checked) => { clearManualLines(); updateForm("useCurrentTime", checked) }}
+                      onCheckedChange={(checked) => { clearManualLines(); setForm({ useCurrentTime: checked, presetTimestamp: undefined, castingTimezone: undefined }) }}
                     />
                   </div>
                   <Input
                     type="datetime-local"
                     value={form.customTimestamp}
                     disabled={form.useCurrentTime}
-                    onChange={(event) => { clearManualLines(); updateForm("customTimestamp", event.target.value) }}
+                    onChange={(event) => { clearManualLines(); setForm({ customTimestamp: event.target.value, presetTimestamp: undefined, castingTimezone: undefined }) }}
                   />
                 </div>
               </div>

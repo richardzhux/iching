@@ -14,16 +14,17 @@ type Props = AutumnStageProps & {
   className?: string
   caption?: ReactNode
   sceneOverlay?: ReactNode
+  sceneContent?: ReactNode
 }
 
-export function AutumnFrame({ children, className = "", caption, sceneOverlay, ...stage }: Props) {
+export function AutumnFrame({ children, className = "", caption, sceneOverlay, sceneContent, ...stage }: Props) {
   const { locale } = useI18n()
   const { paused } = useAutumnMotion()
   return (
     <section className={`autumn-frame ${className}`} data-motion={paused ? "paused" : "playing"}>
       <div className="autumn-scene-panel" id={className === "autumn-casting" ? "casting-scene" : undefined}>
         <Image className="autumn-courtyard" src="/autumn/courtyard.webp" alt="" fill priority sizes="100vw" />
-        <AutumnStage {...stage} />
+        {sceneContent ?? <AutumnStage {...stage} />}
         {sceneOverlay}
         <div className="autumn-leaves" aria-hidden="true">
           {Array.from({ length: 12 }, (_, index) => (

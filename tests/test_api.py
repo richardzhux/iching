@@ -348,3 +348,17 @@ def test_create_session_ai_enabled_returns_reading_brief(monkeypatch) -> None:
     assert data["reading_brief"]["timing"][0]["window"] == "一周内"
     assert data["reading_brief"]["actions"][0]["action"] == "先问清负责人"
     assert data["reading_brief"]["followup_prompts"][0] == "应该先问谁？"
+
+
+def test_meihua_preview_uses_selected_timezone_and_exposes_formula_inputs() -> None:
+    response = client.post("/api/casting/preview", json={
+        "method_key": "m", "timestamp": "2026-07-12T02:30:00Z",
+        "timezone": "Asia/Shanghai", "meihua_mode": "original",
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert data["timestamp"] == "2026-07-12T10:30:00+08:00"
+    assert data["meihua_mode"] == "original"
+    assert data["calculation_inputs"] == dict(year=2026, month=7, day=12, hour=10, minute=30)
+    assert (data["upper_trigram"], data["lower_trigram"], data["changing_line"]) == (3, 8, 3)
+    assert data["lines"] == [8, 8, 6, 7, 8, 7]

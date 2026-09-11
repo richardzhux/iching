@@ -27,11 +27,18 @@ export type ConfigResponse = {
   model_aliases: Record<string, string>
 }
 
+export type YarrowChange = {
+  before: number; left: number; right: number; hanging: number
+  left_remainder: number; right_remainder: number; removed: number; after: number
+}
 export type CastingPreview = {
   method_key: "s" | "m"
   timestamp: string
   lines: number[]
   yarrow_steps: number[][]
+  yarrow_trace: YarrowChange[][]
+  meihua_mode: "traditional" | "original" | null
+  calculation_inputs: Record<string, number>
   upper_trigram: number | null
   lower_trigram: number | null
   changing_line: number | null
@@ -1000,6 +1007,7 @@ export type SessionPayload = {
 }
 
 export type SessionRequest = {
+  meihua_mode?: "traditional" | "original"
   topic: string
   user_question?: string
   user_context?: string

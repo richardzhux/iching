@@ -114,15 +114,24 @@ def read_config(runner: SessionRunner = Depends(_get_runner)) -> ConfigResponse:
 def prepare_cast(payload: CastingPreviewRequest) -> CastingPreviewResponse:
     """Prepare the actual cast for progressive display, without creating a reading."""
     if payload.method_key == "s":
-        steps = [ShicaoMethod.calculate_line_steps() for _ in range(6)]
+        trace = [ShicaoMethod.calculate_line_trace() for _ in range(6)]
+        steps = [[change["after"] for change in line] for line in trace]
         return CastingPreviewResponse(
             method_key="s", timestamp=payload.timestamp,
-            lines=[line_steps[-1] // 4 for line_steps in steps], yarrow_steps=steps,
+            lines=[line_steps[-1] // 4 for line_steps in steps], yarrow_steps=steps, yarrow_trace=trace,
         )
     try:
-        upper, lower, moving = MeihuaMethod._calculate_trigrams(payload.timestamp)
+        from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+        timestamp = payload.timestamp
+        if payload.timezone:
+            try:
+                zone = ZoneInfo(payload.timezone)
+            except ZoneInfoNotFoundError as exc:
+                raise ValueError("未知时区") from exc
+            timestamp = timestamp.replace(tzinfo=zone) if timestamp.tzinfo is None else timestamp.astimezone(zone)
+        upper, lower, moving, inputs = MeihuaMethod.calculate_time(timestamp, payload.meihua_mode)
         return CastingPreviewResponse(
-            method_key="m", timestamp=payload.timestamp,
+            method_key="m", timestamp=timestamp, meihua_mode=payload.meihua_mode, calculation_inputs=inputs,
             lines=MeihuaMethod._construct_hexagram(upper, lower, moving),
             upper_trigram=upper, lower_trigram=lower, changing_line=moving,
         )

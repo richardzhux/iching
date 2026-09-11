@@ -80,3 +80,33 @@ def test_meihua_time_uses_chinese_new_year_as_year_boundary():
 
 def test_meihua_constructs_upper_zhen_over_lower_kan_bottom_to_top():
     assert MeihuaMethod._construct_hexagram(4, 6, 4) == [8, 7, 8, 9, 8, 8]
+
+
+def test_yarrow_trace_accounts_for_every_stalk_across_all_changes():
+    import random
+
+    seen = set()
+    for seed in range(256):
+        trace = ShicaoMethod.calculate_line_trace(random.Random(seed))
+        before = 49
+        for index, change in enumerate(trace):
+            assert change["before"] == before
+            assert change["left"] + change["right"] == before
+            assert change["left"] > 0 and change["right"] > 1
+            assert change["hanging"] == 1
+            assert change["left_remainder"] == (change["left"] % 4 or 4)
+            assert change["right_remainder"] == ((change["right"] - 1) % 4 or 4)
+            assert change["removed"] == 1 + change["left_remainder"] + change["right_remainder"]
+            assert change["removed"] in ((5, 9) if index == 0 else (4, 8))
+            assert change["after"] == before - change["removed"]
+            before = change["after"]
+        seen.add(before // 4)
+    assert seen == {6, 7, 8, 9}
+
+
+def test_original_minute_formula_is_separate_from_traditional_hour_formula():
+    first = datetime(2026, 7, 12, 10, 30)
+    second = datetime(2026, 7, 12, 10, 31)
+    assert MeihuaMethod.calculate_time(first, "original")[:3] == (3, 8, 3)
+    assert MeihuaMethod.calculate_time(second, "original")[:3] == (3, 1, 4)
+    assert MeihuaMethod._calculate_trigrams(first) == MeihuaMethod._calculate_trigrams(second) == (8, 6, 4)

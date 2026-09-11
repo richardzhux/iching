@@ -35,6 +35,8 @@ class ModelInfo(BaseModel):
 class CastingPreviewRequest(BaseModel):
     method_key: Literal["s", "m"]
     timestamp: datetime
+    timezone: Optional[str] = None
+    meihua_mode: Literal["traditional", "original"] = "traditional"
 
     model_config = ConfigDict(extra="forbid")
 
@@ -44,6 +46,9 @@ class CastingPreviewResponse(BaseModel):
     timestamp: datetime
     lines: List[int]
     yarrow_steps: List[List[int]] = Field(default_factory=list)
+    yarrow_trace: List[List[Dict[str, int]]] = Field(default_factory=list)
+    meihua_mode: Optional[Literal["traditional", "original"]] = None
+    calculation_inputs: Dict[str, int] = Field(default_factory=dict)
     upper_trigram: Optional[int] = None
     lower_trigram: Optional[int] = None
     changing_line: Optional[int] = None
@@ -54,6 +59,7 @@ class SessionCreateRequest(BaseModel):
     user_question: Optional[str] = None
     user_context: Optional[str] = None
     method_key: str
+    meihua_mode: Literal["traditional", "original"] = "traditional"
     manual_lines: Optional[List[int]] = None
     use_current_time: bool = True
     timestamp: Optional[datetime] = None

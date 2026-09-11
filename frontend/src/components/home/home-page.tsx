@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowRight } from "lucide-react"
+import { HomeHexagram } from "@/components/autumn/home-hexagram"
 import { AutumnFrame } from "@/components/autumn/autumn-frame"
 import { HexagramGlyph } from "@/components/hexagram/hexagram-glyph"
 import { useI18n } from "@/components/providers/i18n-provider"
@@ -18,7 +19,7 @@ export function HomePage() {
 
   return (
     <div>
-      <AutumnFrame preview onToss={begin} caption={locale === "zh" ? "一问 · 六爻 · 万般变化" : "One question. Six lines. A different perspective."}>
+      <AutumnFrame sceneContent={<HomeHexagram locale={locale} />} caption={locale === "zh" ? "一问 · 六爻 · 万般变化" : "One question. Six lines. A different perspective."}>
         <h1 className="autumn-title" lang="zh">一念之间</h1>
           <p className="autumn-eyebrow">{locale === "zh" ? "以一念，观万象" : "A moment of change"}</p>
 

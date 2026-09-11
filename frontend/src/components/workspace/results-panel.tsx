@@ -27,6 +27,8 @@ import type {
 import { ChatPanel } from "./chat-panel"
 import { HexagramHeader } from "./hexagram-visual"
 import { NajiaTableView } from "./najia-table"
+import { ReadingClassics } from "./reading-classics"
+import { HexagramRelations } from "@/components/hexagram/hexagram-relations"
 
 export function ResultsPanel() {
   const { messages, locale, toLocalePath } = useI18n()
@@ -90,6 +92,12 @@ export function ResultsPanel() {
           </div>
         </CardHeader>
         <CardContent>
+          <nav className="reading-section-links" aria-label={locale === "zh" ? "解卦章节" : "Reading sections"}>
+            <a href="#reading-relations">{locale === "zh" ? "卦象关系" : "Related forms"}</a>
+            <a href="#reading-classics">{locale === "zh" ? "经文对读" : "Source texts"}</a>
+            <a href="#reading-rationale">{locale === "zh" ? "取用与结构" : "Reading method"}</a>
+            <a href="#ai-followup">{locale === "zh" ? "继续追问" : "Follow-up"}</a>
+          </nav>
           <div className="space-y-9 pb-2">
             <HexResultBlock result={result} brief={brief} onSourceSelect={openSourceReader} />
             <section id="ai-followup" className="scroll-mt-24 border-t border-border/60 pt-7">
@@ -938,9 +946,8 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
     return { primarySections: primary, secondarySections: secondary }
   }, [locale, result])
 
-  const hasHiddenSections = secondarySections.length > 0
-  const hasPrimary = primarySections.length > 0
   const sessionDetails = result.session_dict as Record<string, unknown> | undefined
+  const castingMode = (sessionDetails?.casting as { meihua_mode?: string } | undefined)?.meihua_mode
   const rawBazi = sessionDetails?.["bazi_output"]
   const rawElements = sessionDetails?.["elements_output"]
   const baziText = typeof rawBazi === "string" ? rawBazi : ""
@@ -948,8 +955,6 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
   const detailFromPayload = result.bazi_detail as BaziPillar[] | undefined
   const detailFromSession = sessionDetails?.["bazi_detail"] as BaziPillar[] | undefined
   const baziDetail = detailFromPayload ?? detailFromSession ?? []
-  const drawerSourceSection = secondarySections[0] || primarySections[0]
-  const sourceButtonLabel = locale === "zh" ? "查看原文笔记" : "Review source notebook"
 
   return (
     <div className="mt-4 space-y-5">
@@ -962,8 +967,11 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
         baziDetail={baziDetail}
         compact
       />
+      {castingMode && <p className="text-xs text-muted-foreground">{locale === "zh" ? "梅花取数：" : "Plum blossom formula: "}{castingMode === "original" ? (locale === "zh" ? "项目原始分钟法" : "Original project minute formula") : (locale === "zh" ? "传统农历时辰法" : "Traditional lunar / hour branch")}</p>}
+      <div id="reading-relations" className="scroll-mt-24"><HexagramRelations values={[...result.hex_overview.lines].sort((a, b) => a.position - b.position).map((line) => line.value)} locale={locale} /></div>
+      <ReadingClassics result={result} locale={locale} />
       <ReadingDecisionSummary brief={brief} />
-      <details className="group border-b border-border/60 pb-5">
+      <details id="reading-rationale" className="group scroll-mt-24 border-b border-border/60 pb-5">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-base font-semibold text-foreground marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <span>{locale === "zh" ? "为什么这样断" : "Why this reading"}</span>
           <span className="ml-auto text-sm text-primary group-open:hidden">{locale === "zh" ? "展开" : "Open"}</span>
@@ -983,77 +991,9 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
               <NajiaTableView table={result.najia_table} />
             </div>
           ) : null}
-          <div className="border-t border-border/60 pt-4 text-sm leading-relaxed text-foreground">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="kicker">{messages.workspace.results.hexLabel}</p>
-              {(hasHiddenSections || drawerSourceSection) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs font-semibold tracking-wide text-foreground hover:text-foreground"
-                  onClick={() => {
-                    if (drawerSourceSection) onSourceSelect(sectionSourceIdForDrawer(drawerSourceSection))
-                  }}
-                >
-                  {sourceButtonLabel}
-                </Button>
-              )}
-            </div>
-            {hasPrimary ? (
-              <HexSectionGroup
-                title={messages.workspace.results.primarySectionTitle}
-                sections={primarySections}
-                variant="primary"
-              />
-            ) : (
-              <MarkdownContent content={result.hex_text} />
-            )}
-          </div>
+
         </div>
       </details>
-    </div>
-  )
-}
-
-function HexSectionGroup({
-  title,
-  sections,
-  variant,
-}: {
-  title: string
-  sections: HexSection[]
-  variant: "primary" | "secondary"
-}) {
-  const { messages, locale } = useI18n()
-
-  if (!sections.length) {
-    return null
-  }
-
-  const accentClasses =
-    variant === "primary"
-      ? "border-primary/35 bg-primary/10"
-      : "border-border/60 bg-surface-elevated/70"
-
-  return (
-    <div className={`rounded-lg border ${accentClasses} p-4`}>
-      <p className="mb-3 text-xs uppercase tracking-[0.28rem] text-muted-foreground">{title}</p>
-	      <div className="divide-y divide-border/50">
-	        {sections.map((section) => (
-	          <details key={section.id} className="group/source py-2 text-foreground first:pt-0 last:pb-0">
-              <summary className="cursor-pointer list-none rounded-md px-1 py-2 outline-none marker:hidden focus-visible:ring-2 focus-visible:ring-ring">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-muted-foreground">
-                  <span>{section.title}</span>
-                  <span className="text-[0.65rem] uppercase tracking-widest">{section.hexagram_name} · {section.hexagram_type === "main" ? messages.workspace.results.lineMetaMain : messages.workspace.results.lineMetaChanged} · {sourceDisplayLabel(section.source, locale)}</span>
-                </div>
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-foreground/80">{compactText(section.content, 180)}</p>
-                <span className="mt-1 inline-block text-xs font-semibold text-primary group-open/source:hidden">{locale === "zh" ? "展开原文" : "Open source"}</span>
-                <span className="mt-1 hidden text-xs font-semibold text-primary group-open/source:inline">{locale === "zh" ? "收起" : "Close"}</span>
-              </summary>
-              <MarkdownContent content={section.content} className="px-1 pb-3 pt-2" />
-            </details>
-        ))}
-      </div>
     </div>
   )
 }

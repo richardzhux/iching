@@ -669,9 +669,9 @@ export function MetaphysicsTools() {
   }, [auth.accessToken, auth.loading])
 
   const castHref = useMemo(() => {
-    if (!currentChart?.calculation_timestamp) return toLocalePath("/app")
-    return `${toLocalePath("/app")}?timestamp=${encodeURIComponent(currentChart.calculation_timestamp)}`
-  }, [currentChart?.calculation_timestamp, toLocalePath])
+    if (!currentChart?.calculation_timestamp) return `${toLocalePath("/app")}?method=m`
+    return `${toLocalePath("/app")}?method=m&timestamp=${encodeURIComponent(currentChart.calculation_timestamp)}&timezone=${encodeURIComponent(timezone)}`
+  }, [currentChart?.calculation_timestamp, timezone, toLocalePath])
 
   function requestZiweiStatistics(statisticsChart: IFunctionalAstrolabe, generatedAt: string) {
     void fetchMetaphysicsStatistics({
@@ -1302,10 +1302,10 @@ export function MetaphysicsTools() {
       <Tabs value={activeTab} onValueChange={(value) => changeActiveTab(value as "current" | "bazi" | "ziwei")}>
         <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="current"><CalendarClock className="mr-2 size-4" />{copy.current}</TabsTrigger><TabsTrigger value="bazi"><Compass className="mr-2 size-4" />{copy.bazi}</TabsTrigger><TabsTrigger value="ziwei"><Sparkles className="mr-2 size-4" />{copy.ziwei}</TabsTrigger></TabsList>
         <TabsContent value="current" className="mt-4 space-y-4">
+          <div className="flex justify-end">{currentChart ? <Button asChild><Link href={castHref}>{copy.useToCast} · {locale === "zh" ? "梅花易数" : "Plum blossom"}</Link></Button> : <Button disabled>{copy.useToCast}</Button>}</div>
           <div aria-live="polite" aria-busy={currentLoading}>
             {currentLoading && !currentChart ? <Loading locale={locale} label={copy.loadingCurrent} /> : currentChart ? <BaziChartView chart={currentChart} locale={locale} mode="current" /> : null}
           </div>
-          <Button asChild><Link href={castHref}>{copy.useToCast}</Link></Button>
         </TabsContent>
         <TabsContent value="bazi" className="mt-4 space-y-4">
           {incompleteBaziRecord ? <aside role="alert" className="rounded-xl border border-border/60 bg-surface p-4"><h2 className="text-sm font-semibold">{incompleteBaziRecord.kind === "corrupt" ? (locale === "zh" ? "这份命盘档案不完整" : "This chart archive is incomplete") : (locale === "zh" ? "这份旧档案缺少准确时辰" : "This legacy record lacks an exact birth hour")}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{incompleteBaziRecord.subjectName || (locale === "zh" ? "匿名命主" : "Anonymous")} · {incompleteBaziRecord.birthTimestamp}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">{incompleteBaziRecord.kind === "corrupt" ? (locale === "zh" ? "为避免显示残缺或错误内容，旧快照未被打开。请核对下方出生资料并重新排盘。" : "The saved snapshot was not opened to avoid showing partial or incorrect content. Check the birth details below and recalculate.") : (locale === "zh" ? "完整四柱、运限、神煞和统计暂不展示。请在下方补充准确出生时间后重新生成。" : "The full chart, periods, Shen Sha, and statistics are withheld. Add an exact birth time below to recalculate.")}</p></aside> : null}

@@ -82,11 +82,11 @@ export async function fetchConfig(): Promise<ConfigResponse> {
   return handleResponse<ConfigResponse>(response)
 }
 
-export async function prepareCasting(methodKey: "s" | "m", timestamp: string): Promise<CastingPreview> {
+export async function prepareCasting(methodKey: "s" | "m", timestamp: string, meihuaMode = "traditional", timezone?: string): Promise<CastingPreview> {
   const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/casting/preview`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ method_key: methodKey, timestamp }),
+    body: JSON.stringify({ method_key: methodKey, timestamp, meihua_mode: meihuaMode, timezone }),
   })
   return handleResponse<CastingPreview>(response)
 }

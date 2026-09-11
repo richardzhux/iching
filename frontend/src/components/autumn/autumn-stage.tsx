@@ -14,10 +14,8 @@ export type AutumnStageProps = {
   changed?: boolean
   preview?: boolean
   showCoins?: boolean
-  showStalks?: boolean
   showCompass?: boolean
   ritualPhase?: number
-  remainingStalks?: number
   upperTrigram?: number | null
   lowerTrigram?: number | null
   selectedLine?: number | null
@@ -160,17 +158,6 @@ export default function AutumnStage(props: AutumnStageProps) {
       return { group, x, y, angle }
     })
 
-    const stalkGeometry = new THREE.CylinderGeometry(1.6, 2.1, 139, 7)
-    const stalkMaterial = new THREE.MeshStandardMaterial({ color: 0xcaa77c, roughness: 0.72, metalness: 0.03 })
-    const setAsideMaterial = new THREE.MeshStandardMaterial({ color: 0x9d7c57, roughness: 0.8, transparent: true, opacity: 0.5 })
-    const stalks = Array.from({ length: 50 }, () => {
-      const stalk = new THREE.Mesh(stalkGeometry, stalkMaterial)
-      stalk.castShadow = true
-      stalk.position.set(854, -737, 40)
-      world.add(stalk)
-      return stalk
-    })
-
     const compass = new THREE.Group()
     compass.position.set(854, -752, 25)
     compass.rotation.x = -0.3
@@ -226,8 +213,6 @@ export default function AutumnStage(props: AutumnStageProps) {
     let tossStarted = -100
     let lastChanged = false
     let changeStarted = -100
-    let lastRitualPhase = 0
-    let ritualStarted = -100
     const epoch = performance.now()
 
     function render() {
@@ -243,10 +228,6 @@ export default function AutumnStage(props: AutumnStageProps) {
       if (Boolean(current.changed) !== lastChanged) {
         lastChanged = Boolean(current.changed)
         changeStarted = now
-      }
-      if ((current.ritualPhase ?? 0) !== lastRitualPhase) {
-        lastRitualPhase = current.ritualPhase ?? 0
-        ritualStarted = now
       }
       rows.forEach((row, index) => {
         const value = values[index]
@@ -287,28 +268,6 @@ export default function AutumnStage(props: AutumnStageProps) {
         coin.group.rotation.x = -0.64 + (airborne ? turn * Math.PI * (8 + index * 2) : 0)
         coin.group.rotation.y = (reverse ? Math.PI : 0) + (index === 1 ? 0.24 : -0.18) + (airborne ? turn * Math.PI * 4 : 0)
         coin.group.rotation.z = coin.angle + (airborne ? Math.sin(progress * Math.PI) * 0.65 : 0)
-      })
-      const ritualProgress = current.paused ? 1 : THREE.MathUtils.clamp((now - ritualStarted) / 0.5, 0, 1)
-      const remaining = current.remainingStalks ?? 49
-      stalks.forEach((stalk, index) => {
-        stalk.visible = Boolean(current.showStalks)
-        if (!stalk.visible) return
-        const reserved = index === 49
-        const active = index < remaining
-        const halfCount = Math.ceil(remaining / 2)
-        const inLeft = index < halfCount
-        const localIndex = inLeft ? index : index - halfCount
-        const bundleSize = inLeft ? halfCount : remaining - halfCount
-        const gathered = !current.ritualPhase
-        const x = reserved ? 1080 : !active ? 1034 + (index - remaining) * 3 : gathered ? 780 + index * 3.1 : (inLeft ? 788 : 922) + (localIndex - bundleSize / 2) * 3.8
-        const y = reserved ? -724 : !active ? -760 : -744 + (index % 4) * 2 + (!current.paused ? Math.sin(ritualProgress * Math.PI) * (index % 2 ? 16 : -12) : 0)
-        const angle = reserved ? -0.7 : !active ? -0.3 : gathered ? (24 - index) * 0.014 : (inLeft ? 0.24 : -0.24) + (localIndex - bundleSize / 2) * 0.012
-        const speed = current.paused ? 1 : 0.13
-        stalk.position.x += (x - stalk.position.x) * speed
-        stalk.position.y += (y - stalk.position.y) * speed
-        stalk.rotation.z += (angle - stalk.rotation.z) * speed
-        stalk.rotation.x = -0.22
-        stalk.material = active || reserved ? stalkMaterial : setAsideMaterial
       })
       compass.visible = Boolean(current.showCompass)
       if (compass.visible) {
@@ -388,7 +347,6 @@ export default function AutumnStage(props: AutumnStageProps) {
       mount.removeEventListener("click", click)
       whole.dispose(); half.dispose(); coinBody.dispose(); faceGeometry.dispose()
       rows.forEach((row) => row.material.dispose())
-      stalkGeometry.dispose(); stalkMaterial.dispose(); setAsideMaterial.dispose()
       ringGeometry.dispose(); ringMaterial.dispose(); glyphGeometry.dispose(); glyphHalfGeometry.dispose(); petalGeometry.dispose()
       compassSigns.forEach(({ material }) => material.dispose())
       bronze.dispose(); faceFront.dispose(); faceBack.dispose()

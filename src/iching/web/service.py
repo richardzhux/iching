@@ -10,6 +10,7 @@ from threading import Lock
 from typing import Dict, Optional, Tuple
 
 from iching.config import AppConfig, build_app_config
+from iching.core.divination import MeihuaMethod
 from iching.integrations.ai import DEFAULT_MODEL, MODEL_ALIASES, MODEL_CAPABILITIES
 from iching.integrations.supabase_client import SupabaseRestClient, SupabaseUser
 from iching.services.session import SessionService
@@ -151,6 +152,13 @@ class SessionRunner:
             raise ValueError(f"未知的占卜方法: {request.method_key}")
 
         timestamp = request.timestamp if not request.use_current_time else None
+        manual_lines = request.manual_lines
+        if request.method_key == "m":
+            timestamp = timestamp or datetime.now().astimezone()
+            upper, lower, moving, casting_inputs = MeihuaMethod.calculate_time(timestamp, request.meihua_mode)
+            calculated_lines = MeihuaMethod._construct_hexagram(upper, lower, moving)
+            if manual_lines is None:
+                manual_lines = calculated_lines
 
         ai_allowed = False
         if request.enable_ai:
@@ -167,9 +175,9 @@ class SessionRunner:
             user_question=request.user_question,
             user_context=request.user_context,
             method_key=request.method_key,
-            use_current_time=request.use_current_time,
+            use_current_time=request.use_current_time and request.method_key != "m",
             timestamp=timestamp,
-            manual_lines=request.manual_lines,
+            manual_lines=manual_lines,
             enable_ai=ai_allowed,
             ai_model=request.ai_model or DEFAULT_MODEL,
             ai_reasoning=request.ai_reasoning,
@@ -197,6 +205,9 @@ class SessionRunner:
 
         raw_session = result.to_dict()
         safe_session = json.loads(json.dumps(raw_session, default=str))
+        if request.method_key == "m" and list(result.lines) == calculated_lines:
+            safe_session["casting"] = dict(meihua_mode=request.meihua_mode, timestamp=timestamp.isoformat(), inputs=casting_inputs)
+            summary.append("起卦算法: " + ("传统农历时辰法" if request.meihua_mode == "traditional" else "项目原始分钟法"))
 
         payload = SessionPayload(
             summary_text="\n".join(summary),
