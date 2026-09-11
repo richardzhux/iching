@@ -2,6 +2,7 @@
 
 import { create } from "zustand"
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware"
+import { workspaceStorage } from "./workspace-storage"
 import type { SessionPayload } from "@/types/api"
 
 const pad = (value: number) => value.toString().padStart(2, "0")
@@ -177,7 +178,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     {
       name: "iching-workspace",
       version: 1,
-      storage: createJSONStorage(() => (typeof window === "undefined" ? serverStorage : window.localStorage)),
+      storage: createJSONStorage(() => (typeof window === "undefined" ? serverStorage : workspaceStorage)),
       partialize: (state) => ({
         form: {
           ...state.form,
