@@ -15,45 +15,31 @@ from iching.core.shensha import REGISTRY_DIGEST
 
 
 DATA_DIR = Path(__file__).with_name("data")
-BASELINE_ID = "bazi-calendar-1924-2044-g4-forward"
+BASELINE_ID = "bazi-calendar-1950-2030-g5-forward"
 BASELINE_IDS = {
     "bazi": {
         "forward": BASELINE_ID,
-        "current": "bazi-calendar-1924-2044-g4-current",
+        "current": "bazi-calendar-1950-2030-g5-current",
     },
-    "ziwei": {"default": "ziwei-calendar-1924-2044-v1"},
+    "ziwei": {"default": "ziwei-calendar-1950-2030-life-v2"},
 }
 FEATURE_ID_RE = re.compile(r"^(bazi|ziwei)\.[a-z0-9_.-]{1,96}$")
 BASELINE_SCHEMA_VERSION = 6
-BASELINE_GENERATION_VERSION = 4
+BASELINE_GENERATION_VERSION = 5
 BAZI_CONSUMER_FEATURE_METHOD = (
-    "weighted_empirical_feature_incidence_canonical_patterns_v2"
+    "weighted_empirical_feature_incidence_theme_profiles_v3"
 )
 BAZI_PATTERN_FEATURE_SEMANTICS = "canonical_active_lifecycle_status"
-ZIWEI_RULES_VERSION = "ziwei-structural-2026.07-v2.1"
-ZIWEI_CONSUMER_RULES_VERSION = "ziwei-consumer-c1"
+ZIWEI_RULES_VERSION = "ziwei-life-2026.09-v2"
+ZIWEI_CONSUMER_RULES_VERSION = "ziwei-life-2026.09-v2"
 ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"
 THEME_IDS = ("事业", "财富", "感情", "五行与承压结构")
 ZIWEI_REGISTRY_DESCRIPTOR = {
     "rules_version": ZIWEI_RULES_VERSION,
-    "consumer_rules_version": ZIWEI_CONSUMER_RULES_VERSION,
-    "encoding_version": 1,
-    "feature_families": [
-        "life_combo",
-        "body_branch",
-        "five_elements",
-        "empty_palaces",
-        "brightness",
-        "mutagen_palace_index",
-        "auspicious_palaces",
-        "auspicious_max_density",
-        "challenging_palaces",
-        "challenging_max_density",
-        "achievement",
-        "archetype",
-        "consumer_score_histogram",
-        "structural_family",
-    ],
+    "encoding_version": 2,
+    "feature_families": ["life_combo", "life_state", "life_count", "life_star"],
+    "scope": "fourteen_major_stars_in_life_palace_only",
+    "brightness": ["miao", "wang", "de", "li", "ping", "bu", "xian", "unknown"],
 }
 
 
@@ -141,7 +127,7 @@ def _expected_config_id(baseline: Mapping[str, Any]) -> str:
 
 def _validate_v3_baseline(baseline: dict[str, Any]) -> None:
     required_schema = (
-        BASELINE_SCHEMA_VERSION if baseline.get("chart_type") == "bazi" else 3
+        BASELINE_SCHEMA_VERSION if baseline.get("chart_type") == "bazi" else 4
     )
     if int(baseline.get("schema_version", 1)) < required_schema:
         raise BaselineVersionMismatchError(

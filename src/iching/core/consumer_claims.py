@@ -26,7 +26,7 @@ _PATTERN_STATUS_LABELS = {
     "rescued": "救成",
     "mixed": "混杂",
     "transformed": "转化",
-    "candidate": "主导",
+    "candidate": "条件待核",
     "undetermined": "待定",
     "coexisting": "并见",
 }
@@ -576,6 +576,8 @@ def _hero_summary(primary: Mapping[str, Any]) -> str:
         return str(primary.get("summary", "多个主导结构同时成立。"))
     if str(primary.get("status", "")) == "undetermined":
         return "月令候选已经识别，成格路径仍需更多原局条件确认。"
+    if str(primary.get("status", "")) == "candidate":
+        return "月令候选已经确认，尚未命中已实现的成格路径；这不表示破格。可在格局依据中查看本格的原文条目与待核条件。"
     selection = {
         "month_main_qi": "月令本气形成主导结构",
         "month_hidden_exposed": "月令藏气透出，形成主导结构",
@@ -1131,7 +1133,11 @@ def _combination_claims(
             "summary": str(
                 combination.get("summary", "多个结构在同一命盘中形成共振。")
             ),
-            "importance": "major" if tier == "classical_named" else "supporting",
+            "importance": "major" if tier in {"classical_named", "theme_profile"} else "supporting",
+            "conditionState": combination.get("state", "命中"),
+            "memberPositions": combination.get("member_positions", {}),
+            "universeRuleIds": combination.get("universe_rule_ids", []),
+            "absentRuleIds": combination.get("absent_rule_ids", []),
             "classicalRole": "supporting_marker",
             **({"comparison": comparison} if comparison else {}),
             "evidenceIds": _unique_strings(combination.get("evidence_ids", ())),
@@ -1141,6 +1147,7 @@ def _combination_claims(
             "sourceIds": _unique_strings(combination.get("source_ids", ())),
         }
         tier_rank = {
+            "theme_profile": -1,
             "classical_named": 0,
             "classical_interaction": 1,
             "product_cluster": 2,
@@ -1418,9 +1425,12 @@ def project_consumer_claims(claims: Iterable[Mapping[str, Any]]) -> dict[str, An
                 "id": str(claim.get("id", "combination")),
                 "title": str(claim.get("title", "结构组合")),
                 "tier": "组合",
-                "state": "可见",
+                "state": claim.get("conditionState", "命中"),
+                "member_positions": claim.get("memberPositions", {}),
+                "universe_rule_ids": claim.get("universeRuleIds", []),
+                "absent_rule_ids": claim.get("absentRuleIds", []),
                 "rarity_percentage": comparison.get("percentage"),
-                "position": f"{len(claim.get('ruleIds', ()))} 项结构共振",
+                "position": "、".join(_unique_strings(position for positions in _mapping(claim.get("memberPositions")).values() for position in positions)) or "—",
                 "summary": str(claim.get("summary", "")),
                 "member_ids": list(claim.get("ruleIds", ())),
             }

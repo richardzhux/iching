@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
+
+
+@lru_cache(maxsize=1)
+def _rule_coverage():
+    return json.loads((Path(__file__).parent / "data/bazi-pattern-coverage.json").read_text(encoding="utf-8"))
+
+
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
@@ -905,6 +915,7 @@ def assess_patterns(
         graph,
         include_attestations=include_attestations,
     )
+    legacy["rule_coverage"] = _rule_coverage()
     legacy["source_backed_shadow"] = shadow
     legacy["source_backed_authority"] = canonical_authority_from_shadow(shadow)
     return legacy

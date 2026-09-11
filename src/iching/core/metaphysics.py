@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from math import cos, pi, sin
 from typing import Any, Dict, Iterable, Optional
@@ -424,7 +424,7 @@ def _true_solar_time(
     day_number = value.timetuple().tm_yday
     b = 2 * pi * (day_number - 81) / 364
     equation = 9.87 * sin(2 * b) - 7.53 * cos(b) - 1.5 * sin(b)
-    correction_minutes = 4 * (longitude - standard_meridian) + equation
+    correction_minutes = 4 * (longitude - standard_meridian) + equation - (value.dst() or timedelta()).total_seconds() / 60
     return value + timedelta(minutes=correction_minutes), correction_minutes
 
 
@@ -709,6 +709,7 @@ def _build_uncertain_metaphysics_chart(
             calculation_time,
             timezone_name=timezone_name,
             day_boundary=day_boundary,
+            reference_instant=civil if use_true_solar_time else None,
         )
         day_stem = STEMS[facts.day_gz.tg]
         pillars = [
@@ -1083,8 +1084,11 @@ def _dayun_payload(
             "note": "时辰不确定时，起运时刻与大运交接可能变化，暂不输出伪精确大运。",
             "cycles": [],
         }
+    # lunar_python solar-term tables use the fixed UTC+8 civil clock.
+    # Compare the physical birth instant there, including historical DST.
+    engine_time = value.astimezone(timezone(timedelta(hours=8)))
     solar = SolarCalendar.fromYmdHms(
-        value.year, value.month, value.day, value.hour, value.minute, value.second
+        engine_time.year, engine_time.month, engine_time.day, engine_time.hour, engine_time.minute, engine_time.second
     )
     eight_char = solar.getLunar().getEightChar()
     eight_char.setSect(1 if day_boundary == "forward" else 2)
@@ -1104,17 +1108,15 @@ def _dayun_payload(
     reference_year = reference_facts.lichun_boundary.local_datetime.year
     reference_month_ganzhi = reference_facts.month_gz.text
     start_solar = yun.getStartSolar()
-    first_dayun_start = normalize_local_datetime(
-        datetime(
+    first_dayun_start = datetime(
             start_solar.getYear(),
             start_solar.getMonth(),
             start_solar.getDay(),
             start_solar.getHour(),
             start_solar.getMinute(),
             start_solar.getSecond(),
-        ),
-        timezone_name,
-    ).local_datetime
+            tzinfo=timezone(timedelta(hours=8)),
+        ).astimezone(value.tzinfo)
 
     def add_years(source: datetime, years: int) -> datetime:
         try:
@@ -1377,7 +1379,7 @@ def _dayun_payload(
             "months": yun.getStartMonth(),
             "days": yun.getStartDay(),
             "hours": yun.getStartHour(),
-            "solar_date": yun.getStartSolar().toYmdHms(),
+            "solar_date": first_dayun_start.strftime("%Y-%m-%d %H:%M:%S"),
         },
         "engine_bazi": crosscheck_bazi,
         "crosscheck_matches": crosscheck_bazi == expected_bazi,
@@ -1456,6 +1458,7 @@ def build_metaphysics_chart(
         calculation_time,
         timezone_name=timezone_name,
         day_boundary=day_boundary,
+        reference_instant=local if use_true_solar_time else None,
     )
     if calendar_facts.quality["status"] == "conflict":
         raise ValueError("这个出生时间正处于换柱敏感区，请确认出生时间后继续。")
@@ -1479,8 +1482,8 @@ def build_metaphysics_chart(
         if value in ELEMENTS
     )
     counts = Counter(direct_elements)
-    previous_term = serialize_solar_term(calendar_facts.previous_jie, calculation_time)
-    next_term = serialize_solar_term(calendar_facts.next_jie, calculation_time)
+    previous_term = serialize_solar_term(calendar_facts.previous_jie, local)
+    next_term = serialize_solar_term(calendar_facts.next_jie, local)
     lunar_month = abs(solar_day.getLunarMonth())
     lunar_day = solar_day.getLunarDay()
     lunar_text = f"{solar_day.getLunarYear()}年{'闰' if solar_day.isLunarLeap() else ''}{LUNAR_MONTHS[lunar_month]}月{LUNAR_DAYS[lunar_day]}"
@@ -1489,7 +1492,7 @@ def build_metaphysics_chart(
     six_gods = derive_six_gods(day_stem)
     bazi_text = " ".join(pillar["text"] for pillar in pillars)
     dayun = _dayun_payload(
-        calculation_time,
+        local,
         gender=gender,
         hour_uncertain=hour_uncertain,
         day_boundary=day_boundary,

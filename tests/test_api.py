@@ -211,7 +211,7 @@ def test_metaphysics_chart_survives_statistics_version_failure(monkeypatch) -> N
     assert data["period_layers"]["dayun"]
     assert data["statistics"]["status"] == "version_mismatch"
     assert data["statistics"]["unavailable_reason"] == "测试基线版本不匹配"
-    assert data["statistics"]["baseline"]["id"] == "bazi-calendar-1924-2044-g4-forward"
+    assert data["statistics"]["baseline"]["id"] == "bazi-calendar-1950-2030-g5-forward"
     assert data["statistics"]["rarity_metrics"] == []
     assert data["statistics"]["theme_profiles"] == []
     assert data["theme_profiles"]

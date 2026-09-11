@@ -1,46 +1,28 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-
-import { buildZiweiConsumerProfile, rebaseZiweiPeriodActivity } from "../src/lib/ziwei-consumer.ts"
-
-const keys = ["overall", "career", "wealth", "relationship", "health"]
-
-test("period activity cancels every natal heuristic at the personal midpoint", () => {
-  for (const natal of [
-    { overall: 18, career: 22, wealth: 31, relationship: 44, health: 57 },
-    { overall: 92, career: 88, wealth: 79, relationship: 66, health: 53 },
-  ]) {
-    assert.deepEqual(rebaseZiweiPeriodActivity(natal, { ...natal }), Object.fromEntries(keys.map((key) => [key, 50])))
-  }
+import { buildZiweiConsumerProfile, lifeFeaturePercentage } from "../src/lib/ziwei-consumer.ts"
+import { ZIWEI_BASELINE_ID, ziweiFeatureIds, ziweiLifeStars } from "../src/lib/ziwei-statistics.ts"
+const chart = { palaces: [
+  { name: "命宫", majorStars: [{ name: "武曲", brightness: "旺" }, { name: "天府", brightness: "庙" }] },
+  { name: "迁移", majorStars: [{ name: "紫微", brightness: "陷" }] },
+] }
+test("life-palace events match each named star and brightness exactly", () => {
+  const features = ziweiFeatureIds(chart)
+  assert.ok(features.includes("ziwei.life_combo.tianfu-wuqu"))
+  assert.ok(features.includes("ziwei.life_state.tianfu_miao-wuqu_wang"))
+  assert.ok(!features.some((id) => id.includes(".ziwei.")))
+  assert.equal(ziweiLifeStars({ palaces: [{ name: "命宫", majorStars: [{ name: "紫微" }] }] })[0].brightness, "unknown")
 })
-
-test("new Ziwei profiles expose paths rather than life-quality scores", () => {
-  const names = ["命宫", "兄弟", "夫妻", "子女", "财帛", "疾厄", "迁移", "交友", "官禄", "田宅", "福德", "父母"]
-  const branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
-  const chart = {
-    palaces: names.map((name, index) => ({
-      index,
-      name,
-      heavenlyStem: "甲",
-      earthlyBranch: branches[index],
-      isBodyPalace: index === 0,
-      majorStars: index === 0 ? [{ name: "紫微", brightness: "庙", mutagen: "禄" }] : [],
-      minorStars: [],
-      adjectiveStars: [],
-    })),
-  }
+test("absent, stale and unsupported statistics cannot invent a percentage", () => {
+  const id = "ziwei.life_combo.tianfu-wuqu"
+  assert.equal(lifeFeaturePercentage(undefined, id), null)
+  const stats = { status: "available", baseline: { id: ZIWEI_BASELINE_ID }, rarity_metrics: [{ feature_id: id, status: "observed", percentage: 1.23456 }] }
+  assert.equal(lifeFeaturePercentage(stats, id), 1.23456)
+  assert.equal(lifeFeaturePercentage(stats, "ziwei.life_combo.other"), null)
+  assert.equal(lifeFeaturePercentage({ ...stats, baseline: { id: "old" } }, id), null)
   const profile = buildZiweiConsumerProfile(chart, null)
-
-  for (const key of ["main_score", "global_percentile", "global_top_percentage", "cohort_percentile", "cohort_top_percentage"]) {
-    assert.equal(key in profile.identity, false)
-  }
-  for (const subject of profile.subjects) {
-    for (const key of ["score", "global_percentile", "global_top_percentage", "cohort_percentile", "cohort_top_percentage"]) {
-      assert.equal(key in subject, false)
-    }
-    assert.ok(subject.path_label)
-    assert.ok(subject.path_summary)
-  }
-  assert.equal("raw_scores" in profile.metadata, false)
-  assert.equal("rank_sources" in profile.metadata, false)
+  assert.ok(profile.fingerprints.every((item) => item.incidence_percentage === null))
+  assert.deepEqual(profile.achievements, [])
+  assert.deepEqual(profile.subjects, [])
+  assert.equal(profile.twin, null)
 })

@@ -66,7 +66,8 @@ def test_rule_specific_support_can_make_a_hit_effective() -> None:
 
     evaluated = module.evaluate_shensha_effects(hits, pillars, structure)["hits"][0]
 
-    assert evaluated["state"] == "发力"
+    assert evaluated["state"] == "条件齐备"
+    assert "effect_score" not in evaluated
     assert evaluated["effect_flags"]["rooted"] is True
     assert evaluated["effect_flags"]["season_supported"] is True
     assert evaluated["effect_flags"]["structure_echo"] is True
@@ -116,7 +117,7 @@ def test_incomplete_day_master_is_handled_without_inventing_support() -> None:
     assert evaluated["effect_flags"]["season_supported"] is False
 
 
-def test_documented_combinations_have_explicit_provenance() -> None:
+def test_fixed_theme_profiles_keep_the_declared_universe() -> None:
     module = importlib.import_module("iching.core.shensha_effects")
     hit_specs = [
         ("lushen", "禄神", ["年"], ["career", "wealth"]),
@@ -165,27 +166,15 @@ def test_documented_combinations_have_explicit_provenance() -> None:
     combinations = module.evaluate_shensha_effects(hits, pillars, structure)["combinations"]
     titles = {item["title"] for item in combinations}
 
-    assert {
-        "禄马同乡",
-        "学堂会禄",
-        "学堂会贵",
-        "学堂朝驿马",
-        "二德扶持",
-        "将星扶德天乙加临",
-        "羊刃带禄官印相资",
-        "德秀学堂财官",
-        "有文有印",
-    } <= titles
-    assert all(item["tier"] in {
-        "classical_named", "classical_interaction", "product_cluster"
-    } for item in combinations)
-    assert all({
-        "id", "title", "tier", "rarity_tier", "member_rule_ids",
-        "status", "summary", "topic_tags",
-    } <= item.keys() for item in combinations)
+    assert titles == {"才学组合", "助力组合", "行动组合"}
+    assert all(item["tier"] == "theme_profile" for item in combinations)
+    for item in combinations:
+        assert set(item["member_rule_ids"]) | set(item["absent_rule_ids"]) == set(item["universe_rule_ids"])
+        assert not set(item["member_rule_ids"]) & set(item["absent_rule_ids"])
+        assert item["incidence_semantics"] == "exact_membership_within_fixed_theme"
 
 
-def test_luma_distinguishes_crossed_positions_and_modern_clusters_are_labeled() -> None:
+def test_theme_profile_preserves_positions_without_counting_them_in_incidence() -> None:
     module = importlib.import_module("iching.core.shensha_effects")
     hits = [
         {"rule_id": "lushen", "name": "禄神", "axis": "执行", "pillar_labels": ["年"], "topic_tags": ["wealth"]},
@@ -203,9 +192,7 @@ def test_luma_distinguishes_crossed_positions_and_modern_clusters_are_labeled() 
 
     combinations = module.evaluate_shensha_effects(hits, pillars, {})["combinations"]
 
-    assert "禄马交驰" in {item["title"] for item in combinations}
-    products = [item for item in combinations if item["tier"] == "product_cluster"]
-    assert products
-    assert all(not item["title"].startswith("现代组合·") for item in products)
-    assert all("不作古法格局名" not in item["summary"] for item in products)
-    assert all(item["member_names"] for item in products)
+    movement = next(item for item in combinations if item["title"] == "行动组合")
+    assert movement["member_positions"] == {"lushen": ["年"], "yima": ["时"]}
+    assert movement["absent_rule_ids"] == ["jiangxing", "yangren"]
+    assert movement["id"].endswith("theme.movement.1100")

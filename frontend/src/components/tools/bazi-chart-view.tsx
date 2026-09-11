@@ -444,7 +444,7 @@ function BaziConsumerResult({
     chart.birth_profile.dayun.algorithm ?? "",
     consumer.version,
   ].join("|")
-  const achievementStates = new Set(["发力", "有力", "可见", "受制"])
+  const achievementStates = new Set(["条件齐备", "命中", "待核", "受制"])
   const achievements = consumer.achievements
     .filter((item) => achievementStates.has(item.state) && item.member_ids.length > 1) as MetaphysicsAchievement[]
   const tabs: AnalysisDestination<ConsumerTab>[] = locale === "zh"
@@ -528,8 +528,10 @@ function BaziConsumerResult({
 
     {tab === "kline" ? <div className="space-y-8">
       <div className="flex items-center justify-between gap-4"><p className="text-sm text-muted-foreground">{locale === "zh" ? "四类主题的阶段活跃度，可展开完整人生范围。" : "Explore activity across four themes and the full-life range."}</p>{selectedTheme === "overall" && chart.birth_profile.period_query ? <button type="button" disabled={fullLifeLoading} onClick={async () => { if (await loadFullLifeKline()) { setOverviewFullLife(true); setSelectedTheme("career") } }} className="rounded-lg border border-border px-4 py-2 text-sm text-primary">{fullLifeLoading ? (locale === "zh" ? "正在展开…" : "Expanding…") : (locale === "zh" ? "展开完整人生时间线" : "Expand full-life timeline")}</button> : null}</div>
+      <details className="rounded-3xl border border-dashed border-primary/40 bg-surface p-5"><summary className="cursor-pointer font-semibold">Experimental · {locale === "zh" ? "结构活跃度走势" : "Structural activity timeline"}</summary><div className="mt-5">
       {selectedTheme === "overall" ? <OverallThemeTimeline lifeKline={lifeKline} locale={locale} currentYear={currentYear} onSelectTheme={setSelectedTheme} /> : <LifeKlineChart key={`${klineChartIdentity}-${selectedTheme}-${overviewFullLife}`} initialFullLife={overviewFullLife} lifeKline={lifeKline} locale={locale} currentYear={currentYear} initialSeriesKey={selectedTheme} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} onSeriesChange={(key) => setSelectedTheme(normalizeThemeKey(String(key)))} onYearChange={selectKlineYear} />}
       {fullLifeError ? <p role="alert" className="text-sm text-destructive">{fullLifeError}</p> : null}
+      </div></details>
       <div className="autumn-period-workspace"><section className="rounded-3xl border border-border/60 bg-surface p-5 sm:p-7"><h2 className="text-xl font-semibold">{locale === "zh" ? "点开阶段看细节" : "Open a period"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "选择大运、流年和流月，查看这一阶段新增、联动和冲突的具体结构。" : "Choose a cycle, year, and month to inspect its activated structures."}</p><div className="mt-5"><BaziPeriodNavigator cycles={periodCycles} locale={locale} currentYear={currentYear} selectedCycleIndex={selectedCycleIndex} selectedYear={selectedYear} selectedMonthIndex={selectedMonthIndex} loadingCycleIndex={periodLoadingIndex} error={periodError} onCycleChange={onCycleChange} onYearChange={onYearChange} onMonthChange={onMonthChange} /></div></section>
       <BaziPeriodInsightPanel cycle={selectedCycle} year={selectedYearRecord} month={selectedMonthRecord} selectedTheme={selectedTheme} locale={locale} /></div>
     </div> : null}
@@ -726,6 +728,30 @@ function PatternSourceDisclosure({ bundleId, ruleIds, sourceIds, locale }: { bun
   )
 }
 
+function BaziRuleCoverage({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
+  const coverage = chart.structure.patterns?.rule_coverage
+  if (!coverage) return null
+  const zh = locale === "zh"
+  const renderClauses = (clauses: typeof coverage.shared_clauses) => clauses.map((clause) => (
+    <details key={clause.id} className="border-t border-border/40 py-3">
+      <summary className="cursor-pointer text-sm leading-6">{clause.claim} <span className="text-xs text-muted-foreground">{clause.active_rule_ids.length ? (zh ? `已实现 ${clause.active_rule_ids.length} 条` : `${clause.active_rule_ids.length} rules`) : (zh ? "待核" : "Pending")}</span></summary>
+      {clause.pending_reasons.map((reason) => <p key={reason} className="mt-2 text-xs leading-6 text-muted-foreground">{reason}</p>)}
+      {clause.inferred_conditions.length ? <p className="mt-2 text-xs leading-6 text-muted-foreground">{zh ? "解释条件：" : "Interpretive conditions: "}{clause.inferred_conditions.join("；")}</p> : null}
+      {clause.quotes.map((quote, i) => <blockquote key={i} className="mt-3 border-l-2 border-primary/30 pl-3 text-sm leading-7">{quote}</blockquote>)}
+      <p className="mt-2 break-words text-xs text-muted-foreground">{clause.layer === "shen_core" ? "《子平真诠》正文" : clause.layer} · {clause.id}</p>
+      <p className="mt-1 break-words text-xs text-muted-foreground">{clause.locator_ids.join(" · ")}</p>
+    </details>
+  ))
+  return <details className="mt-5 rounded-xl border border-border/60 bg-surface p-4">
+    <summary className="cursor-pointer text-sm font-semibold">{zh ? "十一类格局：原文与判定范围" : "Eleven patterns: sources and implemented scope"}</summary>
+    <p className="mt-3 text-sm leading-7 text-muted-foreground">{zh ? coverage.note : "Incidence reflects both calendar distribution and the implemented paths. Rule counts do not measure completeness. An unresolved candidate is not a broken pattern."}</p>
+    <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr>{(zh ? ["格局", "取格", "成格", "制约", "救应"] : ["Pattern", "Candidate", "Formation", "Damage", "Rescue"]).map((label) => <th key={label} className="p-2">{label}</th>)}</tr></thead><tbody>{coverage.patterns.map((pattern) => <tr key={pattern.pattern_id} className="border-t border-border/40"><th className="p-2">{pattern.label}</th>{["candidate", "formation", "damage", "rescue"].map((stage) => <td key={stage} className="p-2 tabular-nums">{pattern.stage_counts[stage] ?? 0}</td>)}</tr>)}</tbody></table></div>
+    <p className="mt-2 text-xs text-muted-foreground">{zh ? "表内为可执行规则条数；0 表示该阶段尚无可执行规则。正文同章合论的正偏财、正偏印，分流是引擎的十神分类。" : "Counts show executable rules; zero means no rule is implemented for that stage."}</p>
+    {coverage.patterns.map((pattern) => <details key={pattern.pattern_id} className="mt-3 border-t border-border/40 pt-3"><summary className="cursor-pointer text-sm font-semibold">{pattern.label} · {pattern.clauses.length} {zh ? "条已拆分命题" : "structured propositions"}</summary><div className="mt-2">{renderClauses(pattern.clauses)}</div><details className="mt-3 rounded-lg bg-muted/30 p-3"><summary className="cursor-pointer text-xs font-semibold">{zh ? "本章已整理正文段落（包含尚未编成规则的条件）" : "Transcribed chapter passages, including unimplemented conditions"}</summary><p className="mt-3 text-xs leading-6 text-muted-foreground">{zh ? "下列段落保留取格、例外、例命与取运上下文；没有对应可执行命题的部分仍待拆分或核定，不会被当作已判定成立。取运论述另属时间层，不能直接充当原局成格条件。" : "These passages preserve conditions, exceptions, examples and period doctrine. Uncompiled conditions remain unresolved; period doctrine is not a natal formation rule."}</p>{(pattern.source_paragraphs ?? []).map((paragraph) => <blockquote key={paragraph.id} className="mt-4 border-l-2 border-primary/25 pl-3 text-sm leading-7"><p>{paragraph.text}</p><p className="mt-1 break-words text-xs text-muted-foreground">{paragraph.locator_ids.join(" · ")}</p></blockquote>)}</details></details>)}
+    <details className="mt-3 border-t border-border/40 pt-3"><summary className="cursor-pointer text-sm font-semibold">{zh ? "成败救应通论" : "Shared formation, damage and rescue clauses"}</summary>{renderClauses(coverage.shared_clauses)}</details>
+  </details>
+}
+
 function BaziPatternSummary({ chart, locale, staticMode = false }: { chart: MetaphysicsChart; locale: Locale; staticMode?: boolean }) {
   const primary = chart.structure.patterns?.primary
   const claims = chart.consumer?.claims ?? []
@@ -787,6 +813,7 @@ function BaziPatternSummary({ chart, locale, staticMode = false }: { chart: Meta
         {!hero && primary ? <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">{localizedValue(primary.status, PATTERN_STATUS_LABELS, locale)}</span> : null}
       </div>
       {displaySummary ? <p className="mt-3 text-sm leading-7 text-muted-foreground">{displaySummary}</p> : null}
+      <BaziRuleCoverage chart={chart} locale={locale} />
       {decisionSteps.length ? <ol className="mt-5 grid min-w-0 gap-2 lg:grid-cols-3" aria-label={locale === "zh" ? "原局事实到古籍影印的判断链" : "Chart-fact to scanned-source decision chain"}>
         {decisionSteps.map((step, index) => (
           <li key={step.label} className="relative min-w-0 rounded-xl border border-border/55 bg-surface p-4">

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 export type LifeKlineLocale = "en" | "zh"
 export type LifeKlineKey = "overall" | "career" | "wealth" | "relationship" | "health" | "rhythm" | string
-type CanonicalLifeKlineKey = "career" | "wealth" | "relationship" | "rhythm"
+type CanonicalLifeKlineKey = "overall" | "career" | "wealth" | "relationship" | "rhythm"
 type LifeKlineViewMode = "trend" | "candles"
 
 export interface LifeKlineDriver {
@@ -202,7 +202,7 @@ function driverLabel(driver: string | LifeKlineDriver) {
 
 function canonicalSeriesKey(key: LifeKlineKey): CanonicalLifeKlineKey | null {
   if (key === "health" || key === "rhythm") return "rhythm"
-  if (key === "career" || key === "wealth" || key === "relationship") return key
+  if (key === "overall" || key === "career" || key === "wealth" || key === "relationship") return key
   return null
 }
 
@@ -234,6 +234,7 @@ function relativeSummary(value: number, locale: LifeKlineLocale) {
 }
 
 function displaySeriesLabel(series: LifeKlineThemeSeries, locale: LifeKlineLocale) {
+  if (series.key === "overall") return locale === "zh" ? series.label : "Life-palace activation"
   if (series.key === "health") return locale === "zh" ? "身心节奏" : "Body rhythm"
   return series.label
 }
@@ -331,7 +332,7 @@ export function LifeKlineChart({
   const interactionHintId = `${id}-interaction-hint`
   const panelId = `${id}-panel`
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
-  const consumerSeries = (["career", "wealth", "relationship", "rhythm"] as const).flatMap((key) => {
+  const consumerSeries = (["overall", "career", "wealth", "relationship", "rhythm"] as const).flatMap((key) => {
     const series = lifeKline.series.find((item) => canonicalSeriesKey(item.key) === key)
     return series ? [series] : []
   })
@@ -490,9 +491,9 @@ export function LifeKlineChart({
       <header className="border-b border-border/60 px-4 py-5 sm:px-6 sm:py-6">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="kicker">{locale === "zh" ? "未来活跃节奏" : "YOUR ACTIVITY TIMELINE"}</p>
+            <p className="kicker">{locale === "zh" ? "Experimental · 结构活跃节奏" : "EXPERIMENTAL · ACTIVITY TIMELINE"}</p>
             <h2 id={titleId} className="mt-2 text-2xl font-semibold">{locale === "zh" ? "结构活跃时间线" : "Structural Activity Timeline"}</h2>
-            <p id={descriptionId} className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{locale === "zh" ? "100 是个人长期结构活跃常态；它不是概率、吉凶或人生评分。" : "100 is your long-term structural-activity baseline; it is not a probability, fortune score, or life rating."}</p>
+            <p id={descriptionId} className="mt-2 max-w-3xl text-base leading-7 text-muted-foreground">{locale === "zh" ? "100 对应本盘参考跨度的月度平均活动量；曲线经过压缩，不是概率、吉凶或人生评分。" : "100 is your long-term structural-activity baseline; it is not a probability, fortune score, or life rating."}</p>
           </div>
           {staticMode ? null : <details className="shrink-0 text-xs text-muted-foreground">
             <summary className="min-h-11 cursor-pointer rounded-lg px-2 py-3 font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "为什么" : "Why"}</summary>

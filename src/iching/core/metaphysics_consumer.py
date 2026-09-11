@@ -10,7 +10,7 @@ from iching.core.consumer_claims import (
 )
 
 
-CONSUMER_RULES_VERSION = "metaphysics-consumer-2026.07-v6"
+CONSUMER_RULES_VERSION = "metaphysics-consumer-2026.09-v7"
 
 THEME_ORDER = ("career", "wealth", "relationship", "rhythm")
 THEME_LABELS = {
@@ -33,10 +33,10 @@ THEME_COLORS = {
 }
 
 _SHENSHA_STATE_IDS = {
-    "发力": "activated",
-    "有力": "supported",
-    "可见": "visible",
+    "条件齐备": "conditions_met",
+    "命中": "present",
     "受制": "constrained",
+    "待核": "unresolved",
 }
 _LIFECYCLE_TRANSITIONS = {
     "formation": (
@@ -130,8 +130,8 @@ def consumer_feature_records(
         records.extend(_canonical_pattern_feature_records(pattern))
     effects = shensha_effects or {}
     for hit in effects.get("hits", ()):
-        state = str(hit.get("state", "可见"))
-        state_id = _SHENSHA_STATE_IDS.get(state, "visible")
+        state = str(hit.get("state", "命中"))
+        state_id = _SHENSHA_STATE_IDS.get(state, "unresolved")
         records.append(
             {
                 "id": f"bazi.consumer.shensha.{hit.get('rule_id', 'unknown')}.state.{state_id}",

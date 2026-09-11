@@ -1,33 +1,28 @@
 "use client"
 
-import { useEffect, useId, useRef, useState } from "react"
-import { AnalysisMap, AnalysisNavigation, type AnalysisDestination } from "@/components/tools/chart-exploration"
-import { ZiweiSimulationExplorer } from "@/components/tools/ziwei-simulation-explorer"
+import { useId, useState } from "react"
 import { Maximize2 } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
-import { ComparisonUniverseBar } from "@/components/tools/comparison-universe-bar"
-import { ConsumerIdentity } from "@/components/tools/consumer-identity"
 import { LifeKlineChart } from "@/components/tools/life-kline-chart"
-import { MetaphysicsAchievements, type MetaphysicsAchievement } from "@/components/tools/metaphysics-achievements"
-import { OverallThemeTimeline, ThemeSelector } from "@/components/tools/theme-selector"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { buildZiweiMarkdown } from "@/lib/chart-markdown"
-import { normalizeThemeKey, type ThemeKey } from "@/lib/executive-view"
-import { frequencyLabel } from "@/lib/frequency-display"
+import { formatFrequency, frequencyLabel } from "@/lib/frequency-display"
 import { canonicalZiweiPalaceName, canonicalZiweiStarName, canonicalZiweiTransformationName } from "@/lib/ziwei-terms"
-import type { MetaphysicsStatistics, RarityMetric } from "@/types/api"
+import { buildZiweiLifeKline, lifeFeaturePercentage, type ZiweiConsumerProfile, type ZiweiLifeKline } from "@/lib/ziwei-consumer"
+import { ziweiLifeStars, lifeComboId, lifeStateId } from "@/lib/ziwei-statistics"
+import type { MetaphysicsStatistics } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
 import type { IFunctionalPalace } from "iztro/lib/astro/FunctionalPalace"
-import type { ZiweiConsumerProfile } from "@/lib/ziwei-consumer"
 
 type Locale = "en" | "zh"
-type DisplayMode = "simple" | "study" | "professional"
-
 const PALACE_POSITIONS = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2], [3, 3], [2, 3], [1, 3], [0, 3], [0, 2], [0, 1]] as const
+const starName = (value: string, locale: Locale) => canonicalZiweiStarName(value, locale)
+const palaceName = (value: string, locale: Locale) => canonicalZiweiPalaceName(value, locale)
+const transformationName = (value: string, locale: Locale) => canonicalZiweiTransformationName(value.startsWith("化") ? value : `化${value}`, locale)
 
 export type ZiweiProvenance = {
   configId?: string
@@ -43,41 +38,7 @@ export type ZiweiProvenance = {
 export type ZiweiArchiveMode = "standard" | "legacy-static" | "legacy-nonstandard"
 export type ZiweiStatisticsStatus = "loading" | "ready" | "unavailable"
 
-function getProvenanceLabels(provenance: ZiweiProvenance, locale: Locale) {
-  if (locale === "zh") {
-    return {
-      algorithm: provenance.algorithm === "zhongzhou" ? "中州派" : "通行法",
-      astroType: provenance.astroType === "earth" ? "地盘" : provenance.astroType === "human" ? "人盘" : "天盘",
-      yearDivide: provenance.yearDivide === "exact" ? "立春" : "农历正月初一",
-      dayBoundary: provenance.dayBoundary === "forward" ? "晚子时换日" : "晚子时不换日",
-      calendar: provenance.calendar === "lunar" ? "农历" : "公历",
-      fixLeap: provenance.fixLeap ? "修正闰月" : "不修正闰月",
-      leapMonth: provenance.isLeapMonth ? "闰月" : "非闰月",
-      notApplicable: "不适用",
-    }
-  }
-  return {
-    algorithm: provenance.algorithm === "zhongzhou" ? "Zhongzhou" : "Standard",
-    astroType: provenance.astroType === "earth" ? "Earth chart" : provenance.astroType === "human" ? "Human chart" : "Heaven chart",
-    yearDivide: provenance.yearDivide === "exact" ? "Start of Spring" : "Lunar New Year",
-    dayBoundary: provenance.dayBoundary === "forward" ? "Late Zi advances the day" : "Late Zi stays on the current day",
-    calendar: provenance.calendar === "lunar" ? "Lunar calendar" : "Solar calendar",
-    fixLeap: provenance.fixLeap ? "Adjust leap month" : "Do not adjust leap month",
-    leapMonth: provenance.isLeapMonth ? "Leap month" : "Non-leap month",
-    notApplicable: "Not applicable",
-  }
-}
-
-function formatTransformations(horoscope: IFunctionalHoroscope, locale: Locale) {
-  const labels = ["化禄", "化权", "化科", "化忌"]
-  return horoscope.yearly.mutagen.map((star, index) => `${canonicalZiweiTransformationName(labels[index], locale)} ${star ? canonicalZiweiStarName(star, locale) : "—"}`).join(" · ")
-}
-
-const starName = (value: string, locale: Locale) => canonicalZiweiStarName(value, locale)
-const palaceName = (value: string, locale: Locale) => canonicalZiweiPalaceName(value, locale)
-const transformationName = (value: string, locale: Locale) => canonicalZiweiTransformationName(value.startsWith("化") ? value : `化${value}`, locale)
-
-export function ZiweiChartView({ chart, horoscope, consumer, horoscopeDate, generatedAt, locale, provenance, subjectName, statistics, statisticsStatus, statisticsError, archiveMode, onHoroscopeDateChange, onCreateStandardCopy, onCompare }: {
+export function ZiweiChartView({ chart, horoscope, horoscopeDate, generatedAt, locale, provenance, subjectName, statistics, statisticsStatus, statisticsError, archiveMode, onHoroscopeDateChange, onCreateStandardCopy }: {
   chart: IFunctionalAstrolabe
   horoscope: IFunctionalHoroscope
   consumer?: ZiweiConsumerProfile
@@ -94,159 +55,45 @@ export function ZiweiChartView({ chart, horoscope, consumer, horoscopeDate, gene
   onCreateStandardCopy: () => void
   onCompare?: () => void
 }) {
-  const exportTargetId = `ziwei-export-${useId().replaceAll(":", "")}`
-  const palaceExportTargetId = `ziwei-palace-${useId().replaceAll(":", "")}`
-  const [selectedPalaceIndex, setSelectedPalaceIndex] = useState(() => chart.palaces.find((palace) => palace.name === "命宫" || palace.name.toLowerCase().includes("soul"))?.index ?? chart.palaces[0]?.index ?? 0)
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("simple")
-  useEffect(() => {
-    const saved = window.localStorage.getItem("iching:ziwei-display-mode")
-    if (saved !== "simple" && saved !== "study" && saved !== "professional") return
-    const frame = window.requestAnimationFrame(() => setDisplayMode(saved))
-    return () => window.cancelAnimationFrame(frame)
-  }, [])
-  function changeDisplayMode(nextMode: DisplayMode) {
-    setDisplayMode(nextMode)
-    window.localStorage.setItem("iching:ziwei-display-mode", nextMode)
-  }
-  const selectedPalace = chart.palaces.find((palace) => palace.index === selectedPalaceIndex) ?? chart.palaces[0]
-  const provenanceLabels = getProvenanceLabels(provenance, locale)
-  const markdown = buildZiweiMarkdown(chart, horoscope, subjectName, locale, statistics ?? undefined, { archiveMode, provenance, consumer })
-  const trustNote = locale === "zh"
-    ? "按统一通行法排盘，并结合十二宫、星曜与历法统计整理重点。"
-    : "Calculated with one standard method, then organized through palaces, stars, and calendar statistics."
-
-  if (consumer) {
-    return <ZiweiConsumerResult key={generatedAt} chart={chart} horoscope={horoscope} consumer={consumer} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} provenance={provenance} subjectName={subjectName} statistics={statistics} statisticsStatus={statisticsStatus} statisticsError={statisticsError} archiveMode={archiveMode} onHoroscopeDateChange={onHoroscopeDateChange} onCreateStandardCopy={onCreateStandardCopy} onCompare={onCompare} exportTargetId={exportTargetId} palaceExportTargetId={palaceExportTargetId} markdown={markdown} trustNote={trustNote} />
-  }
-
-  return (
-    <section className="chart-report min-w-0 space-y-8" aria-label={locale === "zh" ? "紫微斗数星盘结果" : "Zi Wei Dou Shu chart result"}>
-      <div data-export-exclude className="flex justify-end">
-        <ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出命盘" : "Export chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated. Try again."} safeBaseFilename={`ziwei-${horoscopeDate}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败，请改用下载。" : "Copy failed. Use the download instead."} />
-      </div>
-
-      <ZiweiIdentitySummary chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} />
-
-      <ZiweiArchiveBanner archiveMode={archiveMode} locale={locale} onCreateStandardCopy={onCreateStandardCopy} />
-
-      <ZiweiDisplayModeControl mode={displayMode} locale={locale} onChange={changeDisplayMode} />
-
-      <ZiweiSectionNav locale={locale} mode={displayMode} />
-
-      <section id="ziwei-chart" className="chart-report-chapter min-w-0 scroll-mt-28 border-t border-border/60 pt-6">
-        <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-semibold">{locale === "zh" ? "命盘" : "Chart"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "手机先看精简宫位卡；桌面与全盘模式保留完整专业密度。" : "Mobile starts with readable palace cards; desktop and full-chart mode retain professional density."}</p></div><div data-export-exclude className="flex flex-wrap gap-2"><ChartAssetExportButton targetId={palaceExportTargetId} label={locale === "zh" ? "单独导出十二宫" : "Export palace chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "十二宫导出失败。" : "Palace chart export failed."} safeBaseFilename={`ziwei-palaces-${horoscopeDate}`} /><FullChartDialog chart={chart} horoscope={horoscope} locale={locale} /></div></div>
-        <div className="mt-5 md:hidden"><MobilePalaceRail chart={chart} horoscope={horoscope} locale={locale} selectedPalaceIndex={selectedPalace?.index} onSelect={setSelectedPalaceIndex} /></div>
-        <div className="mt-5 hidden max-w-full overflow-x-auto pb-2 md:block" tabIndex={0} aria-label={locale === "zh" ? "十二宫星盘，可横向滚动" : "Twelve-palace chart, horizontally scrollable"}>
-          <ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive selectedPalaceIndex={selectedPalace?.index} onSelect={setSelectedPalaceIndex} />
-        </div>
-        {selectedPalace ? <SelectedPalaceDetail selectedPalace={selectedPalace} locale={locale} /> : null}
-      </section>
-
-      <ZiweiThemeSections chart={chart} horoscope={horoscope} statistics={statistics} locale={locale} sectionId="ziwei-themes" />
-
-      <section id="ziwei-periods" className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{locale === "zh" ? "运限" : "Periods"}</h2><p className="mt-2 text-sm text-muted-foreground">{archiveMode === "standard" ? (locale === "zh" ? "选择日期后同步查看本命、大限、流年、流月、流日与流时。" : "Choose a date to inspect natal, decadal, yearly, monthly, daily, and hourly layers together.") : (locale === "zh" ? "旧档案保留保存时的运限快照；日期已锁定。" : "Legacy archives retain the saved period snapshot; the date is locked.")}</p><ZiweiPeriodPanel horoscope={horoscope} selectedDate={horoscopeDate} onSelectedDateChange={onHoroscopeDateChange} locked={archiveMode !== "standard"} locale={locale} /></section>
-
-      {displayMode !== "simple" ? <section id="ziwei-stars" className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{locale === "zh" ? "星曜" : "Stars"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "按主星、辅星、杂曜与四化反查落宫。" : "Browse major, supporting, adjective, and transformed stars by palace."}</p><StarBrowser chart={chart} locale={locale} /></section> : null}
-
-      {displayMode !== "simple" ? <section id="ziwei-statistics" className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6"><h2 className="text-xl font-semibold">{locale === "zh" ? "统计" : "Statistics"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "查看关键结构在 120 年历法样本中的出现频率与辨识度。" : "Explore the frequency and distinctiveness of key structures across the 120-year calendar sample."}</p><div className="mt-5 space-y-7"><ZiweiStatistics chart={chart} horoscope={horoscope} locale={locale} /><ZiweiRarityPanel chart={chart} statistics={statistics} status={statisticsStatus} error={statisticsError} locale={locale} /></div></section> : null}
-
-      {displayMode === "professional" ? <details data-export-exclude className="border-t border-border/60 pt-5">
-        <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "专业排盘数据与来源" : "Professional chart data and provenance"}</summary>
-        <div className="mt-4 space-y-2 text-xs leading-5 text-muted-foreground">
-          <p><strong className="text-foreground">{locale === "zh" ? "排盘引擎" : "Engine"}:</strong> iztro 2.5.8 · MIT</p>
-          {provenance.configId ? <p><strong className="text-foreground">{locale === "zh" ? "统一配置" : "Standard config"}:</strong> {provenance.configId}</p> : null}
-          <p><strong className="text-foreground">{locale === "zh" ? "安星算法" : "Algorithm / school"}:</strong> {provenanceLabels.algorithm}{provenance.algorithm === "zhongzhou" ? ` · ${provenanceLabels.astroType}` : ""}</p>
-          <p><strong className="text-foreground">{locale === "zh" ? "规则" : "Rules"}:</strong> {provenanceLabels.calendar} · {provenanceLabels.yearDivide} · {provenanceLabels.dayBoundary}</p>
-          <p><strong className="text-foreground">{locale === "zh" ? "闰月" : "Leap month"}:</strong> {provenance.calendar === "lunar" ? `${provenanceLabels.fixLeap} · ${provenanceLabels.leapMonth}` : provenanceLabels.notApplicable}</p>
-          <p>{locale === "zh" ? "星曜、四化与运限为确定性排盘数据；解释层不混入排盘事实，也不自动生成预测断语。" : "Stars, transformations, and periods are deterministic chart data. Interpretation remains separate from chart facts, and no predictive prose is generated."}</p>
-          {statistics ? <><p>{statistics.baseline.id} · {statistics.baseline.hash}</p><p>{statistics.disclaimer}</p></> : <p>{statisticsError ?? (locale === "zh" ? "频率样本未载入。" : "Frequency samples were not loaded.")}</p>}
-        </div>
-      </details> : null}
-
-      <ZiweiExportCanvas exportTargetId={exportTargetId} chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={`${trustNote}${statistics ? ` ${statistics.disclaimer}` : ""}`} subjectName={subjectName} statistics={statistics} statisticsStatus={statisticsStatus} statisticsError={statisticsError} archiveMode={archiveMode} provenance={provenance} />
-      <div aria-hidden="true" inert className="chart-export-stage"><article id={palaceExportTargetId} className="chart-share-canvas chart-export-canvas"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} /></article></div>
-    </section>
-  )
-}
-
-type ZiweiConsumerTab = "identity" | "kline" | "chart" | "simulation" | "stars"
-
-function ZiweiConsumerResult({ chart, horoscope, consumer, horoscopeDate, generatedAt, locale, provenance, subjectName, statistics, statisticsStatus, statisticsError, archiveMode, onHoroscopeDateChange, onCreateStandardCopy, onCompare, exportTargetId, palaceExportTargetId, markdown, trustNote }: {
-  chart: IFunctionalAstrolabe
-  horoscope: IFunctionalHoroscope
-  consumer: ZiweiConsumerProfile
-  horoscopeDate: string
-  generatedAt: string
-  locale: Locale
-  provenance: ZiweiProvenance
-  subjectName: string
-  statistics: MetaphysicsStatistics | null
-  statisticsStatus: ZiweiStatisticsStatus
-  statisticsError?: string
-  archiveMode: ZiweiArchiveMode
-  onHoroscopeDateChange: (date: string) => void
-  onCreateStandardCopy: () => void
-  onCompare?: () => void
-  exportTargetId: string
-  palaceExportTargetId: string
-  markdown: string
-  trustNote: string
-}) {
-  const [tab, setTab] = useState<ZiweiConsumerTab>("identity")
-  const workspaceRef = useRef<HTMLElement>(null)
-  function openView(value: ZiweiConsumerTab) {
-    setTab(value)
-    requestAnimationFrame(() => workspaceRef.current?.querySelector("nav")?.scrollIntoView({ block: "start", behavior: "instant" }))
-  }
-  const [selectedTheme, setSelectedTheme] = useState<ThemeKey>("overall")
-  const identityCardId = `ziwei-identity-${useId().replaceAll(":", "")}`
-  const achievementCardId = `ziwei-achievements-${useId().replaceAll(":", "")}`
-  const klineCardId = `ziwei-kline-${useId().replaceAll(":", "")}`
-  const [selectedPalaceIndex, setSelectedPalaceIndex] = useState(() => chart.palaces.find((palace) => palace.name === "命宫" || palace.name.toLowerCase().includes("soul"))?.index ?? chart.palaces[0]?.index ?? 0)
-  const selectedPalace = chart.palaces.find((palace) => palace.index === selectedPalaceIndex) ?? chart.palaces[0]
-  const profile = { identity: consumer.identity, subjects: consumer.subjects, fingerprints: consumer.fingerprints, twin: consumer.twin }
-  const achievements = consumer.achievements as MetaphysicsAchievement[]
-  const tabs: AnalysisDestination<ZiweiConsumerTab>[] = locale === "zh"
-    ? [
-      { key: "identity", label: "命盘总览", description: "命格与四条人生路径" },
-      { key: "chart", label: "十二宫命盘", description: "宫位、星曜与四化联动", count: "十二宫 · 命宫与身宫 · 本命四化" },
-      { key: "simulation", label: "历法模拟", description: "结构频率与同类命盘", count: `${statistics?.rarity_metrics.length ?? 0} 项本盘特征对照` },
-      { key: "kline", label: "运限与时间线", description: "大限到流日、流时", count: `${consumer.life_kline.series.length} 条主题时间线 · 五层运限` },
-      { key: "stars", label: "星曜与结构", description: "星曜全表、分布与主题", count: `${chart.palaces.reduce((sum, palace) => sum + palace.majorStars.length + palace.minorStars.length + palace.adjectiveStars.length, 0)} 颗星曜 · 四类主题` },
-    ]
-    : [
-      { key: "identity", label: "Overview", description: "Archetype and life paths" },
-      { key: "chart", label: "Twelve palaces", description: "Palaces, stars, transformations" },
-      { key: "simulation", label: "Simulation", description: "Frequency and structural family" },
-      { key: "kline", label: "Periods & timeline", description: "Decadal through hourly layers" },
-      { key: "stars", label: "Stars & structure", description: "All stars, counts, and themes" },
-    ]
-  return <section ref={workspaceRef} className="chart-report autumn-chart-workspace min-w-0 space-y-6" aria-label={locale === "zh" ? "紫微斗数结果" : "Zi Wei result"}>
-    <div data-export-exclude className="flex justify-end"><ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "一键导出" : "Export"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated."} safeBaseFilename={`ziwei-${horoscopeDate}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败，请改用下载。" : "Copy failed."} /></div>
+  const exportTargetId = `ziwei-life-${useId().replaceAll(":", "")}`
+  const palaceExportTargetId = `ziwei-palaces-${useId().replaceAll(":", "")}`
+  const [selectedPalaceIndex, setSelectedPalaceIndex] = useState(() => chart.palaces.find((palace) => palaceName(palace.name, "zh") === "命宫")?.index ?? 0)
+  const selectedPalace = chart.palaces.find((palace) => palace.index === selectedPalaceIndex)
+  const stars = ziweiLifeStars(chart)
+  const names = stars.map((star) => starName(star.name, locale)).join(" × ") || (locale === "zh" ? "命宫无十四主星" : "No major stars in the life palace")
+  const states = stars.map((star) => `${starName(star.name, locale)}（${star.brightness_label}）`).join(" × ")
+  const stats = archiveMode === "standard" && statisticsStatus === "ready" ? statistics : null
+  const frequency = (id: string) => { const value = lifeFeaturePercentage(stats, id); return value === null ? "—" : `${formatFrequency(value, locale)}% · ${frequencyLabel(value, locale)}` }
+  const markdown = buildZiweiMarkdown(chart, horoscope, subjectName, locale, stats ?? undefined, { archiveMode, provenance })
+  return <section className="chart-report autumn-chart-workspace min-w-0 space-y-7" aria-label={locale === "zh" ? "紫微斗数结果" : "Zi Wei result"}>
+    <div className="flex justify-end"><ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出命宫" : "Export life palace"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "导出失败" : "Export failed"} safeBaseFilename={`ziwei-life-${horoscopeDate}`} /></div>
     <ZiweiArchiveBanner archiveMode={archiveMode} locale={locale} onCreateStandardCopy={onCreateStandardCopy} />
-    {tab === "identity" || tab === "kline" ? <ThemeSelector value={selectedTheme} locale={locale} onChange={setSelectedTheme} /> : null}
-    <AnalysisNavigation items={tabs} value={tab} onChange={openView} label={locale === "zh" ? "紫微结果主导航" : "Zi Wei result navigation"} />
-
-    {tab === "identity" ? <div className="autumn-overview-workspace"><div className="min-w-0 space-y-6">
-      <div data-export-exclude className="flex justify-end"><ChartAssetExportButton targetId={identityCardId} label={locale === "zh" ? "分享身份卡" : "Share identity card"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "身份卡生成失败。" : "Identity card could not be generated."} safeBaseFilename={`ziwei-identity-${horoscopeDate}`} /></div>
-      <div id={identityCardId}><ConsumerIdentity profile={profile} locale={locale} selectedTheme={selectedTheme} comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined} /></div>
-      <div data-export-exclude className="flex justify-end"><ChartAssetExportButton targetId={achievementCardId} label={locale === "zh" ? "分享成就卡" : "Share achievements"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "成就卡生成失败。" : "Achievement card could not be generated."} safeBaseFilename={`ziwei-achievements-${horoscopeDate}`} /></div>
-      <div id={achievementCardId}><MetaphysicsAchievements achievements={achievements} locale={locale} /></div>
-      </div><AnalysisMap items={tabs.filter((item) => item.key !== "identity")} onChange={openView} locale={locale} statistics={statistics} /></div> : null}
-
-    {tab === "simulation" ? (statistics && (!statistics.status || statistics.status === "available") ? <ZiweiSimulationExplorer statistics={statistics} consumer={consumer} metrics={statistics.rarity_metrics.map((metric) => ({ ...metric, label: ziweiMetricLabel(metric.feature_id, chart, locale) }))} locale={locale} /> : <ZiweiRarityPanel chart={chart} statistics={statistics} status={statisticsStatus} error={statisticsError} locale={locale} />) : null}
-
-    {tab === "stars" ? <div className="space-y-8"><ZiweiStatistics chart={chart} horoscope={horoscope} locale={locale} /><StarBrowser chart={chart} locale={locale} /><ZiweiThemeSections chart={chart} horoscope={horoscope} statistics={statistics} locale={locale} /></div> : null}
-
-    {tab === "kline" ? <div className="space-y-8"><div data-export-exclude className="flex justify-end"><ChartAssetExportButton targetId={klineCardId} label={locale === "zh" ? "分享结构活跃时间线" : "Share activity timeline"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "时间线图片生成失败。" : "Timeline image could not be generated."} safeBaseFilename={`ziwei-timeline-${horoscopeDate}`} /></div><div id={klineCardId}>{selectedTheme === "overall" ? <OverallThemeTimeline lifeKline={consumer.life_kline} locale={locale} currentYear={Number(horoscopeDate.slice(0, 4))} onSelectTheme={setSelectedTheme} /> : <LifeKlineChart key={selectedTheme} lifeKline={consumer.life_kline} locale={locale} currentYear={Number(horoscopeDate.slice(0, 4))} initialSeriesKey={selectedTheme} onSeriesChange={(key) => setSelectedTheme(normalizeThemeKey(String(key)))} onYearChange={(year) => { if (archiveMode === "standard") onHoroscopeDateChange(`${year}-07-01`) }} />}</div><section className="rounded-3xl border border-border/60 bg-surface p-5 sm:p-7"><h2 className="text-xl font-semibold">{locale === "zh" ? "当前变化" : "Current change"}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{locale === "zh" ? "所选日期的大限、流年、流月、流日与零时流时，按层级并排查看。" : "Inspect decadal, yearly, monthly, daily, and midnight hourly layers for the selected date."}</p><div className="mt-5"><ZiweiPeriodPanel horoscope={horoscope} selectedDate={horoscopeDate} onSelectedDateChange={onHoroscopeDateChange} locked={archiveMode !== "standard"} locale={locale} /></div></section></div> : null}
-
-    {tab === "chart" ? <div className="space-y-9">
-      <details><summary>{locale === "zh" ? "出生资料与排盘口径" : "Birth details and calculation method"} · {subjectName}</summary><ZiweiIdentitySummary chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} /></details>
-      <section className="chart-report-chapter min-w-0 border-t border-border/60 pt-6"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-semibold">{locale === "zh" ? "十二宫命盘" : "Twelve-palace chart"}</h2><p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "点击宫位查看主星、辅星、四化、亮度与长生信息。" : "Open a palace for stars, transformations, brightness, and life stage."}</p></div><div data-export-exclude className="flex flex-wrap gap-2"><ChartAssetExportButton targetId={palaceExportTargetId} label={locale === "zh" ? "单独导出十二宫" : "Export palace chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "十二宫导出失败。" : "Palace chart export failed."} safeBaseFilename={`ziwei-palaces-${horoscopeDate}`} /><FullChartDialog chart={chart} horoscope={horoscope} locale={locale} /></div></div><div className="autumn-palace-workspace"><div className="mt-5 md:hidden"><MobilePalaceRail chart={chart} horoscope={horoscope} locale={locale} selectedPalaceIndex={selectedPalace?.index} onSelect={setSelectedPalaceIndex} /></div><div className="autumn-palace-canvas mt-5 hidden max-w-full overflow-x-auto pb-2 md:block" tabIndex={0} aria-label={locale === "zh" ? "十二宫星盘，可横向滚动" : "Twelve-palace chart, horizontally scrollable"}><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive selectedPalaceIndex={selectedPalace?.index} onSelect={setSelectedPalaceIndex} /></div>{selectedPalace ? <SelectedPalaceDetail selectedPalace={selectedPalace} locale={locale} /> : null}</div></section>
-    </div> : null}
-    <ZiweiExportCanvas exportTargetId={exportTargetId} chart={chart} horoscope={horoscope} consumer={consumer} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} statistics={statistics} statisticsStatus={statisticsStatus} statisticsError={statisticsError} archiveMode={archiveMode} provenance={provenance} />
+    <article id={exportTargetId} className="space-y-6 rounded-3xl border border-border/60 bg-surface p-5 sm:p-8">
+      <header><p className="kicker">{locale === "zh" ? "紫微斗数 · 命宫" : "ZI WEI · LIFE PALACE"}</p><h2 className="mt-3 text-3xl font-semibold">{names}</h2><p className="mt-3 text-sm leading-7 text-muted-foreground">{locale === "zh" ? "十四主星，只看命宫内实际落入的星与各自庙旺状态；星的排列先后不改变组合，空宫不借入对宫星。" : "Only the fourteen major stars actually in the life palace and their brightness. Order does not change the combination; an empty palace does not borrow opposite-palace stars."}</p>{subjectName ? <p className="mt-2 text-sm">{subjectName}</p> : null}</header>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <section className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-5"><h3 className="font-semibold">{locale === "zh" ? "主星组合出现率" : "Combination frequency"}</h3><p className="mt-3 text-2xl font-semibold text-primary">{frequency(lifeComboId(stars))}</p><p className="mt-2 text-sm text-muted-foreground">{names}</p></section>
+        {stars.length ? <section className="rounded-2xl border border-border/60 p-5"><h3 className="font-semibold">{locale === "zh" ? "组合与亮度联合出现率" : "Combination + brightness frequency"}</h3><p className="mt-3 text-2xl font-semibold text-primary">{frequency(lifeStateId(stars))}</p><p className="mt-2 text-sm text-muted-foreground">{states}</p></section> : <p className="self-center text-sm leading-7 text-muted-foreground">{locale === "zh" ? "没有十四主星也是一种命宫配置，不代表能力不足或命运较差。" : "No major stars is a valid configuration, not an inferior life or ability."}</p>}
+      </div>
+      {stars.length ? <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-border"><th className="py-3">{locale === "zh" ? "命宫主星" : "Major star"}</th><th>{locale === "zh" ? "亮度" : "Brightness"}</th><th>{locale === "zh" ? "该星在命宫且为此亮度" : "Star in life palace at this brightness"}</th></tr></thead><tbody>{stars.map((star) => <tr key={star.id} className="border-b border-border/50"><td className="py-3 font-semibold">{starName(star.name, locale)}</td><td>{star.brightness_label}</td><td>{frequency(`ziwei.life_star.${star.id}.${star.brightness}`)}</td></tr>)}</tbody></table></div> : null}
+      {statisticsStatus === "loading" ? <p role="status" className="text-sm text-muted-foreground">{locale === "zh" ? "正在加载参考频率…" : "Loading reference frequencies…"}</p> : !stats ? <p className="text-sm text-muted-foreground">{statisticsError || (locale === "zh" ? "当前没有兼容的频率参考；命宫事实保留，百分比留空。" : "No compatible reference is available. Chart facts remain; percentages stay blank.")}</p> : null}
+      <details className="border-t border-border/60 pt-4"><summary className="cursor-pointer text-sm font-semibold">{locale === "zh" ? "统计口径与七档亮度" : "Reference and seven brightness states"}</summary><p className="mt-3 text-sm leading-7 text-muted-foreground">{locale === "zh" ? "1950—2029 年固定历法参考。逐日按早子、晚子各 1 小时，其余时段各 2 小时加权。亮度为庙、旺、得、利、平、不、陷；缺失状态记未标明。所有百分比分母均为完整参考时间，联合出现率直接计数，不相乘。SSR ≤5%，SR >5% 且 ≤10%，R >10% 且 ≤20%；仅表示频率，不表示吉凶。" : "Fixed 1950–2029 calendar reference. Early and late Zi each receive one hour; other slots receive two. Brightness states: 庙, 旺, 得, 利, 平, 不, 陷; missing values stay unknown. All percentages use the full reference duration. Joint events are counted directly. SSR ≤5%, SR >5–10%, R >10–20%; frequency is not fortune."}</p>{stats ? <p className="mt-2 text-xs text-muted-foreground">{stats.baseline.label} · {stats.baseline.sample_weight?.toLocaleString()} {locale === "zh" ? "小时权重" : "weighted hours"}</p> : null}</details>
+    </article>
+    <details className="rounded-3xl border border-border/60 bg-surface p-5 sm:p-7"><summary className="cursor-pointer text-xl font-semibold">{locale === "zh" ? "原始十二宫命盘" : "Original twelve-palace chart"}</summary><div className="mt-5 flex flex-wrap gap-2"><FullChartDialog chart={chart} horoscope={horoscope} locale={locale} /><ChartAssetExportButton targetId={palaceExportTargetId} label={locale === "zh" ? "导出十二宫" : "Export palaces"} loadingLabel="…" errorLabel={locale === "zh" ? "导出失败" : "Export failed"} safeBaseFilename={`ziwei-palaces-${horoscopeDate}`} /></div><div className="mt-5 md:hidden"><MobilePalaceRail chart={chart} horoscope={horoscope} locale={locale} selectedPalaceIndex={selectedPalaceIndex} onSelect={setSelectedPalaceIndex} /></div><div className="mt-5 hidden overflow-x-auto md:block"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive selectedPalaceIndex={selectedPalaceIndex} onSelect={setSelectedPalaceIndex} /></div>{selectedPalace ? <SelectedPalaceDetail selectedPalace={selectedPalace} locale={locale} /> : null}<ZiweiPeriodPanel horoscope={horoscope} selectedDate={horoscopeDate} onSelectedDateChange={onHoroscopeDateChange} locked={archiveMode !== "standard"} locale={locale} /><p className="mt-4 text-xs text-muted-foreground">{provenance.configId} · {generatedAt}</p></details>
+    {archiveMode === "standard" ? <ZiweiExperimental key={generatedAt} chart={chart} locale={locale} /> : null}
     <div aria-hidden="true" inert className="chart-export-stage"><article id={palaceExportTargetId} className="chart-share-canvas chart-export-canvas"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} /></article></div>
   </section>
+}
+
+function ZiweiExperimental({ chart, locale }: { chart: IFunctionalAstrolabe; locale: Locale }) {
+  const [series, setSeries] = useState<ZiweiLifeKline | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+  function expand(open: boolean) {
+    if (!open || series || loading) return
+    setLoading(true)
+    window.setTimeout(() => { try { setSeries(buildZiweiLifeKline(chart)) } catch { setError(true) } finally { setLoading(false) } }, 0)
+  }
+  return <details className="rounded-3xl border border-dashed border-primary/40 bg-surface p-5 sm:p-7" onToggle={(event) => expand(event.currentTarget.open)}><summary className="cursor-pointer font-semibold">Experimental · {locale === "zh" ? "命宫主星活跃度走势" : "Life-palace activity"}</summary><p className="mt-4 text-sm leading-7 text-muted-foreground">{locale === "zh" ? "实验功能：只计大限、流年、流月四化触及本命命宫主星的次数，每项同权，不分吉凶。每月取 15 日，跳过出生前的采样；100 对应个人参考跨度内的月度平均活动量，曲线经过压缩，不是概率或人生评分。" : "Experimental: counts period transformations touching natal life-palace major stars equally, without positive or negative grades. Each month is sampled on the 15th, excluding dates before birth. The compressed index is centered on the personal monthly mean, not a probability or life rating."}</p>{loading ? <p role="status" className="mt-4">{locale === "zh" ? "正在计算个人参考跨度…" : "Calculating the personal reference…"}</p> : null}{error ? <p role="alert" className="mt-4">{locale === "zh" ? "该档案暂不能生成完整实验曲线。" : "This archive cannot produce a complete experimental series."}</p> : null}{series ? <div className="mt-5"><LifeKlineChart lifeKline={series} locale={locale} currentYear={new Date().getFullYear()} /></div> : null}</details>
 }
 
 function ZiweiArchiveBanner({ archiveMode, locale, onCreateStandardCopy }: { archiveMode: ZiweiArchiveMode; locale: Locale; onCreateStandardCopy: () => void }) {
@@ -265,72 +112,12 @@ function ZiweiArchiveBanner({ archiveMode, locale, onCreateStandardCopy }: { arc
   )
 }
 
-function ZiweiDisplayModeControl({ mode, locale, onChange }: { mode: DisplayMode; locale: Locale; onChange: (mode: DisplayMode) => void }) {
-  const options: Array<{ value: DisplayMode; zh: string; en: string }> = [
-    { value: "simple", zh: "简明", en: "Simple" },
-    { value: "study", zh: "研习", en: "Study" },
-    { value: "professional", zh: "专业", en: "Professional" },
-  ]
-  return <div data-export-exclude className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/55 bg-surface px-4 py-3"><div><p className="text-sm font-semibold">{locale === "zh" ? "查看深度" : "Detail level"}</p><p className="mt-0.5 text-xs text-muted-foreground">{locale === "zh" ? "先看命盘、重点与运限，需要时再展开星曜和统计。" : "Start with the chart, themes, and periods; expand stars and statistics when needed."}</p></div><div className="inline-flex rounded-xl bg-muted/60 p-1" role="group" aria-label={locale === "zh" ? "紫微查看深度" : "Zi Wei detail level"}>{options.map((option) => <button key={option.value} type="button" aria-pressed={mode === option.value} onClick={() => onChange(option.value)} className={`min-w-16 rounded-lg px-3 py-2 text-sm font-semibold transition ${mode === option.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{locale === "zh" ? option.zh : option.en}</button>)}</div></div>
-}
-
-function ZiweiSectionNav({ locale, mode }: { locale: Locale; mode: DisplayMode }) {
-  const coreItems = locale === "zh" ? [["#ziwei-chart", "命盘"], ["#ziwei-themes", "重点"], ["#ziwei-periods", "运限"]] : [["#ziwei-chart", "Chart"], ["#ziwei-themes", "Themes"], ["#ziwei-periods", "Periods"]]
-  const studyItems = locale === "zh" ? [["#ziwei-stars", "星曜"], ["#ziwei-statistics", "统计"]] : [["#ziwei-stars", "Stars"], ["#ziwei-statistics", "Statistics"]]
-  const items = mode === "simple" ? coreItems : [...coreItems, ...studyItems]
-  return <nav aria-label={locale === "zh" ? "紫微命盘章节" : "Zi Wei chart sections"} className="sticky top-20 z-20 -mx-2 flex gap-1 overflow-x-auto rounded-2xl border border-border/60 bg-background/90 p-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/75">{items.map(([href, label]) => <a key={href} href={href} className="min-w-20 flex-1 whitespace-nowrap rounded-xl px-4 py-2.5 text-center text-sm font-semibold text-muted-foreground transition hover:bg-primary/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{label}</a>)}</nav>
-}
-
 function FullChartDialog({ chart, horoscope, locale }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; locale: Locale }) {
   return <Dialog><DialogTrigger asChild><Button type="button" variant="outline"><Maximize2 aria-hidden="true" className="mr-2 size-4" />{locale === "zh" ? "全盘模式" : "Full chart"}</Button></DialogTrigger><DialogContent className="h-[94dvh] max-w-[96vw] overflow-auto p-4 sm:max-w-[96vw]"><DialogHeader><DialogTitle>{locale === "zh" ? "紫微斗数全盘" : "Full Zi Wei chart"}</DialogTitle><DialogDescription>{locale === "zh" ? "适合桌面、平板横屏或投屏查看。" : "Optimized for desktop, landscape tablet, or presentation."}</DialogDescription></DialogHeader><div className="min-w-[72rem]"><ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} /></div></DialogContent></Dialog>
 }
 
 function MobilePalaceRail({ chart, horoscope, locale, selectedPalaceIndex, onSelect }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; locale: Locale; selectedPalaceIndex?: number; onSelect: (index: number) => void }) {
   return <div className="grid grid-cols-2 gap-2">{chart.palaces.slice(0, 12).map((palace) => { const selected = palace.index === selectedPalaceIndex; const decadal = palace.index === horoscope.decadal.index; const yearly = palace.index === horoscope.yearly.index; return <button type="button" key={`${palace.name}-${palace.index}`} onClick={() => onSelect(palace.index)} aria-pressed={selected} className={`min-h-32 rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selected ? "border-primary bg-primary/10" : "border-border/55 bg-surface"}`}><span className="flex items-start justify-between gap-2"><strong>{palaceName(palace.name, locale)}{palace.isBodyPalace ? ` · ${locale === "zh" ? "身" : "Body"}` : ""}</strong><span className="text-xs text-muted-foreground">{palace.heavenlyStem}{palace.earthlyBranch}</span></span><span className="mt-2 flex flex-wrap gap-1">{decadal ? <small className="rounded-full bg-primary/12 px-1.5 py-0.5 font-semibold text-primary">{locale === "zh" ? "大限" : "Decadal"}</small> : null}{yearly ? <small className="rounded-full bg-primary/12 px-1.5 py-0.5 font-semibold text-primary">{locale === "zh" ? "流年" : "Year"}</small> : null}</span><span className="mt-2 block text-sm font-semibold text-primary">{palace.majorStars.map((star) => starName(star.name, locale)).join(" · ") || (locale === "zh" ? "空宫" : "Empty")}</span><span className="mt-2 line-clamp-2 block text-xs leading-5 text-muted-foreground">{[...palace.minorStars, ...palace.adjectiveStars].map((star) => starName(star.name, locale)).join(" · ") || "—"}</span></button> })}</div>
-}
-
-function ZiweiThemeSections({ chart, horoscope, statistics, locale, sectionId }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; statistics: MetaphysicsStatistics | null; locale: Locale; sectionId?: string }) {
-  const themes = locale === "zh"
-    ? [
-        { key: "career", title: "事业", palaceAliases: [["命"], ["官禄", "事业"], ["财帛"], ["迁移"]], note: "从命宫、官禄、财帛与迁移宫看事业结构如何展开。" },
-        { key: "wealth", title: "财富", palaceAliases: [["命"], ["财帛"], ["田宅"], ["福德"]], note: "从命宫、财帛、田宅与福德宫看资源与积累结构。" },
-        { key: "relationship", title: "感情", palaceAliases: [["命"], ["夫妻"], ["福德"], ["迁移"]], note: "从命宫、夫妻、福德与迁移宫看关系互动结构。" },
-        { key: "health", title: "身心结构", palaceAliases: [["命"], ["疾厄"], ["福德"]], note: "从命宫、疾厄与福德宫看传统身心承压结构。" },
-      ]
-    : [
-        { key: "career", title: "Career", palaceAliases: [["soul", "life"], ["career", "official"], ["wealth", "finance"], ["surface", "travel"]], note: "Connects the life, career, wealth, and travel palaces into one career structure." },
-        { key: "wealth", title: "Wealth", palaceAliases: [["soul", "life"], ["wealth", "finance"], ["property"], ["spirit", "fortune"]], note: "Connects the life, wealth, property, and spirit palaces into one resource structure." },
-        { key: "relationship", title: "Relationships", palaceAliases: [["soul", "life"], ["spouse", "marriage"], ["spirit", "fortune"], ["surface", "travel"]], note: "Connects the life, spouse, spirit, and travel palaces into one relationship structure." },
-        { key: "health", title: "Mind-body structure", palaceAliases: [["soul", "life"], ["health", "illness"], ["spirit", "fortune"]], note: "Connects the life, health, and spirit palaces into a traditional pressure structure." },
-      ]
-  const allStars = (palace: IFunctionalPalace) => [...palace.majorStars, ...palace.minorStars, ...palace.adjectiveStars]
-  const sixAuspicious = new Set(["左辅", "右弼", "文昌", "文曲", "天魁", "天钺", "officer", "helper", "scholar", "artist", "assistant", "aide"])
-  const sixChallenging = new Set(["擎羊", "陀罗", "火星", "铃星", "地空", "地劫", "driven", "tangled", "impulsive", "spark", "ideologue", "fickle"])
-  return (
-    <section id={sectionId} className="chart-report-chapter scroll-mt-28 border-t border-border/60 pt-6">
-      <h2 className="text-xl font-semibold">{locale === "zh" ? "四类主题结构" : "Four structural themes"}</h2>
-      <p className="mt-2 text-sm text-muted-foreground">{locale === "zh" ? "把十二宫、星曜、四化与样本频率连成四条最值得先看的主题主线。" : "Connects palaces, stars, transformations, and sample frequency into four themes worth seeing first."}</p>
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
-        {themes.map((theme) => {
-          const palaces = theme.palaceAliases.flatMap((aliases) => {
-            const palace = chart.palaces.find((item) => aliases.some((name) => item.name.toLowerCase().includes(name.toLowerCase())))
-            return palace ? [palace] : []
-          }).filter((palace, index, values) => values.findIndex((item) => item.index === palace.index) === index)
-          if (!palaces.length) return <article key={theme.key} className="rounded-xl border border-border/50 bg-surface p-4"><h3 className="font-semibold">{theme.title}</h3><p className="mt-3 text-sm text-muted-foreground">{locale === "zh" ? "当前语言数据中未识别对应宫位。" : "The corresponding palaces were not identified in this locale."}</p><p className="mt-3 text-xs leading-5 text-muted-foreground">{theme.note}</p></article>
-          const relatedIndexes = new Set(palaces.map((palace) => palace.index))
-          const rarity = statistics?.rarity_metrics.filter((metric) => metric.status !== "unsupported" && metric.feature_id.includes(".mutagen.") && [...relatedIndexes].some((index) => metric.feature_id.includes(`palace-${index}`))).slice(0, 4) ?? []
-          return (
-            <article key={theme.key} className="rounded-xl border border-border/50 bg-surface p-4">
-              <h3 className="font-semibold">{theme.title}</h3>
-              <div className="mt-3 divide-y divide-border/45 border-y border-border/45">{palaces.map((palace) => { const stars = allStars(palace); const transformations = stars.filter((star) => star.mutagen).map((star) => `${starName(star.name, locale)} · ${transformationName(star.mutagen ?? "", locale)}`); const markers = [palace.index === horoscope.decadal.index ? (locale === "zh" ? "大限" : "Decadal") : null, palace.index === horoscope.yearly.index ? (locale === "zh" ? "流年" : "Annual") : null].filter(Boolean); return <div key={palace.index} className="grid gap-1 py-3 sm:grid-cols-[6rem_1fr]"><div><p className="text-sm font-semibold">{palaceName(palace.name, locale)}</p><p className="text-xs text-muted-foreground">{palace.heavenlyStem}{palace.earthlyBranch}{markers.length ? ` · ${markers.join("/")}` : ""}</p></div><div><p className="text-sm font-medium text-primary">{palace.majorStars.map((star) => `${starName(star.name, locale)}${star.brightness ? `(${star.brightness})` : ""}`).join(" · ") || (locale === "zh" ? "空宫" : "Empty")}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{transformations.join(" · ") || (locale === "zh" ? "无生年四化标记" : "No natal transformation")} · {locale === "zh" ? "六吉星分类" : "Six-auxiliary category"} {stars.filter((star) => sixAuspicious.has(star.name.toLowerCase())).length} · {locale === "zh" ? "六煞星分类" : "Six-challenging category"} {stars.filter((star) => sixChallenging.has(star.name.toLowerCase())).length} · {locale === "zh" ? "仅计数，不作加减分" : "counts only; not an additive score"}</p></div></div> })}</div>
-              {rarity.length ? <div className="mt-3 border-t border-border/45 pt-3"><p className="text-xs font-semibold text-muted-foreground">{locale === "zh" ? "相关结构样本频率" : "Related structural sample frequency"}</p><ul className="mt-2 space-y-1 text-xs text-muted-foreground">{rarity.map((metric) => <li key={metric.feature_id}>{ziweiMetricLabel(metric.feature_id, chart, locale)} · {metric.display_percentage}</li>)}</ul></div> : null}
-              <p className="mt-3 border-t border-border/45 pt-3 text-xs leading-5 text-muted-foreground">{theme.note}</p>
-            </article>
-          )
-        })}
-      </div>
-    </section>
-  )
 }
 
 function ZiweiPeriodPanel({ horoscope, selectedDate, onSelectedDateChange, locked, locale, showDateControl = true }: { horoscope: IFunctionalHoroscope; selectedDate: string; onSelectedDateChange: (date: string) => void; locked: boolean; locale: Locale; showDateControl?: boolean }) {
@@ -342,150 +129,6 @@ function ZiweiPeriodPanel({ horoscope, selectedDate, onSelectedDateChange, locke
     { label: locale === "zh" ? "流时 · 00:00" : "Hourly · 00:00", ...horoscope.hourly },
   ]
   return <div className="mt-5 space-y-5">{showDateControl ? <div className="max-w-xs"><label htmlFor="ziwei-period-date" className="text-xs font-semibold text-muted-foreground">{locale === "zh" ? "查看日期" : "Horoscope date"}</label><Input id="ziwei-period-date" className="mt-2" type="date" min="1900-01-31" max="2100-12-31" value={selectedDate} disabled={locked} onChange={(event) => onSelectedDateChange(event.target.value)} />{locked ? <p className="mt-2 text-xs text-muted-foreground">{locale === "zh" ? "静态档案日期已锁定" : "Date locked for static archive"}</p> : null}</div> : null}<div className="grid gap-3 lg:grid-cols-5">{items.map((item) => <article key={item.label} className="rounded-xl border border-border/50 bg-surface p-4"><p className="text-xs font-semibold text-muted-foreground">{item.label}</p><p className="mt-2 text-lg font-semibold">{item.heavenlyStem}{item.earthlyBranch}</p><p className="mt-1 text-sm text-muted-foreground">{item.name}</p><p className="mt-3 text-xs leading-5 text-muted-foreground">{item.mutagen?.length ? item.mutagen.map((star, index) => `${canonicalZiweiTransformationName(["化禄", "化权", "化科", "化忌"][index], locale)} ${canonicalZiweiStarName(star, locale)}`).join(" · ") : (locale === "zh" ? "本层无新增四化" : "No new transformation in this layer")}</p></article>)}</div><p className="text-sm leading-6 text-muted-foreground"><strong className="text-foreground">{locale === "zh" ? "下一变化" : "Next transition"}</strong><span aria-hidden="true"> · </span>{locale === "zh" ? "更改日期即可查看下一年或下一月的新增落宫与四化。" : "Change the date to inspect the next year's or month's new placements and transformations."}</p><details><summary className="cursor-pointer text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{locale === "zh" ? "为什么" : "Why"}</summary><p className="mt-3 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "五层运限均来自所选日期的排盘结果。当前日期选择器按当日 00:00 计算流时；本命结构见十二宫命盘。" : "All five layers come from the selected date. The date selector computes the hourly layer at 00:00; natal structure is in Twelve palaces."}</p></details></div>
-}
-
-function StarBrowser({ chart, locale }: { chart: IFunctionalAstrolabe; locale: Locale }) {
-  const all = chart.palaces.flatMap((palace) => [...palace.majorStars, ...palace.minorStars, ...palace.adjectiveStars].map((star) => ({ ...star, palace: palace.name })))
-  const auspicious = new Set(["左辅", "右弼", "文昌", "文曲", "天魁", "天钺", "officer", "helper", "scholar", "artist", "assistant", "aide"])
-  const challenging = new Set(["擎羊", "陀罗", "火星", "铃星", "地空", "地劫", "driven", "tangled", "impulsive", "spark", "ideologue", "fickle"])
-  const groups = [
-    { label: locale === "zh" ? "十四主星" : "Major stars", stars: chart.palaces.flatMap((palace) => palace.majorStars.map((star) => ({ ...star, palace: palace.name }))) },
-    { label: locale === "zh" ? "六吉" : "Six auspicious", stars: all.filter((star) => auspicious.has(star.name.toLowerCase())) },
-    { label: locale === "zh" ? "六煞" : "Six challenging", stars: all.filter((star) => challenging.has(star.name.toLowerCase())) },
-    { label: locale === "zh" ? "其他星曜" : "Other stars", stars: chart.palaces.flatMap((palace) => palace.adjectiveStars.map((star) => ({ ...star, palace: palace.name }))) },
-    { label: locale === "zh" ? "生年四化" : "Natal transformations", stars: chart.palaces.flatMap((palace) => [...palace.majorStars, ...palace.minorStars].filter((star) => star.mutagen).map((star) => ({ ...star, palace: palace.name }))) },
-  ]
-  return <div className="mt-5"><p className="mb-3 text-xs leading-5 text-muted-foreground">{locale === "zh" ? "六吉与六煞仅按传统星曜类别归档和计数，不相减，也不构成吉凶分数。" : "The six auxiliary and six challenging stars are traditional categories and counts only; they are not subtracted or scored."}</p><div className="grid gap-3 md:grid-cols-2">{groups.map((group) => <details key={group.label} open={group.stars.length <= 14} className="rounded-xl border border-border/50 bg-surface px-4 py-3"><summary className="cursor-pointer font-semibold">{group.label}<span className="ml-2 text-xs font-normal text-muted-foreground">{group.stars.length}</span></summary><div className="mt-3 flex flex-wrap gap-2 border-t border-border/45 pt-3">{group.stars.map((star, index) => <span key={`${star.name}-${star.palace}-${index}`} className="rounded-full bg-primary/[0.07] px-2.5 py-1 text-xs"><strong>{starName(star.name, locale)}</strong>{star.mutagen ? ` · ${transformationName(star.mutagen, locale)}` : ""}{star.brightness ? ` · ${star.brightness}` : ""} → {palaceName(star.palace, locale)}</span>)}</div></details>)}</div></div>
-}
-
-function ZiweiRarityPanel({ chart, statistics, status, error, locale }: { chart: IFunctionalAstrolabe; statistics: MetaphysicsStatistics | null; status: ZiweiStatisticsStatus; error?: string; locale: Locale }) {
-  if (status === "loading") return <section aria-live="polite"><h3 className="text-base font-semibold">{locale === "zh" ? "结构出现频率" : "Structural frequency"}</h3><p className="mt-3 text-sm text-muted-foreground">{locale === "zh" ? "频率样本正在后台载入；命盘与主题结构可先查看。" : "Frequency samples are loading in the background; the chart and structural themes are already available."}</p></section>
-  if (!statistics) return <section aria-live="polite"><h3 className="text-base font-semibold">{locale === "zh" ? "结构出现频率" : "Structural frequency"}</h3><p className="mt-3 text-sm text-muted-foreground">{error ?? (locale === "zh" ? "频率样本暂时不可用；命盘事实不受影响。" : "Frequency samples are temporarily unavailable; chart facts are unaffected.")}</p></section>
-  return <section><h3 className="text-base font-semibold">{locale === "zh" ? "结构出现频率" : "Structural frequency"}</h3><div className="mt-3"><ComparisonUniverseBar statistics={statistics} locale={locale} /></div><div className="mt-4 grid gap-2 md:grid-cols-2">{statistics.rarity_metrics.map((metric) => <RarityRow key={metric.feature_id} metric={metric} label={ziweiMetricLabel(metric.feature_id, chart, locale)} levelLabel={metric.status === "observed" ? frequencyLabel(metric.percentage, locale) : ""} locale={locale} />)}</div></section>
-}
-
-function RarityRow({ metric, label, levelLabel, locale }: { metric: RarityMetric; label: string; levelLabel: string; locale: Locale }) {
-  const unsupported = metric.status === "unsupported"
-  const zero = metric.status === "zero"
-  const display = unsupported ? (locale === "zh" ? "暂无基线数据" : "No baseline data") : zero ? (locale === "zh" ? "本参考样本未出现" : "Not observed in this reference") : metric.display_percentage
-  const detail = unsupported ? (locale === "zh" ? "当前配置未收录此特征" : "Feature is not catalogued for this configuration") : zero ? "" : levelLabel
-  return <div className="flex items-center justify-between gap-4 rounded-xl border border-border/45 px-4 py-3"><div><p className="text-sm font-semibold">{label}</p><p className="mt-1 text-xs text-muted-foreground">{detail}</p></div><strong className="text-right text-primary">{display}</strong></div>
-}
-
-function ziweiMetricLabel(featureId: string, chart: IFunctionalAstrolabe, locale: Locale) {
-  const zh = locale === "zh"
-  const life = chart.palaces.find((palace) => palace.name === "命宫" || palace.name.toLowerCase().includes("soul"))
-  const body = chart.palaces.find((palace) => palace.isBodyPalace)
-  if (featureId.includes(".archetype.")) return zh ? "命格结构类型" : "Archetype structure"
-  if (featureId.includes(".achievement.")) {
-    const labels: Record<string, string> = { "ziwei-tianfu": "紫府同轴", "sun-moon": "日月并明", "left-right": "左右同援", "chang-qu": "昌曲同频", "kui-yue": "魁钺夹持", "sha-po-lang": "杀破先锋", "three-positive-transformations": "禄权科成链", "six-aids-network": "六曜成网", "life-body-aligned": "命身同宫" }
-    const id = featureId.split(".").at(-1) ?? ""
-    return labels[id] ?? (zh ? "星曜组合 · " : "Star combination · ") + id.replaceAll("_", " ")
-  }
-  if (featureId.includes(".life_combo.")) return `${zh ? "命宫主星" : "Life palace"} · ${life?.majorStars.map((star) => starName(star.name, locale)).join(zh ? "、" : ", ") || (zh ? "空宫" : "empty")}`
-  if (featureId.includes(".body_branch.")) return `${zh ? "身宫" : "Body palace"} · ${body ? palaceName(body.name, locale) : "—"}${body && zh ? `（${body.earthlyBranch}）` : ""}`
-  if (featureId.includes(".five_elements.")) return zh ? `五行局 · ${chart.fiveElementsClass}` : `Five-element class · ${chart.fiveElementsClass}`
-  if (featureId.includes(".empty_palaces.")) return zh ? `空宫数量 ${featureId.split(".").at(-1)}` : `${featureId.split(".").at(-1)} empty palaces`
-  if (featureId.includes(".brightness.")) {
-    const parts = featureId.split(".")
-    const brightness = ({ miao: "庙", wang: "旺", de: "得", li: "利", ping: "平", xian: "陷", unmarked: "未标" } as Record<string, string>)[parts.at(-2) ?? ""] ?? parts.at(-2)
-    return zh ? `主星亮度 · ${brightness} ${parts.at(-1)} 颗` : `Major-star brightness · ${brightness} × ${parts.at(-1)}`
-  }
-  if (featureId.includes(".mutagen.")) { const parts = featureId.split("."); const mutagen = ({ lu: "禄", quan: "权", ke: "科", ji: "忌" } as Record<string, string>)[parts.at(-2) ?? ""] ?? parts.at(-2); const palaceIndex = Number(parts.at(-1)?.replace("palace-", "")); const palace = chart.palaces.find((item) => item.index === palaceIndex); return `${canonicalZiweiTransformationName(`化${mutagen}`, locale)} · ${palace ? palaceName(palace.name, locale) : parts.at(-1)}` }
-  if (featureId.includes(".auspicious_palaces.")) return zh ? `六吉分布 · ${featureId.split(".").at(-1)} 宫` : `Six auspicious stars across ${featureId.split(".").at(-1)} palaces`
-  if (featureId.includes(".auspicious_max_density.")) return zh ? `六吉单宫最高密度 · ${featureId.split(".").at(-1)}` : `Max auspicious density · ${featureId.split(".").at(-1)}`
-  if (featureId.includes(".challenging_palaces.")) return zh ? `六煞分布 · ${featureId.split(".").at(-1)} 宫` : `Six challenging stars across ${featureId.split(".").at(-1)} palaces`
-  if (featureId.includes(".challenging_max_density.")) return zh ? `六煞单宫最高密度 · ${featureId.split(".").at(-1)}` : `Max challenging density · ${featureId.split(".").at(-1)}`
-  return featureId
-}
-
-function ZiweiExportCanvas({ exportTargetId, chart, horoscope, consumer, horoscopeDate, generatedAt, locale, trustNote, subjectName, statistics, statisticsStatus, statisticsError, archiveMode, provenance }: { exportTargetId: string; chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; consumer?: ZiweiConsumerProfile; horoscopeDate: string; generatedAt: string; locale: Locale; trustNote: string; subjectName: string; statistics: MetaphysicsStatistics | null; statisticsStatus: ZiweiStatisticsStatus; statisticsError?: string; archiveMode: ZiweiArchiveMode; provenance: ZiweiProvenance }) {
-  const labels = getProvenanceLabels(provenance, locale)
-  return (
-    <div aria-hidden="true" inert className="chart-export-stage">
-      <article id={exportTargetId} aria-hidden="true" data-chart-export-root className="chart-share-canvas chart-export-canvas">
-        {consumer ? <><ConsumerIdentity profile={{ identity: consumer.identity, subjects: consumer.subjects, fingerprints: consumer.fingerprints, twin: consumer.twin }} locale={locale} /><div className="mt-8"><MetaphysicsAchievements achievements={consumer.achievements} locale={locale} /></div></> : <ZiweiIdentitySummary chart={chart} horoscope={horoscope} horoscopeDate={horoscopeDate} generatedAt={generatedAt} locale={locale} trustNote={trustNote} subjectName={subjectName} />}
-        {archiveMode !== "standard" ? <aside className="mt-6 rounded-xl border border-border/60 bg-surface p-4"><strong>{archiveMode === "legacy-nonstandard" ? (locale === "zh" ? "非标准旧规则档案" : "Legacy nonstandard chart") : (locale === "zh" ? "旧档案静态快照" : "Legacy static snapshot")}</strong><p className="mt-1 text-xs text-muted-foreground">{locale === "zh" ? "此导出保留原档案规则与锁定日期，不应视为统一通行法新版命盘。" : "This export retains the archive's original rules and locked date; it is not a new standard-config chart."}</p></aside> : null}
-        <p className="mt-5 text-xs text-muted-foreground">{locale === "zh" ? "排盘规则" : "Chart rules"}: {provenance.configId ?? "legacy"} · {labels.algorithm} · {labels.astroType} · {labels.yearDivide} · {labels.dayBoundary} · {labels.calendar} · {labels.fixLeap}{provenance.calendar === "lunar" ? ` · ${labels.leapMonth}` : ""}</p>
-        <div className="mt-8"><ZiweiThemeSections chart={chart} horoscope={horoscope} statistics={statistics} locale={locale} /></div>
-        <div className="mt-8"><h2 className="text-xl font-semibold">{locale === "zh" ? "运限" : "Periods"}</h2><ZiweiPeriodPanel horoscope={horoscope} selectedDate={horoscopeDate} onSelectedDateChange={() => undefined} locked={archiveMode !== "standard"} locale={locale} showDateControl={false} /></div>
-        <div className="mt-8"><ZiweiStatistics chart={chart} horoscope={horoscope} locale={locale} /></div>
-        <div className="mt-8"><ZiweiRarityPanel chart={chart} statistics={statistics} status={statisticsStatus} error={statisticsError} locale={locale} /></div>
-        <div className="mt-8">
-          <ZiweiPalaceChart chart={chart} horoscope={horoscope} locale={locale} interactive={false} />
-        </div>
-      </article>
-    </div>
-  )
-}
-
-type ChartStar = { name: string; brightness?: string; mutagen?: string }
-
-function ZiweiStatistics({ chart, horoscope, locale }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; locale: Locale }) {
-  const allStarsByPalace = chart.palaces.map((palace) => ({ palace, stars: [...palace.majorStars, ...palace.minorStars, ...palace.adjectiveStars] as ChartStar[] }))
-  const majorPlacements = chart.palaces.flatMap((palace) => palace.majorStars.map((star) => `${starName(star.name, locale)}→${palaceName(palace.name, locale)}`))
-  const emptyPalaces = chart.palaces.filter((palace) => palace.majorStars.length === 0)
-  const brightnessCounts = new Map<string, number>()
-  chart.palaces.flatMap((palace) => palace.majorStars).forEach((star) => {
-    const key = star.brightness || (locale === "zh" ? "未标" : "Unmarked")
-    brightnessCounts.set(key, (brightnessCounts.get(key) ?? 0) + 1)
-  })
-  const natalTransformations = allStarsByPalace.flatMap(({ palace, stars }) => stars.filter((star) => star.mutagen).map((star) => `${transformationName(star.mutagen ?? "", locale)} ${starName(star.name, locale)}→${palaceName(palace.name, locale)}`))
-  const annualTransformations = horoscope.yearly.mutagen.map((starName, index) => {
-    const palace = allStarsByPalace.find((entry) => entry.stars.some((star) => star.name === starName))?.palace
-    const label = canonicalZiweiTransformationName(["化禄", "化权", "化科", "化忌"][index], locale)
-    return `${label} ${starName ? canonicalZiweiStarName(starName, locale) : "—"}${palace ? `→${palaceName(palace.name, locale)}` : ""}`
-  })
-  const auspiciousNames = new Set(["左辅", "右弼", "文昌", "文曲", "天魁", "天钺", "officer", "helper", "scholar", "artist", "assistant", "aide"])
-  const challengingNames = new Set(["擎羊", "陀罗", "火星", "铃星", "地空", "地劫", "driven", "tangled", "impulsive", "spark", "ideologue", "fickle"])
-  const importantPlacements = (names: Set<string>) => allStarsByPalace.flatMap(({ palace, stars }) => stars.filter((star) => names.has(star.name.toLowerCase())).map((star) => `${starName(star.name, locale)}→${palaceName(palace.name, locale)}`))
-  const auspiciousPlacements = importantPlacements(auspiciousNames)
-  const challengingPlacements = importantPlacements(challengingNames)
-  return (
-    <div className="grid border-y border-border/60 md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-border/50">
-      <ZiweiStatisticBlock title={locale === "zh" ? "十四主星落宫" : "Major-star positions"} value={`${majorPlacements.length}`}>
-        <p>{majorPlacements.join(" · ") || "—"}</p>
-      </ZiweiStatisticBlock>
-      <ZiweiStatisticBlock title={locale === "zh" ? "宫位星曜密度" : "Palace density"} value={`${emptyPalaces.length} ${locale === "zh" ? "空宫" : "empty"}`}>
-        <p>{chart.palaces.map((palace) => `${palaceName(palace.name, locale)} ${palace.majorStars.length + palace.minorStars.length + palace.adjectiveStars.length}`).join(" · ")}</p>
-      </ZiweiStatisticBlock>
-      <ZiweiStatisticBlock title={locale === "zh" ? "主星亮度" : "Major-star brightness"} value={`${chart.palaces.flatMap((palace) => palace.majorStars).length}`}>
-        <p>{Array.from(brightnessCounts.entries()).map(([name, count]) => `${name} ${count}`).join(" · ") || "—"}</p>
-      </ZiweiStatisticBlock>
-      <ZiweiStatisticBlock title={locale === "zh" ? "四化落宫" : "Transformations"} value={`${natalTransformations.length} / ${annualTransformations.length}`}>
-        <p><strong>{locale === "zh" ? "生年" : "Natal"}：</strong>{natalTransformations.join(" · ") || "—"}</p><p className="mt-2"><strong>{locale === "zh" ? "流年" : "Annual"}：</strong>{annualTransformations.join(" · ")}</p>
-      </ZiweiStatisticBlock>
-      <ZiweiStatisticBlock title={locale === "zh" ? "六吉与六煞（分类计数）" : "Six-star categories (counts)"} value={locale === "zh" ? `六吉 ${auspiciousPlacements.length} · 六煞 ${challengingPlacements.length}` : `Auxiliary ${auspiciousPlacements.length} · Challenging ${challengingPlacements.length}`}>
-        <p>{locale === "zh" ? "仅分类计数，不相减、不作吉凶分数。" : "Category counts only; not subtracted or scored."}</p><p className="mt-2"><strong>{locale === "zh" ? "六吉" : "Auxiliary"}：</strong>{auspiciousPlacements.join(" · ") || "—"}</p><p className="mt-2"><strong>{locale === "zh" ? "六煞" : "Challenging"}：</strong>{challengingPlacements.join(" · ") || "—"}</p>
-      </ZiweiStatisticBlock>
-    </div>
-  )
-}
-
-function ZiweiStatisticBlock({ title, value, children }: { title: string; value: string; children: React.ReactNode }) {
-  return <section className="min-w-0 px-4 py-4"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-2 text-2xl font-semibold text-primary">{value}</p><div className="mt-3 text-xs leading-5 text-muted-foreground">{children}</div></section>
-}
-
-function ZiweiIdentitySummary({ chart, horoscope, horoscopeDate, generatedAt, locale, trustNote, subjectName }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; horoscopeDate: string; generatedAt: string; locale: Locale; trustNote: string; subjectName: string }) {
-  return (
-    <section className="border-b border-border/60 pb-6" aria-label={locale === "zh" ? "命盘身份摘要" : "Chart identity summary"}>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div><p className="kicker">State of I Ching · 易经决策</p><h3 className="mt-3 text-3xl font-semibold">{subjectName || (locale === "zh" ? "匿名命主 · 紫微斗数" : "Anonymous · Zi Wei")}</h3><p className="mt-2 text-sm text-muted-foreground">{chart.chineseDate}</p></div>
-        <div className="text-right"><p className="text-xs text-muted-foreground">{locale === "zh" ? "五行局" : "Five-element class"}</p><p className="mt-1 text-2xl font-semibold text-primary">{chart.fiveElementsClass}</p></div>
-      </header>
-      <div className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
-        <ShareFact label={locale === "zh" ? "农历出生" : "Lunar birth date"} value={chart.lunarDate || chart.chineseDate || "—"} />
-        <ShareFact label={locale === "zh" ? "出生时辰" : "Birth time"} value={`${chart.time || "—"}${chart.timeRange ? ` · ${chart.timeRange}` : ""}`} />
-        <ShareFact label={locale === "zh" ? "性别" : "Gender"} value={chart.gender || "—"} />
-        <ShareFact label={locale === "zh" ? "命主 / 身主" : "Soul / Body rulers"} value={`${chart.soul} / ${chart.body}`} />
-        <ShareFact label={locale === "zh" ? "运限日期" : "Horoscope date"} value={`${horoscopeDate} · ${horoscope.lunarDate}`} />
-        <ShareFact label={locale === "zh" ? "所选日期大限" : "Selected-date decadal period"} value={`${horoscope.decadal.name} · ${horoscope.decadal.heavenlyStem}${horoscope.decadal.earthlyBranch}`} />
-        <ShareFact label={locale === "zh" ? "所选日期流年" : "Selected-date annual period"} value={`${horoscope.yearly.name} · ${horoscope.yearly.heavenlyStem}${horoscope.yearly.earthlyBranch}`} />
-        <ShareFact label={locale === "zh" ? "流年四化" : "Annual four transformations"} value={formatTransformations(horoscope, locale)} />
-      </div>
-      <footer className="mt-6 text-xs leading-5 text-muted-foreground"><p>{locale === "zh" ? "生成于" : "Generated"}: {new Date(generatedAt).toLocaleString(locale === "zh" ? "zh-CN" : "en-US")}</p><p className="mt-1">{trustNote}</p></footer>
-    </section>
-  )
 }
 
 function ZiweiPalaceChart({ chart, horoscope, locale, interactive, selectedPalaceIndex, onSelect }: { chart: IFunctionalAstrolabe; horoscope: IFunctionalHoroscope; locale: Locale; interactive: boolean; selectedPalaceIndex?: number; onSelect?: (index: number) => void }) {
@@ -571,8 +214,4 @@ function StarGroup({ title, stars, locale, emptyLabel }: { title: string; stars:
       {stars.length ? <ul className="mt-2 divide-y divide-border/50">{stars.map((star, index) => <li key={`${star.name}-${index}`} className="py-2 text-sm"><span className="font-medium">{starName(star.name, locale)}</span><span className="ml-2 text-xs text-muted-foreground">{star.mutagen ? transformationName(star.mutagen, locale) : ""}{star.mutagen && star.brightness ? " · " : ""}{star.brightness ? `${locale === "zh" ? "亮度" : "Brightness"} ${star.brightness}` : ""}</span></li>)}</ul> : <p className="mt-2 text-xs text-muted-foreground">{emptyLabel || (locale === "zh" ? "无" : "None")}</p>}
     </section>
   )
-}
-
-function ShareFact({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-1 text-sm font-medium">{value}</p></div>
 }

@@ -304,3 +304,25 @@ def test_invalid_lunar_input_is_rejected() -> None:
             lunar_month=13,
             lunar_day=1,
         )
+
+
+def test_true_solar_clock_removes_dst_but_keeps_physical_term_boundary() -> None:
+    from zoneinfo import ZoneInfo
+    from datetime import timedelta, timezone
+    from iching.core.metaphysics import _true_solar_time
+    from iching.core.calendar_engine import calculate_calendar_facts, solar_terms_for_years
+
+    civil = datetime(2026, 7, 1, 13, 30, tzinfo=ZoneInfo("America/Los_Angeles"))
+    solar, correction = _true_solar_time(civil, -118.24)
+    standard = civil.astimezone(timezone(timedelta(hours=-8)))
+    solar_standard, _ = _true_solar_time(standard, -118.24)
+    assert solar.replace(tzinfo=None) == solar_standard.replace(tzinfo=None)
+    assert -65 < correction < -50
+    zone = ZoneInfo("Asia/Shanghai")
+    term = next(t for t in solar_terms_for_years([2024], zone) if t.index == 3 and t.local_datetime.year == 2024)
+    instant = term.local_datetime + timedelta(seconds=1)
+    shifted, _ = _true_solar_time(instant, 75)
+    factual = calculate_calendar_facts(instant, timezone_name="Asia/Shanghai", day_boundary="forward", crosscheck=False)
+    corrected = calculate_calendar_facts(shifted, timezone_name="Asia/Shanghai", day_boundary="forward", reference_instant=instant)
+    assert (corrected.year_gz, corrected.month_gz) == (factual.year_gz, factual.month_gz)
+    assert shifted < term.local_datetime

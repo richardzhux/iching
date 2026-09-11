@@ -78,9 +78,9 @@ export type ShenShaHit = {
   registry_version?: string
   registry_digest?: string
   rules_version: string
-  state?: "发力" | "有力" | "可见" | "受制"
+  state?: "条件齐备" | "命中" | "待核" | "受制"
   state_reason?: string
-  effect_score?: number
+  condition_method?: string
   rarity_percentage?: number
 }
 
@@ -118,7 +118,11 @@ export type PatternCandidate = {
   role?: string
 }
 
+export type PatternCoverageClause = { id: string; claim: string; layer: string; review_state: string; stage: string; active_rule_ids: string[]; pending_reasons: string[]; inferred_conditions: string[]; quotes: string[]; locator_ids: string[] }
+export type PatternCoverage = { version: string; note: string; patterns: Array<{ pattern_id: string; label: string; stage_counts: Record<string, number>; clauses: PatternCoverageClause[]; source_paragraphs: Array<{ id: string; text: string; type: string; locator_ids: string[] }>; scope: string }>; shared_clauses: PatternCoverageClause[] }
+
 export type PatternAssessment = {
+  rule_coverage?: PatternCoverage
   rules_version: string
   primary: PatternCandidate | null
   ordinary: PatternCandidate[]
@@ -227,6 +231,9 @@ export type ConsumerAchievement = {
   position: string
   summary: string
   member_ids: string[]
+  member_positions?: Record<string, string[]>
+  universe_rule_ids?: string[]
+  absent_rule_ids?: string[]
 }
 
 export type ConsumerFingerprint = {

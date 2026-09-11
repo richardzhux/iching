@@ -21,7 +21,7 @@ import { ZiweiChartView, type ZiweiArchiveMode, type ZiweiProvenance, type Ziwei
 import { calculateMetaphysicsChart, fetchMetaphysicsChart, fetchMetaphysicsStatistics, saveMetaphysicsChart } from "@/lib/api"
 import type { LocationResult } from "@/lib/location-search"
 import { ZIWEI_BASELINE_ID, ziweiFeatureIds } from "@/lib/ziwei-statistics"
-import { buildZiweiConsumerProfile, resolveZiweiBaziFusionTitle, type ZiweiConsumerProfile } from "@/lib/ziwei-consumer"
+import { buildZiweiConsumerProfile, type ZiweiConsumerProfile } from "@/lib/ziwei-consumer"
 import type { MetaphysicsChart, MetaphysicsChartRecord, MetaphysicsChartSavePayload, MetaphysicsStatistics } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
@@ -120,6 +120,26 @@ type PersistedChartForm = {
   baziFoldChoice: "first" | "second" | null
   dayunAlgorithm: "sect1" | "sect2"
   horoscopeDate: string
+}
+
+function hasCurrentBaziReference(chart: MetaphysicsChart) {
+  return chart.statistics?.baseline?.id?.startsWith("bazi-calendar-1950-2030-g5-") === true
+    && Boolean(chart.structure?.patterns?.rule_coverage)
+}
+
+function requestFromSavedForm(form: PersistedChartForm): Parameters<typeof calculateMetaphysicsChart>[0] {
+  const lunar = form.baziCalendar === "lunar"
+  const [year, month, day] = form.lunarBirthDate.split("-").map(Number)
+  const [hour, minute] = form.lunarBirthTime.split(":").map(Number)
+  return { timestamp: lunar ? `${form.lunarBirthDate}T${form.baziHourUncertain ? "12:00" : form.lunarBirthTime}` : form.birthTime,
+    timezone: form.timezone, longitude: form.longitude ? Number(form.longitude) : null,
+    use_true_solar_time: form.baziTrueSolar, day_boundary: form.baziDayBoundary,
+    calendar_type: form.baziCalendar, is_leap_month: lunar && form.isLeapMonth,
+    gender: form.baziGender, birth_place: form.birthPlace || null, hour_uncertain: form.baziHourUncertain,
+    dayun_algorithm: form.dayunAlgorithm, lunar_year: lunar ? year : null, lunar_month: lunar ? month : null,
+    lunar_day: lunar ? day : null, lunar_hour: lunar ? (form.baziHourUncertain ? 12 : hour) : null,
+    lunar_minute: lunar ? (form.baziHourUncertain ? 0 : minute) : null, fold_choice: form.baziFoldChoice,
+    reference_timestamp: new Date().toISOString(), include_period_details: false }
 }
 
 type PersistedMetaphysicsWorkspace = {
@@ -320,34 +340,8 @@ export function MetaphysicsTools() {
   const ziweiPeriodSaveVersionRef = useRef(0)
   const ziweiPeriodSaveQueueRef = useRef<Promise<void>>(Promise.resolve())
   const timezoneOptions = useMemo(() => TIMEZONES.includes(timezone) ? TIMEZONES : [timezone, ...TIMEZONES], [timezone])
-  const displayZiweiConsumer = useMemo(() => {
-    if (!ziweiResult) return null
-    const baziArchetype = birthResult?.chart.consumer?.identity.archetype_title ?? birthResult?.chart.consumer?.identity.archetype_id
-    if (!baziArchetype || locale === "en") return ziweiResult.consumer
-    return {
-      ...ziweiResult.consumer,
-      identity: {
-        ...ziweiResult.consumer.identity,
-        fusion_title: resolveZiweiBaziFusionTitle(ziweiResult.consumer.metadata.archetype_id, baziArchetype),
-      },
-    }
-  }, [birthResult, locale, ziweiResult])
-  const displayBirthChart = useMemo(() => {
-    const chart = birthResult?.chart
-    const consumer = chart?.consumer
-    const ziweiConsumer = ziweiResult?.consumer
-    if (!chart || !consumer || !ziweiConsumer) return chart ?? null
-    return {
-      ...chart,
-      consumer: {
-        ...consumer,
-        identity: {
-          ...consumer.identity,
-          fusion_title: resolveZiweiBaziFusionTitle(ziweiConsumer.metadata.archetype_id, consumer.identity.archetype_title ?? consumer.identity.archetype_id),
-        },
-      },
-    }
-  }, [birthResult, ziweiResult])
+  const displayZiweiConsumer = ziweiResult?.consumer ?? null
+  const displayBirthChart = birthResult?.chart ?? null
   const comparisonCurrentProfile = useMemo<ConsumerIdentityProfile | null>(() => {
     if (comparisonKind === "bazi") {
       const consumer = displayBirthChart?.consumer
@@ -385,8 +379,8 @@ export function MetaphysicsTools() {
 
   const copy = locale === "zh" ? {
     subjectName: "命主称呼",
-    title: "命盘与人生走势",
-    subtitle: "从命盘结构到历法模拟，从人生主线到每一段运限。",
+    title: "八字与紫微命盘",
+    subtitle: "查看原局结构、古籍依据与历法出现率。",
     current: "当前时令",
     bazi: "八字排盘",
     ziwei: "紫微斗数",
@@ -435,20 +429,20 @@ export function MetaphysicsTools() {
     lunarYear: "农历正月初一",
     exactYear: "立春",
     horoscopeDate: "运限日期",
-    chartNote: "精确节气排盘 · 120 年历法对照 · 结构与时间联动",
+    chartNote: "精确节气排盘 · 80 年历法对照 · 结构与时间联动",
     newChart: "新建命盘",
     savedCloud: "已自动保存到我的档案",
     savingCloud: "正在保存…",
     loginToSave: "登录后自动保存并可随时打开",
     saveFailed: "命盘已生成，但云端保存失败，请稍后重试。",
     loadedChart: "已打开私人命盘档案。",
-    exactTimeRequired: "准确时辰将解锁完整身份、四条主题路径与人生 K 线。",
+    exactTimeRequired: "准确时辰用于核对四柱、格局条件与完整运限。",
     standardRules: "统一排盘规则",
     standardRulesBody: "已为你采用通行法排盘",
   } : {
     subjectName: "Chart name",
-    title: "Charts & Life Timeline",
-    subtitle: "Explore chart structure, calendar simulations, life themes, and every period.",
+    title: "BaZi & Zi Wei Charts",
+    subtitle: "Explore chart structures, classical sources, and calendar incidence.",
     current: "Current Time",
     bazi: "BaZi",
     ziwei: "Zi Wei Dou Shu",
@@ -497,7 +491,7 @@ export function MetaphysicsTools() {
     lunarYear: "Lunar New Year",
     exactYear: "Start of Spring",
     horoscopeDate: "Horoscope date",
-    chartNote: "Exact solar terms · 120-year calendar reference · structure across time",
+    chartNote: "Exact solar terms · 80-year calendar reference · structure across time",
     newChart: "New chart",
     savedCloud: "Automatically saved to My Charts",
     savingCloud: "Saving…",
@@ -577,7 +571,19 @@ export function MetaphysicsTools() {
     const workspace = readPersistedWorkspace()
     const savedBazi = workspace.bazi
     if (savedBazi && (savedBazi.result?.chart?.derived_schema_version ?? 0) >= 3 && hasCompleteBaziArchiveChart(savedBazi.result.chart)) {
-      setBirthResult(savedBazi.result)
+      if (hasCurrentBaziReference(savedBazi.result.chart)) setBirthResult(savedBazi.result)
+      else {
+        setBirthLoading(true)
+        void calculateMetaphysicsChart(requestFromSavedForm(savedBazi.form)).then((chart) => {
+          const result = { ...savedBazi.result, chart, generatedAt: new Date().toISOString() }
+          setBirthResult(result)
+          updatePersistedWorkspace("bazi", { ...savedBazi, result })
+        }).catch(() => {
+          applyPersistedForm(savedBazi.form)
+          setBaziEditorOpen(true)
+          toast.error(locale === "zh" ? "旧命盘暂未更新成功；原资料已保留，可重新排盘。" : "The earlier chart could not be refreshed. Its inputs are preserved; calculate again to retry.")
+        }).finally(() => setBirthLoading(false))
+      }
       setActiveBaziChartId(savedBazi.chartId)
       setActiveBaziSubjectId(savedBazi.subjectId)
       setBaziEditorOpen(false)
@@ -772,7 +778,7 @@ export function MetaphysicsTools() {
       let chart = snapshot.chart
       const calculationRequest = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
       const snapshotSchemaVersion = Math.max(record.schema_version ?? 0, chart.derived_schema_version ?? 0)
-      if (snapshotSchemaVersion < 6) {
+      if (snapshotSchemaVersion < 6 || !hasCurrentBaziReference(chart)) {
         if (!calculationRequest && chart.birth_profile?.hour_uncertain) {
           setBirthResult(null)
           setIncompleteBaziRecord({ kind: "hour-missing", subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })

@@ -238,6 +238,7 @@ def calculate_calendar_facts(
     timezone_name: str,
     day_boundary: str,
     crosscheck: bool = True,
+    reference_instant: datetime | None = None,
 ) -> CalendarFactSet:
     if value.tzinfo is None:
         raise ValueError("历法计算只接受已规范化的时区时间。")
@@ -245,7 +246,9 @@ def calculate_calendar_facts(
         raise ValueError(f"未知换日规则: {day_boundary}")
 
     terms = solar_terms_for_years(range(value.year - 2, value.year + 3), value.tzinfo)
-    instant = value.astimezone(UTC)
+    # Solar-clock correction changes day/hour labels, not the physical instant
+    # at which the birth falls before or after an astronomical solar term.
+    instant = (reference_instant or value).astimezone(UTC)
     previous = next(item for item in reversed(terms) if item.instant_utc <= instant)
     following = next(item for item in terms if item.instant_utc > instant)
     previous_lichun = next(
@@ -281,7 +284,7 @@ def calculate_calendar_facts(
             day_boundary=day_boundary,
             expected=expected,
         )
-        if crosscheck
+        if crosscheck and reference_instant is None
         else {"status": "verified_canonical", "label": "已校准", "crosscheck": "skipped"}
     )
     return CalendarFactSet(

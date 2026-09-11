@@ -1,14 +1,16 @@
+import { formatFrequency } from "@/lib/frequency-display"
+import { ziweiLifeStars, ziweiFeatureIds, ziweiLifeFeatureLabel, ZIWEI_BASELINE_ID } from "@/lib/ziwei-statistics"
 import type { ConsumerProfile, MetaphysicsChart, MetaphysicsStatistics, ThemeComparison } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
-import { canonicalZiweiPalaceName, canonicalZiweiStarName, canonicalZiweiTransformationName } from "@/lib/ziwei-terms"
+import { canonicalZiweiPalaceName, canonicalZiweiStarName } from "@/lib/ziwei-terms"
 
 type Locale = "en" | "zh"
 
 const cell = (value: string) => value.replaceAll("|", "\\|").replaceAll("\n", "<br>") || "—"
 
 function percentage(value: number, zh: boolean) {
-  return new Intl.NumberFormat(zh ? "zh-CN" : "en-US", { maximumFractionDigits: 2 }).format(value)
+  return formatFrequency(value, zh ? "zh" : "en")
 }
 
 function comparisonDisplayLabel(item: ThemeComparison, zh: boolean) {
@@ -106,40 +108,12 @@ function consumerMarkdown(consumer: ConsumerProfile | undefined, zh: boolean) {
     ...subjectTable,
     ...(claims.length ? ["", `### ${zh ? "结构判断" : "Structural findings"}`, "", ...claims] : []),
     ...(fingerprints.length ? ["", `### ${zh ? "较有辨识度的结构" : "Distinctive chart structures"}`, "", ...fingerprints] : []),
-    ...(combinations.length ? ["", `### ${zh ? "稀有结构组合" : "Rare structure combinations"}`, "", ...combinations] : []),
-    ...(stages.length ? ["", `### ${zh ? "未来三大阶段" : "Three future stages"}`, "", ...stages] : []),
+    ...(combinations.length ? ["", `### ${zh ? "固定主题组合" : "Fixed topic configurations"}`, "", ...combinations] : []),
+    ...(stages.length ? ["", `### ${zh ? "Experimental · 结构活跃阶段" : "Experimental · structural activity stages"}`, "", ...stages] : []),
     "",
   ]
 }
 
-function ziweiMetricMarkdownLabel(featureId: string, chart: IFunctionalAstrolabe, zh: boolean) {
-  const locale: Locale = zh ? "zh" : "en"
-  const life = chart.palaces.find((palace) => palace.name === "命宫" || palace.name.toLowerCase().includes("soul"))
-  const body = chart.palaces.find((palace) => palace.isBodyPalace)
-  if (featureId.includes(".life_combo.")) return `${zh ? "命宫主星" : "Life-palace stars"} · ${life?.majorStars.map((star) => canonicalZiweiStarName(star.name, locale)).join(zh ? "、" : ", ") || (zh ? "空宫" : "empty")}`
-  if (featureId.includes(".body_branch.")) return `${zh ? "身宫位置" : "Body-palace position"} · ${body ? canonicalZiweiPalaceName(body.name, locale) : "—"}`
-  if (featureId.includes(".five_elements.")) return zh ? `五行局 · ${chart.fiveElementsClass}` : `Five-element class · ${chart.fiveElementsClass}`
-  if (featureId.includes(".empty_palaces.")) return zh ? `空宫数量 · ${featureId.split(".").at(-1)}` : `Empty palaces · ${featureId.split(".").at(-1)}`
-  if (featureId.includes(".brightness.")) {
-    const [slug, count] = featureId.split(".").slice(-2)
-    const label = zh
-      ? ({ miao: "庙", wang: "旺", de: "得", li: "利", ping: "平", xian: "陷", unmarked: "未标" } as Record<string, string>)[slug] ?? slug
-      : ({ miao: "Temple", wang: "Prosperous", de: "Favorable", li: "Supported", ping: "Neutral", xian: "Weak", unmarked: "Unmarked" } as Record<string, string>)[slug] ?? slug
-    return zh ? `主星亮度结构 · ${label} ${count}` : `Major-star brightness · ${label} ${count}`
-  }
-  if (featureId.includes(".mutagen.")) {
-    const parts = featureId.split(".")
-    const mutagen = ({ lu: "禄", quan: "权", ke: "科", ji: "忌" } as Record<string, string>)[parts.at(-2) ?? ""] ?? parts.at(-2)
-    const palaceIndex = Number(parts.at(-1)?.replace("palace-", ""))
-    const placement = chart.palaces.find((item) => item.index === palaceIndex)
-    return `${canonicalZiweiTransformationName(`化${mutagen}`, locale)} · ${placement ? canonicalZiweiPalaceName(placement.name, locale) : parts.at(-1)}`
-  }
-  if (featureId.includes(".auspicious_palaces.")) return zh ? `六吉星分布宫数 · ${featureId.split(".").at(-1)}` : `Six-auxiliary distribution · ${featureId.split(".").at(-1)} palaces`
-  if (featureId.includes(".auspicious_max_density.")) return zh ? `六吉星单宫最高数 · ${featureId.split(".").at(-1)}` : `Max six-auxiliary density · ${featureId.split(".").at(-1)}`
-  if (featureId.includes(".challenging_palaces.")) return zh ? `六煞星分布宫数 · ${featureId.split(".").at(-1)}` : `Six-challenging distribution · ${featureId.split(".").at(-1)} palaces`
-  if (featureId.includes(".challenging_max_density.")) return zh ? `六煞星单宫最高数 · ${featureId.split(".").at(-1)}` : `Max six-challenging density · ${featureId.split(".").at(-1)}`
-  return zh ? "结构特征" : "Structural feature"
-}
 
 export function buildBaziMarkdown(chart: MetaphysicsChart, subjectName: string, locale: Locale) {
   const zh = locale === "zh"
@@ -254,106 +228,22 @@ export function buildZiweiMarkdown(
   },
 ) {
   const zh = locale === "zh"
-  const starName = (value: string) => canonicalZiweiStarName(value, locale)
-  const palaceName = (value: string) => canonicalZiweiPalaceName(value, locale)
-  const transformationName = (value: string) => canonicalZiweiTransformationName(value.startsWith("化") ? value : `化${value}`, locale)
-  const title = subjectName.trim() || (zh ? "匿名命主" : "Anonymous chart")
-  const transformations = chart.palaces
-    .flatMap((palace) => [...palace.majorStars, ...palace.minorStars]
-      .filter((star) => star.mutagen)
-      .map((star) => `${starName(star.name)}·${transformationName(star.mutagen ?? "")}（${palaceName(palace.name)}）`))
-    .join(" / ") || "—"
-  const summary = [
-    [zh ? "阳历" : "Solar date", `${chart.solarDate} ${chart.time}（${chart.gender}）`],
-    [zh ? "农历" : "Lunar date", `${chart.lunarDate} ${chart.time}`],
-    [zh ? "干支" : "Chinese date", chart.chineseDate],
-    [zh ? "五行局" : "Five-element class", chart.fiveElementsClass],
-    [zh ? "生年四化" : "Natal transformations", transformations],
-    [zh ? "命主" : "Soul ruler", chart.soul],
-    [zh ? "身主" : "Body ruler", chart.body],
-    [zh ? "运限日期" : "Horoscope date", `${horoscope.solarDate} / ${horoscope.lunarDate}`],
-  ]
-  const summaryTable = [
-    `| ${zh ? "项目" : "Item"} | ${zh ? "内容" : "Value"} |`,
-    "| --- | --- |",
-    ...summary.map(([label, value]) => `| ${cell(label)} | ${cell(value)} |`),
-  ]
-  const palaceTable = [
-    `| ${zh ? "宫位" : "Stem/branch"} | ${zh ? "宫名" : "Palace"} | ${zh ? "大限" : "Decadal"} | ${zh ? "小限" : "Ages"} | ${zh ? "星曜与状态" : "Stars and states"} |`,
-    "| --- | --- | --- | --- | --- |",
-    ...chart.palaces.map((palace) => {
-      const stars = [...palace.majorStars, ...palace.minorStars, ...palace.adjectiveStars]
-        .map((star) => `${starName(star.name)}${star.brightness ? `(${star.brightness})` : ""}${star.mutagen ? `·${transformationName(star.mutagen)}` : ""}`)
-      const states = [palace.changsheng12, palace.boshi12, palace.jiangqian12, palace.suiqian12].filter(Boolean)
-      return `| ${cell(`${palace.heavenlyStem}${palace.earthlyBranch}`)} | ${cell(`${palaceName(palace.name)}${palace.isBodyPalace ? (zh ? "（身宫）" : " (Body)") : ""}`)} | ${cell(`${palace.decadal.range[0]}–${palace.decadal.range[1]}`)} | ${cell(palace.ages.join(" "))} | ${cell([...stars, ...states].join("、"))} |`
-    }),
-  ]
-  const periodItems = [
-    [zh ? "大限" : "Decadal", horoscope.decadal],
-    [zh ? "流年" : "Yearly", horoscope.yearly],
-    [zh ? "流月" : "Monthly", horoscope.monthly],
-    [zh ? "流日" : "Daily", horoscope.daily],
-    [zh ? "流时" : "Hourly", horoscope.hourly],
-  ] as const
-  const periodTable = [
-    `| ${zh ? "层级" : "Layer"} | ${zh ? "干支" : "Pillar"} | ${zh ? "名称" : "Name"} | ${zh ? "四化" : "Transformations"} |`,
-    "| --- | --- | --- | --- |",
-    `| ${zh ? "本命" : "Natal"} | ${cell(chart.chineseDate)} | ${cell(`${zh ? "命主" : "Soul"} ${chart.soul} · ${zh ? "身主" : "Body"} ${chart.body}`)} | ${cell(transformations)} |`,
-    ...periodItems.map(([label, item]) => `| ${cell(label)} | ${cell(`${item.heavenlyStem}${item.earthlyBranch}`)} | ${cell(item.name)} | ${cell(item.mutagen.map((star, index) => `${canonicalZiweiTransformationName(["化禄", "化权", "化科", "化忌"][index], locale)} ${starName(star)}`).join(" / "))} |`),
-  ]
-  const themeDefinitions = zh
-    ? [
-        ["事业", [["命"], ["官禄", "事业"], ["财帛"], ["迁移"]]],
-        ["财富", [["命"], ["财帛"], ["田宅"], ["福德"]]],
-        ["感情", [["命"], ["夫妻"], ["福德"], ["迁移"]]],
-        ["健康结构", [["命"], ["疾厄"], ["福德"]]],
-      ] as const
-    : [
-        ["Career", [["soul", "life"], ["career", "official"], ["wealth", "finance"], ["surface", "travel"]]],
-        ["Wealth", [["soul", "life"], ["wealth", "finance"], ["property"], ["spirit", "fortune"]]],
-        ["Relationships", [["soul", "life"], ["spouse", "marriage"], ["spirit", "fortune"], ["surface", "travel"]]],
-        ["Health structure", [["soul", "life"], ["health", "illness"], ["spirit", "fortune"]]],
-      ] as const
-  const themes = themeDefinitions.flatMap(([title, aliasGroups]) => {
-    const palaces = aliasGroups.flatMap((aliases) => {
-      const palace = chart.palaces.find((item) => aliases.some((alias) => item.name.toLowerCase().includes(alias.toLowerCase())))
-      return palace ? [palace] : []
-    }).filter((palace, index, values) => values.findIndex((item) => item.index === palace.index) === index)
-    return [`### ${title}`, ...palaces.map((palace) => `- ${palaceName(palace.name)}：${palace.majorStars.map((star) => `${starName(star.name)}${star.brightness ? `(${star.brightness})` : ""}${star.mutagen ? `·${transformationName(star.mutagen)}` : ""}`).join(" / ") || (zh ? "空宫" : "Empty palace")}`)]
-  })
-  const rarity = statistics?.rarity_metrics.map((metric) => {
-    const display = metric.status === "unsupported" ? (zh ? "暂无基线数据" : "No baseline data") : metric.status === "zero" ? (zh ? "0% · 本参考周期未出现" : "0% · Not observed in this reference") : metric.display_percentage
-    return `- ${ziweiMetricMarkdownLabel(metric.feature_id, chart, zh)}：${display}`
-  }) ?? []
-  const provenance = context?.provenance
-  const archiveWarning = context?.archiveMode === "legacy-nonstandard"
-    ? (zh ? "> **非标准旧规则档案：此导出保留旧规则与锁定日期，不是统一通行法新版命盘。**" : "> **Legacy nonstandard chart: this export retains legacy rules and a locked date; it is not a new standard-config chart.**")
-    : context?.archiveMode === "legacy-static"
-      ? (zh ? "> **旧档案静态快照：此导出缺少完整重建参数，日期已锁定。**" : "> **Legacy static snapshot: this export lacks complete rebuild inputs and its date is locked.**")
-      : ""
-  const provenanceLine = provenance
-    ? `> ${zh ? "排盘规则" : "Chart rules"}: ${provenance.configId ?? "legacy"} · ${provenance.algorithm === "default" ? (zh ? "通行法" : "Standard") : (zh ? "中州派" : "Zhongzhou")} · ${provenance.astroType === "heaven" ? (zh ? "天盘" : "Heaven chart") : provenance.astroType === "earth" ? (zh ? "地盘" : "Earth chart") : (zh ? "人盘" : "Human chart")} · ${provenance.yearDivide === "exact" ? (zh ? "立春换年" : "Start-of-Spring year boundary") : (zh ? "正月初一换年" : "Lunar-New-Year boundary")} · ${provenance.dayBoundary === "forward" ? (zh ? "晚子时换日" : "Late-Zi day advance") : (zh ? "晚子时不换日" : "Late-Zi same day")} · ${provenance.calendar === "lunar" ? (zh ? "农历输入" : "Lunar input") : (zh ? "公历输入" : "Solar input")} · ${provenance.fixLeap ? (zh ? "闰月修正开启" : "Leap-month adjustment on") : (zh ? "闰月修正关闭" : "Leap-month adjustment off")}${provenance.calendar === "lunar" ? ` · ${provenance.isLeapMonth ? (zh ? "本月为闰月" : "Leap-month birth") : (zh ? "本月非闰月" : "Non-leap-month birth")}` : ""}`
-    : ""
+  const stars = ziweiLifeStars(chart)
+  const allowed = new Set(ziweiFeatureIds(chart))
+  const compatible = statistics?.status === "available" && statistics.baseline.id === ZIWEI_BASELINE_ID
+  const metrics = compatible ? statistics.rarity_metrics.filter((metric) => allowed.has(metric.feature_id)) : []
   return [
-    `## ${zh ? "命主" : "Chart"}：${title}`,
-    "",
-    ...consumerMarkdown(context?.consumer, zh),
-    `## ${zh ? "紫微斗数" : "Zi Wei Dou Shu"}`,
-    "",
-    ...summaryTable,
-    ...(archiveWarning ? ["", archiveWarning] : []),
-    ...(provenanceLine ? ["", provenanceLine] : []),
-    "",
-    ...palaceTable,
-    "",
-    `## ${zh ? "四类主题结构" : "Four structural themes"}`,
-    "",
-    ...themes,
-    "",
-    `## ${zh ? "运限" : "Periods"}`,
-    "",
-    ...periodTable,
-    ...(rarity.length ? ["", `## ${zh ? "结构出现频率" : "Structural frequency"}`, "", ...rarity, "", `> ${zh ? "出现率只表示这项结构的少见程度，不代表吉凶或人生高低。" : "Incidence only describes how uncommon a structure is; it does not indicate fortune or life quality."}`] : []),
-    ...(statistics ? ["", `> ${zh ? "统计基线" : "Baseline"}: ${statistics.baseline.id}`] : []),
+    `# ${subjectName.trim() || (zh ? "匿名命盘" : "Anonymous chart")} · ${zh ? "紫微命宫" : "Zi Wei life palace"}`,
+    "", `${zh ? "出生日期" : "Birth date"}: ${chart.solarDate}`,
+    ...(context?.archiveMode && context.archiveMode !== "standard" ? ["", zh ? "> 旧档案保留原始排盘设置。" : "> Legacy archive retains its original settings."] : []),
+    "", `## ${zh ? "命宫主星" : "Life-palace major stars"}`, "",
+    ...stars.map((star) => `- ${canonicalZiweiStarName(star.name, locale)} · ${star.brightness_label}`),
+    ...(!stars.length ? [zh ? "命宫无十四主星；不借入对宫星，也不代表命运较差。" : "No major stars; opposite-palace stars are not borrowed, and this is not a life grade."] : []),
+    "", `## ${zh ? "命宫出现率" : "Life-palace frequencies"}`, "",
+    ...(metrics.length ? metrics.map((metric) => `- ${ziweiLifeFeatureLabel(metric.feature_id, chart, locale)}: ${metric.status === "unsupported" ? "—" : metric.display_percentage}`) : [zh ? "暂无兼容的统计参考。" : "No compatible reference available."]),
+    "", zh ? "> 1950—2029 年固定历法参考，按时段持续小时加权；不是人口出生分布，出现率不代表吉凶。" : "> Fixed 1950–2029 calendar reference weighted by civil hours; not a population distribution or fortune score.",
+    "", `## ${zh ? "原始十二宫" : "Original twelve palaces"}`, "",
+    ...chart.palaces.map((palace) => `- ${canonicalZiweiPalaceName(palace.name, locale)} · ${palace.heavenlyStem}${palace.earthlyBranch}: ${palace.majorStars.map((star) => `${canonicalZiweiStarName(star.name, locale)} ${star.brightness || ""}`).join(" / ") || "—"}`),
+    "", `${zh ? "所选运限日期" : "Selected period date"}: ${horoscope.solarDate}`,
   ].join("\n")
 }

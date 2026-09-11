@@ -11,7 +11,7 @@ from iching.core.bazi_structure import (
 )
 
 
-SHENSHA_EFFECTS_RULES_VERSION = "shensha-effects-2026.07-v1"
+SHENSHA_EFFECTS_RULES_VERSION = "shensha-effects-2026.09-v2"
 
 _STEMS = "甲乙丙丁戊己庚辛壬癸"
 _BRANCHES = "子丑寅卯辰巳午未申酉戌亥"
@@ -284,164 +284,38 @@ def _combination(
     }
 
 
-def _documented_combinations(
-    evaluated: list[Mapping[str, Any]],
-    visible_gods: Counter[str],
-) -> list[dict[str, Any]]:
-    by_id = {str(hit.get("rule_id", "")): hit for hit in evaluated if hit.get("rule_id")}
-    combinations: list[dict[str, Any]] = []
-
-    if {"lushen", "yima"} <= by_id.keys():
-        lu_labels = {str(label) for label in by_id["lushen"].get("pillar_labels", ())}
-        ma_labels = {str(label) for label in by_id["yima"].get("pillar_labels", ())}
-        same_place = bool(lu_labels & ma_labels)
-        combinations.append(_combination(
-            by_id,
-            combo_id="luma_same_place" if same_place else "luma_crossed",
-            title="禄马同乡" if same_place else "禄马交驰",
-            tier="classical_named",
-            rarity_tier="rare",
-            members=("lushen", "yima"),
-            summary="禄神与驿马落在同一柱位。" if same_place else "禄神与驿马分落不同柱位，按交驰记录。",
-            fallback_topics=("career", "wealth"),
-        ))
-
-    documented_specs = (
-        ("xuetang_lushen", "学堂会禄", ("xuetang", "lushen"), "classical_interaction", "uncommon", "学习力、专业积累与现实兑现彼此加成。"),
-        ("xuetang_tianyi", "学堂会贵", ("xuetang", "tianyi"), "classical_interaction", "rare", "才学信号与贵人助力同现，更容易借专业能力打开机会。"),
-        ("xuetang_yima", "学堂朝驿马", ("xuetang", "yima"), "classical_interaction", "rare", "学习力与迁动结构同现，跨地域与新环境更容易成为成长跳板。"),
-        ("two_virtues", "二德扶持", ("tiande", "yuede"), "classical_named", "rare", "天德、月德两项规则同时命中。"),
-    )
-    for combo_id, title, members, tier, rarity, summary in documented_specs:
-        if set(members) <= by_id.keys():
-            combinations.append(_combination(
-                by_id,
-                combo_id=combo_id,
-                title=title,
-                tier=tier,
-                rarity_tier=rarity,
-                members=members,
-                summary=summary,
-                fallback_topics=("career",),
-            ))
-
-    virtue_ids = [rule_id for rule_id in ("tiande", "yuede") if rule_id in by_id]
-    if {"jiangxing", "tianyi"} <= by_id.keys() and virtue_ids:
-        combinations.append(_combination(
-            by_id,
-            combo_id="general_virtue_tianyi",
-            title="将星扶德天乙加临",
-            tier="classical_interaction",
-            rarity_tier="exceptional",
-            members=("jiangxing", *virtue_ids, "tianyi"),
-            summary="将星、德曜与天乙贵人三层呼应，形成组织力、助力与担当并行的结构。",
-            fallback_topics=("career",),
-        ))
-
-    has_officer = any(visible_gods[god] for god in ("正官", "七杀"))
-    has_resource = any(visible_gods[god] for god in ("正印", "偏印"))
-    has_wealth = any(visible_gods[god] for god in ("正财", "偏财"))
-    if {"yangren", "lushen"} <= by_id.keys() and has_officer and has_resource:
-        combinations.append(_combination(
-            by_id,
-            combo_id="blade_lu_officer_resource",
-            title="羊刃带禄官印相资",
-            tier="classical_interaction",
-            rarity_tier="exceptional",
-            members=("yangren", "lushen"),
-            summary="羊刃、禄神同见，官杀与印星同时呼应，行动力更容易被规则与专业能力驾驭。",
-            fallback_topics=("career", "health"),
-        ))
-    if {"dexiu", "xuetang"} <= by_id.keys() and has_wealth and has_officer:
-        combinations.append(_combination(
-            by_id,
-            combo_id="dexiu_xuetang_wealth_officer",
-            title="德秀学堂财官",
-            tier="classical_interaction",
-            rarity_tier="exceptional",
-            members=("dexiu", "xuetang"),
-            summary="德秀、学堂与财官结构同现，才学、现实目标与职业路径形成联动。",
-            fallback_topics=("career", "wealth"),
-        ))
-    literary = [rule_id for rule_id in ("wenchang", "xuetang", "ciguan") if rule_id in by_id]
-    if literary and "guoyin" in by_id:
-        combinations.append(_combination(
-            by_id,
-            combo_id="literary_guoyin",
-            title="有文有印",
-            tier="classical_interaction",
-            rarity_tier="rare",
-            members=(*literary, "guoyin"),
-            summary="文星与国印同现，表达、学习与专业认可彼此加成。",
-            fallback_topics=("career",),
-        ))
-    return combinations
+# Fixed, declared topic universes. Each feature describes the exact membership
+# within its universe, including absent markers; no search for a rare subset.
+THEME_MARKER_GROUPS = (
+    ("learning", "才学组合", ("wenchang", "xuetang", "ciguan", "huagai", "dexiu"), "career"),
+    ("relationship", "关系组合", ("taohua", "hongyan", "hongluan", "tianxi"), "relationship"),
+    ("support", "助力组合", ("tianyi", "tiande", "yuede", "fuxing", "guoyin"), "career"),
+    ("movement", "行动组合", ("lushen", "yima", "jiangxing", "yangren"), "career"),
+)
 
 
-def _product_clusters(evaluated: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    by_id = {str(hit.get("rule_id", "")): hit for hit in evaluated if hit.get("rule_id")}
-    clusters: list[dict[str, Any]] = []
-
-    literary = [rule_id for rule_id in ("wenchang", "xuetang", "ciguan") if rule_id in by_id]
-    if literary and "yima" in by_id:
-        clusters.append(_combination(
-            by_id,
-            combo_id="product_expedition_learning",
-            title="远征学习引擎",
-            tier="product_cluster",
-            rarity_tier="signature",
-            members=(*literary, "yima"),
-            summary="才学与迁动信号共同活跃，越是在新环境中学习与行动，越容易打开成长空间。",
-            fallback_topics=("career",),
-        ))
-    noble_support = [rule_id for rule_id in ("tiande", "yuede", "fuxing", "guoyin") if rule_id in by_id]
-    if "tianyi" in by_id and len(noble_support) >= 2:
-        clusters.append(_combination(
-            by_id,
-            combo_id="product_noble_network",
-            title="贵人协同网络",
-            tier="product_cluster",
-            rarity_tier="signature",
-            members=("tianyi", *noble_support),
-            summary="多类助力信号形成协同网络，关键阶段更容易获得资源、认可或可靠连接。",
-            fallback_topics=("career",),
-        ))
-    execution_support = [rule_id for rule_id in ("lushen", "guoyin") if rule_id in by_id]
-    if {"yangren", "jiangxing"} <= by_id.keys() and execution_support:
-        clusters.append(_combination(
-            by_id,
-            combo_id="product_pressure_execution",
-            title="高压执行核心",
-            tier="product_cluster",
-            rarity_tier="signature",
-            members=("yangren", "jiangxing", *execution_support),
-            summary="刃、将与执行支持信号共同出现，形成高压下快速推进的行动组合。",
-            fallback_topics=("career", "health"),
-        ))
-    relationship_support = [rule_id for rule_id in ("hongluan", "tianxi", "hongyan") if rule_id in by_id]
-    if "taohua" in by_id and relationship_support:
-        clusters.append(_combination(
-            by_id,
-            combo_id="product_relationship_field",
-            title="关系磁场放大器",
-            tier="product_cluster",
-            rarity_tier="signature",
-            members=("taohua", *relationship_support),
-            summary="多类情缘信号共同可见，关系吸引力与互动敏感度同时放大。",
-            fallback_topics=("relationship",),
-        ))
-    if {"wenchang", "huagai", "dexiu"} <= by_id.keys():
-        clusters.append(_combination(
-            by_id,
-            combo_id="product_reflective_creation",
-            title="思辨创作回路",
-            tier="product_cluster",
-            rarity_tier="signature",
-            members=("wenchang", "huagai", "dexiu"),
-            summary="才学、内省与德秀信号共同活跃，复杂经验更容易被转化为独特表达。",
-            fallback_topics=("career",),
-        ))
-    return clusters
+def _theme_combinations(evaluated: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    by_id = {str(hit.get("rule_id", "")): hit for hit in evaluated}
+    results = []
+    for topic_id, title, universe, theme in THEME_MARKER_GROUPS:
+        members = [key for key in universe if key in by_id]
+        if len(members) < 2:
+            continue
+        mask = "".join("1" if key in by_id else "0" for key in universe)
+        names = [str(by_id[key].get("name", key)) for key in members]
+        missing = [key for key in universe if key not in by_id]
+        result = _combination(
+            by_id, combo_id=f"theme.{topic_id}.{mask}", title=title,
+            tier="theme_profile", rarity_tier="frequency_only", members=members,
+            summary="、".join(names) + "共同命中；出现率统计这套固定主题指标中完全相同的有无配置，不据此判定聪明、感情好坏或现实结果。",
+            fallback_topics=(theme,),
+        )
+        result.update({"universe_rule_ids": list(universe), "absent_rule_ids": missing,
+                       "incidence_semantics": "exact_membership_within_fixed_theme",
+                       "state": "受制" if any(by_id[key].get("state") == "受制" for key in members) else "条件齐备" if all(by_id[key].get("state") == "条件齐备" for key in members) else "命中",
+                       "member_positions": {key: list(by_id[key].get("pillar_labels", ())) for key in members}})
+        results.append(result)
+    return results
 
 
 def evaluate_shensha_effects(
@@ -482,23 +356,14 @@ def evaluate_shensha_effects(
             "central_position": bool(labels & {"月", "日"}),
             "multiple_positions": len(labels) > 1,
         }
-        score = 35
-        score += 10 if flags["central_position"] else 0
-        score += 5 if flags["multiple_positions"] else 0
-        score += 10 if flags["rooted"] else 0
-        score += 10 if flags["season_supported"] else 0
-        score += 15 if flags["structure_echo"] else 0
-        score -= 35 if flags["void"] else 0
-        score -= 12 * sum(int(flags[key]) for key in ("clashed", "punished", "harmed", "broken"))
-        score = max(0, min(100, score))
-        if flags["void"] or score < 35:
+        if not labels or day_stem not in _STEM_SET:
+            state = "待核"
+        elif any(flags[key] for key in ("void", "clashed", "punished", "harmed", "broken")):
             state = "受制"
-        elif score >= 70:
-            state = "发力"
-        elif score >= 55:
-            state = "有力"
+        elif flags["rooted"] and flags["season_supported"] and flags["structure_echo"]:
+            state = "条件齐备"
         else:
-            state = "可见"
+            state = "命中"
         positive_labels = {
             "rooted": "得根",
             "season_supported": "得令",
@@ -517,16 +382,13 @@ def evaluate_shensha_effects(
         negative = [label for name, label in negative_labels.items() if flags[name]]
         hit.update({
             "state": state,
-            "state_reason": f"支持：{'、'.join(positive) or '仅命中可见'}；制约：{'、'.join(negative) or '未见冲刑害破空'}。",
-            "effect_score": score,
+            "state_reason": f"支持：{'、'.join(positive) or '仅规则命中'}；制约：{'、'.join(negative) or '未见冲刑害破空'}。",
+            "condition_method": "位置明确；通根、月令支持与主题呼应齐备且未见冲刑害破空时，记条件齐备。此为辅助条件检查，不是吉凶或作用强度评分。",
             "effect_flags": flags,
         })
         evaluated.append(hit)
     visible_gods = _visible_gods(pillar_list, day_stem) if day_stem in _STEM_SET else Counter()
-    combinations = [
-        *_documented_combinations(evaluated, visible_gods),
-        *_product_clusters(evaluated),
-    ]
+    combinations = _theme_combinations(evaluated)
     return {
         "rules_version": SHENSHA_EFFECTS_RULES_VERSION,
         "hits": evaluated,
