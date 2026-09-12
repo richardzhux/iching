@@ -538,6 +538,49 @@ test("exports one mocked BaZi PNG with a safe filename and no controls in its ca
   expect(downloads).toBe(1)
 })
 
+test("period selection shares in-flight work and caches completed background cycles", async ({ page }) => {
+  await mockMetaphysics(page, {
+    ...mockedMetaphysicsChart,
+    birth_profile: {
+      ...mockedMetaphysicsChart.birth_profile,
+      period_query: { timestamp: "1990-01-01T12:00:00+08:00", timezone: "Asia/Shanghai", gender: "male" },
+    },
+  })
+  const requested: number[] = []
+  let releaseFirst: (() => void) | undefined
+  let firstCompleted: (() => void) | undefined
+  const completion = new Promise<void>((resolve) => { firstCompleted = resolve })
+  await page.route("**/api/tools/metaphysics/periods", async (route) => {
+    const headers = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type" }
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers })
+    const index = route.request().postDataJSON().cycle_index as number
+    requested.push(index)
+    if (index === 1) await new Promise<void>((resolve) => { releaseFirst = resolve })
+    const cycle = mockedMetaphysicsChart.birth_profile.dayun.cycles.find((item) => item.index === index)!
+    await route.fulfill({ headers, json: { cycle: { ...cycle, years: [{
+      layer: "liunian", index: 0, year: cycle.start_year, age: cycle.start_age, label: `${cycle.start_year}`, ganzhi: "甲子", ten_god: "比肩", xunkong: "戌亥", months: [],
+    }] } } })
+    if (index === 1) firstCompleted?.()
+  })
+  await page.goto("/en/tools?tab=bazi")
+  await page.getByRole("button", { name: "Generate my chart", exact: true }).click()
+  const first = page.getByRole("button", { name: /丁丑/ }).first()
+  const second = page.getByRole("button", { name: /戊寅/ }).first()
+  await first.click()
+  await expect.poll(() => requested.length).toBe(1)
+  await first.click()
+  await second.click()
+  await expect.poll(() => requested.length).toBe(2)
+  await expect(second).toHaveAttribute("aria-pressed", "true")
+  releaseFirst?.()
+  await completion
+  await expect(second).toHaveAttribute("aria-pressed", "true")
+  await first.click()
+  await expect(first).toHaveAttribute("aria-pressed", "true")
+  await expect(page.getByRole("button", { name: /1996.*甲子/ })).toBeVisible()
+  expect(requested).toEqual([1, 2])
+})
+
 test("uncertain-hour BaZi export expands every stable result without dead controls", async ({ page }) => {
   const uncertainChart = {
     ...mockedMetaphysicsChart,

@@ -3,7 +3,7 @@
 import { create } from "zustand"
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware"
 import { workspaceStorage } from "./workspace-storage"
-import type { SessionPayload } from "@/types/api"
+import type { SessionPayload, SessionRequest } from "@/types/api"
 
 const pad = (value: number) => value.toString().padStart(2, "0")
 const formatDateInput = (date: Date) =>
@@ -62,6 +62,8 @@ type WorkspaceState = {
   resultsTab: ResultsTab
   lastSessionId?: string
   pendingChatPrompt?: string
+  pendingAiRequest?: { formKey: string; payload: Omit<SessionRequest, "access_password"> }
+  setPendingAiRequest: (request: WorkspaceState["pendingAiRequest"]) => void
   updateForm: <K extends keyof WorkspaceForm>(key: K, value: WorkspaceForm[K]) => void
   setForm: (values: Partial<WorkspaceForm>) => void
   resetForm: () => void
@@ -101,6 +103,8 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       resultsTab: "summary",
       lastSessionId: undefined,
       pendingChatPrompt: undefined,
+      pendingAiRequest: undefined,
+      setPendingAiRequest: (pendingAiRequest) => set({ pendingAiRequest }),
       updateForm: (key, value) =>
         set((state) => ({
           form: {
@@ -191,6 +195,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         resultsTab: state.resultsTab,
         lastSessionId: state.lastSessionId,
         pendingChatPrompt: state.pendingChatPrompt,
+        pendingAiRequest: state.pendingAiRequest,
       }),
       onRehydrateStorage: () => (state) => {
         if (state && !state.form?.customTimestamp) {

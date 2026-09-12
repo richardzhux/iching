@@ -434,3 +434,47 @@ def test_session_service_keeps_yongliu_when_kun_all_lines_moving():
         section.get("source") == "takashima" and section.get("line_key") == "all"
         for section in primary
     )
+
+
+def test_chat_history_uses_owner_scoped_summaries_and_keeps_legacy_labels():
+    from iching.integrations.supabase_client import SupabaseUser
+    from iching.web.chat_service import ChatService
+
+    calls = []
+    summary = "主题:（未填写）\n  主题: 事业  \n方法: 铜钱法\n" + "完整历史摘要" * 1000
+    records = [
+        {
+            "session_id": "nested-context",
+            "summary_text": summary,
+            "created_at": "2026-09-12T12:00:00+00:00",
+            "ai_enabled": True,
+            "followup_available": True,
+            "topic_label": "学业",
+            "method_label": "蓍草法",
+        },
+        {
+            "session_id": "legacy-summary",
+            "summary_text": summary,
+            "created_at": "2026-09-11T12:00:00+00:00",
+            "ai_enabled": False,
+            "followup_available": False,
+            "topic_label": None,
+            "method_label": None,
+        },
+    ]
+
+    def rpc(function, payload):
+        calls.append((function, payload))
+        return {"sessions": records}
+
+    # No REST GET transport is provided: fetching complete session rows fails.
+    client = SimpleNamespace(enabled=True, rpc=rpc)
+    service = ChatService(store=None, client=client)
+    result = service.list_sessions(SupabaseUser(id="verified-owner"))
+    assert calls == [("list_session_summaries", {"p_user_id": "verified-owner"})]
+    assert [item["topic_label"] for item in result] == ["学业", "事业"]
+    assert [item["method_label"] for item in result] == ["蓍草法", "铜钱法"]
+    assert [item["followup_available"] for item in result] == [True, False]
+    assert [item["ai_enabled"] for item in result] == [True, False]
+    assert all(item["summary_text"] == summary for item in result)
+    assert all("payload_snapshot" not in item and "initial_ai_text" not in item for item in result)

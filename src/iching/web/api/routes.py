@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
+import time
+from collections import OrderedDict
+from contextlib import contextmanager
+from threading import BoundedSemaphore, Lock
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
@@ -11,7 +16,7 @@ from fastapi.responses import StreamingResponse
 from iching.integrations.supabase_client import SupabaseAuthError
 from iching.core.divination import MeihuaMethod, ShicaoMethod
 from iching.core.bazi_rules.registry import load_packaged_shen_registry
-from iching.core.metaphysics import build_metaphysics_chart
+from iching.core.metaphysics import build_metaphysics_chart, build_metaphysics_period
 from iching.core.metaphysics_statistics import lookup_statistics
 from iching.core.pattern_product_catalog import pattern_library
 from iching.web.chat_service import ChatRateLimitError
@@ -88,6 +93,50 @@ _EFFECT_SUMMARIES = {
 }
 
 
+class CalculationAdmission:
+    """Per-worker bounded admission for public CPU-intensive chart work."""
+
+    def __init__(self, *, requests_per_minute: int = 30, concurrency: int = 2, max_identities: int = 10_000):
+        self.requests_per_minute = requests_per_minute
+        self.max_identities = max_identities
+        self._lock = Lock()
+        self._counters = OrderedDict()
+        self._slots = BoundedSemaphore(concurrency)
+
+    @contextmanager
+    def admit(self, identity: str):
+        now = time.monotonic()
+        with self._lock:
+            while self._counters and next(iter(self._counters.values()))[0] <= now - 60:
+                self._counters.popitem(last=False)
+            counter = self._counters.get(identity)
+            if counter is None:
+                if len(self._counters) >= self.max_identities:
+                    raise HTTPException(status_code=429, detail="请求繁忙，请稍后重试。")
+                counter = [now, 0]
+                self._counters[identity] = counter
+            if counter[1] >= self.requests_per_minute:
+                raise HTTPException(status_code=429, detail="排盘请求过于频繁，请稍后重试。", headers={"Retry-After": "60"})
+            counter[1] += 1
+        if not self._slots.acquire(blocking=False):
+            raise HTTPException(status_code=429, detail="排盘服务繁忙，请稍后重试。", headers={"Retry-After": "2"})
+        try:
+            yield
+        finally:
+            self._slots.release()
+
+
+_CALCULATION_ADMISSION = CalculationAdmission(
+    requests_per_minute=max(1, int(os.getenv("ICHING_CHART_REQUESTS_PER_MINUTE", "30"))),
+    concurrency=max(1, int(os.getenv("ICHING_CHART_CONCURRENCY", "2"))),
+)
+
+
+def _admit_calculation(request: Request):
+    with _CALCULATION_ADMISSION.admit(_extract_ip(request)):
+        yield
+
+
 def _get_runner() -> SessionRunner:
     return get_session_runner()
 
@@ -139,7 +188,7 @@ def prepare_cast(payload: CastingPreviewRequest) -> CastingPreviewResponse:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.post("/tools/metaphysics", response_model=MetaphysicsChartResponse)
+@router.post("/tools/metaphysics", response_model=MetaphysicsChartResponse, dependencies=[Depends(_admit_calculation)])
 def calculate_metaphysics_chart(
     payload: MetaphysicsChartRequest,
 ) -> MetaphysicsChartResponse:
@@ -173,56 +222,23 @@ def calculate_metaphysics_chart(
     return MetaphysicsChartResponse(**result)
 
 
-@router.post("/tools/metaphysics/periods", response_model=MetaphysicsPeriodResponse)
+@router.post("/tools/metaphysics/periods", response_model=MetaphysicsPeriodResponse, dependencies=[Depends(_admit_calculation)])
 def calculate_metaphysics_period(
     payload: MetaphysicsPeriodRequest,
 ) -> MetaphysicsPeriodResponse:
     try:
-        request = payload.model_copy(
-            update={
-                "include_period_details": False,
-                "period_cycle_index": payload.cycle_index,
-            }
-        )
-        result = build_metaphysics_chart(
-            request.timestamp,
-            timezone_name=request.timezone,
-            longitude=request.longitude,
-            use_true_solar_time=request.use_true_solar_time,
-            day_boundary=request.day_boundary,
-            calendar_type=request.calendar_type,
-            is_leap_month=request.is_leap_month,
-            gender=request.gender,
-            birth_place=request.birth_place,
-            hour_uncertain=request.hour_uncertain,
-            dayun_algorithm=request.dayun_algorithm,
-            lunar_year=request.lunar_year,
-            lunar_month=request.lunar_month,
-            lunar_day=request.lunar_day,
-            lunar_hour=request.lunar_hour,
-            lunar_minute=request.lunar_minute,
-            fold_choice=request.fold_choice,
-            reference_timestamp=request.reference_timestamp,
-            include_period_details=False,
-            period_cycle_index=request.cycle_index,
+        options = payload.model_dump(exclude={"timestamp", "timezone", "include_period_details", "period_cycle_index", "cycle_index"})
+        result = build_metaphysics_period(
+            payload.timestamp,
+            timezone_name=payload.timezone,
+            cycle_index=payload.cycle_index,
+            **options,
         )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
-    cycle = next(
-        (
-            item
-            for item in result.get("period_layers", {}).get("dayun", [])
-            if item.get("index") == request.cycle_index
-        ),
-        None,
-    )
-    if not cycle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="未找到所选大运周期。"
-        )
-    return MetaphysicsPeriodResponse(cycle=cycle)
+    return MetaphysicsPeriodResponse(cycle=result["cycle"])
 
 
 @router.post(
@@ -442,9 +458,7 @@ def delete_metaphysics_chart(
 
 
 def _extract_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    # Proxy identity is normalized only by the server's configured trusted proxies.
     if request.client:
         return request.client.host
     return "unknown"
@@ -476,13 +490,19 @@ def create_session(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)
         ) from exc
-    except RateLimitError as exc:
+    except (RateLimitError, ChatRateLimitError) as exc:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)
         ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except (RuntimeError, httpx.HTTPError) as exc:
+        logger.exception("Initial reading failed")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="解读服务暂时不可用，请稍后重试。",
         ) from exc
 
 
@@ -585,10 +605,16 @@ def create_chat_message(
             tone=payload.tone,
             model_override=payload.model,
             restart=payload.restart,
+            request_id=str(payload.request_id) if payload.request_id else None,
+            access_password=payload.access_password,
         )
     except SupabaseAuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
+        ) from exc
+    except AccessDeniedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)
         ) from exc
     except ChatRateLimitError as exc:
         raise HTTPException(
@@ -633,10 +659,16 @@ def stream_chat_message(
             tone=payload.tone,
             model_override=payload.model,
             restart=payload.restart,
+            request_id=str(payload.request_id) if payload.request_id else None,
+            access_password=payload.access_password,
         )
     except SupabaseAuthError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
+        ) from exc
+    except AccessDeniedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)
         ) from exc
     except ChatRateLimitError as exc:
         raise HTTPException(
@@ -662,6 +694,10 @@ def stream_chat_message(
         except Exception:
             logger.exception("Streaming chat failed", extra={"session_id": session_id})
             yield f"event: error\ndata: {json.dumps({'detail': 'AI 流式响应失败，请重试。'}, ensure_ascii=False)}\n\n"
+        finally:
+            close = getattr(events, "close", None)
+            if close:
+                close()
 
     return StreamingResponse(
         event_source(),

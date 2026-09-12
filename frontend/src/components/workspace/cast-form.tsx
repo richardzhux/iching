@@ -328,6 +328,7 @@ export function CastForm({ config }: Props) {
   const mutation = useSessionMutation({
     accessToken: auth.accessToken ?? undefined,
 	    onSuccess: (payload) => {
+	      useWorkspaceStore.getState().setPendingAiRequest(undefined)
 	      setResult(payload)
 	      router.push(toLocalePath("/reading"))
 	      trackProductEvent("reading_created", {
@@ -350,6 +351,12 @@ export function CastForm({ config }: Props) {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (tossing.current || mutation.isPending) return
+    const formKey = JSON.stringify([auth.user?.id, { ...form, accessPassword: "" }])
+    const pendingAiRequest = useWorkspaceStore.getState().pendingAiRequest
+    if (form.enableAi && pendingAiRequest?.formKey === formKey) {
+      mutation.mutate({ ...pendingAiRequest.payload, access_password: form.accessPassword || null })
+      return
+    }
 
     let manualLines: number[] | undefined
     try {
@@ -371,6 +378,7 @@ export function CastForm({ config }: Props) {
     }
 
 	    const payload: SessionRequest = {
+      request_id: form.enableAi ? crypto.randomUUID() : undefined,
       topic: form.topic,
       user_question: form.userQuestion || undefined,
       user_context: form.userContext || undefined,
@@ -386,6 +394,9 @@ export function CastForm({ config }: Props) {
       ai_verbosity: form.aiVerbosity || null,
       ai_tone: form.aiTone,
 	    }
+	    const retryPayload = { ...payload }
+	    delete retryPayload.access_password
+	    useWorkspaceStore.getState().setPendingAiRequest(form.enableAi ? { formKey, payload: retryPayload } : undefined)
 	
 	    trackProductEvent("start_cast_clicked", {
 	      topic: form.topic,

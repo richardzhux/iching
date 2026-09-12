@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterator, Optional
 
 from iching.core.najia import derive_six_gods, rebase_relation
+from iching.integrations.ai_budget import AICallBudget, get_ai_budget
 
 from openai import BadRequestError, OpenAI
 
@@ -343,7 +344,7 @@ def start_analysis(
     selected_verbosity = _normalize_verbosity(model_name, verbosity or data.get("ai_verbosity"))
     reasoning_payload = selected_reasoning
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, timeout=120.0, max_retries=0)
     user_prompt = _build_prompt(data)
     response = _request_openai_response(
         client=client,
@@ -361,7 +362,7 @@ def start_analysis(
     usage = _extract_usage(response)
     return AIResponseData(
         text=text,
-        response_id=getattr(response, "id", None),
+        response_id=_response_field(response, "id"),
         usage=usage,
     )
 
@@ -393,7 +394,7 @@ def continue_analysis(
         descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
         instruction_block += f"\n\n语气设定: {tone} —— {descriptor}"
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, timeout=120.0, max_retries=0)
     response = _request_openai_response(
         client=client,
         model_name=resolved_model,
@@ -413,7 +414,7 @@ def continue_analysis(
     usage = _extract_usage(response)
     return AIResponseData(
         text=text,
-        response_id=getattr(response, "id", None),
+        response_id=_response_field(response, "id"),
         usage=usage,
     )
 
@@ -456,7 +457,7 @@ def continue_analysis_from_session(
         f"用户追问：{stripped}"
     )
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=api_key, timeout=120.0, max_retries=0)
     response = _request_openai_response(
         client=client,
         model_name=resolved_model,
@@ -475,7 +476,7 @@ def continue_analysis_from_session(
     usage = _extract_usage(response)
     return AIResponseData(
         text=text,
-        response_id=getattr(response, "id", None),
+        response_id=_response_field(response, "id"),
         usage=usage,
     )
 
@@ -569,31 +570,47 @@ def _stream_analysis(
     if selected_verbosity:
         payload["text"] = {"verbosity": selected_verbosity}
 
-    client = OpenAI(api_key=resolved_api_key)
+    client = OpenAI(api_key=resolved_api_key, timeout=120.0, max_retries=0)
 
     def generate() -> Iterator[Dict[str, Any]]:
+        budget = get_ai_budget()
+        _validate_input_budget(instructions.strip(), user_input, budget)
+        payload["max_output_tokens"] = budget.max_output_tokens
         completed_response: Any = None
         parts: list[str] = []
-        with client.responses.create(**payload) as stream:
-            for event in stream:
-                event_type = getattr(event, "type", "")
-                if event_type == "response.output_text.delta":
-                    delta = getattr(event, "delta", "") or ""
-                    if delta:
-                        parts.append(delta)
-                        yield {"type": "delta", "delta": delta}
-                elif event_type == "response.completed":
-                    completed_response = getattr(event, "response", None)
+        already_dispatched = budget.dispatched
+        budget.dispatched = True
+        try:
+            with client.responses.create(**payload) as stream:
+                for event in stream:
+                    event_type = _response_field(event, "type", "")
+                    if event_type == "response.output_text.delta":
+                        delta = _response_field(event, "delta", "") or ""
+                        if delta:
+                            parts.append(delta)
+                            yield {"type": "delta", "delta": delta}
+                    elif event_type in {"response.completed", "response.incomplete", "response.failed"}:
+                        completed_response = _response_field(event, "response")
+                        _record_budget_response(completed_response, budget)
+                        if event_type == "response.failed":
+                            raise RuntimeError("OpenAI streaming response failed.")
+                    elif event_type == "error":
+                        raise RuntimeError("OpenAI streaming response failed.")
+        except Exception as exc:
+            _mark_known_rejection(exc, budget, already_dispatched)
+            raise
 
+        if completed_response is None or budget.usage is None:
+            raise RuntimeError("OpenAI streaming response ended without terminal usage accounting.")
         text = "".join(parts).strip()
-        if not text and completed_response is not None:
+        if not text:
             text = _extract_response_text(completed_response) or ""
         if not text:
             raise RuntimeError("OpenAI streaming follow-up returned an empty response.")
         result = AIResponseData(
             text=text,
-            response_id=getattr(completed_response, "id", None),
-            usage=_extract_usage(completed_response) if completed_response is not None else None,
+            response_id=budget.response_id,
+            usage=budget.usage,
         )
         yield {"type": "result", "result": result}
 
@@ -631,7 +648,7 @@ def _build_followup_session_context(data: Dict[str, Any]) -> str:
     history = data.get("conversation_history")
     if isinstance(history, list) and history:
         rendered_history = []
-        for item in history[-12:]:
+        for item in history[-20:]:
             if not isinstance(item, dict):
                 continue
             role = "用户" if item.get("role") == "user" else "AI"
@@ -641,6 +658,44 @@ def _build_followup_session_context(data: Dict[str, Any]) -> str:
         if rendered_history:
             blocks.append("已有追问对话：\n" + "\n\n".join(rendered_history))
     return "\n\n".join(blocks).strip()
+
+
+def _validate_input_budget(instructions: str, user_input: str, budget: AICallBudget) -> None:
+    if len(instructions.encode("utf-8")) + len(user_input.encode("utf-8")) > budget.max_input_bytes:
+        raise ValueError("AI 上下文过长，请缩短补充背景或开始新的解读。")
+
+
+def _record_budget_response(response: Any, budget: AICallBudget) -> None:
+    if usage := _extract_usage(response):
+        budget.usage = usage
+    if response_id := _response_field(response, "id"):
+        budget.response_id = response_id
+
+
+def _response_field(value: Any, key: str, default=None):
+    return value.get(key, default) if isinstance(value, dict) else getattr(value, key, default)
+
+
+def _mark_known_rejection(exc: Exception, budget: AICallBudget, already_dispatched: bool) -> None:
+    if (getattr(exc, "status_code", None) in {400, 401, 403, 404, 422}
+            and not already_dispatched and budget.usage is None and budget.response_id is None):
+        budget.dispatched = False
+
+
+def _create_bounded_response(client, payload, budget: AICallBudget):
+    already_dispatched = budget.dispatched
+    budget.dispatched = True
+    try:
+        response = client.responses.create(**payload)
+    except Exception as exc:
+        _mark_known_rejection(exc, budget, already_dispatched)
+        raise
+    _record_budget_response(response, budget)
+    if _response_field(response, "status") == "failed":
+        raise RuntimeError("OpenAI response failed.")
+    if budget.usage is None:
+        raise RuntimeError("OpenAI response ended without usage accounting.")
+    return response
 
 
 def _request_openai_response(
@@ -653,9 +708,13 @@ def _request_openai_response(
     verbosity: Optional[str],
     previous_response_id: Optional[str] = None,
 ):
+    budget = get_ai_budget()
+    _validate_input_budget(instructions.strip(), user_input, budget)
+
     def build_payload(use_reasoning: bool, use_verbosity: bool) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
             "model": model_name,
+            "max_output_tokens": budget.max_output_tokens,
             "instructions": instructions.strip(),
             "input": [
                 {
@@ -676,20 +735,20 @@ def _request_openai_response(
     use_verbosity = bool(verbosity)
 
     try:
-        return client.responses.create(**build_payload(use_reasoning, use_verbosity))
+        return _create_bounded_response(client, build_payload(use_reasoning, use_verbosity), budget)
     except BadRequestError as exc:
         error_text = str(exc).lower()
         retried = False
         if use_reasoning and "reasoning" in error_text:
             use_reasoning = False
             try:
-                response = client.responses.create(**build_payload(use_reasoning, use_verbosity))
+                response = _create_bounded_response(client, build_payload(use_reasoning, use_verbosity), budget)
                 retried = True
             except BadRequestError as inner_exc:
                 error_text = str(inner_exc).lower()
                 if use_verbosity and ("text" in error_text or "verbosity" in error_text):
                     use_verbosity = False
-                    response = client.responses.create(**build_payload(use_reasoning, use_verbosity))
+                    response = _create_bounded_response(client, build_payload(use_reasoning, use_verbosity), budget)
                     retried = True
                 else:
                     raise
@@ -697,23 +756,23 @@ def _request_openai_response(
             if use_verbosity and ("text" in error_text or "verbosity" in error_text):
                 use_verbosity = False
                 try:
-                    return client.responses.create(**build_payload(use_reasoning, use_verbosity))
+                    return _create_bounded_response(client, build_payload(use_reasoning, use_verbosity), budget)
                 except BadRequestError as inner_exc:
                     error_text = str(inner_exc).lower()
                     if use_reasoning and "reasoning" in error_text:
                         use_reasoning = False
-                        return client.responses.create(**build_payload(use_reasoning, use_verbosity))
+                        return _create_bounded_response(client, build_payload(use_reasoning, use_verbosity), budget)
                     raise
             raise
         return response
 
 
 def _extract_response_text(response: Any) -> Optional[str]:
-    if hasattr(response, "output_text") and response.output_text:
-        return response.output_text.strip()
+    if text := _response_field(response, "output_text"):
+        return text.strip()
     chunks: list[str] = []
-    for item in getattr(response, "output", []) or []:
-        contents = getattr(item, "content", []) or []
+    for item in _response_field(response, "output", []) or []:
+        contents = _response_field(item, "content", []) or []
         for part in contents:
             if isinstance(part, dict):
                 text = part.get("text")
@@ -726,7 +785,7 @@ def _extract_response_text(response: Any) -> Optional[str]:
 
 
 def _extract_usage(response: Any) -> Optional[Dict[str, int]]:
-    usage = getattr(response, "usage", None)
+    usage = _response_field(response, "usage")
     if usage is None:
         return None
     usage_dict: Dict[str, int] = {}
@@ -736,7 +795,13 @@ def _extract_usage(response: Any) -> Optional[Dict[str, int]]:
             value = usage.get(key)
         if value is not None:
             usage_dict[key] = int(value)
-    return usage_dict or None
+    if any(value < 0 for value in usage_dict.values()):
+        return None
+    if "total_tokens" not in usage_dict:
+        if not {"input_tokens", "output_tokens"} <= usage_dict.keys():
+            return None
+        usage_dict["total_tokens"] = usage_dict["input_tokens"] + usage_dict["output_tokens"]
+    return usage_dict
 
 
 def _normalize_reasoning(model_name: str, requested: Optional[str]) -> Optional[str]:

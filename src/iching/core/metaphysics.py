@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, OrderedDict
+import json
+from threading import Lock
+import zlib
 from datetime import datetime, timedelta, timezone
 import logging
 from math import cos, pi, sin
@@ -679,6 +682,7 @@ def _build_uncertain_metaphysics_chart(
         hour_uncertain=False,
         dayun_algorithm=dayun_algorithm,
         include_period_details=False,
+        _representative_only=True,
     )
     labels = [
         "早子",
@@ -1062,6 +1066,305 @@ def _period_theme_activations(
     return activations
 
 
+def _add_years(source: datetime, years: int) -> datetime:
+    try:
+        return source.replace(year=source.year + years)
+    except ValueError:
+        return source.replace(year=source.year + years, day=28)
+
+
+def _flow_boundaries(year: int, zone: Any) -> tuple[datetime, datetime, list[datetime]]:
+    terms = solar_terms_for_years(range(year - 1, year + 3), zone)
+    lichun = next(
+        item.local_datetime
+        for item in terms
+        if item.index == 3 and item.local_datetime.year == year
+    )
+    next_lichun = next(
+        item.local_datetime
+        for item in terms
+        if item.index == 3 and item.local_datetime.year == year + 1
+    )
+    month_starts = [
+        item.local_datetime
+        for item in terms
+        if item.index in JIE_MONTH_BRANCH
+        and lichun <= item.local_datetime < next_lichun
+    ]
+    month_starts.sort()
+    return lichun, next_lichun, [*month_starts, next_lichun]
+
+
+def _compute_dayun_cycle(
+    cycle: Any,
+    *,
+    value: datetime,
+    first_dayun_start: datetime,
+    natal_pillars: list[Dict[str, Any]],
+    gender: str,
+    extra_year: Optional[int],
+) -> Dict[str, Any]:
+    natal_relations = set(
+        _stem_relations(natal_pillars) + _branch_relations(natal_pillars)
+    )
+    cycle_index = cycle.getIndex()
+    cycle_start = (
+        value
+        if cycle_index == 0
+        else _add_years(first_dayun_start, (cycle_index - 1) * 10)
+    )
+    cycle_end = (
+        first_dayun_start
+        if cycle_index == 0
+        else _add_years(first_dayun_start, cycle_index * 10)
+    )
+    cycle_is_current = False
+    cycle_ganzhi = cycle.getGanZhi()
+    cycle_pillar = (
+        {
+            "label": "大运",
+            "stem": cycle_ganzhi[0],
+            "branch": cycle_ganzhi[1],
+            "text": cycle_ganzhi,
+        }
+        if cycle_ganzhi
+        else None
+    )
+    cycle_context = [*natal_pillars, *([cycle_pillar] if cycle_pillar else [])]
+    cycle_ten_god = (
+        _ten_god(natal_pillars[2]["stem"], cycle_ganzhi[0]) if cycle_ganzhi else "—"
+    )
+    cycle_hits = (
+        [
+            hit
+            for hit in evaluate_shensha(cycle_context)
+            if "大运" in hit["pillar_labels"]
+        ]
+        if cycle_pillar
+        else []
+    )
+    cycle_relations = _stem_relations(cycle_context) + _branch_relations(cycle_context)
+    cycle_structured_relations = [
+        relation
+        for relation in structured_relations(cycle_context)
+        if any(
+            item.get("pillar") == "大运" for item in relation.get("participants", ())
+        )
+    ]
+    years = []
+    annual_periods = cycle.getLiuNian()
+    sampled_years = {period.getYear() for period in annual_periods}
+    # The library assigns whole calendar years to each cycle. Between
+    # Li Chun and an exact cycle handoff, the active year can belong to
+    # the neighboring library cycle while this cycle is still active.
+    if extra_year is not None and extra_year not in sampled_years:
+        annual_periods.append(LiuNian(cycle, extra_year - cycle.getStartYear()))
+        annual_periods.sort(key=lambda period: period.getYear())
+    for liu_nian in annual_periods:
+        year_start, year_end, month_boundaries = _flow_boundaries(
+            liu_nian.getYear(), value.tzinfo
+        )
+        year_is_current = False
+        year_ganzhi = liu_nian.getGanZhi()
+        year_pillar = {
+            "label": "流年",
+            "stem": year_ganzhi[0],
+            "branch": year_ganzhi[1],
+            "text": year_ganzhi,
+        }
+        year_context = [*cycle_context, year_pillar]
+        year_hits = [
+            hit
+            for hit in evaluate_shensha(year_context)
+            if "流年" in hit["pillar_labels"]
+        ]
+        year_relations = _stem_relations(year_context) + _branch_relations(year_context)
+        year_structured_relations = [
+            relation
+            for relation in structured_relations(year_context)
+            if any(
+                item.get("pillar") == "流年"
+                for item in relation.get("participants", ())
+            )
+        ]
+        year_ten_god = _ten_god(natal_pillars[2]["stem"], year_ganzhi[0])
+        months = []
+        for liu_yue in liu_nian.getLiuYue():
+            month_index = liu_yue.getIndex()
+            month_start = month_boundaries[month_index]
+            month_end = month_boundaries[month_index + 1]
+            month_is_current = False
+            month_ganzhi = liu_yue.getGanZhi()
+            month_pillar = {
+                "label": "流月",
+                "stem": month_ganzhi[0],
+                "branch": month_ganzhi[1],
+                "text": month_ganzhi,
+            }
+            month_context = [*year_context, month_pillar]
+            month_hits = [
+                hit
+                for hit in evaluate_shensha(month_context)
+                if "流月" in hit["pillar_labels"]
+            ]
+            month_relations = _stem_relations(month_context) + _branch_relations(
+                month_context
+            )
+            month_structured_relations = [
+                relation
+                for relation in structured_relations(month_context)
+                if any(
+                    item.get("pillar") == "流月"
+                    for item in relation.get("participants", ())
+                )
+            ]
+            month_ten_god = _ten_god(natal_pillars[2]["stem"], month_ganzhi[0])
+            month_payload = {
+                "layer": "liuyue",
+                "index": liu_yue.getIndex(),
+                "label": f"{str(liu_yue.getMonthInChinese()).lstrip('0123456789')}月",
+                "ganzhi": month_ganzhi,
+                "ten_god": month_ten_god,
+                "xunkong": liu_yue.getXunKong(),
+                "start_timestamp": month_start.isoformat(),
+                "end_timestamp": month_end.isoformat(),
+                "is_current": month_is_current,
+                "shen_sha": [hit["name"] for hit in month_hits],
+                "relations": [
+                    relation
+                    for relation in month_relations
+                    if relation not in set(year_relations)
+                ],
+                "theme_activations": _period_theme_activations(
+                    period_label="流月",
+                    ten_god=month_ten_god,
+                    gender=gender,
+                    shensha_hits=month_hits,
+                    relations=month_structured_relations,
+                ),
+            }
+            months.append(month_payload)
+        year_payload = {
+            "layer": "liunian",
+            "index": liu_nian.getIndex(),
+            "year": liu_nian.getYear(),
+            "age": liu_nian.getAge(),
+            "label": str(liu_nian.getYear()),
+            "ganzhi": year_ganzhi,
+            "ten_god": year_ten_god,
+            "xunkong": liu_nian.getXunKong(),
+            "start_timestamp": year_start.isoformat(),
+            "end_timestamp": year_end.isoformat(),
+            "is_current": year_is_current,
+            "shen_sha": [hit["name"] for hit in year_hits],
+            "relations": [
+                relation
+                for relation in year_relations
+                if relation not in set(cycle_relations)
+            ],
+            "theme_activations": _period_theme_activations(
+                period_label="流年",
+                ten_god=year_ten_god,
+                gender=gender,
+                shensha_hits=year_hits,
+                relations=year_structured_relations,
+            ),
+            "months": months,
+        }
+        years.append(year_payload)
+    cycle_payload = {
+        "index": cycle_index,
+        "label": "童限" if cycle_index == 0 else cycle_ganzhi,
+        "ganzhi": cycle_ganzhi,
+        "start_year": cycle.getStartYear(),
+        "end_year": cycle.getEndYear(),
+        "start_age": cycle.getStartAge(),
+        "end_age": cycle.getEndAge(),
+        "start_timestamp": cycle_start.isoformat(),
+        "end_timestamp": cycle_end.isoformat(),
+        "is_current": cycle_is_current,
+        "ten_god": cycle_ten_god,
+        "shen_sha": [hit["name"] for hit in cycle_hits],
+        "relations": [
+            relation for relation in cycle_relations if relation not in natal_relations
+        ],
+        "theme_activations": _period_theme_activations(
+            period_label="大运",
+            ten_god=cycle_ten_god,
+            gender=gender,
+            shensha_hits=cycle_hits,
+            relations=cycle_structured_relations,
+        ),
+        "years": years,
+    }
+    return cycle_payload
+
+
+# Immutable serialized entries prevent response annotations or callers from
+# mutating cached facts. The byte budget bounds residency across distinct births.
+_PERIOD_CACHE_MAX_BYTES = 16 * 1024 * 1024
+_period_cache: OrderedDict[tuple[Any, ...], bytes] = OrderedDict()
+_period_cache_bytes = 0
+_period_cache_lock = Lock()
+
+
+def _dayun_cycle(
+    cycle: Any,
+    *,
+    value: datetime,
+    first_dayun_start: datetime,
+    natal_pillars: list[Dict[str, Any]],
+    gender: str,
+    algorithm: str,
+    day_boundary: str,
+    timezone_name: str,
+    extra_year: Optional[int] = None,
+) -> Dict[str, Any]:
+    global _period_cache_bytes
+    key = (
+        value.isoformat(),
+        timezone_name,
+        first_dayun_start.isoformat(),
+        gender,
+        algorithm,
+        day_boundary,
+        cycle.getIndex(),
+        extra_year,
+        json.dumps(natal_pillars, sort_keys=True, ensure_ascii=False),
+        tuple(sorted(bazi_rule_versions().items())),
+    )
+    with _period_cache_lock:
+        packed = _period_cache.get(key)
+        if packed is not None:
+            _period_cache.move_to_end(key)
+    if packed is not None:
+        return json.loads(zlib.decompress(packed))
+    payload = _compute_dayun_cycle(
+        cycle,
+        value=value,
+        first_dayun_start=first_dayun_start,
+        natal_pillars=natal_pillars,
+        gender=gender,
+        extra_year=extra_year,
+    )
+    packed = zlib.compress(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    entry_bytes = len(packed) + len(repr(key).encode())
+    if entry_bytes <= _PERIOD_CACHE_MAX_BYTES:
+        with _period_cache_lock:
+            if key not in _period_cache:
+                while _period_cache and (
+                    _period_cache_bytes + entry_bytes > _PERIOD_CACHE_MAX_BYTES
+                    or len(_period_cache) >= 128
+                ):
+                    old_key, old_value = _period_cache.popitem(last=False)
+                    _period_cache_bytes -= len(old_value) + len(repr(old_key).encode())
+                _period_cache[key] = packed
+                _period_cache_bytes += entry_bytes
+    return payload
+
+
 def _dayun_payload(
     value: datetime,
     *,
@@ -1075,6 +1378,7 @@ def _dayun_payload(
     reference_timestamp: Optional[datetime] = None,
     include_period_details: bool = True,
     period_cycle_index: Optional[int] = None,
+    only_selected_cycle: bool = False,
 ) -> Dict[str, Any]:
     if gender not in {"male", "female"}:
         return {"status": "not_requested", "cycles": []}
@@ -1089,7 +1393,12 @@ def _dayun_payload(
     # Compare the physical birth instant there, including historical DST.
     engine_time = value.astimezone(timezone(timedelta(hours=8)))
     solar = SolarCalendar.fromYmdHms(
-        engine_time.year, engine_time.month, engine_time.day, engine_time.hour, engine_time.minute, engine_time.second
+        engine_time.year,
+        engine_time.month,
+        engine_time.day,
+        engine_time.hour,
+        engine_time.minute,
+        engine_time.second,
     )
     eight_char = solar.getLunar().getEightChar()
     eight_char.setSect(1 if day_boundary == "forward" else 2)
@@ -1110,287 +1419,99 @@ def _dayun_payload(
     reference_month_ganzhi = reference_facts.month_gz.text
     start_solar = yun.getStartSolar()
     first_dayun_start = datetime(
-            start_solar.getYear(),
-            start_solar.getMonth(),
-            start_solar.getDay(),
-            start_solar.getHour(),
-            start_solar.getMinute(),
-            start_solar.getSecond(),
-            tzinfo=timezone(timedelta(hours=8)),
-        ).astimezone(value.tzinfo)
+        start_solar.getYear(),
+        start_solar.getMonth(),
+        start_solar.getDay(),
+        start_solar.getHour(),
+        start_solar.getMinute(),
+        start_solar.getSecond(),
+        tzinfo=timezone(timedelta(hours=8)),
+    ).astimezone(value.tzinfo)
 
-    def add_years(source: datetime, years: int) -> datetime:
-        try:
-            return source.replace(year=source.year + years)
-        except ValueError:
-            return source.replace(year=source.year + years, day=28)
-
-    def flow_boundaries(year: int) -> tuple[datetime, datetime, list[datetime]]:
-        terms = solar_terms_for_years(range(year - 1, year + 3), value.tzinfo)
-        lichun = next(
-            item.local_datetime
-            for item in terms
-            if item.index == 3 and item.local_datetime.year == year
-        )
-        next_lichun = next(
-            item.local_datetime
-            for item in terms
-            if item.index == 3 and item.local_datetime.year == year + 1
-        )
-        month_starts = [
-            item.local_datetime
-            for item in terms
-            if item.index in JIE_MONTH_BRANCH
-            and lichun <= item.local_datetime < next_lichun
-        ]
-        month_starts.sort()
-        return lichun, next_lichun, [*month_starts, next_lichun]
-
-    natal_relations = set(
-        _stem_relations(natal_pillars) + _branch_relations(natal_pillars)
-    )
     cycles = []
     kline_cycles = []
     expand_next_cycle = False
     current_year_payload: Optional[Dict[str, Any]] = None
     current_month_payload: Optional[Dict[str, Any]] = None
-    # Keep a stable contemporary minimum, then extend only as far as needed for
-    # the reference age plus the following cycle. The cap covers living users
-    # without allowing an extreme historical input to create an unbounded API
-    # payload.
     reference_age_years = max(0, reference.year - value.year)
     cycle_count = max(13, min(20, reference_age_years // 10 + 3))
     for cycle in yun.getDaYun(cycle_count):
         cycle_index = cycle.getIndex()
+        if only_selected_cycle and cycle_index != period_cycle_index:
+            continue
         cycle_start = (
             value
             if cycle_index == 0
-            else add_years(first_dayun_start, (cycle_index - 1) * 10)
+            else _add_years(first_dayun_start, (cycle_index - 1) * 10)
         )
         cycle_end = (
             first_dayun_start
             if cycle_index == 0
-            else add_years(first_dayun_start, cycle_index * 10)
+            else _add_years(first_dayun_start, cycle_index * 10)
         )
         cycle_is_current = cycle_start <= reference < cycle_end
-        cycle_ganzhi = cycle.getGanZhi()
-        cycle_pillar = (
-            {
-                "label": "大运",
-                "stem": cycle_ganzhi[0],
-                "branch": cycle_ganzhi[1],
-                "text": cycle_ganzhi,
-            }
-            if cycle_ganzhi
+        sampled_years = {period.getYear() for period in cycle.getLiuNian()}
+        extra_year = (
+            reference_year
+            if cycle_is_current and reference_year not in sampled_years
             else None
         )
-        cycle_context = [*natal_pillars, *([cycle_pillar] if cycle_pillar else [])]
-        cycle_ten_god = (
-            _ten_god(natal_pillars[2]["stem"], cycle_ganzhi[0]) if cycle_ganzhi else "—"
+        cycle_payload = _dayun_cycle(
+            cycle,
+            value=value,
+            first_dayun_start=first_dayun_start,
+            natal_pillars=natal_pillars,
+            gender=gender,
+            algorithm=algorithm,
+            day_boundary=day_boundary,
+            timezone_name=timezone_name,
+            extra_year=extra_year,
         )
-        cycle_hits = (
-            [
-                hit
-                for hit in evaluate_shensha(cycle_context)
-                if "大运" in hit["pillar_labels"]
-            ]
-            if cycle_pillar
-            else []
-        )
-        cycle_relations = _stem_relations(cycle_context) + _branch_relations(
-            cycle_context
-        )
-        cycle_structured_relations = [
-            relation
-            for relation in structured_relations(cycle_context)
-            if any(
-                item.get("pillar") == "大运"
-                for item in relation.get("participants", ())
+        cycle_payload["is_current"] = cycle_is_current
+        years = cycle_payload["years"]
+        for year in years:
+            year["is_current"] = cycle_is_current and datetime.fromisoformat(
+                year["start_timestamp"]
+            ) <= reference < datetime.fromisoformat(year["end_timestamp"])
+            for month in year["months"]:
+                month["is_current"] = year["is_current"] and datetime.fromisoformat(
+                    month["start_timestamp"]
+                ) <= reference < datetime.fromisoformat(month["end_timestamp"])
+                if month["is_current"] and month["ganzhi"] == reference_month_ganzhi:
+                    current_month_payload = month
+            if year["is_current"] and year["year"] == reference_year:
+                current_year_payload = {
+                    key: val for key, val in year.items() if key != "months"
+                }
+        if not only_selected_cycle:
+            kline_cycles.append(
+                {
+                    **cycle_payload,
+                    "years": [
+                        {**year, "is_current": year["year"] == reference_year}
+                        for year in years
+                        if year["year"] in sampled_years
+                    ],
+                }
             )
-        ]
-        years = []
-        is_default_next_cycle = expand_next_cycle
-        should_expand_cycle = (
+        should_expand = (
             include_period_details
             or cycle_is_current
-            or is_default_next_cycle
+            or expand_next_cycle
             or cycle_index == period_cycle_index
         )
         expand_next_cycle = cycle_is_current
-        annual_periods = cycle.getLiuNian()
-        sampled_years = {period.getYear() for period in annual_periods}
-        # The library assigns whole calendar years to each cycle. Between
-        # Li Chun and an exact cycle handoff, the active year can belong to
-        # the neighboring library cycle while this cycle is still active.
-        if cycle_is_current and reference_year not in sampled_years:
-            annual_periods.append(LiuNian(cycle, reference_year - cycle.getStartYear()))
-            annual_periods.sort(key=lambda period: period.getYear())
-        for liu_nian in annual_periods:
-            year_start, year_end, month_boundaries = flow_boundaries(liu_nian.getYear())
-            year_is_current = cycle_is_current and year_start <= reference < year_end
-            year_ganzhi = liu_nian.getGanZhi()
-            year_pillar = {
-                "label": "流年",
-                "stem": year_ganzhi[0],
-                "branch": year_ganzhi[1],
-                "text": year_ganzhi,
-            }
-            year_context = [*cycle_context, year_pillar]
-            year_hits = [
-                hit
-                for hit in evaluate_shensha(year_context)
-                if "流年" in hit["pillar_labels"]
-            ]
-            year_relations = _stem_relations(year_context) + _branch_relations(
-                year_context
-            )
-            year_structured_relations = [
-                relation
-                for relation in structured_relations(year_context)
-                if any(
-                    item.get("pillar") == "流年"
-                    for item in relation.get("participants", ())
-                )
-            ]
-            year_ten_god = _ten_god(natal_pillars[2]["stem"], year_ganzhi[0])
-            months = []
-            for liu_yue in liu_nian.getLiuYue():
-                month_index = liu_yue.getIndex()
-                month_start = month_boundaries[month_index]
-                month_end = month_boundaries[month_index + 1]
-                month_is_current = (
-                    year_is_current and month_start <= reference < month_end
-                )
-                month_ganzhi = liu_yue.getGanZhi()
-                month_pillar = {
-                    "label": "流月",
-                    "stem": month_ganzhi[0],
-                    "branch": month_ganzhi[1],
-                    "text": month_ganzhi,
-                }
-                month_context = [*year_context, month_pillar]
-                month_hits = [
-                    hit
-                    for hit in evaluate_shensha(month_context)
-                    if "流月" in hit["pillar_labels"]
-                ]
-                month_relations = _stem_relations(month_context) + _branch_relations(
-                    month_context
-                )
-                month_structured_relations = [
-                    relation
-                    for relation in structured_relations(month_context)
-                    if any(
-                        item.get("pillar") == "流月"
-                        for item in relation.get("participants", ())
-                    )
-                ]
-                month_ten_god = _ten_god(natal_pillars[2]["stem"], month_ganzhi[0])
-                month_payload = {
-                    "layer": "liuyue",
-                    "index": liu_yue.getIndex(),
-                    "label": f"{str(liu_yue.getMonthInChinese()).lstrip('0123456789')}月",
-                    "ganzhi": month_ganzhi,
-                    "ten_god": month_ten_god,
-                    "xunkong": liu_yue.getXunKong(),
-                    "start_timestamp": month_start.isoformat(),
-                    "end_timestamp": month_end.isoformat(),
-                    "is_current": month_is_current,
-                    "shen_sha": [hit["name"] for hit in month_hits],
-                    "relations": [
-                        relation
-                        for relation in month_relations
-                        if relation not in set(year_relations)
-                    ],
-                    "theme_activations": _period_theme_activations(
-                        period_label="流月",
-                        ten_god=month_ten_god,
-                        gender=gender,
-                        shensha_hits=month_hits,
-                        relations=month_structured_relations,
-                    ),
-                }
-                months.append(month_payload)
-                if month_is_current and month_ganzhi == reference_month_ganzhi:
-                    current_month_payload = month_payload
-            year_payload = {
-                "layer": "liunian",
-                "index": liu_nian.getIndex(),
-                "year": liu_nian.getYear(),
-                "age": liu_nian.getAge(),
-                "label": str(liu_nian.getYear()),
-                "ganzhi": year_ganzhi,
-                "ten_god": year_ten_god,
-                "xunkong": liu_nian.getXunKong(),
-                "start_timestamp": year_start.isoformat(),
-                "end_timestamp": year_end.isoformat(),
-                "is_current": year_is_current,
-                "shen_sha": [hit["name"] for hit in year_hits],
-                "relations": [
-                    relation
-                    for relation in year_relations
-                    if relation not in set(cycle_relations)
-                ],
-                "theme_activations": _period_theme_activations(
-                    period_label="流年",
-                    ten_god=year_ten_god,
-                    gender=gender,
-                    shensha_hits=year_hits,
-                    relations=year_structured_relations,
-                ),
-                "months": months,
-            }
-            years.append(year_payload)
-            if year_is_current and liu_nian.getYear() == reference_year:
-                current_year_payload = {
-                    key: value for key, value in year_payload.items() if key != "months"
-                }
-        cycle_payload = {
-            "index": cycle_index,
-            "label": "童限" if cycle_index == 0 else cycle_ganzhi,
-            "ganzhi": cycle_ganzhi,
-            "start_year": cycle.getStartYear(),
-            "end_year": cycle.getEndYear(),
-            "start_age": cycle.getStartAge(),
-            "end_age": cycle.getEndAge(),
-            "start_timestamp": cycle_start.isoformat(),
-            "end_timestamp": cycle_end.isoformat(),
-            "is_current": cycle_is_current,
-            "ten_god": cycle_ten_god,
-            "shen_sha": [hit["name"] for hit in cycle_hits],
-            "relations": [
-                relation
-                for relation in cycle_relations
-                if relation not in natal_relations
-            ],
-            "theme_activations": _period_theme_activations(
-                period_label="大运",
-                ten_god=cycle_ten_god,
-                gender=gender,
-                shensha_hits=cycle_hits,
-                relations=cycle_structured_relations,
-            ),
-            "years": years,
-        }
-        # Keep one original sample per year in the experimental activity
-        # baseline; the extra current-period view must not duplicate a year.
-        kline_cycles.append({
-            **cycle_payload,
-            "years": [
-                {**year, "is_current": year["year"] == reference_year}
-                for year in years
-                if year["year"] in sampled_years
-            ],
-        })
         cycles.append(
-            cycle_payload if should_expand_cycle else {**cycle_payload, "years": []}
+            cycle_payload if should_expand else {**cycle_payload, "years": []}
         )
     return {
         "status": "available",
         "algorithm": algorithm,
-        "algorithm_note": "sect2 按分钟精算；sect1 按日数与时辰折算。"
-        if algorithm == "sect2"
-        else "sect1 按日数与时辰折算。",
+        "algorithm_note": (
+            "sect2 按分钟精算；sect1 按日数与时辰折算。"
+            if algorithm == "sect2"
+            else "sect1 按日数与时辰折算。"
+        ),
         "direction": "forward" if yun.isForward() else "reverse",
         "start": {
             "years": yun.getStartYear(),
@@ -1411,6 +1532,109 @@ def _dayun_payload(
             "month": current_month_payload,
         },
     }
+
+
+def _birth_calendar_pillars(
+    local: datetime,
+    *,
+    timezone_name: str,
+    longitude: Optional[float],
+    use_true_solar_time: bool,
+    day_boundary: str,
+) -> tuple[Any, list[Dict[str, Any]], datetime, float]:
+    effective_local = local
+    calculation_time, correction_minutes = (
+        _true_solar_time(effective_local, longitude)
+        if use_true_solar_time
+        else (effective_local, 0.0)
+    )
+    calendar_facts = calculate_calendar_facts(
+        calculation_time,
+        timezone_name=timezone_name,
+        day_boundary=day_boundary,
+        reference_instant=local if use_true_solar_time else None,
+    )
+    if calendar_facts.quality["status"] == "conflict":
+        raise ValueError("这个出生时间正处于换柱敏感区，请确认出生时间后继续。")
+    year_gz = calendar_facts.year_gz
+    month_gz = calendar_facts.month_gz
+    day_gz = calendar_facts.day_gz
+    hour_gz = calendar_facts.hour_gz
+    day_stem = STEMS[day_gz.tg]
+    pillars = [
+        _pillar("年", year_gz, day_stem),
+        _pillar("月", month_gz, day_stem),
+        _pillar("日", day_gz, day_stem),
+        _pillar("时", hour_gz, day_stem),
+    ]
+    return calendar_facts, pillars, calculation_time, correction_minutes
+
+
+def build_metaphysics_period(
+    timestamp: datetime,
+    *,
+    cycle_index: int,
+    timezone_name: str = "Asia/Shanghai",
+    longitude: Optional[float] = None,
+    use_true_solar_time: bool = False,
+    day_boundary: str = "forward",
+    calendar_type: str = "solar",
+    is_leap_month: bool = False,
+    gender: Optional[str] = None,
+    birth_place: Optional[str] = None,
+    hour_uncertain: bool = False,
+    dayun_algorithm: str = "sect2",
+    lunar_year: Optional[int] = None,
+    lunar_month: Optional[int] = None,
+    lunar_day: Optional[int] = None,
+    lunar_hour: Optional[int] = None,
+    lunar_minute: Optional[int] = None,
+    fold_choice: Optional[str] = None,
+    reference_timestamp: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Return one expanded cycle without constructing natal analysis or K-line."""
+    if not 0 <= cycle_index < 20:
+        raise ValueError("大运序号必须在 0 至 19 之间。")
+    if hour_uncertain or gender not in {"male", "female"}:
+        raise ValueError("展开运限需要明确的出生时辰与性别。")
+    if dayun_algorithm not in {"sect1", "sect2"}:
+        raise ValueError(f"未知大运算法: {dayun_algorithm}")
+    local, calendar_input = _calendar_input_to_solar(
+        timestamp,
+        timezone_name=timezone_name,
+        calendar_type=calendar_type,
+        is_leap_month=is_leap_month,
+        lunar_year=lunar_year,
+        lunar_month=lunar_month,
+        lunar_day=lunar_day,
+        lunar_hour=lunar_hour,
+        lunar_minute=lunar_minute,
+        fold_choice=fold_choice,
+    )
+    _, pillars, _, _ = _birth_calendar_pillars(
+        local,
+        timezone_name=timezone_name,
+        longitude=longitude,
+        use_true_solar_time=use_true_solar_time,
+        day_boundary=day_boundary,
+    )
+    dayun = _dayun_payload(
+        local,
+        gender=gender,
+        hour_uncertain=False,
+        day_boundary=day_boundary,
+        algorithm=dayun_algorithm,
+        expected_bazi=" ".join(pillar["text"] for pillar in pillars),
+        natal_pillars=pillars,
+        timezone_name=timezone_name,
+        reference_timestamp=reference_timestamp,
+        include_period_details=True,
+        period_cycle_index=cycle_index,
+        only_selected_cycle=True,
+    )
+    if not dayun["cycles"]:
+        raise ValueError("该大运序号不在此命盘的可用范围内。")
+    return {"cycle": dayun["cycles"][0], "rule_versions": bazi_rule_versions()}
 
 
 def build_metaphysics_chart(
@@ -1435,6 +1659,7 @@ def build_metaphysics_chart(
     reference_timestamp: Optional[datetime] = None,
     include_period_details: bool = True,
     period_cycle_index: Optional[int] = None,
+    _representative_only: bool = False,
 ) -> Dict[str, Any]:
     if dayun_algorithm not in {"sect1", "sect2"}:
         raise ValueError(f"未知大运算法: {dayun_algorithm}")
@@ -1462,34 +1687,19 @@ def build_metaphysics_chart(
             birth_place=birth_place,
             dayun_algorithm=dayun_algorithm,
         )
-    effective_local = local
-    calculation_time, correction_minutes = (
-        _true_solar_time(effective_local, longitude)
-        if use_true_solar_time
-        else (effective_local, 0.0)
+    calendar_facts, pillars, calculation_time, correction_minutes = (
+        _birth_calendar_pillars(
+            local,
+            timezone_name=timezone_name,
+            longitude=longitude,
+            use_true_solar_time=use_true_solar_time,
+            day_boundary=day_boundary,
+        )
     )
-    calendar_facts = calculate_calendar_facts(
-        calculation_time,
-        timezone_name=timezone_name,
-        day_boundary=day_boundary,
-        reference_instant=local if use_true_solar_time else None,
-    )
-    if calendar_facts.quality["status"] == "conflict":
-        raise ValueError("这个出生时间正处于换柱敏感区，请确认出生时间后继续。")
+    day_stem = pillars[2]["stem"]
     # The lunar birth date describes the entered civil date. The selected
     # BaZi day boundary and solar-clock correction only affect the pillars.
     solar_day = sxtwl.fromSolar(local.year, local.month, local.day)
-    year_gz = calendar_facts.year_gz
-    month_gz = calendar_facts.month_gz
-    day_gz = calendar_facts.day_gz
-    hour_gz = calendar_facts.hour_gz
-    day_stem = STEMS[day_gz.tg]
-    pillars = [
-        _pillar("年", year_gz, day_stem),
-        _pillar("月", month_gz, day_stem),
-        _pillar("日", day_gz, day_stem),
-        _pillar("时", hour_gz, day_stem),
-    ]
     hour_candidates: list[Dict[str, str]] = []
     direct_elements: Iterable[str] = (
         value
@@ -1507,18 +1717,22 @@ def build_metaphysics_chart(
     day_branch = pillars[2]["branch"]
     six_gods = derive_six_gods(day_stem)
     bazi_text = " ".join(pillar["text"] for pillar in pillars)
-    dayun = _dayun_payload(
-        local,
-        gender=gender,
-        hour_uncertain=hour_uncertain,
-        day_boundary=day_boundary,
-        algorithm=dayun_algorithm,
-        expected_bazi=bazi_text,
-        natal_pillars=pillars,
-        timezone_name=timezone_name,
-        reference_timestamp=reference_timestamp,
-        include_period_details=include_period_details,
-        period_cycle_index=period_cycle_index,
+    dayun = (
+        {"cycles": []}
+        if _representative_only
+        else _dayun_payload(
+            local,
+            gender=gender,
+            hour_uncertain=hour_uncertain,
+            day_boundary=day_boundary,
+            algorithm=dayun_algorithm,
+            expected_bazi=bazi_text,
+            natal_pillars=pillars,
+            timezone_name=timezone_name,
+            reference_timestamp=reference_timestamp,
+            include_period_details=include_period_details,
+            period_cycle_index=period_cycle_index,
+        )
     )
     kline_cycles = dayun.pop("_kline_cycles", dayun.get("cycles", []))
     raw_shen_sha = evaluate_shensha(pillars)
@@ -1535,14 +1749,18 @@ def build_metaphysics_chart(
     shensha_effects = evaluate_shensha_effects(raw_shen_sha, pillars, structure)
     shen_sha = shensha_effects["hits"]
     consumer_features = consumer_feature_records(patterns, shensha_effects)
-    statistics = _statistics_or_unavailable(
-        shen_sha,
-        day_boundary,
-        theme_profiles=structure["theme_profiles"],
-        gender=gender,
-        day_master=day_stem,
-        month_command=month_branch,
-        consumer_feature_ids=[item["id"] for item in consumer_features],
+    statistics = (
+        {}
+        if _representative_only
+        else _statistics_or_unavailable(
+            shen_sha,
+            day_boundary,
+            theme_profiles=structure["theme_profiles"],
+            gender=gender,
+            day_master=day_stem,
+            month_command=month_branch,
+            consumer_feature_ids=[item["id"] for item in consumer_features],
+        )
     )
     theme_profiles = statistics.get("theme_profiles") or structure["theme_profiles"]
     structure["theme_profiles"] = theme_profiles
@@ -1589,15 +1807,19 @@ def build_metaphysics_chart(
             ),
         )
         conclusion["distribution_context"] = str(most_distinctive["display_label"])
-    consumer = build_bazi_consumer_profile(
-        pillars=pillars,
-        structure=structure,
-        patterns=patterns,
-        shensha_effects=shensha_effects,
-        cycles=dayun.get("cycles", []),
-        consumer_distributions=statistics.get("consumer_distributions"),
-        consumer_feature_metrics=statistics.get("consumer_feature_metrics", ()),
-        kline_cycles=kline_cycles,
+    consumer = (
+        {}
+        if _representative_only
+        else build_bazi_consumer_profile(
+            pillars=pillars,
+            structure=structure,
+            patterns=patterns,
+            shensha_effects=shensha_effects,
+            cycles=dayun.get("cycles", []),
+            consumer_distributions=statistics.get("consumer_distributions"),
+            consumer_feature_metrics=statistics.get("consumer_feature_metrics", ()),
+            kline_cycles=kline_cycles,
+        )
     )
     return {
         "timezone": timezone_name,
@@ -1671,9 +1893,9 @@ def build_metaphysics_chart(
                 "birth_place": birth_place,
                 "hour_uncertain": False,
                 "dayun_algorithm": dayun_algorithm,
-                "reference_timestamp": reference_timestamp.isoformat()
-                if reference_timestamp
-                else None,
+                "reference_timestamp": (
+                    reference_timestamp.isoformat() if reference_timestamp else None
+                ),
                 "include_period_details": False,
             },
             "engines": {

@@ -194,6 +194,10 @@ export function BaziChartView(props: BaziChartViewProps) {
   const currentYear = currentYearInTimeZone(chart.timezone)
   const dayun = chart.birth_profile.dayun
   const periodRequestGeneration = useRef(0)
+  const periodChartGeneration = useRef(0)
+  const periodAbortController = useRef<AbortController | null>(null)
+  const periodRequests = useRef(new Map<number, Promise<DayunCycle>>())
+  const completedPeriodCycles = useRef(new Map<number, DayunCycle>())
   const [periodCycles, setPeriodCycles] = useState(dayun.cycles)
   const [periodLoadingIndex, setPeriodLoadingIndex] = useState<number | null>(null)
   const [periodError, setPeriodError] = useState<string | null>(null)
@@ -212,6 +216,11 @@ export function BaziChartView(props: BaziChartViewProps) {
   }, [])
   useEffect(() => {
     periodRequestGeneration.current += 1
+    periodChartGeneration.current += 1
+    const controller = new AbortController()
+    periodAbortController.current = controller
+    periodRequests.current = new Map()
+    completedPeriodCycles.current = new Map(dayun.cycles.filter((cycle) => cycle.years.length).map((cycle) => [cycle.index, cycle]))
     const nextCurrent = dayun.cycles.find((cycle) => cycle.is_current) ?? dayun.cycles[0]
     setPeriodCycles(dayun.cycles)
     setSelectedCycleIndex(nextCurrent?.index ?? 0)
@@ -221,6 +230,8 @@ export function BaziChartView(props: BaziChartViewProps) {
     setPeriodError(null)
     return () => {
       periodRequestGeneration.current += 1
+      periodChartGeneration.current += 1
+      controller.abort()
     }
   }, [chart.input_timestamp, currentYear, dayun])
   function changeDisplayMode(nextMode: DisplayMode) {
@@ -229,6 +240,8 @@ export function BaziChartView(props: BaziChartViewProps) {
   }
   async function selectCycle(cycle: DayunCycle) {
     const requestGeneration = ++periodRequestGeneration.current
+    const chartGeneration = periodChartGeneration.current
+    cycle = completedPeriodCycles.current.get(cycle.index) ?? cycle
     setSelectedCycleIndex(cycle.index)
     setPeriodError(null)
     if (cycle.years.length || !chart.birth_profile.period_query) {
@@ -239,9 +252,24 @@ export function BaziChartView(props: BaziChartViewProps) {
     }
     setPeriodLoadingIndex(cycle.index)
     try {
-      const loaded = await fetchMetaphysicsPeriod({ ...chart.birth_profile.period_query, cycle_index: cycle.index })
+      const requests = periodRequests.current
+      let pending = requests.get(cycle.index)
+      if (!pending) {
+        const signal = periodAbortController.current?.signal
+        pending = fetchMetaphysicsPeriod({ ...chart.birth_profile.period_query, cycle_index: cycle.index }, { signal })
+          .then((loaded) => {
+            // Switching cycles keeps useful results; switching charts invalidates them.
+            if (chartGeneration === periodChartGeneration.current && !signal?.aborted) {
+              completedPeriodCycles.current.set(loaded.index, loaded)
+              setPeriodCycles((items) => items.map((item) => item.index === loaded.index ? loaded : item))
+            }
+            return loaded
+          })
+          .finally(() => { requests.delete(cycle.index) })
+        requests.set(cycle.index, pending)
+      }
+      const loaded = await pending
       if (requestGeneration !== periodRequestGeneration.current) return
-      setPeriodCycles((items) => items.map((item) => item.index === loaded.index ? loaded : item))
       setSelectedYear(loaded.years.find((year) => year.is_current)?.year ?? loaded.years[0]?.year ?? loaded.start_year)
       setSelectedMonthIndex(loaded.years.find((year) => year.is_current)?.months.find((month) => month.is_current)?.index ?? 0)
     } catch {

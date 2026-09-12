@@ -1014,6 +1014,7 @@ export type SessionPayload = {
 }
 
 export type SessionRequest = {
+  request_id?: string
   meihua_mode?: "traditional" | "original"
   topic: string
   user_question?: string
@@ -1051,6 +1052,8 @@ export type ChatTurnResponse = {
 }
 
 export type ChatTurnPayload = {
+  request_id: string
+  access_password?: string | null
   message: string
   reasoning?: string | null
   verbosity?: string | null

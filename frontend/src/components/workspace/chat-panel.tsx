@@ -14,10 +14,27 @@ import { fetchChatTranscript, streamChatMessage } from "@/lib/api"
 import { useConfigQuery } from "@/lib/queries"
 import { useWorkspaceStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
-import type { ChatMessage, SessionPayload } from "@/types/api"
+import type { ChatMessage, ChatTurnPayload, SessionPayload } from "@/types/api"
 
 type Props = { session: SessionPayload; embedded?: boolean }
-type LocalChatMessage = ChatMessage & { status?: "streaming" | "error" | "stopped" }
+type RetryChatPayload = Omit<ChatTurnPayload, "access_password">
+type LocalChatMessage = ChatMessage & { status?: "streaming" | "error" | "stopped"; request?: RetryChatPayload }
+
+function mergeTranscript(server: ChatMessage[], local: LocalChatMessage[]): LocalChatMessage[] {
+  const pendingIndexes = new Set<number>()
+  local.forEach((message, index) => {
+    if (!message.status || !message.request) return
+    pendingIndexes.add(index)
+    for (let previous = index - 1; previous >= 0; previous--) {
+      if (local[previous].role === "user") {
+        pendingIndexes.add(previous)
+        break
+      }
+    }
+  })
+  const serverIds = new Set(server.map((message) => message.id).filter(Boolean))
+  return [...server, ...local.filter((message, index) => pendingIndexes.has(index) && (!message.id || !serverIds.has(message.id)))]
+}
 
 const CHAT_MESSAGE_LIMIT = 10000
 const EMPTY_MODELS: NonNullable<ReturnType<typeof useConfigQuery>["data"]>["ai_models"] = []
@@ -46,6 +63,8 @@ export function ChatPanel({ session, embedded = false }: Props) {
   const [tone, setTone] = useState(session.ai_tone ?? "normal")
   const pendingChatPrompt = useWorkspaceStore((state) => state.pendingChatPrompt)
   const setPendingChatPrompt = useWorkspaceStore((state) => state.setPendingChatPrompt)
+  const accessPassword = useWorkspaceStore((state) => state.form.accessPassword)
+  const updateForm = useWorkspaceStore((state) => state.updateForm)
   const listRef = useRef<HTMLDivElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const stickToBottomRef = useRef(true)
@@ -93,7 +112,7 @@ export function ChatPanel({ session, embedded = false }: Props) {
     if (!snapshot) return
     try {
       const parsed = JSON.parse(snapshot) as LocalChatMessage[]
-      if (parsed.length) setMessagesState(parsed.filter((item) => item.status !== "streaming"))
+      if (parsed.length) setMessagesState(parsed.map((item) => item.status === "streaming" ? { ...item, status: "stopped" } : item))
     } catch {
       // Ignore stale local chat cache.
     }
@@ -117,9 +136,9 @@ export function ChatPanel({ session, embedded = false }: Props) {
       .then((data) => {
         if (cancelled) return
         if (data.messages.length) {
-          setMessagesState(data.messages)
+          setMessagesState((current) => mergeTranscript(data.messages, current))
         } else if (session.ai_text) {
-          setMessagesState([{ localId: `initial-${session.session_id}`, role: "assistant", content: session.ai_text, created_at: new Date().toISOString(), model: session.ai_model }])
+          setMessagesState((current) => mergeTranscript([{ localId: `initial-${session.session_id}`, role: "assistant", content: session.ai_text!, created_at: new Date().toISOString(), model: session.ai_model }], current))
         }
         if (data.followup_model) setChatModel(data.followup_model)
         if (data.ai_reasoning !== undefined && data.ai_reasoning !== null) setReasoning(data.ai_reasoning)
@@ -173,17 +192,27 @@ export function ChatPanel({ session, embedded = false }: Props) {
     }
   }
 
-  async function sendPrompt(prompt: string, options: { appendUser?: boolean; restart?: boolean } = {}) {
+  async function sendPrompt(prompt: string, options: { appendUser?: boolean; restart?: boolean; retryPayload?: RetryChatPayload } = {}) {
     if (!auth.accessToken || isSending) return
+    if (!accessPassword) return toast.error(locale === "zh" ? "请先输入 AI 访问密码。" : "Enter the AI access password first.")
     const trimmed = prompt.trim()
     if (!trimmed) return
     const appendUser = options.appendUser ?? true
     const userLocalId = makeLocalId()
     const assistantLocalId = makeLocalId()
     const now = new Date().toISOString()
+    const request: RetryChatPayload = options.retryPayload ?? {
+      request_id: crypto.randomUUID(),
+      message: trimmed,
+      reasoning: activeModel?.reasoning.length ? reasoning : null,
+      verbosity: activeModel?.verbosity ? verbosity : null,
+      tone,
+      model: selectedChatModel || null,
+      restart: options.restart,
+    }
     const nextItems: LocalChatMessage[] = []
     if (appendUser) nextItems.push({ localId: userLocalId, role: "user", content: trimmed, created_at: now, model: selectedChatModel })
-    nextItems.push({ localId: assistantLocalId, role: "assistant", content: "", created_at: now, model: selectedChatModel, reasoning, verbosity, tone, status: "streaming" })
+    nextItems.push({ localId: assistantLocalId, role: "assistant", content: "", created_at: now, model: request.model, reasoning: request.reasoning, verbosity: request.verbosity, tone: request.tone, status: "streaming", request })
     setMessagesState((previous) => [...previous, ...nextItems])
     setInput("")
     setIsSending(true)
@@ -194,16 +223,23 @@ export function ChatPanel({ session, embedded = false }: Props) {
       const result = await streamChatMessage(
         session.session_id,
         auth.accessToken,
-        { message: trimmed, reasoning: activeModel?.reasoning.length ? reasoning : null, verbosity: activeModel?.verbosity ? verbosity : null, tone, model: selectedChatModel || null, restart: options.restart },
+        { ...request, access_password: accessPassword },
         {
           signal: controller.signal,
           onDelta: (delta) => setMessagesState((previous) => previous.map((item) => item.localId === assistantLocalId ? { ...item, content: `${item.content}${delta}` } : item)),
         },
       )
-      setMessagesState((previous) => previous.map((item) => item.localId === assistantLocalId ? { ...result.assistant, localId: assistantLocalId } : item))
+      setMessagesState((previous) => previous
+        .filter((item) => !result.assistant.id || item.id !== result.assistant.id || item.localId === assistantLocalId)
+        .map((item) => item.localId === assistantLocalId ? { ...result.assistant, localId: assistantLocalId } : item))
+      // A cached completion may already be in the server transcript after a reload.
+      // Reconcile its canonical user/assistant pair while retaining other pending operations.
+      void fetchChatTranscript(session.session_id, auth.accessToken).then((data) => {
+        if (data.messages.length) setMessagesState((current) => mergeTranscript(data.messages, current))
+      }).catch(() => { /* Keep the completed local answer if history is unavailable. */ })
     } catch (error) {
       const stopped = (error as Error).name === "AbortError"
-      setMessagesState((previous) => previous.map((item) => item.localId === assistantLocalId ? { ...item, content: item.content || (stopped ? (locale === "zh" ? "已停止生成。" : "Generation stopped.") : (error as Error).message), status: stopped ? "stopped" : "error" } : item))
+      setMessagesState((previous) => previous.map((item) => item.localId === assistantLocalId ? { ...item, content: item.content || (stopped ? (locale === "zh" ? "已停止接收。请求可能仍在处理，请重试原请求。" : "Stopped receiving. The request may still be running; retry the same request.") : (error as Error).message), status: stopped ? "stopped" : "error" } : item))
       if (!stopped) toast.error((error as Error).message || messages.workspace.chat.chatFailed)
     } finally {
       abortRef.current = null
@@ -258,14 +294,22 @@ export function ChatPanel({ session, embedded = false }: Props) {
         {messagesState.map((message, index) => {
           const previousUser = [...messagesState.slice(0, index)].reverse().find((item) => item.role === "user")
           const isLastAssistant = message.role === "assistant" && !messagesState.slice(index + 1).some((item) => item.role === "assistant")
-          return <ChatBubble key={message.id ?? message.localId} message={message} locale={locale} onEdit={message.role === "user" ? () => setInput(message.content) : undefined} onRetry={isLastAssistant && previousUser ? () => {
+          const regenerate = isLastAssistant && previousUser ? () => {
+            if (isSending || !accessPassword) return toast.error(locale === "zh" ? "请先输入 AI 访问密码，并等待当前请求结束。" : "Enter the AI access password and wait for the current request.")
             setMessagesState((previous) => previous.filter((item) => message.id ? item.id !== message.id : item.localId !== message.localId))
             void sendPrompt(previousUser.content, { appendUser: false, restart: true })
-          } : undefined} />
+          } : undefined
+          return <ChatBubble key={message.id ?? message.localId} message={message} locale={locale} onEdit={message.role === "user" ? () => setInput(message.content) : undefined} onRetry={isLastAssistant && message.status && message.request ? () => {
+            if (isSending || !accessPassword) return toast.error(locale === "zh" ? "请先输入 AI 访问密码，并等待当前请求结束。" : "Enter the AI access password and wait for the current request.")
+            const retryPayload = message.request!
+            setMessagesState((previous) => previous.filter((item) => message.id ? item.id !== message.id : item.localId !== message.localId))
+            void sendPrompt(retryPayload.message, { appendUser: false, retryPayload })
+          } : undefined} onRegenerate={regenerate} />
         })}
       </div>
 
       <form onSubmit={handleSubmit} className="border-t border-border/40 px-4 py-4 sm:px-5">
+        <Input type="password" autoComplete="off" aria-label={locale === "zh" ? "AI 访问密码" : "AI access password"} placeholder={locale === "zh" ? "AI 访问密码（仅在本次页面保留）" : "AI access password (kept only for this visit)"} value={accessPassword} onChange={(event) => updateForm("accessPassword", event.target.value)} className="mb-2" />
         <div className="surface-soft rounded-lg border border-border/50 p-2">
           <Textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} placeholder={messages.workspace.chat.inputPlaceholder} rows={2} maxLength={CHAT_MESSAGE_LIMIT} className="min-h-20 border-0 bg-transparent shadow-none focus-visible:ring-0" />
           <div className="flex items-center justify-between gap-3 px-1 pt-2"><p className="text-xs text-muted-foreground">{totalTokens.toLocaleString()} tokens · {input.length}/{CHAT_MESSAGE_LIMIT}</p><Button type="submit" className="rounded-md px-5" disabled={isSending || !input.trim()}>{isSending ? messages.workspace.chat.sending : messages.workspace.chat.send}</Button></div>
@@ -275,18 +319,18 @@ export function ChatPanel({ session, embedded = false }: Props) {
   )
 }
 
-function ChatBubble({ message, locale, onEdit, onRetry }: { message: LocalChatMessage; locale: "en" | "zh"; onEdit?: () => void; onRetry?: () => void }) {
+function ChatBubble({ message, locale, onEdit, onRetry, onRegenerate }: { message: LocalChatMessage; locale: "en" | "zh"; onEdit?: () => void; onRetry?: () => void; onRegenerate?: () => void }) {
   const isAssistant = message.role === "assistant"
   return (
     <div className={cn("group flex", isAssistant ? "justify-start" : "justify-end")}>
       <div className={cn("text-sm leading-relaxed", isAssistant ? "w-full max-w-3xl border-l border-primary/35 pl-4 text-foreground" : "max-w-[82%] rounded-lg border border-primary/40 bg-primary px-3 py-2 text-primary-foreground shadow-sm")}>
         {message.content ? <MarkdownContent content={message.content} className={isAssistant ? "text-foreground" : "text-primary-foreground"} /> : <div className="flex items-center gap-2 py-1 text-muted-foreground"><Loader2 className="size-3 animate-spin" />{locale === "zh" ? "正在思考…" : "Thinking…"}</div>}
-        {message.status === "error" ? <p className="mt-2 text-xs text-destructive">{locale === "zh" ? "生成失败，可重试。" : "Generation failed. Retry available."}</p> : null}
-        {message.status === "stopped" ? <p className="mt-2 text-xs text-muted-foreground">{locale === "zh" ? "生成已停止。" : "Generation stopped."}</p> : null}
+        {message.status === "error" || message.status === "stopped" ? <p className="mt-2 text-xs text-muted-foreground">{locale === "zh" ? "请求可能仍在处理；重试将使用原请求及设置。" : "The request may still be running; retry uses the original request and settings."}</p> : null}
         <div className={cn("mt-2 flex gap-1 opacity-0 transition group-hover:opacity-100", isAssistant ? "justify-start" : "justify-end")}>
           {isAssistant && message.content ? <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => navigator.clipboard.writeText(message.content)}><Copy className="mr-1 size-3" />{locale === "zh" ? "复制" : "Copy"}</Button> : null}
           {onEdit ? <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary-foreground hover:text-foreground" onClick={onEdit}>{locale === "zh" ? "编辑重发" : "Edit"}</Button> : null}
-          {onRetry && message.status !== "streaming" ? <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onRetry}><RotateCcw className="mr-1 size-3" />{locale === "zh" ? "重新生成" : "Regenerate"}</Button> : null}
+          {onRetry && message.status !== "streaming" ? <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onRetry}><RotateCcw className="mr-1 size-3" />{locale === "zh" ? "重试原请求" : "Retry request"}</Button> : null}
+          {onRegenerate && message.status !== "streaming" ? <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onRegenerate}>{locale === "zh" ? "重新生成（新请求）" : "Regenerate (new request)"}</Button> : null}
         </div>
       </div>
     </div>

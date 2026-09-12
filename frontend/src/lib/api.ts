@@ -25,20 +25,23 @@ const DEFAULT_TIMEOUT_MS = 30000
 type RequestOptions = RequestInit & { timeoutMs?: number }
 
 async function fetchWithTimeout(input: string, options: RequestOptions = {}): Promise<Response> {
+  const { signal, timeoutMs = DEFAULT_TIMEOUT_MS, ...requestOptions } = options
   const controller = new AbortController()
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  const requestSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal
+  let timedOut = false
   const timeoutId = setTimeout(() => {
+    timedOut = true
     controller.abort()
   }, timeoutMs)
 
   try {
     return await fetch(input, {
-      ...options,
-      signal: controller.signal,
+      ...requestOptions,
+      signal: requestSignal,
     })
   } catch (error) {
-    if ((error as Error).name === "AbortError") {
-      throw new Error("Request timed out. Please try again.")
+    if (timedOut && !signal?.aborted) {
+      throw new Error("Request timed out. It may still be running; retry the same request.")
     }
     throw error
   } finally {
@@ -48,7 +51,9 @@ async function fetchWithTimeout(input: string, options: RequestOptions = {}): Pr
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    let message = "Request failed. Please try again."
+    let message = response.status === 409
+      ? "The request may still be running; retry the same request."
+      : "Request failed. Please try again."
     try {
       const data = await response.json()
       if (typeof data === "string") {
@@ -100,11 +105,12 @@ export async function calculateMetaphysicsChart(payload: MetaphysicsChartRequest
   return handleResponse<MetaphysicsChart>(response)
 }
 
-export async function fetchMetaphysicsPeriod(payload: MetaphysicsChartRequest & { cycle_index: number }): Promise<DayunCycle> {
+export async function fetchMetaphysicsPeriod(payload: MetaphysicsChartRequest & { cycle_index: number }, options: { signal?: AbortSignal } = {}): Promise<DayunCycle> {
   const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/tools/metaphysics/periods`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    signal: options.signal,
   })
   const result = await handleResponse<{ cycle: DayunCycle }>(response)
   return result.cycle
@@ -205,6 +211,8 @@ export async function sendChatMessage(
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
+      request_id: payload.request_id,
+      access_password: payload.access_password,
       message: payload.message,
       reasoning: payload.reasoning ?? undefined,
       verbosity: payload.verbosity ?? undefined,
@@ -233,6 +241,8 @@ export async function streamChatMessage(
       Accept: "text/event-stream",
     },
     body: JSON.stringify({
+      request_id: payload.request_id,
+      access_password: payload.access_password,
       message: payload.message,
       reasoning: payload.reasoning ?? undefined,
       verbosity: payload.verbosity ?? undefined,

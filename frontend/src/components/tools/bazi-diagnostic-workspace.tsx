@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { BookOpen, Check, ChevronRight, CircleDot, Sparkles } from "lucide-react"
 
 import { fetchPatternLibrary, fetchPatternRuleSummary } from "@/lib/api"
@@ -9,8 +10,6 @@ import type {
   ConsumerClaim,
   MetaphysicsChart,
   PatternCandidate,
-  PatternLibrary,
-  PatternRuleSummary,
   ThemeComparison,
   ThemeProfile,
 } from "@/types/api"
@@ -147,44 +146,25 @@ function EvidenceSourcePanel({
   patternId: string
   locale: Locale
 }) {
-  const [sources, setSources] = useState<PatternRuleSummary[]>([])
-  const [library, setLibrary] = useState<PatternLibrary | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    const ids = claim?.ruleIds ?? []
-    if (!ids.length) {
-      setSources([])
-      return () => { active = false }
-    }
-    setLoading(true)
-    void Promise.allSettled(ids.map((ruleId) => fetchPatternRuleSummary(bundleId, ruleId)))
-      .then((results) => {
-        if (!active) return
-        setSources(results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []))
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => { active = false }
-  }, [bundleId, claim?.id, claim?.ruleIds])
-
-  useEffect(() => {
-    let active = true
-    if (!patternId) {
-      setLibrary(null)
-      return () => { active = false }
-    }
-    void fetchPatternLibrary(patternId)
-      .then((result) => {
-        if (active) setLibrary(result)
-      })
-      .catch(() => {
-        if (active) setLibrary(null)
-      })
-    return () => { active = false }
-  }, [patternId])
+  const ids = claim?.ruleIds ?? []
+  const sourceQuery = useQuery({
+    queryKey: ["pattern-rule-sources", bundleId, ids],
+    queryFn: async () => {
+      const results = await Promise.allSettled(ids.map((ruleId) => fetchPatternRuleSummary(bundleId, ruleId)))
+      return results.flatMap((result) => result.status === "fulfilled" ? [result.value] : [])
+    },
+    enabled: ids.length > 0,
+    staleTime: 5 * 60 * 1000,
+  })
+  const libraryQuery = useQuery({
+    queryKey: ["pattern-library", patternId],
+    queryFn: () => fetchPatternLibrary(patternId),
+    enabled: Boolean(patternId),
+    staleTime: 5 * 60 * 1000,
+  })
+  const sources = ids.length ? sourceQuery.data ?? [] : []
+  const library = patternId ? libraryQuery.data ?? null : null
+  const loading = ids.length > 0 && sourceQuery.isPending
 
   if (!claim) return null
   return (
@@ -314,13 +294,12 @@ export function BaziDiagnosticWorkspace({ chart, locale }: { chart: MetaphysicsC
   const primary = chart.structure?.patterns?.primary ?? null
   const lifecycle = useMemo(() => buildLifecycle(primary, claims, locale), [claims, locale, primary])
   const initialClaim = lifecycle.find((item) => item.claim)?.claim
-  const [selectedClaimId, setSelectedClaimId] = useState(initialClaim?.id ?? "")
+  const selectionKey = `${chart.input_timestamp}:${initialClaim?.id ?? ""}`
+  const [selection, setSelection] = useState({ key: selectionKey, id: initialClaim?.id ?? "" })
+  const selectedClaimId = selection.key === selectionKey ? selection.id : initialClaim?.id
+  const setSelectedClaimId = (id: string) => setSelection({ key: selectionKey, id })
   const selectedClaim = claims.find((claim) => claim.id === selectedClaimId) ?? initialClaim
   const bundleId = chart.rule_versions?.pattern_bundle ?? ""
-
-  useEffect(() => {
-    setSelectedClaimId(initialClaim?.id ?? "")
-  }, [chart.input_timestamp, initialClaim?.id])
 
   return (
     <div className="overflow-hidden border-y border-border/60 bg-surface">

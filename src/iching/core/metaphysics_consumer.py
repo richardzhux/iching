@@ -432,6 +432,8 @@ def build_life_kline(
             for year in sorted(
                 cycle.get("years", ()), key=lambda item: int(item.get("year", 0) or 0)
             ):
+                year_number = int(year.get("year", 0) or 0)
+                show_year = visible_years is None or year_number in visible_years
                 year_events_by_theme = year.get("theme_activations", {})
                 year_events = list(year_events_by_theme.get(profile_label, ()))
                 year_activity, year_drivers, year_intensity = _event_activity(
@@ -458,6 +460,10 @@ def build_life_kline(
                     )
                     raw_month_values.append(raw_value)
                     all_raw_months.append(raw_value)
+                    # Hidden years still contribute every monthly observation to
+                    # the fixed lifetime baseline, but need no display payload.
+                    if not show_year:
+                        continue
                     named_drivers = []
                     for driver in [*cycle_drivers, *year_drivers, *month_drivers]:
                         identity = (
@@ -500,8 +506,9 @@ def build_life_kline(
                     )
                 if not raw_month_values:
                     continue
-                year_number = int(year.get("year", 0) or 0)
                 all_years.add(year_number)
+                if not show_year:
+                    continue
                 strongest_month_drivers = sorted(
                     (driver for month in months for driver in month.get("drivers", ())),
                     key=lambda item: -float(item.get("activity", 1) or 0),
@@ -564,8 +571,6 @@ def build_life_kline(
             for month in point["months"]:
                 month["value"] = normalize(float(month.pop("raw_value")))
                 month["delta"] = round(float(month["value"]) - 100, 1)
-        if visible_years is not None:
-            points = [point for point in points if int(point["year"]) in visible_years]
         closes: list[float] = []
         for point in points:
             closes.append(float(point["close"]))

@@ -328,3 +328,16 @@ class SupabaseRestClient:
             "Authorization": f"Bearer {self.service_key}",
             "Content-Type": "application/json",
         }
+
+    def rpc(self, function: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Call a server-only database operation; unavailable accounting fails closed."""
+        response = self._client.post(
+            f"{self.rest_base}/rpc/{function}",
+            headers=self._service_headers(),
+            json=payload,
+        )
+        response.raise_for_status()
+        result = response.json()
+        if not isinstance(result, dict):
+            raise RuntimeError("AI accounting returned an invalid response.")
+        return result

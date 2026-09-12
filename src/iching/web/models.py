@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 from typing import Dict, List, Literal, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -56,15 +57,16 @@ class CastingPreviewResponse(BaseModel):
 
 class SessionCreateRequest(BaseModel):
     topic: str
-    user_question: Optional[str] = None
-    user_context: Optional[str] = None
+    user_question: Optional[str] = Field(default=None, max_length=2000)
+    user_context: Optional[str] = Field(default=None, max_length=8000)
     method_key: str
     meihua_mode: Literal["traditional", "original"] = "traditional"
     manual_lines: Optional[List[int]] = None
     use_current_time: bool = True
     timestamp: Optional[datetime] = None
     enable_ai: bool = False
-    access_password: Optional[str] = None
+    access_password: Optional[str] = Field(default=None, max_length=256)
+    request_id: Optional[UUID] = None
     ai_model: str = DEFAULT_MODEL
     ai_reasoning: Optional[str] = None
     ai_verbosity: Optional[str] = None
@@ -546,7 +548,9 @@ class MetaphysicsChartListResponse(BaseModel):
 
 
 class ChatTurnRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=6000)
+    request_id: Optional[UUID] = None
+    access_password: Optional[str] = Field(default=None, max_length=256)
     reasoning: Optional[str] = None
     verbosity: Optional[str] = None
     tone: Optional[str] = None

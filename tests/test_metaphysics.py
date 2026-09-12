@@ -334,3 +334,109 @@ def test_true_solar_clock_removes_dst_but_keeps_physical_term_boundary() -> None
     corrected = calculate_calendar_facts(shifted, timezone_name="Asia/Shanghai", day_boundary="forward", reference_instant=instant)
     assert (corrected.year_gz, corrected.month_gz) == (factual.year_gz, factual.month_gz)
     assert shifted < term.local_datetime
+
+
+def test_selected_period_reuses_facts_but_refreshes_current_month(monkeypatch) -> None:
+    import iching.core.metaphysics as metaphysics
+    from collections import OrderedDict
+
+    monkeypatch.setattr(metaphysics, "_period_cache", OrderedDict())
+    monkeypatch.setattr(metaphysics, "_period_cache_bytes", 0)
+    compute = metaphysics._compute_dayun_cycle
+    computed_cycles = []
+
+    def track_cycle(cycle, **kwargs):
+        computed_cycles.append(cycle.getIndex())
+        return compute(cycle, **kwargs)
+
+    def unexpected_analysis(*args, **kwargs):
+        pytest.fail(
+            "A selected period must not rebuild natal analysis or the lifetime K-line"
+        )
+
+    monkeypatch.setattr(metaphysics, "_compute_dayun_cycle", track_cycle)
+    monkeypatch.setattr(metaphysics, "build_bazi_consumer_profile", unexpected_analysis)
+    monkeypatch.setattr(metaphysics, "_statistics_or_unavailable", unexpected_analysis)
+    options = {"gender": "male", "cycle_index": 2}
+    first = metaphysics.build_metaphysics_period(
+        datetime(2004, 6, 26, 4),
+        reference_timestamp=datetime(2026, 2, 10, 12),
+        **options,
+    )["cycle"]
+    first_month = next(
+        month["ganzhi"]
+        for year in first["years"]
+        for month in year["months"]
+        if month["is_current"]
+    )
+    # A response consumer can mutate any level without corrupting cached facts.
+    first["years"][0]["months"].clear()
+    second = metaphysics.build_metaphysics_period(
+        datetime(2004, 6, 26, 4),
+        reference_timestamp=datetime(2026, 3, 10, 12),
+        **options,
+    )["cycle"]
+    second_month = next(
+        month["ganzhi"]
+        for year in second["years"]
+        for month in year["months"]
+        if month["is_current"]
+    )
+    assert computed_cycles == [2]
+    assert second["years"][0]["months"]
+    assert first_month != second_month
+    versions = metaphysics.bazi_rule_versions()
+    monkeypatch.setattr(
+        metaphysics, "bazi_rule_versions", lambda: {**versions, "consumer": "changed"}
+    )
+    metaphysics.build_metaphysics_period(
+        datetime(2004, 6, 26, 4),
+        reference_timestamp=datetime(2026, 3, 10, 12),
+        **options,
+    )
+    assert computed_cycles == [2, 2]
+
+
+def test_unknown_hour_does_not_calculate_discarded_periods_or_consumer(
+    monkeypatch,
+) -> None:
+    import iching.core.metaphysics as metaphysics
+
+    def unexpected_work(*args, **kwargs):
+        pytest.fail(
+            "Unknown-hour analysis must not compute discarded exact periods or consumer data"
+        )
+
+    monkeypatch.setattr(metaphysics, "_dayun_payload", unexpected_work)
+    monkeypatch.setattr(metaphysics, "build_bazi_consumer_profile", unexpected_work)
+    chart = metaphysics.build_metaphysics_chart(
+        datetime(1990, 1, 1, 12),
+        gender="female",
+        hour_uncertain=True,
+    )
+    assert chart["birth_profile"]["stability"]["candidate_count"] == 13
+    assert chart["birth_profile"]["dayun"]["status"] == "requires_hour"
+
+
+def test_solar_term_cache_reuses_years_across_windows_and_timezones(
+    monkeypatch,
+) -> None:
+    import iching.core.calendar_engine as calendar
+
+    calendar._solar_terms_cached.cache_clear()
+    original = calendar.sxtwl.getJieQiByYear
+    computed_years = []
+
+    def track_year(year):
+        computed_years.append(year)
+        return original(year)
+
+    monkeypatch.setattr(calendar.sxtwl, "getJieQiByYear", track_year)
+    first = calendar.solar_terms_for_years(range(2023, 2027), ZoneInfo("Asia/Shanghai"))
+    calendar.solar_terms_for_years(range(2024, 2028), ZoneInfo("America/Los_Angeles"))
+    utc = calendar.solar_terms_for_years(range(2023, 2027), timezone.utc)
+    assert computed_years == [2023, 2024, 2025, 2026, 2027]
+    assert [(term.index, term.instant_utc) for term in first] == [
+        (term.index, term.instant_utc) for term in utc
+    ]
+    assert all(term.local_datetime.utcoffset().total_seconds() == 0 for term in utc)

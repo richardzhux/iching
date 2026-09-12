@@ -143,38 +143,31 @@ def solar_term_datetime(item: Any, zone: tzinfo) -> datetime:
     return source.astimezone(zone)
 
 
-@lru_cache(maxsize=96)
-def _solar_terms_cached(years: tuple[int, ...], timezone_name: str) -> tuple[SolarTermInstant, ...]:
-    zone = timezone_for(timezone_name)
-    result: list[SolarTermInstant] = []
-    seen: set[tuple[int, datetime]] = set()
-    for year in years:
-        for item in sxtwl.getJieQiByYear(year):
-            index = int(item.jqIndex)
-            local = solar_term_datetime(item, zone)
-            key = (index, local.astimezone(UTC))
-            if key in seen:
-                continue
-            seen.add(key)
-            result.append(SolarTermInstant(JIE_QI_NAMES[index], index, local.astimezone(UTC), local))
-    return tuple(sorted(result, key=lambda item: item.instant_utc))
+@lru_cache(maxsize=512)
+def _solar_terms_cached(
+    year: int, engine_version: str = ENGINE_VERSION
+) -> tuple[tuple[int, datetime], ...]:
+    """Cache each astronomical year once, independent of query window or zone."""
+    return tuple(
+        (int(item.jqIndex), solar_term_datetime(item, UTC))
+        for item in sxtwl.getJieQiByYear(year)
+    )
 
 
 def solar_terms_for_years(years: Iterable[int], zone: tzinfo) -> list[SolarTermInstant]:
-    timezone_name = getattr(zone, "key", None)
-    if timezone_name:
-        return list(_solar_terms_cached(tuple(years), str(timezone_name)))
     result: list[SolarTermInstant] = []
     seen: set[tuple[int, datetime]] = set()
     for year in years:
-        for item in sxtwl.getJieQiByYear(year):
-            index = int(item.jqIndex)
-            local = solar_term_datetime(item, zone)
-            key = (index, local.astimezone(UTC))
+        for index, instant in _solar_terms_cached(year, ENGINE_VERSION):
+            key = (index, instant)
             if key in seen:
                 continue
             seen.add(key)
-            result.append(SolarTermInstant(JIE_QI_NAMES[index], index, local.astimezone(UTC), local))
+            result.append(
+                SolarTermInstant(
+                    JIE_QI_NAMES[index], index, instant, instant.astimezone(zone)
+                )
+            )
     return sorted(result, key=lambda item: item.instant_utc)
 
 

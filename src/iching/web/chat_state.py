@@ -22,6 +22,7 @@ class SessionState:
     ai_verbosity: Optional[str]
     ai_tone: Optional[str]
     last_response_id: Optional[str]
+    owner_id: Optional[str] = None
     initial_tokens: int = 0
     chat_turns: int = 0
     session_payload: Dict[str, object] = field(default_factory=dict)
@@ -67,9 +68,11 @@ class SessionStateStore:
         last_response_id: Optional[str],
         initial_tokens: int,
         session_payload: Dict[str, object],
+        owner_id: Optional[str] = None,
     ) -> SessionState:
         state = SessionState(
             session_id=session_id,
+            owner_id=owner_id,
             summary_text=summary_text,
             ai_text=ai_text,
             ai_enabled=ai_enabled,
@@ -88,11 +91,13 @@ class SessionStateStore:
             self._evict_locked()
         return state
 
-    def get(self, session_id: str) -> Optional[SessionState]:
+    def get(self, session_id: str, *, owner_id: Optional[str] = None) -> Optional[SessionState]:
         with self._lock:
+            self._evict_locked()
             state = self._sessions.get(session_id)
-            if state:
-                self._touch_locked(session_id)
+            if state is None or state.owner_id != owner_id:
+                return None
+            self._touch_locked(session_id)
             return state
 
     def update_response(self, session_id: str, response_id: str, *, increment_turn: bool = False) -> None:

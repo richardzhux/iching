@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
+from uuid import uuid4
 from typing import Dict, Optional, Tuple
 
 from iching.config import AppConfig, build_app_config
@@ -14,6 +15,7 @@ from iching.core.divination import MeihuaMethod
 from iching.integrations.ai import DEFAULT_MODEL, MODEL_ALIASES, MODEL_CAPABILITIES
 from iching.integrations.supabase_client import SupabaseRestClient, SupabaseUser
 from iching.services.session import SessionService
+from iching.web.errors import AccessDeniedError
 from iching.web.models import (
     ConfigResponse,
     MethodInfo,
@@ -27,10 +29,6 @@ from iching.web.models import (
 MAX_QUESTION_LENGTH = 2000
 MAX_DAILY_ATTEMPTS = 1000
 MAX_DAILY_AI_SUCCESSES = 50
-
-
-class AccessDeniedError(RuntimeError):
-    """Raised when an AI-enabled request lacks the proper password."""
 
 
 class RateLimitError(RuntimeError):
@@ -50,6 +48,8 @@ class RateLimiter:
         self.max_ai_successes = max_ai_successes
         self._lock = Lock()
         self._counters: Dict[str, RateCounter] = {}
+        self.max_identities = 10_000
+        self._counter_date = ""
 
     def record_attempt(self, ip: str) -> None:
         normalized = self._normalize_ip(ip)
@@ -74,8 +74,13 @@ class RateLimiter:
 
     def _get_counter(self, ip: str) -> RateCounter:
         today = datetime.now(timezone.utc).date().isoformat()
+        if self._counter_date != today:
+            self._counters.clear()
+            self._counter_date = today
         counter = self._counters.get(ip)
-        if counter is None or counter.date != today:
+        if counter is None and len(self._counters) >= self.max_identities:
+            raise RateLimitError("请求繁忙，请稍后重试。")
+        if counter is None:
             counter = RateCounter(date=today)
             self._counters[ip] = counter
         return counter
@@ -93,7 +98,7 @@ def _ensure_dir(path: Path) -> Path:
 def _save_archive(directory: Path, prefix: str, content: str) -> Path:
     target_dir = _ensure_dir(directory)
     timestamp = datetime.now().strftime("%Y.%m.%d.%H%M%S")
-    filepath = target_dir / f"{prefix}_{timestamp}.txt"
+    filepath = target_dir / f"{prefix}_{timestamp}_{uuid4().hex}.txt"
     try:
         filepath.write_text(content, encoding="utf-8")
         return filepath
@@ -134,8 +139,27 @@ class SessionRunner:
         client_ip: str | None = None,
         user: Optional[SupabaseUser] = None,
     ) -> SessionPayload:
+        self.rate_limiter.record_attempt(client_ip or "unknown")
+        if request.enable_ai:
+            if user is None:
+                raise AccessDeniedError("登录后才能启用 AI 分析。")
+            ok, message = _validate_ai_password(request.access_password)
+            if not ok:
+                raise AccessDeniedError(message)
+            return self.chat_service.execute_initial(
+                request=request, user=user,
+                callback=lambda: self._run_once(request, client_ip=client_ip, user=user),
+            )
+        return self._run_once(request, client_ip=client_ip, user=user)
+
+    def _run_once(
+        self,
+        request: SessionCreateRequest,
+        client_ip: str | None = None,
+        user: Optional[SupabaseUser] = None,
+    ) -> SessionPayload:
         ip = client_ip or "unknown"
-        self.rate_limiter.record_attempt(ip)
+        ai_identity = f"user:{user.id}" if user is not None else ip
         user_authenticated = user is not None
 
         if request.user_question and len(request.user_question) > MAX_QUESTION_LENGTH:
@@ -164,7 +188,7 @@ class SessionRunner:
         if request.enable_ai:
             if not user_authenticated:
                 raise AccessDeniedError("登录后才能启用 AI 分析。")
-            self.rate_limiter.ensure_ai_quota(ip)
+            self.rate_limiter.ensure_ai_quota(ai_identity)
             ok, message = _validate_ai_password(request.access_password)
             if not ok:
                 raise AccessDeniedError(message)
@@ -186,11 +210,13 @@ class SessionRunner:
             interactive=False,
         )
 
-        archive_path = _save_archive(
-            self.config.paths.archive_complete_dir,
-            prefix="session",
-            content=result.full_text,
-        )
+        archive_path = None
+        if os.getenv("ICHING_WEB_ARCHIVE_ENABLED", "").lower() in {"1", "true", "yes"}:
+            archive_path = _save_archive(
+                self.config.paths.archive_complete_dir,
+                prefix="session",
+                content=result.full_text,
+            )
 
         summary = [
             f"主题: {result.topic or '（未填）'}",
@@ -220,7 +246,7 @@ class SessionRunner:
             najia_table=result.najia_table,
             ai_text=result.ai_analysis or "",
             session_dict=safe_session,
-            archive_path=str(archive_path),
+            archive_path=str(archive_path) if archive_path else "",
             full_text=result.full_text,
             session_id=result.session_id,
             ai_enabled=bool(result.ai_analysis),
@@ -238,6 +264,7 @@ class SessionRunner:
                 initial_tokens = int(result.ai_usage.get("total_tokens") or 0)
             self.session_state_store.register(
                 session_id=result.session_id,
+                owner_id=user.id if user else None,
                 summary_text=payload.summary_text,
                 ai_text=result.ai_analysis or "",
                 ai_enabled=True,
@@ -250,7 +277,7 @@ class SessionRunner:
                 session_payload=safe_session,
             )
             if request.enable_ai and ai_allowed:
-                self.rate_limiter.record_ai_success(ip)
+                self.rate_limiter.record_ai_success(ai_identity)
 
         should_snapshot = bool(user_authenticated) or bool(result.ai_response_id)
         if should_snapshot:
@@ -296,7 +323,7 @@ class SessionRunner:
 
 
 _APP_CONFIG = build_app_config()
-_SESSION_SERVICE = SessionService(config=_APP_CONFIG)
+_SESSION_SERVICE = SessionService(config=_APP_CONFIG, history_limit=0)
 _RATE_LIMITER = RateLimiter(
     max_attempts=MAX_DAILY_ATTEMPTS,
     max_ai_successes=MAX_DAILY_AI_SUCCESSES,

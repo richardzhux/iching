@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from threading import Lock
-from typing import Dict, Iterator, List, Optional
+from uuid import uuid4
+from typing import Dict, List, Optional
 
 from iching.integrations.ai import (
     MODEL_CAPABILITIES,
-    continue_analysis,
     continue_analysis_from_session,
     normalize_model_name,
-    stream_continue_analysis,
     stream_continue_analysis_from_session,
 )
 from iching.integrations.supabase_client import (
@@ -23,61 +20,24 @@ from iching.services.session import SessionResult
 from iching.web.chat_state import SessionState, SessionStateStore
 
 
-CHAT_TURN_LIMIT = int(os.getenv("ICHING_CHAT_TURN_LIMIT", "10"))
-CHAT_TOKEN_LIMIT = int(os.getenv("ICHING_CHAT_TOKEN_LIMIT", "150000"))
+from iching.integrations.ai_budget import use_ai_budget
+from iching.integrations.ai import _build_followup_session_context, CHAT_CONTINUATION_PROMPT, TONE_PROFILES
+from iching.web.ai_operations import (AIOperations, AIOperationLimitError, validate_ai_access,
+    operation_id, new_budget, reservation_for, usage_tokens)
+
+
+def followup_prompt(context, message):
+    return ("以下是同一会话的固定占卜上下文，请据此回答用户追问，不要重起卦：\n\n"
+            + _build_followup_session_context(context) + "\n\n用户追问：" + message)
+
+
 CHAT_FOLLOWUP_MODEL = normalize_model_name(os.getenv("ICHING_CHAT_MODEL", "gpt-5.6-terra")) or "gpt-5.6-terra"
 CHAT_MESSAGE_CHAR_LIMIT = int(os.getenv("ICHING_CHAT_MESSAGE_LIMIT", "10000"))
 ANONYMOUS_USER_ID = os.getenv("ICHING_ANON_USER_ID", "00000000-0000-0000-0000-000000000000")
-USER_DAILY_TOKEN_LIMIT = int(os.getenv("ICHING_USER_DAILY_TOKEN_LIMIT", "300000"))
 USER_SESSION_LIMIT = int(os.getenv("ICHING_USER_SESSION_LIMIT", "500"))
 
 
-class ChatRateLimitError(RuntimeError):
-    """Raised when per-session chat quotas are exceeded."""
-
-
-@dataclass(slots=True)
-class ChatMessageRecord:
-    role: str
-    content: str
-    tokens_in: int = 0
-    tokens_out: int = 0
-
-
-@dataclass(slots=True)
-class UserTokenCounter:
-    date: str
-    tokens: int = 0
-
-
-class UserTokenLimiter:
-    def __init__(self, daily_limit: int) -> None:
-        self.daily_limit = max(0, daily_limit)
-        self._lock = Lock()
-        self._counters: Dict[str, UserTokenCounter] = {}
-
-    def ensure_allowance(self, user_id: str) -> None:
-        if self.daily_limit <= 0:
-            return
-        with self._lock:
-            counter = self._get_counter(user_id)
-            if counter.tokens >= self.daily_limit:
-                raise ChatRateLimitError("今日 AI 追问用量已达 300k tokens 上限，请明日再试。")
-
-    def record_usage(self, user_id: str, tokens: int) -> None:
-        if self.daily_limit <= 0 or tokens <= 0:
-            return
-        with self._lock:
-            counter = self._get_counter(user_id)
-            counter.tokens += tokens
-
-    def _get_counter(self, user_id: str) -> UserTokenCounter:
-        today = datetime.now(timezone.utc).date().isoformat()
-        counter = self._counters.get(user_id)
-        if counter is None or counter.date != today:
-            counter = UserTokenCounter(date=today)
-            self._counters[user_id] = counter
-        return counter
+ChatRateLimitError = AIOperationLimitError
 
 
 class ChatService:
@@ -87,11 +47,10 @@ class ChatService:
         self,
         store: SessionStateStore,
         client: SupabaseRestClient,
-        token_limiter: Optional[UserTokenLimiter] = None,
     ) -> None:
         self.store = store
         self.client = client
-        self.token_limiter = token_limiter or UserTokenLimiter(USER_DAILY_TOKEN_LIMIT)
+        self.operations = AIOperations(client)
 
     def authenticate(self, access_token: str) -> SupabaseUser:
         if not self.client.enabled:
@@ -140,10 +99,7 @@ class ChatService:
         record = self.client.fetch_session(session_id=session_id, user_id=user.id)
         if record:
             return self._sync_followup_model(record, user.id)
-        record = self._claim_anonymous_session(session_id, user)
-        if record:
-            return self._sync_followup_model(record, user.id)
-        state = self.store.get(session_id)
+        state = self.store.get(session_id, owner_id=user.id)
         if not state or not state.last_response_id:
             raise ValueError("无法找到该会话，请重新生成占卜结果后再试。")
         payload = {
@@ -165,20 +121,6 @@ class ChatService:
         }
         record = self.client.upsert_session(payload) or payload
         self._persist_initial_message(state=state, user=user)
-        return record
-
-    def _claim_anonymous_session(self, session_id: str, user: SupabaseUser) -> Optional[Dict[str, object]]:
-        if not self.client.enabled:
-            return None
-        record = self.client.fetch_session(session_id=session_id, user_id=ANONYMOUS_USER_ID)
-        if not record:
-            return None
-        payload = {
-            "user_id": user.id,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
-        self.client.update_session(session_id=session_id, user_id=ANONYMOUS_USER_ID, payload=payload)
-        record["user_id"] = user.id
         return record
 
     def _sync_followup_model(self, record: Dict[str, object], user_id: str) -> Dict[str, object]:
@@ -229,30 +171,23 @@ class ChatService:
     def list_sessions(self, user: SupabaseUser) -> List[Dict[str, object]]:
         if not self.client.enabled:
             raise RuntimeError("Supabase is not configured on the server.")
-        params = {
-            "user_id": f"eq.{user.id}",
-            "order": "updated_at.desc",
-            "select": (
-                "session_id,summary_text,created_at,updated_at,initial_ai_text,payload_snapshot"
-            ),
-        }
-        headers = self.client._service_headers()
-        response = self.client._client.get(f"{self.client.rest_base}/sessions", params=params, headers=headers)
-        response.raise_for_status()
-        records = response.json()
+        if not user.id:
+            raise ValueError("用户无效。")
+        result = self.client.rpc("list_session_summaries", {"p_user_id": user.id})
+        records = result.get("sessions")
+        if not isinstance(records, list):
+            raise RuntimeError("Session summaries returned an invalid response.")
         return [
             {
                 "session_id": record.get("session_id"),
                 "summary_text": record.get("summary_text"),
                 "created_at": record.get("created_at") or record.get("updated_at"),
-                "ai_enabled": bool(record.get("initial_ai_text")),
-                "followup_available": _is_followup_available(record),
-                "topic_label": _extract_snapshot_field(record, "topic")
-                or _infer_label_from_summary(record.get("summary_text"), prefix="主题")
-                or record.get("topic_label"),
-                "method_label": _extract_snapshot_field(record, "method")
-                or _infer_label_from_summary(record.get("summary_text"), prefix="方法")
-                or record.get("method_label"),
+                "ai_enabled": bool(record.get("ai_enabled")),
+                "followup_available": bool(record.get("followup_available")),
+                "topic_label": record.get("topic_label")
+                or _infer_label_from_summary(record.get("summary_text"), prefix="主题"),
+                "method_label": record.get("method_label")
+                or _infer_label_from_summary(record.get("summary_text"), prefix="方法"),
             }
             for record in records or []
         ]
@@ -262,315 +197,175 @@ class ChatService:
             raise RuntimeError("Supabase is not configured on the server.")
         if not user.id:
             raise ValueError("用户无效。")
+        if not self.client.fetch_session(session_id=session_id, user_id=user.id):
+            raise ValueError("会话不存在或不属于当前账户。")
         self.client.delete_session(session_id=session_id, user_id=user.id)
         self.store.remove(session_id)
 
-    def send_followup(
-        self,
-        *,
-        session_id: str,
-        user: SupabaseUser,
-        message: str,
-        reasoning: Optional[str],
-        verbosity: Optional[str],
-        tone: Optional[str],
-        model_override: Optional[str],
-        restart: bool = False,
-    ) -> Dict[str, object]:
-        stripped = message.strip()
-        if not stripped:
-            raise ValueError("问题内容不能为空。")
-        if len(stripped) > CHAT_MESSAGE_CHAR_LIMIT:
-            raise ValueError(f"单次追问最多 {CHAT_MESSAGE_CHAR_LIMIT} 字符。")
-        record = self.ensure_session_row(session_id, user)
-        configured_raw = record.get("followup_model")
-        configured_model = (
-            normalize_model_name(str(configured_raw)) if configured_raw else CHAT_FOLLOWUP_MODEL
+    def execute_initial(self, *, request, user, callback):
+        from iching.web.models import SessionPayload
+        validate_ai_access(request.access_password)
+        request_id = operation_id(request.request_id)
+        if normalize_model_name(request.ai_model) not in MODEL_CAPABILITIES:
+            raise ValueError("不支持的 AI 模型。")
+        budget = new_budget()
+        admitted = self.operations.admit(
+            user_id=user.id, request_id=request_id, session_id=None, kind="initial",
+            semantics=request.model_dump(mode="json", exclude={"request_id", "access_password"}),
+            reserve=reservation_for(budget),
         )
-        chosen_model = normalize_model_name(model_override) or configured_model
-        if chosen_model not in MODEL_CAPABILITIES:
-            chosen_model = CHAT_FOLLOWUP_MODEL
-        model_changed = restart or bool(configured_raw and chosen_model != configured_model)
-        if chosen_model != configured_raw:
-            self.client.update_session(
-                session_id=session_id,
-                user_id=user.id,
-                payload={"followup_model": chosen_model},
-            )
-            record["followup_model"] = chosen_model
-        turns_used = int(record.get("chat_turns") or 0)
-        if turns_used >= CHAT_TURN_LIMIT:
-            raise ChatRateLimitError("本次占卜的追问次数已达上限。")
-        tokens_used = int(record.get("tokens_used") or 0)
-        if tokens_used >= CHAT_TOKEN_LIMIT:
-            raise ChatRateLimitError("本次占卜的追问字数已达上限。")
+        if admitted["status"] == "completed":
+            return SessionPayload.model_validate(admitted["result"])
+        try:
+            with use_ai_budget(budget):
+                result = callback()
+            tokens = usage_tokens(budget.usage)
+            if budget.dispatched and not isinstance(budget.usage, dict):
+                raise RuntimeError("AI 用量尚未确认，已阻止重复扣费。")
+            self.operations.finish(user_id=user.id, request_id=request_id,
+                                   status="completed", tokens=tokens,
+                                   result=result.model_dump(mode="json"))
+            return result
+        except BaseException:
+            self.operations.fail(user_id=user.id, request_id=request_id, budget=budget)
+            raise
 
-        self._ensure_user_allowance(user)
-
-        applied_reasoning = reasoning if reasoning is not None else record.get("ai_reasoning")
-        applied_verbosity = verbosity if verbosity is not None else record.get("ai_verbosity")
-        applied_tone = tone or record.get("ai_tone")
-
-        last_response_id = record.get("last_response_id")
-        regeneration_ids: Dict[str, str] = {}
-        if last_response_id and not model_changed:
-            ai_result = continue_analysis(
-                previous_response_id=last_response_id,
-                message=stripped,
-                model_name=record.get("followup_model") or CHAT_FOLLOWUP_MODEL,
-                reasoning_effort=applied_reasoning,
-                verbosity=applied_verbosity,
-                tone=tone or record.get("ai_tone"),
-            )
-        else:
-            session_context = _extract_session_context(record)
-            if not session_context:
-                raise ValueError("当前会话缺少完整快照，暂时无法开启 AI 追问。")
-            if model_changed:
-                session_context = dict(session_context)
-                history = self.client.fetch_chat_messages(
-                    session_id=session_id,
-                    user_id=user.id,
-                )
-                if restart:
-                    regeneration_ids = _regeneration_message_ids(history, stripped)
-                    history = _history_before_regeneration(history, stripped)
-                session_context["conversation_history"] = history
-            ai_result = continue_analysis_from_session(
-                session_data=session_context,
-                message=stripped,
-                model_name=record.get("followup_model") or CHAT_FOLLOWUP_MODEL,
-                reasoning_effort=applied_reasoning,
-                verbosity=applied_verbosity,
-                tone=tone or record.get("ai_tone"),
-            )
-
-        usage_dict = ai_result.usage or {}
-        prompt_tokens = int(usage_dict.get("input_tokens") or 0)
-        completion_tokens = int(usage_dict.get("output_tokens") or 0)
-        total_tokens = int(usage_dict.get("total_tokens") or (prompt_tokens + completion_tokens))
-        tokens_used += total_tokens
-        if tokens_used > CHAT_TOKEN_LIMIT:
-            raise ChatRateLimitError("本次占卜的追问字数已达上限。")
-        turns_used += 1
-
-        timestamp = datetime.now(timezone.utc).isoformat()
-        update_payload = {
-            "last_response_id": ai_result.response_id,
-            "followup_model": chosen_model,
-            "ai_reasoning": applied_reasoning,
-            "ai_verbosity": applied_verbosity,
-            "ai_tone": applied_tone,
-            "chat_turns": turns_used,
-            "tokens_used": tokens_used,
-            "updated_at": timestamp,
-        }
-        self.client.update_session(session_id=session_id, user_id=user.id, payload=update_payload)
-
-        user_record = {
-            "session_id": session_id,
-            "user_id": user.id,
-            "role": "user",
-            "content": message,
-            "tokens_in": prompt_tokens,
-            "tokens_out": 0,
-            "created_at": timestamp,
-            "model": chosen_model,
-            "reasoning": applied_reasoning,
-            "verbosity": applied_verbosity,
-            "tone": applied_tone,
-        }
-        assistant_record = {
-            "session_id": session_id,
-            "user_id": user.id,
-            "role": "assistant",
-            "content": ai_result.text,
-            "tokens_in": 0,
-            "tokens_out": completion_tokens,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "model": chosen_model,
-            "reasoning": applied_reasoning,
-            "verbosity": applied_verbosity,
-            "tone": applied_tone,
-        }
-        if user_message_id := regeneration_ids.get("user"):
-            user_record["id"] = user_message_id
-        if assistant_message_id := regeneration_ids.get("assistant"):
-            assistant_record["id"] = assistant_message_id
-        self.client.insert_chat_messages([user_record, assistant_record])
-
-        self.store.update_response(session_id, ai_result.response_id or "", increment_turn=True)
-        self.store.add_tokens(session_id, total_tokens)
-        self._record_user_usage(user, total_tokens)
-
-        return {
-            "assistant": assistant_record,
-            "usage": usage_dict,
-        }
-
-    def stream_followup(
-        self,
-        *,
-        session_id: str,
-        user: SupabaseUser,
-        message: str,
-        reasoning: Optional[str],
-        verbosity: Optional[str],
-        tone: Optional[str],
-        model_override: Optional[str],
-        restart: bool = False,
-    ) -> Iterator[Dict[str, object]]:
-        """Stream one follow-up while preserving the same quota and persistence contract."""
+    def _prepare_followup(self, *, session_id, user, message, reasoning, verbosity,
+                          tone, model_override, restart, request_id, access_password):
+        validate_ai_access(access_password)
+        request_id = operation_id(request_id)
         stripped = message.strip()
-        if not stripped:
-            raise ValueError("问题内容不能为空。")
-        if len(stripped) > CHAT_MESSAGE_CHAR_LIMIT:
-            raise ValueError(f"单次追问最多 {CHAT_MESSAGE_CHAR_LIMIT} 字符。")
-
+        if not stripped or len(stripped) > CHAT_MESSAGE_CHAR_LIMIT:
+            raise ValueError(f"追问内容需为 1–{CHAT_MESSAGE_CHAR_LIMIT} 字符。")
         record = self.ensure_session_row(session_id, user)
-        configured_raw = record.get("followup_model")
-        configured_model = normalize_model_name(str(configured_raw)) if configured_raw else CHAT_FOLLOWUP_MODEL
-        chosen_model = normalize_model_name(model_override) or configured_model
+        chosen_model = normalize_model_name(model_override or str(record.get("followup_model") or CHAT_FOLLOWUP_MODEL))
         if chosen_model not in MODEL_CAPABILITIES:
-            chosen_model = CHAT_FOLLOWUP_MODEL
-        model_changed = restart or bool(configured_raw and chosen_model != configured_model)
-        if chosen_model != configured_raw:
-            self.client.update_session(
-                session_id=session_id,
-                user_id=user.id,
-                payload={"followup_model": chosen_model},
-            )
-            record["followup_model"] = chosen_model
+            raise ValueError("不支持的 AI 模型。")
+        context = _extract_session_context(record)
+        if not context:
+            raise ValueError("当前会话缺少完整快照，无法开启 AI 追问。")
+        context = dict(context)
+        history = self.client.fetch_chat_messages(session_id=session_id, user_id=user.id)
+        replacement_ids = _regeneration_message_ids(history, stripped) if restart else {}
+        if restart:
+            history = _history_before_regeneration(history, stripped)
+        # Explicit context makes the provider's entire paid input measurable and bounded.
+        # No hidden previous_response_id chain can silently expand the input budget.
+        context["conversation_history"] = history[-20:]
+        applied = {
+            "model_name": chosen_model,
+            "reasoning_effort": reasoning if reasoning is not None else record.get("ai_reasoning"),
+            "verbosity": verbosity if verbosity is not None else record.get("ai_verbosity"),
+            "tone": tone if tone is not None else record.get("ai_tone"),
+        }
+        budget = new_budget()
+        prompt = followup_prompt(context, stripped)
+        instructions = CHAT_CONTINUATION_PROMPT
+        if applied["tone"]:
+            instructions += f"\n\n语气设定: {applied['tone']} —— {TONE_PROFILES.get(applied['tone'], '用户自定义语气')}"
+        while len((prompt + instructions).encode()) > budget.max_input_bytes and context["conversation_history"]:
+            context["conversation_history"] = context["conversation_history"][2:]
+            prompt = followup_prompt(context, stripped)
+        input_bytes = len((prompt + instructions).encode())
+        if input_bytes > budget.max_input_bytes:
+            raise ValueError("本次占卜上下文过长，请缩短背景后重新起卦。")
+        # Reserve the conservative bound for this exact explicit prompt, not a stale counter.
+        budget.max_input_bytes = input_bytes
+        admitted = self.operations.admit(
+            user_id=user.id, request_id=request_id, session_id=session_id, kind="chat",
+            semantics={"message":message,"reasoning":reasoning,"verbosity":verbosity,
+                       "tone":tone,"model":model_override,"restart":restart},
+            reserve=reservation_for(budget),
+        )
+        return {"request_id":request_id,"budget":budget,"admitted":admitted,
+                "context":context,"message":stripped,"applied":applied,
+                "replacement_ids":replacement_ids}
 
-        turns_used = int(record.get("chat_turns") or 0)
-        tokens_used = int(record.get("tokens_used") or 0)
-        if turns_used >= CHAT_TURN_LIMIT:
-            raise ChatRateLimitError("本次占卜的追问次数已达上限。")
-        if tokens_used >= CHAT_TOKEN_LIMIT:
-            raise ChatRateLimitError("本次占卜的追问字数已达上限。")
-        self._ensure_user_allowance(user)
+    def _complete_followup(self, *, session_id, user, prepared, result):
+        budget = prepared["budget"]
+        usage = budget.usage if isinstance(budget.usage, dict) else result.usage
+        if not isinstance(usage, dict):
+            raise RuntimeError("AI 用量尚未确认，已阻止重复扣费。")
+        # Keep usage even if later transcript persistence fails.
+        budget.usage = usage
+        budget.response_id = result.response_id
+        applied = prepared["applied"]
+        common = {"session_id":session_id,"user_id":user.id,"model":applied["model_name"],
+                  "reasoning":applied["reasoning_effort"],"verbosity":applied["verbosity"],"tone":applied["tone"]}
+        user_record = {**common,"id":prepared["replacement_ids"].get("user") or str(uuid4()),
+                       "role":"user","content":prepared["message"],
+                       "tokens_in":int(usage.get("input_tokens") or 0),"tokens_out":0,
+                       "created_at":datetime.now(timezone.utc).isoformat()}
+        assistant = {**common,"id":prepared["replacement_ids"].get("assistant") or str(uuid4()),
+                     "role":"assistant","content":result.text,"tokens_in":0,
+                     "tokens_out":int(usage.get("output_tokens") or 0),
+                     "created_at":datetime.now(timezone.utc).isoformat()}
+        stored = {"assistant":assistant,"usage":usage,"_messages":[user_record,assistant],
+                  "_session_patch":{"last_response_id":result.response_id,"followup_model":applied["model_name"],
+                                    "ai_reasoning":applied["reasoning_effort"],"ai_verbosity":applied["verbosity"],"ai_tone":applied["tone"]}}
+        self.operations.finish(user_id=user.id,request_id=prepared["request_id"],
+                               status="completed",tokens=usage_tokens(usage),result=stored)
+        self.store.update_response(session_id,result.response_id or "",increment_turn=True)
+        self.store.add_tokens(session_id,usage_tokens(usage))
+        return {"assistant":assistant,"usage":usage}
 
-        applied_reasoning = reasoning if reasoning is not None else record.get("ai_reasoning")
-        applied_verbosity = verbosity if verbosity is not None else record.get("ai_verbosity")
-        applied_tone = tone or record.get("ai_tone")
-        last_response_id = record.get("last_response_id")
-        session_context: Optional[Dict[str, object]] = None
-        regeneration_ids: Dict[str, str] = {}
-        if not last_response_id or model_changed:
-            session_context = _extract_session_context(record)
-            if not session_context:
-                raise ValueError("当前会话缺少完整快照，暂时无法开启 AI 追问。")
-            if model_changed:
-                session_context = dict(session_context)
-                history = self.client.fetch_chat_messages(
-                    session_id=session_id,
-                    user_id=user.id,
-                )
-                if restart:
-                    regeneration_ids = _regeneration_message_ids(history, stripped)
-                    history = _history_before_regeneration(history, stripped)
-                session_context["conversation_history"] = history
+    def send_followup(self, *, session_id, user, message, reasoning=None, verbosity=None,
+                      tone=None, model_override=None, restart=False, request_id=None, access_password=None):
+        prepared = self._prepare_followup(session_id=session_id,user=user,message=message,
+            reasoning=reasoning,verbosity=verbosity,tone=tone,model_override=model_override,
+            restart=restart,request_id=request_id,access_password=access_password)
+        if prepared["admitted"]["status"] == "completed":
+            cached = prepared["admitted"]["result"]
+            return {"assistant":cached["assistant"],"usage":cached["usage"]}
+        try:
+            with use_ai_budget(prepared["budget"]):
+                result = continue_analysis_from_session(session_data=prepared["context"],
+                    message=prepared["message"],**prepared["applied"])
+            return self._complete_followup(session_id=session_id,user=user,prepared=prepared,result=result)
+        except BaseException:
+            self.operations.fail(user_id=user.id,request_id=prepared["request_id"],budget=prepared["budget"])
+            raise
 
-        def generate() -> Iterator[Dict[str, object]]:
-            if last_response_id and not model_changed:
-                stream = stream_continue_analysis(
-                    previous_response_id=str(last_response_id),
-                    message=stripped,
-                    model_name=chosen_model,
-                    reasoning_effort=str(applied_reasoning) if applied_reasoning else None,
-                    verbosity=str(applied_verbosity) if applied_verbosity else None,
-                    tone=str(applied_tone) if applied_tone else None,
-                )
-            else:
-                stream = stream_continue_analysis_from_session(
-                    session_data=session_context or {},
-                    message=stripped,
-                    model_name=chosen_model,
-                    reasoning_effort=str(applied_reasoning) if applied_reasoning else None,
-                    verbosity=str(applied_verbosity) if applied_verbosity else None,
-                    tone=str(applied_tone) if applied_tone else None,
-                )
-
-            ai_result = None
-            for event in stream:
-                if event.get("type") == "delta":
-                    yield {"type": "delta", "delta": str(event.get("delta") or "")}
-                elif event.get("type") == "result":
-                    ai_result = event.get("result")
-            if ai_result is None:
-                raise RuntimeError("OpenAI streaming follow-up did not complete.")
-
-            usage_dict = ai_result.usage or {}
-            prompt_tokens = int(usage_dict.get("input_tokens") or 0)
-            completion_tokens = int(usage_dict.get("output_tokens") or 0)
-            total_tokens = int(usage_dict.get("total_tokens") or (prompt_tokens + completion_tokens))
-            next_tokens_used = tokens_used + total_tokens
-            if next_tokens_used > CHAT_TOKEN_LIMIT:
-                raise ChatRateLimitError("本次占卜的追问字数已达上限。")
-            next_turns_used = turns_used + 1
-            timestamp = datetime.now(timezone.utc).isoformat()
-
-            self.client.update_session(
-                session_id=session_id,
-                user_id=user.id,
-                payload={
-                    "last_response_id": ai_result.response_id,
-                    "followup_model": chosen_model,
-                    "ai_reasoning": applied_reasoning,
-                    "ai_verbosity": applied_verbosity,
-                    "ai_tone": applied_tone,
-                    "chat_turns": next_turns_used,
-                    "tokens_used": next_tokens_used,
-                    "updated_at": timestamp,
-                },
-            )
-            user_record = {
-                "session_id": session_id,
-                "user_id": user.id,
-                "role": "user",
-                "content": message,
-                "tokens_in": prompt_tokens,
-                "tokens_out": 0,
-                "created_at": timestamp,
-                "model": chosen_model,
-                "reasoning": applied_reasoning,
-                "verbosity": applied_verbosity,
-                "tone": applied_tone,
-            }
-            assistant_record = {
-                "session_id": session_id,
-                "user_id": user.id,
-                "role": "assistant",
-                "content": ai_result.text,
-                "tokens_in": 0,
-                "tokens_out": completion_tokens,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "model": chosen_model,
-                "reasoning": applied_reasoning,
-                "verbosity": applied_verbosity,
-                "tone": applied_tone,
-            }
-            if user_message_id := regeneration_ids.get("user"):
-                user_record["id"] = user_message_id
-            if assistant_message_id := regeneration_ids.get("assistant"):
-                assistant_record["id"] = assistant_message_id
-            self.client.insert_chat_messages([user_record, assistant_record])
-            self.store.update_response(session_id, ai_result.response_id or "", increment_turn=True)
-            self.store.add_tokens(session_id, total_tokens)
-            self._record_user_usage(user, total_tokens)
-            yield {"type": "completed", "assistant": assistant_record, "usage": usage_dict}
-
+    def stream_followup(self, *, session_id, user, message, reasoning=None, verbosity=None,
+                        tone=None, model_override=None, restart=False, request_id=None, access_password=None):
+        prepared = self._prepare_followup(session_id=session_id,user=user,message=message,
+            reasoning=reasoning,verbosity=verbosity,tone=tone,model_override=model_override,
+            restart=restart,request_id=request_id,access_password=access_password)
+        if prepared["admitted"]["status"] == "completed":
+            cached = prepared["admitted"]["result"]
+            return iter([{"type":"completed","assistant":cached["assistant"],"usage":cached["usage"]}])
+        def generate():
+            try:
+                result = None
+                stream = iter(stream_continue_analysis_from_session(
+                    session_data=prepared["context"], message=prepared["message"],
+                    **prepared["applied"]))
+                try:
+                    while True:
+                        # Starlette may advance each chunk in a different Context.
+                        # Never keep a ContextVar token alive across a yield.
+                        with use_ai_budget(prepared["budget"]):
+                            try:
+                                event = next(stream)
+                            except StopIteration:
+                                break
+                        if event.get("type") == "delta":
+                            yield {"type":"delta","delta":str(event.get("delta") or "")}
+                        elif event.get("type") == "result":
+                            result = event.get("result")
+                finally:
+                    close = getattr(stream, "close", None)
+                    if close:
+                        with use_ai_budget(prepared["budget"]):
+                            close()
+                if result is None:
+                    raise RuntimeError("AI 未确认完成，已阻止重复扣费。")
+                completed = self._complete_followup(session_id=session_id,user=user,prepared=prepared,result=result)
+                yield {"type":"completed",**completed}
+            except BaseException:
+                self.operations.fail(user_id=user.id,request_id=prepared["request_id"],budget=prepared["budget"])
+                raise
         return generate()
-
-    def _ensure_user_allowance(self, user: SupabaseUser) -> None:
-        if not user or not user.id:
-            return
-        self.token_limiter.ensure_allowance(user.id)
-
-    def _record_user_usage(self, user: SupabaseUser, tokens: int) -> None:
-        if not user or not user.id:
-            return
-        self.token_limiter.record_usage(user.id, tokens)
 
     def _enforce_session_limit(self, user_id: str) -> None:
         if USER_SESSION_LIMIT <= 0:
@@ -591,7 +386,7 @@ def _history_before_regeneration(records: List[Dict[str, object]], message: str)
         history.pop()
     if history and history[-1].get("role") == "user" and str(history[-1].get("content") or "").strip() == message:
         history.pop()
-    return history[-12:]
+    return history[-20:]
 
 
 def _regeneration_message_ids(records: List[Dict[str, object]], message: str) -> Dict[str, str]:
@@ -610,15 +405,6 @@ def _regeneration_message_ids(records: List[Dict[str, object]], message: str) ->
     return result
 
 
-def _extract_snapshot_field(record: Dict[str, object], key: str) -> Optional[str]:
-    session_context = _extract_session_context(record)
-    if isinstance(session_context, dict):
-        value = session_context.get(key)
-        if isinstance(value, str):
-            return value
-    return None
-
-
 def _infer_label_from_summary(summary: Optional[str], prefix: str) -> Optional[str]:
     if not summary or not prefix:
         return None
@@ -629,10 +415,6 @@ def _infer_label_from_summary(summary: Optional[str], prefix: str) -> Optional[s
             if value and not value.startswith("（"):
                 return value
     return None
-
-
-def _is_followup_available(record: Dict[str, object]) -> bool:
-    return _extract_session_context(record) is not None
 
 
 def _extract_session_context(record: Dict[str, object]) -> Optional[Dict[str, object]]:

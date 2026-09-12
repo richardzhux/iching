@@ -109,7 +109,11 @@ def test_metaphysics_chart_endpoint() -> None:
     }
 
 
-def test_metaphysics_period_endpoint_returns_typed_activity_cycle() -> None:
+def test_metaphysics_period_endpoint_returns_typed_activity_cycle(monkeypatch) -> None:
+    def unexpected_full_chart(*args, **kwargs):
+        raise AssertionError("period expansion rebuilt the full chart")
+
+    monkeypatch.setattr(routes, "build_metaphysics_chart", unexpected_full_chart)
     response = client.post(
         "/api/tools/metaphysics/periods",
         json={
@@ -297,6 +301,10 @@ def test_create_session_ai_enabled_returns_reading_brief(monkeypatch) -> None:
         def record_session_snapshot(self, *args, **kwargs) -> None:
             return None
 
+        def execute_initial(self, *, request, user, callback):
+            assert request.request_id is not None
+            return callback()
+
     def fake_start_analysis(*args, **kwargs):
         return AIResponseData(
             text=(
@@ -330,6 +338,7 @@ def test_create_session_ai_enabled_returns_reading_brief(monkeypatch) -> None:
             "timestamp": datetime(2024, 5, 1, 8, 30).isoformat(),
             "enable_ai": True,
             "access_password": "test",
+            "request_id": "00000000-0000-0000-0000-000000000002",
             "ai_model": "gpt-5.5",
         }
         response = client.post(
@@ -362,3 +371,149 @@ def test_meihua_preview_uses_selected_timezone_and_exposes_formula_inputs() -> N
     assert data["calculation_inputs"] == dict(year=2026, month=7, day=12, hour=10, minute=30)
     assert (data["upper_trigram"], data["lower_trigram"], data["changing_line"]) == (3, 8, 3)
     assert data["lines"] == [8, 8, 6, 7, 8, 7]
+
+
+def test_request_bounds_reject_oversized_context_before_session_work(monkeypatch):
+    def unexpected_run(*args, **kwargs):
+        raise AssertionError("oversized request reached session work")
+
+    monkeypatch.setattr(type(routes.get_session_runner()), "run", unexpected_run)
+    response = client.post("/api/sessions", json={
+        "topic": "事业", "method_key": "x", "user_context": "字" * 8001,
+    })
+    assert response.status_code == 422
+
+
+def test_body_limit_checks_actual_stream_bytes_without_content_length():
+    response = client.post(
+        "/api/sessions", content=iter([b" " * 65536] * 3),
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 413
+
+
+def test_body_limit_rejects_declared_oversize_before_json_parsing():
+    response = client.post(
+        "/api/sessions", content=b"{}",
+        headers={"content-length": str(128 * 1024 + 1)},
+    )
+    assert response.status_code == 413
+
+
+def test_rate_identity_ignores_untrusted_forwarded_header():
+    from starlette.requests import Request
+
+    request = Request({
+        "type": "http", "headers": [(b"x-forwarded-for", b"spoofed")],
+        "client": ("192.0.2.1", 80),
+    })
+    assert routes._extract_ip(request) == "192.0.2.1"
+
+
+def test_chart_admission_bounds_concurrency_and_releases_after_failure():
+    import pytest
+    from fastapi import HTTPException
+
+    admission = routes.CalculationAdmission(concurrency=1)
+    with pytest.raises(ValueError):
+        with admission.admit("reader"):
+            with pytest.raises(HTTPException) as rejected:
+                with admission.admit("other"):
+                    pass
+            assert rejected.value.status_code == 429
+            raise ValueError("calculation failed")
+    with admission.admit("other"):
+        pass
+
+
+def test_chart_admission_expires_counters_and_fails_closed_when_full(monkeypatch):
+    import pytest
+    from fastapi import HTTPException
+
+    now = [100.0]
+    monkeypatch.setattr(routes.time, "monotonic", lambda: now[0])
+    admission = routes.CalculationAdmission(requests_per_minute=1, max_identities=1)
+    with admission.admit("reader"):
+        pass
+    for identity in ("reader", "other"):
+        with pytest.raises(HTTPException) as rejected:
+            with admission.admit(identity):
+                pass
+        assert rejected.value.status_code == 429
+    assert len(admission._counters) == 1
+    now[0] += 61
+    with admission.admit("other"):
+        pass
+    assert list(admission._counters) == ["other"]
+
+
+def test_metaphysics_routes_enforce_admission_before_work(monkeypatch):
+    admission = routes.CalculationAdmission(requests_per_minute=1)
+    monkeypatch.setattr(routes, "_CALCULATION_ADMISSION", admission)
+    with admission.admit("testclient"):
+        pass
+    for path, extra in (("/api/tools/metaphysics", {}), ("/api/tools/metaphysics/periods", {"cycle_index": 1})):
+        response = client.post(path, json={"timestamp": "2024-02-10T12:00:00", **extra})
+        assert response.status_code == 429
+
+
+def test_web_reading_does_not_write_archive_or_retain_history_by_default(monkeypatch):
+    monkeypatch.delenv("ICHING_WEB_ARCHIVE_ENABLED", raising=False)
+
+    def unexpected_archive(*args, **kwargs):
+        raise AssertionError("automatic archive should be disabled")
+
+    monkeypatch.setattr("iching.web.service._save_archive", unexpected_archive)
+    response = client.post("/api/sessions", json={
+        "topic": "事业", "method_key": "x", "manual_lines": [7, 8, 7, 8, 7, 8],
+    })
+    assert response.status_code == 201
+    assert response.json()["archive_path"] == ""
+    assert response.json()["full_text"]
+    assert routes.get_session_runner().service.history == []
+
+
+def test_opt_in_archives_use_distinct_filenames(tmp_path):
+    from iching.web.service import _save_archive
+
+    first = _save_archive(tmp_path, "session", "first")
+    second = _save_archive(tmp_path, "session", "second")
+    assert first != second
+    assert first.read_text() == "first"
+    assert second.read_text() == "second"
+
+
+def test_daily_limiter_expires_and_bounds_identity_storage(monkeypatch):
+    import pytest
+    from iching.web import service
+
+    limiter = service.RateLimiter(1, 1)
+    limiter.max_identities = 1
+    limiter.record_attempt("reader")
+    with pytest.raises(service.RateLimitError):
+        limiter.record_attempt("other")
+    with pytest.raises(service.RateLimitError):
+        limiter.record_attempt("reader")
+    assert len(limiter._counters) == 1
+    limiter._counter_date = "2000-01-01"
+    limiter.record_attempt("other")
+    assert list(limiter._counters) == ["other"]
+
+
+def test_session_state_requires_owner_and_does_not_revive_expired_entries():
+    import time
+    from iching.web.chat_state import SessionStateStore
+
+    store = SessionStateStore()
+    state = store.register(
+        session_id="reading", owner_id="alice", summary_text="private",
+        ai_text="private AI", ai_enabled=True, ai_model=None, ai_reasoning=None,
+        ai_verbosity=None, ai_tone=None, last_response_id="response",
+        initial_tokens=1, session_payload={},
+    )
+    assert store.get("reading", owner_id="bob") is None
+    assert store.get("reading") is None
+    assert store.get("reading", owner_id="alice") is state
+    state.last_access = time.time() - store._ttl_seconds - 1
+    assert store.get("reading", owner_id="alice") is None
+    assert not store._sessions

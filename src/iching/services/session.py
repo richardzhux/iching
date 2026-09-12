@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections import deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -803,7 +804,7 @@ class SessionService:
         "q": "就地退出",
     }
 
-    def __init__(self, config: Optional[AppConfig] = None) -> None:
+    def __init__(self, config: Optional[AppConfig] = None, *, history_limit: int = 100) -> None:
         self.config = config or build_app_config()
         self.definitions = load_hexagram_definitions(self.config.paths.gua_index_file)
         self.najia_repo = NajiaRepository(self.config.paths.najia_db)
@@ -815,7 +816,7 @@ class SessionService:
             symbolic_dir=self.config.paths.symbolic_dir,
             english_structured_dir=self.config.paths.english_structured_dir,
         )
-        self._history: List[SessionResult] = []
+        self._history: deque[SessionResult] = deque(maxlen=max(0, history_limit))
 
     @property
     def history(self) -> List[SessionResult]:
