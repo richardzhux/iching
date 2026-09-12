@@ -545,17 +545,55 @@
 .yarrow-held { border-top: 1px solid #b3976433; padding-top: 10px; }.yarrow-held .yarrow-pile { display: flex; align-items: center; gap: 15px; }.yarrow-held strong { min-width: 105px; }.yarrow-held svg { height: 40px; width: 220px; margin: 0; }
 
 /* One casting workspace; its artwork keeps a stable scale as controls expand. */
-.autumn-workspace-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px clamp(22px, 3vw, 52px); border-bottom: 1px solid hsl(var(--border) / .6); }
-.autumn-workspace-toolbar > span { font-size: 11px; color: hsl(var(--muted-foreground)); }
-.autumn-workspace-toolbar > div { display: flex; align-items: center; gap: 18px; }
 .autumn-casting .autumn-leaf-path:nth-last-child(-n + 4) { display: none; }
 @media (min-width: 768px) {
-  .autumn-casting { display: grid; grid-template-columns: minmax(355px, 34%) minmax(0, 1fr); min-height: calc(100svh - 124px); overflow: visible; }
+  .autumn-casting { display: grid; grid-template-columns: minmax(355px, 34%) minmax(0, 1fr); min-height: calc(100svh - 72px); overflow: visible; }
   .autumn-casting .autumn-question-panel { grid-column: 1; grid-row: 1; width: 100%; min-width: 0; max-width: none; min-height: 0; padding: 26px clamp(24px, 3vw, 48px) 32px; }
-  .autumn-casting .autumn-scene-panel { grid-column: 2; grid-row: 1; position: sticky; inset: auto; top: 72px; height: clamp(580px, calc(100svh - 124px), 820px); }
+  .autumn-casting .autumn-scene-panel { grid-column: 2; grid-row: 1; position: sticky; inset: auto; top: 72px; height: clamp(580px, calc(100svh - 72px), 820px); }
   .autumn-casting .autumn-courtyard { object-position: 55% center; }
   .autumn-casting .autumn-scene-caption { left: 20%; right: 20%; bottom: 13%; }
   .autumn-casting .autumn-season-note { left: 26px; }
   .autumn-casting .yarrow-ritual { left: 6%; width: 88%; top: 7%; max-height: 83%; overflow-y: auto; padding: 24px; }
   .autumn-casting .autumn-ritual-status { left: 24px; right: 24px; }
 }
+
+/* A slight crop at the ground keeps the approved courtyard composition. */
+.autumn-courtyard-backdrop { position: absolute; inset: 0; }
+.autumn-courtyard-backdrop, .autumn-stage { transform: scale(1.025); transform-origin: center top; }
+.autumn-courtyard { object-position: 55% center; }
+.autumn-cast-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.autumn-cast-heading > button { flex-shrink: 0; }
+
+/* Compact identities leave more room for the reference and chart content. */
+.autumn-main:has(.autumn-library), .autumn-main:has(.autumn-archive), .autumn-main:has(.autumn-tools) { padding-top: 22px; padding-bottom: 64px; }
+.autumn-library-header, .autumn-tools > .autumn-page-header { padding: 0 0 16px; margin-bottom: 0; }
+.autumn-library-header .autumn-page-title, .autumn-tools .autumn-page-title { font-size: clamp(28px, 2.6vw, 34px); margin: 4px 0 6px; }
+.autumn-library-intro { gap: 16px; }
+.autumn-library-search > label { font-size: 17px; }
+.autumn-library-search .autumn-search-field { margin-top: 8px; }
+.classical-archive-header { gap: 20px; padding: 12px 0 16px; }
+.classical-archive-header .autumn-page-title { font-size: clamp(28px, 2.6vw, 34px); margin: 4px 0 6px; }
+.classical-archive-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
+.classical-archive-meta .classical-archive-subtitle { font-size: 15px; }
+.classical-archive-meta .classical-trigram-caption { margin: 0; }
+.classical-archive .classical-reader { padding-top: 18px; }
+.classical-archive .classical-chapter-header { padding-bottom: 10px; }
+.classical-archive .classical-chapter-header h2 { margin-top: 4px; font-size: 26px; }
+.classical-archive .classical-source-switches { padding-block: 6px; }
+.classical-archive .classical-source { padding-top: 12px; }
+.classical-archive .classical-source > header { padding-bottom: 10px; margin-bottom: 12px; }
+.autumn-tools-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.autumn-tools > [data-slot="tabs"] { gap: 0; }
+.autumn-tools > [data-slot="tabs"] > [data-slot="tabs-content"] { margin-top: 0; }
+@media (max-width: 767px) {
+  .autumn-navigation { margin-left: 0; gap: 4px; }
+  .autumn-main:has(.autumn-library), .autumn-main:has(.autumn-archive), .autumn-main:has(.autumn-tools) { padding-top: 16px; }
+  .classical-archive .classical-reader { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .classical-archive .classical-chapters { position: static; display: flex; overflow-x: auto; padding: 0; gap: 4px; }
+  .classical-archive .classical-chapters > button { width: auto; white-space: nowrap; flex-shrink: 0; padding: 8px; min-height: 40px; }
+  .classical-archive .classical-nav-title { display: none; }
+  .classical-archive .classical-sources { grid-template-columns: minmax(0, 1fr); }
+}
+
+.autumn-tools > .autumn-page-header > details { width: fit-content; max-width: 100%; border: 0; border-radius: 0; padding: 0; background: none; }
+.autumn-tools > .autumn-page-header > details > summary { justify-content: flex-start; min-height: 24px; padding-block: 2px; font-size: 11px; color: hsl(var(--muted-foreground)); }

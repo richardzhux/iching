@@ -63,13 +63,15 @@ export default async function HexagramDetailPage({ params }: Props) {
       </div>
     </nav>
     <header className="classical-archive-header">
-      <div>
+      <div className="classical-archive-identity min-w-0">
         <p className="kicker">{locale === "zh" ? "周易 · 经传与注解" : "I Ching · Texts & commentaries"}</p>
         <h1 className="autumn-page-title">{entry.number.toString().padStart(2, "0")} · {entry.nameZh}</h1>
-        <p className="classical-archive-subtitle">{getHexagramPinyin(entry.slug)} · {entry.titleEn}</p>
-        <p className="classical-trigram-caption">{locale === "zh" ? "上卦" : "Upper"} {localizedTrigram(entry.upper, locale)}<span>／</span>{locale === "zh" ? "下卦" : "Lower"} {localizedTrigram(entry.lower, locale)}</p>
+        <div className="classical-archive-meta">
+          <p className="classical-archive-subtitle">{getHexagramPinyin(entry.slug)} · {entry.titleEn}</p>
+          <p className="classical-trigram-caption">{locale === "zh" ? "上卦" : "Upper"} {localizedTrigram(entry.upper, locale)}<span>／</span>{locale === "zh" ? "下卦" : "Lower"} {localizedTrigram(entry.lower, locale)}</p>
+        </div>
       </div>
-      <HexagramGlyph lines={hexagramLines(entry.binary)} className="w-28 gap-3" lineClassName="h-2" />
+      <HexagramGlyph lines={hexagramLines(entry.binary)} className="w-16 shrink-0 gap-1.5" lineClassName="h-1.5" />
     </header>
     <ClassicalReader chapters={[...chapters.values()]} locale={locale} heading={entry.nameZh} />
   </article>

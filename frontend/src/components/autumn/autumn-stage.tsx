@@ -300,9 +300,9 @@ export default function AutumnStage(props: AutumnStageProps) {
       camera.top = height
       camera.updateProjectionMatrix()
       const scale = Math.max(width / 1536, height / 1024)
-      const position = width < 760 ? 0.55 : 0.5
+      const position = 0.55
       world.scale.setScalar(scale)
-      world.position.set((width - 1536 * scale) * position, height - (height - 1024 * scale) / 2, 0)
+      world.position.set((width - 1536 * scale) * position + 111 * scale, height - (height - 1024 * scale) / 2 + 55 * scale, 0)
       requestRender()
     }
     const resizeObserver = new ResizeObserver(resize)

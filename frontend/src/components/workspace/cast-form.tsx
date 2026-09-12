@@ -30,6 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuthContext } from "@/components/providers/auth-provider"
 import { useSessionMutation } from "@/lib/queries"
 import { parseManualLines, prepareCasting } from "@/lib/api"
+import { HistoryDrawer } from "./history-drawer"
 import { YarrowRitual } from "./yarrow-ritual"
 import { MeihuaCalculation } from "./meihua-calculation"
 import { CastingMethodPicker, ManualLineEditor, MeihuaSteps } from "./casting-controls"
@@ -643,7 +644,7 @@ export function CastForm({ config }: Props) {
       <AutumnFrame className="autumn-casting" values={displayValues} coins={lastCoinToss} toss={tossId} showCoins={isCoinMethod} sceneContent={isYarrowMethod ? <YarrowRitual locale={locale} change={preparedCast?.yarrow_trace[yarrowLine]?.[ritualPhase - 1] ?? null} phase={yarrowPhase} changeNumber={ritualPhase} values={currentManualValues} remaining={remainingStalks} /> : undefined} showCompass={isMeihuaMethod} ritualPhase={isMeihuaMethod ? Math.max(ritualPhase, visibleMeihuaStep) : ritualPhase} upperTrigram={upperTrigram} lowerTrigram={lowerTrigram} onToss={isCoinMethod && !complete ? () => tossCoinLine() : undefined} onLineSelect={isManualMethod ? (position) => editManualLine(position - 1) : undefined} caption={complete ? (locale === "zh" ? "六爻已成 · 静观其变" : "Six lines complete · a moment to reflect") : null} sceneOverlay={ritualStatus && !isYarrowMethod ? <div className="autumn-ritual-status"><span>{methodName}</span><strong role="status" aria-live="polite">{ritualStatus}</strong></div> : undefined}>
         <fieldset disabled={mutation.isPending || isTossing} className="min-w-0">
           <div className="autumn-question-copy">
-          <h1 className="autumn-title" lang="zh">一念之间</h1>
+          <div className="autumn-cast-heading"><h1 className="autumn-title" lang="zh">一念之间</h1><HistoryDrawer compact /></div>
           <p className="autumn-eyebrow">{locale === "zh" ? "以一念，观万象" : "A moment of change"}</p>
 
           <label htmlFor="reading-question" className="autumn-question-label">{locale === "zh" ? "此刻，你想理解什么？" : "What would you like to understand?"}</label>

@@ -23,7 +23,7 @@ export function AutumnFrame({ children, className = "", caption, sceneOverlay, s
   return (
     <section className={`autumn-frame ${className}`} data-motion={paused ? "paused" : "playing"}>
       <div className="autumn-scene-panel" id={className === "autumn-casting" ? "casting-scene" : undefined}>
-        <Image className="autumn-courtyard" src="/autumn/courtyard.webp" alt="" fill priority sizes="100vw" />
+        <div className="autumn-courtyard-backdrop"><Image className="autumn-courtyard" src="/autumn/courtyard-realistic.webp" alt="" fill priority sizes="100vw" /></div>
         {sceneContent ?? <AutumnStage {...stage} />}
         {sceneOverlay}
         <div className="autumn-leaves" aria-hidden="true">

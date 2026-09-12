@@ -91,7 +91,7 @@ export function LibrarySearch({ locale, documents }: Props) {
   const displayedResults = hasQuery ? matchedResults.slice(0, 12) : []
 
   return (
-    <section className="autumn-library-search border-b border-border/60 pb-7">
+    <section className="autumn-library-search border-b border-border/60 pb-4">
       <label htmlFor="library-search" className="text-sm font-semibold text-foreground">
         {labels.title}
       </label>
@@ -112,7 +112,7 @@ export function LibrarySearch({ locale, documents }: Props) {
       />
       {hasQuery && <button type="button" onClick={() => setQuery("")} aria-label={locale === "zh" ? "清除搜索" : "Clear search"}><X size={17} aria-hidden="true" /></button>}
       </div>
-      <p className="mt-3 text-sm text-muted-foreground" role="status" aria-live="polite">
+      <p className="mt-2 text-sm text-muted-foreground" role="status" aria-live="polite">
         {hasQuery ? labels.showing(displayedResults.length, matchedResults.length) : labels.browseHint}
       </p>
       {hasQuery && <div className="mt-4 grid gap-x-8 md:grid-cols-2">

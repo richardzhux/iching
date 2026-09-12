@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { CalendarClock, Check, Cloud, Compass, Loader2, Pencil, Plus, Sparkles } from "lucide-react"
+import { CalendarClock, Check, Cloud, Loader2, Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { useAuthContext } from "@/components/providers/auth-provider"
 import { useI18n } from "@/components/providers/i18n-provider"
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { BaziChartView } from "@/components/tools/bazi-chart-view"
 import { type ConsumerIdentityProfile } from "@/components/tools/consumer-identity"
 import { MetaphysicsComparisonDialog, type ComparisonInput } from "@/components/tools/metaphysics-comparison-dialog"
@@ -307,6 +307,7 @@ export function MetaphysicsTools() {
   const { locale, toLocalePath } = useI18n()
   const auth = useAuthContext()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const loadedChartRef = useRef<string | null>(null)
   const [activeTab, setActiveTab] = useState<"current" | "bazi" | "ziwei">("bazi")
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai")
@@ -372,14 +373,9 @@ export function MetaphysicsTools() {
   ))
 
   useEffect(() => {
-    const syncTabFromUrl = () => {
-      const requested = new URLSearchParams(window.location.search).get("tab")
-      if (requested === "current" || requested === "bazi" || requested === "ziwei") setActiveTab(requested)
-    }
-    syncTabFromUrl()
-    window.addEventListener("popstate", syncTabFromUrl)
-    return () => window.removeEventListener("popstate", syncTabFromUrl)
-  }, [])
+    const requested = searchParams.get("tab")
+    if (requested === "current" || requested === "bazi" || requested === "ziwei") setActiveTab(requested)
+  }, [searchParams])
 
   function changeActiveTab(nextTab: "current" | "bazi" | "ziwei") {
     setActiveTab(nextTab)
@@ -1316,14 +1312,15 @@ export function MetaphysicsTools() {
   return (
     <div className="autumn-study autumn-tools mx-auto max-w-[92rem] space-y-6">
       <header className="autumn-page-header">
-        <p className="kicker">{locale === "zh" ? "命理排盘" : "Personal charts"}</p>
-        <h1 className="autumn-page-title">{copy.title}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">{copy.subtitle}</p>
-        <p className="mt-3 max-w-3xl text-xs leading-5 text-muted-foreground">{copy.chartNote}</p>
+        <div className="autumn-tools-heading">
+          <h1 className="autumn-page-title">{activeTab === "ziwei" ? copy.ziwei : activeTab === "current" ? copy.current : copy.bazi}</h1>
+          {activeTab !== "ziwei" ? <Button type="button" variant="ghost" size="sm" onClick={() => changeActiveTab(activeTab === "current" ? "bazi" : "current")}><CalendarClock className="mr-2 size-4" />{activeTab === "current" ? copy.bazi : copy.current}</Button> : null}
+        </div>
+        <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">{activeTab === "ziwei" ? (locale === "zh" ? "输入出生信息，先看命盘重点，再查看十二宫、运限与依据。" : "Enter birth details to explore your chart, twelve palaces, and periods.") : copy.subtitle}</p>
+        <details className="mt-2 text-xs leading-5 text-muted-foreground"><summary className="cursor-pointer">{locale === "zh" ? "排盘说明" : "About these charts"}</summary><p className="mt-2 max-w-3xl">{copy.chartNote}</p></details>
       </header>
 
       <Tabs value={activeTab} onValueChange={(value) => changeActiveTab(value as "current" | "bazi" | "ziwei")}>
-        <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="current"><CalendarClock className="mr-2 size-4" />{copy.current}</TabsTrigger><TabsTrigger value="bazi"><Compass className="mr-2 size-4" />{copy.bazi}</TabsTrigger><TabsTrigger value="ziwei"><Sparkles className="mr-2 size-4" />{copy.ziwei}</TabsTrigger></TabsList>
         <TabsContent value="current" className="mt-4 space-y-4">
           <div className="flex justify-end">{currentChart ? <Button asChild><Link href={castHref}>{copy.useToCast} · {locale === "zh" ? "梅花易数" : "Plum blossom"}</Link></Button> : <Button disabled>{copy.useToCast}</Button>}</div>
           <div aria-live="polite" aria-busy={currentLoading}>

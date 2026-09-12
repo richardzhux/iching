@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { cn } from "@/lib/utils"
 
@@ -12,12 +12,14 @@ type Props = {
 
 export function PrimaryNavigation({ className, mobile = false }: Props) {
   const pathname = usePathname()
-  const { messages, toLocalePath } = useI18n()
+  const searchParams = useSearchParams()
+  const { messages, locale, toLocalePath } = useI18n()
   const links = [
     { href: "/", label: messages.nav.workspace, matches: ["/", "/app"] },
     { href: "/reading", label: messages.nav.reading, matches: ["/reading"] },
     { href: "/library", label: messages.nav.library, matches: ["/library", "/hexagram"] },
-    { href: "/tools", label: messages.nav.method, matches: ["/tools"] },
+    { href: "/tools?tab=bazi", label: locale === "zh" ? "八字" : "BaZi", matches: ["/tools"], tab: "bazi" },
+    { href: "/tools?tab=ziwei", label: locale === "zh" ? "紫微" : "Zi Wei", matches: ["/tools"], tab: "ziwei" },
   ]
 
   return (
@@ -29,9 +31,9 @@ export function PrimaryNavigation({ className, mobile = false }: Props) {
         className,
       )}
     >
-      {links.map(({ href, label, matches }) => {
+      {links.map(({ href, label, matches, tab }) => {
         const localizedHref = toLocalePath(href)
-        const active = matches.some((route) => {
+        const active = (!tab || (searchParams.get("tab") === "ziwei" ? "ziwei" : "bazi") === tab) && matches.some((route) => {
           const localizedRoute = toLocalePath(route)
           return pathname === localizedRoute || (route !== "/" && pathname.startsWith(`${localizedRoute}/`))
         })

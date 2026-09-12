@@ -91,19 +91,19 @@ export default async function LibraryPage({ params }: Props) {
         }
 
   return (
-    <div className="autumn-study autumn-library space-y-8">
-      <header className="autumn-page-header grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-        <div>
+    <div className="autumn-study autumn-library space-y-5">
+      <header className="autumn-page-header autumn-library-header grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="autumn-library-intro min-w-0">
           <p className="kicker">{copy.eyebrow}</p>
           <h1 className="autumn-page-title">{copy.title}</h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">{copy.subtitle}</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{copy.subtitle}</p>
         </div>
-        <Button asChild variant="secondary"><Link href={withLocale(locale, "/app")}>{copy.deskCta}<ArrowUpRight aria-hidden="true" /></Link></Button>
+        <Button asChild variant="secondary" className="justify-self-start"><Link href={withLocale(locale, "/app")}>{copy.deskCta}<ArrowUpRight aria-hidden="true" /></Link></Button>
       </header>
 
       <LibrarySearch locale={locale} documents={searchDocuments} />
 
-      <div className="grid items-start gap-7 lg:grid-cols-[11rem_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 lg:grid-cols-[11rem_minmax(0,1fr)]">
         <HexagramQuickNav locale={locale} mode="anchors" />
         <section aria-labelledby="hexagram-browse-title" className="min-w-0">
           <h2 id="hexagram-browse-title" className="text-lg font-semibold text-foreground">{copy.browse}</h2>

@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useMemo, useState } from "react"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useI18n } from "@/components/providers/i18n-provider"
@@ -8,6 +9,7 @@ import { MarkdownContent } from "@/components/ui/markdown-content"
 import {
   Sheet,
   SheetContent,
+  SheetClose,
   SheetDescription,
   SheetHeader,
   SheetTitle,
@@ -18,7 +20,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { useWorkspaceStore, type JournalStatus } from "@/lib/store"
 
 export function HistoryDrawer({ compact = false }: { compact?: boolean }) {
-  const { locale, messages } = useI18n()
+  const { locale, messages, toLocalePath } = useI18n()
+  const hasResult = useWorkspaceStore((state) => Boolean(state.result))
   const history = useWorkspaceStore((state) => state.history)
   const journal = useWorkspaceStore((state) => state.journal)
   const updateJournal = useWorkspaceStore((state) => state.updateJournal)
@@ -69,8 +72,8 @@ export function HistoryDrawer({ compact = false }: { compact?: boolean }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant={compact ? "ghost" : "outline"} className={compact ? "h-9 rounded-md px-2 text-xs text-muted-foreground" : "w-full rounded-md"}>
-          {messages.workspace.history.trigger} ({history.length})
+        <Button type="button" variant={compact ? "ghost" : "outline"} className={compact ? "h-9 rounded-md px-2 text-xs text-muted-foreground" : "w-full rounded-md"}>
+          {compact ? (locale === "zh" ? "卦例" : "History") : messages.workspace.history.trigger} ({history.length})
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
@@ -78,6 +81,7 @@ export function HistoryDrawer({ compact = false }: { compact?: boolean }) {
           <SheetTitle>{messages.workspace.history.title}</SheetTitle>
           <SheetDescription>{messages.workspace.history.description}</SheetDescription>
         </SheetHeader>
+        {hasResult ? <SheetClose asChild><Link className="autumn-link mt-5 inline-flex text-sm" href={toLocalePath("/reading")}>{messages.workspace.viewLastResult} →</Link></SheetClose> : null}
         <div className="mt-6 space-y-3">
           {formattedHistory.length === 0 && <p className="text-sm text-muted-foreground">{messages.workspace.history.empty}</p>}
           {formattedHistory.map((item, index) => {

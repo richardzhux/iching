@@ -4,14 +4,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { CastForm } from "@/components/workspace/cast-form"
-import { HistoryDrawer } from "@/components/workspace/history-drawer"
 import { useConfigQuery } from "@/lib/queries"
-import { useWorkspaceStore } from "@/lib/store"
 import { BookOpen, Loader2, RotateCw } from "lucide-react"
 
 export function CastWorkspace() {
-  const { messages, locale, toLocalePath } = useI18n()
-  const hasResult = useWorkspaceStore((state) => Boolean(state.result))
+  const { messages, toLocalePath } = useI18n()
   const { data, isLoading, isFetching, error, refetch } = useConfigQuery()
   const errorDetail = error instanceof Error ? error.message : messages.common.unknownError
 
@@ -73,16 +70,5 @@ export function CastWorkspace() {
     return null
   }
 
-  return (
-    <div>
-      <div className="autumn-workspace-toolbar">
-        <span>{locale === "zh" ? "起卦" : "Cast a hexagram"}</span>
-        <div>
-          {hasResult ? <Link className="autumn-link" href={toLocalePath("/reading")}>{messages.workspace.viewLastResult}</Link> : null}
-          <HistoryDrawer compact />
-        </div>
-      </div>
-      <CastForm config={data} />
-    </div>
-  )
+  return <CastForm config={data} />
 }

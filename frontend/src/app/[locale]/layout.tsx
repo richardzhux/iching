@@ -65,7 +65,7 @@ export default async function LocaleLayout({ children, params }: Props) {
                 <Image src="/autumn/ginkgo-leaf.webp" alt="" width={28} height={28} />
                 {messages.nav.brand}
               </Link>
-              <PrimaryNavigation className="hidden md:flex" />
+              <Suspense fallback={null}><PrimaryNavigation className="hidden md:flex" /></Suspense>
             </div>
             <div className="flex items-center gap-2">
               <Suspense fallback={null}>
@@ -76,7 +76,7 @@ export default async function LocaleLayout({ children, params }: Props) {
             </div>
           </div>
           <div className="mx-auto w-full max-w-7xl border-t border-border/40 md:hidden">
-            <PrimaryNavigation mobile />
+            <Suspense fallback={null}><PrimaryNavigation mobile /></Suspense>
           </div>
         </header>
         <main id="main-content" lang={locale} className="autumn-main relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">

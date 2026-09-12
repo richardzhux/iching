@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import type { Metadata } from "next"
 import { MetaphysicsTools } from "@/components/tools/metaphysics-tools"
 import { defaultLocale, isLocale } from "@/i18n/config"
@@ -12,5 +13,5 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default function ToolsPage() {
-  return <MetaphysicsTools />
+  return <Suspense fallback={null}><MetaphysicsTools /></Suspense>
 }
