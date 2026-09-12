@@ -7,10 +7,10 @@ import {
   ArrowRight,
   BookOpen,
   CalendarDays,
+  ChevronDown,
   Download,
   Loader2,
   LogOut,
-  MessageSquare,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -21,6 +21,7 @@ import { toast } from "sonner"
 import { useI18n } from "@/components/providers/i18n-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuthContext } from "@/components/providers/auth-provider"
 import { useMetaphysicsChartHistoryQuery, useSessionHistoryQuery } from "@/lib/queries"
 import { deleteMetaphysicsChart, deleteSession, fetchChatTranscript } from "@/lib/api"
@@ -38,6 +39,8 @@ const PROFILE_COPY = {
     secureRecord: "Secure record",
     secureRecordBody: "Saved readings stay tied to your account and can be reopened from the casting desk.",
     savedReadings: "Saved readings",
+    pageTitle: "Account & readings",
+    readingArchive: "Saved readings",
     savedCharts: "Personal charts",
     followups: "Follow-up ready",
     library: "Explore the 64 hexagrams",
@@ -70,6 +73,8 @@ const PROFILE_COPY = {
     secureRecord: "安全记录",
     secureRecordBody: "已保存卦例仅绑定当前账户，可从起卦页面重新打开并继续追问。",
     savedReadings: "已保存",
+    pageTitle: "账户与卦历",
+    readingArchive: "已保存卦例",
     savedCharts: "个人命盘",
     followups: "可追问",
     library: "查阅六十四卦",
@@ -107,6 +112,7 @@ type AccountSummaryPanelProps = {
   followupCount: number
   chartCount: number
   sessionCount: number
+  onSignOut: () => void
   toLocalePath: (path?: string) => string
 }
 
@@ -124,7 +130,6 @@ type CloudHistoryPanelProps = {
   onDelete: (session: SessionSummary) => void
   onDownload: (session: SessionSummary) => void
   onRefresh: () => void
-  onSignOut: () => void
   sessions: SessionSummary[]
   toLocalePath: (path?: string) => string
 }
@@ -190,70 +195,45 @@ function AccountSummaryPanel({
   followupCount,
   chartCount,
   messages,
+  onSignOut,
   sessionCount,
   toLocalePath,
 }: AccountSummaryPanelProps) {
   return (
-    <aside className="space-y-4">
-      <section className="rounded-lg border border-border/60 bg-surface p-5">
-        <p className="kicker">{copy.accountLabel}</p>
-        <div className="mt-4 flex items-start gap-3">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt={displayName} className="size-12 rounded-md object-cover ring-1 ring-border/70" />
-          ) : (
-            <div className="flex size-12 items-center justify-center rounded-md border border-border/60 bg-surface-elevated text-base font-semibold text-primary">
-              {displayName?.[0]?.toUpperCase()}
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">{copy.signedIn}</p>
-            <p className="mt-1 truncate text-sm text-muted-foreground">{displayName}</p>
-            {email && <p className="mt-1 truncate text-xs text-muted-foreground">{email}</p>}
+    <div className="autumn-account-summary flex min-w-0 flex-col gap-3 sm:items-end">
+      <div className="flex min-w-0 items-center gap-3">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt={displayName} className="size-9 shrink-0 rounded-full object-cover ring-1 ring-border/70" />
+        ) : (
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-surface-elevated text-sm font-semibold text-primary" aria-hidden="true">
+            {displayName?.[0]?.toUpperCase()}
           </div>
+        )}
+        <div className="min-w-0 sm:text-right">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm sm:justify-end">
+            <span className="max-w-64 truncate font-semibold text-foreground" title={email || displayName}>{displayName}</span>
+            <span className="text-xs text-muted-foreground">{copy.signedIn}</span>
+          </p>
+          <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground sm:justify-end">
+            <span>{copy.savedReadings} <strong className="font-medium text-foreground">{sessionCount}</strong></span>
+            <span>{copy.savedCharts} <strong className="font-medium text-foreground">{chartCount}</strong></span>
+            <span>{copy.followups} <strong className="font-medium text-foreground">{followupCount}</strong></span>
+          </p>
         </div>
-      </section>
-
-      <section className="grid grid-cols-3 divide-x divide-border/60 border-y border-border/60">
-        <ProfileStatCard label={copy.savedReadings} value={String(sessionCount)} />
-        <ProfileStatCard label={copy.savedCharts} value={String(chartCount)} />
-        <ProfileStatCard label={copy.followups} value={String(followupCount)} />
-      </section>
-
-      <section className="border-l-2 border-primary/40 pl-4">
-        <p className="kicker">{copy.secureRecord}</p>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">{copy.secureRecordBody}</p>
-      </section>
-
-      <nav className="grid gap-2">
-        <Button asChild variant="outline" className="justify-between">
-          <Link href={toLocalePath("/app")}>
-            {copy.workspace}
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="justify-between">
-          <Link href={toLocalePath("/library")}>
-            {copy.library}
-            <BookOpen className="size-4" />
-          </Link>
-        </Button>
-        <Button asChild variant="ghost" className="justify-between">
-          <Link href={toLocalePath("/")}>
-            {messages.common.back}
-            <ArrowRight className="size-4" />
-          </Link>
+      </div>
+      <nav className="autumn-account-links flex flex-wrap items-center gap-x-3 gap-y-2 text-xs sm:justify-end" aria-label={copy.accountLabel}>
+        <Link className="inline-flex items-center gap-1 text-primary hover:underline" href={toLocalePath("/app")}>
+          {copy.workspace}<ArrowRight className="size-3.5" />
+        </Link>
+        <Link className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground" href={toLocalePath("/library")}>
+          <BookOpen className="size-3.5" />{copy.library}
+        </Link>
+        <Link className="text-muted-foreground hover:text-foreground" href={toLocalePath("/")}>{messages.common.back}</Link>
+        <Button type="button" size="sm" variant="ghost" className="h-7 px-1 text-xs" onClick={onSignOut}>
+          <LogOut className="size-3.5" />{messages.common.signOut}
         </Button>
       </nav>
-    </aside>
-  )
-}
-
-function ProfileStatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="px-4 py-3">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-foreground">{value}</p>
     </div>
   )
 }
@@ -272,11 +252,10 @@ function ChartArchivePanel({
   toLocalePath,
 }: ChartArchivePanelProps) {
   return (
-    <section aria-labelledby="chart-archive-title">
-      <div className="flex flex-col gap-4 border-b border-border/60 pb-5 sm:flex-row sm:items-start sm:justify-between">
+    <section className="autumn-profile-archive" aria-labelledby="chart-archive-title">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 py-3">
         <div>
-          <h2 id="chart-archive-title" className="text-2xl font-semibold tracking-tight text-foreground">{copy.chartArchive}</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{copy.chartArchiveBody}</p>
+          <h2 id="chart-archive-title" className="text-sm font-semibold text-foreground">{copy.chartArchive}</h2>
         </div>
         <Button asChild size="sm">
           <Link href={`${toLocalePath("/tools")}?tab=bazi`}>
@@ -310,7 +289,7 @@ function ChartArchivePanel({
             const isBazi = chart.chart_type === "bazi"
             const displayName = chart.display_name?.trim() || copy.anonymous
             return (
-              <article key={chart.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <article key={chart.id} className="autumn-profile-record flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <button type="button" className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => onOpen(chart)}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
@@ -319,8 +298,8 @@ function ChartArchivePanel({
                     </span>
                     <span className="text-xs text-muted-foreground">{formatTimestamp(chart.updated_at, locale)}</span>
                   </div>
-                  <h3 className="mt-1.5 truncate text-base font-semibold text-foreground">{displayName}</h3>
-                  <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <h3 className="mt-1 truncate text-sm font-semibold text-foreground">{displayName}</h3>
+                  <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>{chart.birth_date}</span>
                     {chart.day_pillar ? <span>{copy.dayPillar} <strong className="font-semibold text-primary">{chart.day_pillar}</strong></span> : null}
                     {chart.birth_place ? <span className="truncate">{chart.birth_place}</span> : null}
@@ -355,28 +334,19 @@ function CloudHistoryPanel({
   onDelete,
   onDownload,
   onRefresh,
-  onSignOut,
   sessions,
   toLocalePath,
 }: CloudHistoryPanelProps) {
   const hasSessions = sessions.length > 0
 
   return (
-    <section>
-      <div className="flex flex-col gap-4 border-b border-border/60 pb-5 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">{messages.profile.cloudHistoryTitle}</h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" disabled={isFetching} onClick={onRefresh}>
-            <RefreshCw className="size-4" />
-            {messages.profile.refresh}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onSignOut}>
-            <LogOut className="size-4" />
-            {messages.common.signOut}
-          </Button>
-        </div>
+    <section className="autumn-profile-archive" aria-labelledby="reading-archive-title">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 py-3">
+        <h2 id="reading-archive-title" className="text-sm font-semibold text-foreground">{copy.readingArchive}</h2>
+        <Button type="button" size="sm" variant="ghost" disabled={isFetching} onClick={onRefresh}>
+          <RefreshCw className={`size-3.5${isFetching ? " animate-spin" : ""}`} />
+          {messages.profile.refresh}
+        </Button>
       </div>
 
       {isLoading ? (
@@ -407,7 +377,7 @@ function CloudHistoryPanel({
           </Button>
         </div>
       ) : (
-        <div className="mt-5 space-y-3">
+        <div className="divide-y divide-border/60">
           {sessions.map((session) => (
             <SessionRecordCard
               key={session.session_id}
@@ -445,67 +415,48 @@ function SessionRecordCard({
   const isExporting = exportingId === session.session_id
   const isContinuing = continuingId === session.session_id
   const isDeleting = deletingId === session.session_id
+  const recordTitle = session.summary_text?.match(/(?:^|\n)(?:问题|Question)[:：]\s*(.+)/i)?.[1]?.trim() || session.topic_label || messages.workspace.history.noTopic
 
   return (
-    <article className="rounded-lg border border-border/60 bg-surface-elevated p-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md border border-border/60 bg-surface px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {messages.profile.sessionLabel}
-            </span>
-            <span className="rounded-md border border-border/60 bg-surface px-2 py-1 text-[11px] text-muted-foreground">
-              {formatTimestamp(session.created_at, locale)}
-            </span>
-            {session.followup_available && (
-              <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
-                {copy.followups}
-              </span>
-            )}
-          </div>
-          <h3 className="mt-3 text-base font-semibold text-foreground">
-            {session.topic_label ?? messages.workspace.history.noTopic}
+    <article className="autumn-profile-record py-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold text-foreground" title={recordTitle}>
+            {recordTitle}
           </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {session.method_label ?? messages.workspace.history.noMethod}
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span>{formatTimestamp(session.created_at, locale)}</span>
+            <span>{session.method_label ?? messages.workspace.history.noMethod}</span>
+            {session.followup_available && <span className="text-primary">{copy.followups}</span>}
           </p>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={isExporting} onClick={() => onDownload(session)}>
-            <Download className="size-4" />
-            {isExporting ? messages.profile.downloading : messages.profile.download}
+        <div className="autumn-record-actions flex shrink-0 items-center gap-1">
+          <Button type="button" size="sm" variant="ghost" disabled={!session.followup_available || isContinuing} onClick={() => onContinue(session)} title={!session.followup_available ? messages.profile.noFollowupHint : undefined}>
+            {isContinuing ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowRight className="size-3.5" />}
+            {isContinuing ? messages.profile.openingSession : messages.profile.openSession}
           </Button>
-          {session.followup_available ? (
-            <Button type="button" size="sm" variant="ghost" disabled={isContinuing} onClick={() => onContinue(session)}>
-              <MessageSquare className="size-4" />
-              {isContinuing ? messages.profile.openingSession : messages.profile.openSession}
-            </Button>
-          ) : (
-            <Button type="button" size="sm" variant="ghost" disabled>
-              <MessageSquare className="size-4" />
-              {messages.profile.unavailableFollowup}
-            </Button>
-          )}
-          <Button type="button" size="icon-sm" variant="destructive" disabled={isDeleting} onClick={() => onDelete(session)} aria-label={messages.common.delete}>
-            {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+          <Button type="button" size="icon-sm" variant="ghost" disabled={isExporting} onClick={() => onDownload(session)} aria-label={isExporting ? messages.profile.downloading : messages.profile.download} title={messages.profile.download}>
+            {isExporting ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+          </Button>
+          <Button type="button" size="icon-sm" variant="ghost" className="text-muted-foreground hover:text-destructive" disabled={isDeleting} onClick={() => onDelete(session)} aria-label={messages.common.delete} title={messages.common.delete}>
+            {isDeleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
           </Button>
         </div>
       </div>
-
-      <div className="mt-4 border-t border-border/50 pt-3">
-        <p className="kicker">{copy.summaryLabel}</p>
-        <p className="mt-3 max-h-28 overflow-y-auto whitespace-pre-wrap text-sm leading-6 text-foreground/90">
-          {session.summary_text ?? messages.profile.noSummary}
-        </p>
-      </div>
-
-      {!session.ai_enabled && session.followup_available && (
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">{messages.profile.aiBootstrapHint}</p>
-      )}
-      {!session.followup_available && (
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">{messages.profile.noFollowupHint}</p>
-      )}
+      <details className="autumn-record-details group mt-2">
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 rounded-sm text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
+          <ChevronDown className="size-3 transition-transform group-open:rotate-180" />{copy.summaryLabel}
+        </summary>
+        <div className="mt-3 border-l border-border/60 pl-3">
+          <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">{session.summary_text ?? messages.profile.noSummary}</p>
+          {!session.ai_enabled && session.followup_available && (
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">{messages.profile.aiBootstrapHint}</p>
+          )}
+          {!session.followup_available && (
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">{messages.profile.noFollowupHint}</p>
+          )}
+        </div>
+      </details>
     </article>
   )
 }
@@ -786,16 +737,9 @@ export default function ProfilePage() {
   }
 
   return auth.user ? (
-    <div className="autumn-study autumn-profile mx-auto w-full max-w-7xl space-y-6">
-      <header className="autumn-page-header">
-        <div>
-          <p className="kicker">{messages.profile.kicker}</p>
-          <h1 className="autumn-page-title">{messages.profile.title}</h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">{copy.readingArchiveBody}</p>
-        </div>
-      </header>
-
-      <section className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+    <div className="autumn-study autumn-profile mx-auto w-full max-w-7xl">
+      <header className="autumn-profile-header flex flex-col gap-4 border-b border-border/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="autumn-profile-title shrink-0 text-2xl font-semibold tracking-tight text-foreground">{copy.pageTitle}</h1>
         <AccountSummaryPanel
           avatarUrl={profileAvatar}
           copy={copy}
@@ -804,10 +748,22 @@ export default function ProfilePage() {
           followupCount={followupCount}
           chartCount={charts.length}
           messages={messages}
+          onSignOut={handleSignOut}
           sessionCount={sessions.length}
           toLocalePath={toLocalePath}
         />
-        <div className="space-y-10">
+      </header>
+
+      <Tabs defaultValue="charts" className="autumn-profile-tabs mt-3">
+        <TabsList className="w-full justify-start gap-5" aria-label={copy.pageTitle}>
+          <TabsTrigger value="charts" className="flex-none">
+            {copy.chartArchive}<span className="text-xs tabular-nums text-muted-foreground">{charts.length}</span>
+          </TabsTrigger>
+          <TabsTrigger value="readings" className="flex-none">
+            {copy.readingArchive}<span className="text-xs tabular-nums text-muted-foreground">{sessions.length}</span>
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="charts">
           <ChartArchivePanel
             charts={charts}
             copy={copy}
@@ -821,6 +777,8 @@ export default function ProfilePage() {
             onRefresh={() => chartHistoryQuery.refetch()}
             toLocalePath={toLocalePath}
           />
+        </TabsContent>
+        <TabsContent value="readings">
           <CloudHistoryPanel
             continuingId={continuingId}
             copy={copy}
@@ -835,12 +793,11 @@ export default function ProfilePage() {
             onDelete={handleDelete}
             onDownload={handleDownload}
             onRefresh={() => historyQuery.refetch()}
-            onSignOut={handleSignOut}
             sessions={sessions}
             toLocalePath={toLocalePath}
           />
-        </div>
-      </section>
+        </TabsContent>
+      </Tabs>
     </div>
   ) : (
     <AuthPanel

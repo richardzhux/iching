@@ -27,7 +27,7 @@ export function HexagramRelations({ values, locale }: { values: number[]; locale
       {relations.map((item) => <button type="button" key={item.kind} aria-pressed={current.kind === item.kind} disabled={!item.entry} onClick={() => setSelected(item.kind)}>
         <span>{LABELS[item.kind][locale]}</span>
         {item.binary ? <HexagramGlyph lines={hexagramLines(item.binary)} className="w-20 gap-1.5" lineClassName="h-1.5" /> : <span className="hexagram-no-change">{locale === "zh" ? "无动爻" : "No moving lines"}</span>}
-        <strong>{item.entry?.nameZh ?? (locale === "zh" ? "本卦不变" : "Primary remains")}</strong>
+        <strong>{(locale === "zh" ? item.entry?.nameZh : item.entry?.titleEn) ?? (locale === "zh" ? "本卦不变" : "Primary remains")}</strong>
         {item.entry ? <small>{locale === "zh" ? `第 ${item.entry.number} 卦` : `${item.entry.number} · ${item.entry.titleEn}`}</small> : null}
       </button>)}
     </div>

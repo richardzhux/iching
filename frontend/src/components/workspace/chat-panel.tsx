@@ -235,7 +235,7 @@ export function ChatPanel({ session, embedded = false }: Props) {
   }
 
   return (
-    <div className={cn("surface-card flex flex-col overflow-hidden rounded-lg p-0", embedded ? "min-h-[34rem]" : "mt-4 min-h-[42rem]")}>
+    <div className={cn("surface-card flex flex-col overflow-hidden rounded-lg p-0", embedded ? "reading-chat-panel min-h-0 flex-1" : "mt-4 min-h-[42rem]")}>
       <div className="border-b border-border/50 px-4 py-3 sm:px-5">
         <div className="flex items-center justify-between gap-3">
           <div><p className="kicker">{messages.workspace.chat.title}</p><p className="mt-1 text-xs text-muted-foreground">{activeModel?.label ?? selectedChatModel ?? "—"} · {reasoningLabels[reasoning] || reasoning || "—"} · {verbosityLabels[verbosity] || verbosity || "—"}</p></div>
@@ -243,7 +243,7 @@ export function ChatPanel({ session, embedded = false }: Props) {
         </div>
         <details className="mt-3 rounded-md border border-border/50 bg-surface px-3 py-2">
           <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-semibold text-foreground"><Settings2 className="size-3.5" />{locale === "zh" ? "模型与输出设置" : "Model and output settings"}</summary>
-          <div className="mt-3 grid gap-2 md:grid-cols-4">
+          <div className={cn("mt-3 grid gap-2", embedded ? "grid-cols-2" : "md:grid-cols-4")}>
             <Select value={selectedChatModel} onValueChange={setChatModel} disabled={!modelOptions.length}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{modelOptions.map((model) => <SelectItem key={model.name} value={model.name}>{model.label}</SelectItem>)}</SelectContent></Select>
             {activeModel?.reasoning.length ? <Select value={reasoning} onValueChange={setReasoning}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{activeModel.reasoning.map((level) => <SelectItem key={level} value={level}>{reasoningLabels[level] || level}</SelectItem>)}</SelectContent></Select> : <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">{messages.workspace.cast.reasoningNoControl}</div>}
             {activeModel?.verbosity ? <Select value={verbosity} onValueChange={setVerbosity}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["low", "medium", "high"].map((level) => <SelectItem key={level} value={level}>{verbosityLabels[level]}</SelectItem>)}</SelectContent></Select> : <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">—</div>}

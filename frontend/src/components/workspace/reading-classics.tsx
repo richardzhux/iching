@@ -9,9 +9,9 @@ import type { HexSection, SessionPayload } from "@/types/api"
 function buildChapters(sections: HexSection[], locale: Locale) {
   const chapters = new Map<string, ClassicalChapter>()
   for (const section of sections) {
-    if (!section.content) continue
+    if (!section.content || (locale === "en" ? section.source !== "english_commentary" : section.source === "english_commentary")) continue
     const line = section.line_key && section.line_key !== "all" ? Number(section.line_key) : null
-    const useKind = section.line_key === "all" ? (section.hexagram_name.includes("乾") ? "yong_jiu" : "yong_liu") : null
+    const useKind = section.line_key === "all" ? ((section.hexagram_name.includes("乾") || section.hexagram_name === "The Creative") ? "yong_jiu" : "yong_liu") : null
     const key = useKind ? `use-${useKind}` : line ? `line-${line}` : "gua"
     const chapter = chapters.get(key) ?? { key, title: chapterTitle(line, useKind, locale), lineNo: line, sources: [] }
     chapter.marked = chapter.marked || (section.visible_by_default && section.importance === "primary")
@@ -33,6 +33,6 @@ export function ReadingClassics({ result, locale }: { result: SessionPayload; lo
       <button type="button" aria-pressed={type === "main"} onClick={() => setSelected("main")}>{locale === "zh" ? "本卦" : "Primary"} · {result.hex_overview.main_hexagram.name}</button>
       {result.hex_overview.changed_hexagram ? <button type="button" aria-pressed={type === "changed"} onClick={() => setSelected("changed")}>{locale === "zh" ? "变卦" : "Changed"} · {result.hex_overview.changed_hexagram.name}</button> : null}
     </div></header>
-    <ClassicalReader key={`${result.session_id}-${type}`} chapters={chapters} locale={locale} initialChapter={focused.key} heading={name} />
+    <ClassicalReader singleSource key={`${result.session_id}-${type}`} chapters={chapters} locale={locale} initialChapter={focused.key} heading={name} />
   </section>
 }

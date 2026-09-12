@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, useReducedMotion } from "framer-motion"
 import { useI18n } from "@/components/providers/i18n-provider"
-import { ArrowDown, ArrowRight } from "lucide-react"
+import { ArrowDown, ArrowRight, MessageSquare } from "lucide-react"
 import { AutumnFrame } from "@/components/autumn/autumn-frame"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +14,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Textarea } from "@/components/ui/textarea"
 import { useWorkspaceStore, type JournalStatus, type ReadingJournalEntry } from "@/lib/store"
 import { trackProductEvent } from "@/lib/analytics"
+import { HEXAGRAM_LIBRARY } from "@/lib/hexagram-library"
+import { localizedHexagramMeaning } from "@/lib/hexagram-copy"
+import { chapterTitle } from "@/lib/classical-text"
 import { sourceDisplayLabel } from "@/lib/source-labels"
 import type {
   BaziPillar,
@@ -24,7 +27,7 @@ import type {
   SessionPayload,
 } from "@/types/api"
 
-import { ChatPanel } from "./chat-panel"
+import { ReadingFollowup } from "./reading-followup"
 import { HexagramHeader } from "./hexagram-visual"
 import { NajiaTableView } from "./najia-table"
 import { ReadingClassics } from "./reading-classics"
@@ -34,11 +37,13 @@ export function ResultsPanel() {
   const { messages, locale, toLocalePath } = useI18n()
   const router = useRouter()
   const reduceMotion = useReducedMotion()
-  const result = useWorkspaceStore((state) => state.result)
+  const storedResult = useWorkspaceStore((state) => state.result)
+  const result = useMemo(() => storedResult ? readingForLocale(storedResult, locale) : null, [storedResult, locale])
   const resetSession = useWorkspaceStore((state) => state.resetSession)
-  const setPendingChatPrompt = useWorkspaceStore((state) => state.setPendingChatPrompt)
   const journal = useWorkspaceStore((state) => state.journal)
   const updateJournal = useWorkspaceStore((state) => state.updateJournal)
+  const [chatOpen, setChatOpen] = useState(true)
+  const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [showChanged, setShowChanged] = useState(false)
   const [selectedLine, setSelectedLine] = useState<number | null>(null)
   const [activeSourceId, setActiveSourceId] = useState<string | null>(null)
@@ -72,17 +77,19 @@ export function ResultsPanel() {
         <p className="autumn-intro !mb-0">{showChanged ? result.hex_overview.changed_hexagram?.explanation : result.hex_overview.main_hexagram.explanation}</p>
         {result.hex_overview.changed_hexagram ? <div className="autumn-reading-toggle"><button type="button" aria-pressed={!showChanged} onClick={() => setShowChanged(false)}>{locale === "zh" ? "本卦" : "Present"}</button><ArrowRight size={13} className="mt-1 text-muted-foreground" aria-hidden="true" /><button type="button" aria-pressed={showChanged} onClick={() => setShowChanged(true)}>{locale === "zh" ? "之卦" : "Becoming"}</button></div> : null}
         <div className="autumn-reading-question"><p className="autumn-eyebrow mb-2">{locale === "zh" ? "你问" : "You asked"}</p>{String(result.session_dict?.user_question || result.session_dict?.topic || "")}</div>
-        <p className="text-sm leading-7 text-muted-foreground">{brief.headline}</p>
+        <div className="autumn-hero-conclusion"><p className="autumn-eyebrow">{locale === "zh" ? "一句话结论" : "Conclusion"}</p><p className="mt-2 text-sm leading-7">{brief.headline}</p></div>
         <a href="#reading-meaning" className="autumn-primary mt-6">{locale === "zh" ? "展开解读" : "Explore the meaning"}<ArrowDown size={14} aria-hidden="true" /></a>
         <div className="autumn-reading-line-buttons" aria-label={locale === "zh" ? "选择一爻" : "Explore a line"}>{[...result.hex_overview.lines].sort((a, b) => a.position - b.position).map((line) => <button type="button" key={line.position} aria-label={`${locale === "zh" ? "爻" : "Line"} ${line.position}: ${line.value}${line.is_moving ? (locale === "zh" ? "，动爻" : ", changing") : ""}`} aria-pressed={selectedLine === line.position} onClick={() => setSelectedLine(line.position)}>{line.position}</button>)}</div>
         <p className="autumn-footnote" aria-live="polite">{selectedLine ? `${locale === "zh" ? "所选爻" : "Selected line"} ${selectedLine} · ${result.hex_overview.lines.find((line) => line.position === selectedLine)?.value}` : (locale === "zh" ? "轻触石爻，观其位置。金色为动爻。" : "Touch a stone line to explore. Gold marks change.")}</p>
       </AutumnFrame>
+      <div className="reading-workbench" data-chat-open={chatOpen}>
       <Card id="reading-meaning" className="autumn-reading-document text-foreground">
         <CardHeader className="flex flex-col gap-3 border-b border-border/50 pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <CardTitle className="text-lg">{locale === "zh" ? "解卦" : "Reading"}</CardTitle>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => { setChatOpen(true); setMobileChatOpen(true) }}><MessageSquare className="size-4" />{locale === "zh" ? "追问" : "Ask"}</Button>
             <Button variant="outline" size="sm" onClick={() => router.push(toLocalePath("/app"))}>
               {messages.workspace.results.backToSetup}
             </Button>
@@ -93,34 +100,15 @@ export function ResultsPanel() {
         </CardHeader>
         <CardContent>
           <nav className="reading-section-links" aria-label={locale === "zh" ? "解卦章节" : "Reading sections"}>
+            <a href="#reading-bottom-line">{locale === "zh" ? "结论与建议" : "Conclusion"}</a>
             <a href="#reading-relations">{locale === "zh" ? "卦象关系" : "Related forms"}</a>
             <a href="#reading-classics">{locale === "zh" ? "经文对读" : "Source texts"}</a>
             <a href="#reading-rationale">{locale === "zh" ? "取用与结构" : "Reading method"}</a>
-            <a href="#ai-followup">{locale === "zh" ? "继续追问" : "Follow-up"}</a>
+
           </nav>
           <div className="space-y-9 pb-2">
             <HexResultBlock result={result} brief={brief} onSourceSelect={openSourceReader} />
-            <section id="ai-followup" className="scroll-mt-24 border-t border-border/60 pt-7">
-              <div className="mb-4">
-                <p className="kicker">{locale === "zh" ? "继续解卦" : "Continue the reading"}</p>
-                <h2 className="mt-2 text-xl font-semibold text-foreground">{locale === "zh" ? "结合这份卦盘继续追问" : "Ask a follow-up from this chart"}</h2>
-              </div>
-                {brief.followup_prompts.length ? (
-                  <div className="mb-4 rounded-lg bg-surface-elevated/45 p-4">
-                    <h2 className="text-sm font-semibold text-foreground">
-                      {locale === "zh" ? "可以继续问" : "Suggested follow-ups"}
-                    </h2>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {brief.followup_prompts.map((prompt) => (
-                        <Button key={prompt} type="button" variant="outline" size="sm" onClick={() => setPendingChatPrompt(prompt)}>
-                          {prompt}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                <ChatPanel session={result} embedded />
-            </section>
+
           </div>
           <details className="mt-4 rounded-lg border border-border/50 bg-surface px-4 py-3">
             <summary className="cursor-pointer text-sm font-semibold text-foreground">
@@ -145,8 +133,45 @@ export function ResultsPanel() {
           />
         </CardContent>
       </Card>
+      <ReadingFollowup session={result} prompts={brief.followup_prompts} desktopOpen={chatOpen} onDesktopOpenChange={setChatOpen} mobileOpen={mobileChatOpen} onMobileOpenChange={setMobileChatOpen} />
+      </div>
+      <button type="button" className="reading-chat-launcher" onClick={() => { setChatOpen(true); setMobileChatOpen(true); document.getElementById("reading-meaning")?.scrollIntoView({ block: "start", behavior: "smooth" }) }}><MessageSquare size={17} />{locale === "zh" ? "追问" : "Ask"}</button>
     </motion.div>
   )
+}
+
+function readingForLocale(result: SessionPayload, locale: "zh" | "en"): SessionPayload {
+  const matches = (source?: string) => locale === "en" ? source === "english_commentary" : source !== "english_commentary"
+  const sections = (result.hex_sections ?? []).filter((section) => matches(section.source))
+  const savedBrief = result.reading_brief
+  const brief = savedBrief ? { ...savedBrief,
+    source_passages: savedBrief.source_passages?.filter((passage) => matches(passage.source)),
+    key_passages: savedBrief.key_passages?.filter((passage) => matches(passage.source)),
+  } : undefined
+  const ordered = [...result.hex_overview.lines].sort((a, b) => a.position - b.position)
+  const findEntry = (changed: boolean) => HEXAGRAM_LIBRARY.find((entry) => entry.binary === ordered.map((line) => (changed ? line.changed_value : line.value) % 2 ? "1" : "0").join(""))
+  const main = findEntry(false)
+  const changed = result.hex_overview.changed_hexagram ? findEntry(true) : undefined
+  const localHex = (entry: typeof main) => ({ name: (locale === "zh" ? entry?.nameZh : entry?.titleEn) ?? (locale === "zh" ? "卦象" : "Hexagram"), explanation: entry ? localizedHexagramMeaning(entry, locale) : "" })
+  const overview = { ...result.hex_overview, main_hexagram: localHex(main), changed_hexagram: changed ? localHex(changed) : null }
+  if (locale === "zh") return { ...result, hex_overview: overview, hex_sections: sections, reading_brief: brief }
+  const title = (section: { line_key?: string | null }) => chapterTitle(section.line_key && section.line_key !== "all" ? Number(section.line_key) : null, section.line_key === "all" ? (main?.number === 1 ? "yong_jiu" : "yong_liu") : null, locale)
+  const englishName = (name?: string) => HEXAGRAM_LIBRARY.find((entry) => entry.nameZh === name || entry.shortNameZh === name)?.titleEn ?? name ?? "Hexagram"
+  const hasChinese = (text?: string) => /[\u3400-\u9fff]/.test(text ?? "")
+  const moving = ordered.filter((line) => line.is_moving).map((line) => line.position)
+  const plain = moving.length ? `Changing lines: ${moving.join(", ")}. Read these lines alongside the primary judgment.` : "No moving lines. Read the primary judgment for the situation as it stands."
+  const englishBrief = brief ? { ...brief,
+    headline: hasChinese(brief.headline) ? `${main?.titleEn ?? "Primary hexagram"}${changed ? ` → ${changed.titleEn}` : ""}` : brief.headline,
+    plain_language: hasChinese(brief.plain_language) ? plain : brief.plain_language,
+    direction: brief.direction && !hasChinese(brief.direction.summary) ? brief.direction : undefined,
+    timing: brief.timing.filter((item) => !hasChinese(`${item.window} ${item.condition}`)),
+    actions: brief.actions.filter((item) => !hasChinese(`${item.action} ${item.cadence} ${item.signal}`)),
+    followup_prompts: brief.followup_prompts.filter((prompt) => !hasChinese(prompt)),
+    source_passages: brief.source_passages?.map((passage) => ({ ...passage, title: title(passage), hexagram_name: englishName(passage.hexagram_name), citation: `${sourceDisplayLabel(passage.source, locale)} · ${title(passage)}` })),
+    key_passages: brief.key_passages?.map((passage) => ({ ...passage, title: title(passage), hexagram_name: englishName(passage.hexagram_name), citation: `${sourceDisplayLabel(passage.source, locale)} · ${title(passage)}` })),
+  } : undefined
+  return { ...result, hex_overview: overview,
+    hex_sections: sections.map((section) => ({ ...section, title: title(section), hexagram_name: (section.hexagram_type === "main" ? main : changed)?.titleEn ?? "Hexagram" })), reading_brief: englishBrief }
 }
 
 function resolveReadingBrief(result: SessionPayload, locale: "en" | "zh"): ReadingBrief {
@@ -297,8 +322,8 @@ function decisiveSectionsFromResult(result: SessionPayload): HexSection[] {
     )
   } else if (
     movingCount === 6 &&
-    ((allValues.every((value) => value === 9) && mainName.includes("乾")) ||
-      (allValues.every((value) => value === 6) && mainName.includes("坤")))
+    ((allValues.every((value) => value === 9) && (mainName.includes("乾") || mainName === "The Creative")) ||
+      (allValues.every((value) => value === 6) && (mainName.includes("坤") || mainName === "The Receptive")))
   ) {
     candidates = sections.filter(
       (section) =>
@@ -789,9 +814,9 @@ function MechanicsInsightPanel({
           openSource: "Open source",
         }
   const decisionRule =
-    allMoving && mainName.includes("乾")
+    allMoving && (mainName.includes("乾") || mainName === "The Creative")
       ? labels.allMovingQian
-      : allMoving && mainName.includes("坤")
+      : allMoving && (mainName.includes("坤") || mainName === "The Receptive")
         ? labels.allMovingKun
         : movingLines.length
           ? labels.moving
@@ -958,9 +983,10 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
 
   return (
     <div className="mt-4 space-y-5">
+      <ReadingDecisionSummary brief={brief} />
       <HexagramHeader
         overview={result.hex_overview}
-        najiaMeta={result.najia_table?.meta}
+        najiaMeta={locale === "zh" ? result.najia_table?.meta : undefined}
         sections={result.hex_sections}
         baziText={baziText}
         elementsText={elementsText}
@@ -970,7 +996,6 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
       {castingMode && <p className="text-xs text-muted-foreground">{locale === "zh" ? "梅花取数：" : "Plum blossom formula: "}{castingMode === "original" ? (locale === "zh" ? "项目原始分钟法" : "Original project minute formula") : (locale === "zh" ? "传统农历时辰法" : "Traditional lunar / hour branch")}</p>}
       <div id="reading-relations" className="scroll-mt-24"><HexagramRelations values={[...result.hex_overview.lines].sort((a, b) => a.position - b.position).map((line) => line.value)} locale={locale} /></div>
       <ReadingClassics result={result} locale={locale} />
-      <ReadingDecisionSummary brief={brief} />
       <details id="reading-rationale" className="group scroll-mt-24 border-b border-border/60 pb-5">
         <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-base font-semibold text-foreground marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <span>{locale === "zh" ? "为什么这样断" : "Why this reading"}</span>

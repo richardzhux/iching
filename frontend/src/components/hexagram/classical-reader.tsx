@@ -38,13 +38,15 @@ export function ClassicalText({ content, source }: { content: string; source: st
   </div>
 }
 
-export function ClassicalReader({ chapters, locale, initialChapter, heading }: {
+export function ClassicalReader({ chapters, locale, initialChapter, heading, singleSource = false }: {
   chapters: ClassicalChapter[]
   locale: Locale
   initialChapter?: string
   heading?: string
+  singleSource?: boolean
 }) {
   const [activeKey, setActiveKey] = useState(initialChapter ?? chapters[0]?.key)
+  const [selectedSource, setSelectedSource] = useState<string | null>(null)
   const [hiddenSources, setHiddenSources] = useState<string[]>([])
   const root = useRef<HTMLDivElement>(null)
   const id = useId()
@@ -56,16 +58,16 @@ export function ClassicalReader({ chapters, locale, initialChapter, heading }: {
     return rank(a.key) - rank(b.key)
   })
   const visible = sources.filter((source) => !hiddenSources.includes(source.key))
-  const shownSources = visible.length ? visible : sources
+  const shownSources = singleSource ? [sources.find((source) => source.key === selectedSource) ?? sources[0]].filter(Boolean) : visible.length ? visible : sources
   const selectChapter = (key: string) => {
     setActiveKey(key)
     root.current?.scrollIntoView({ block: "start" })
   }
-  return <div className="classical-reader" ref={root}>
+  return <div className="classical-reader" data-single-source={singleSource || undefined} ref={root}>
     <nav className="classical-chapters" aria-label={locale === "zh" ? "卦辞与六爻章节" : "Judgment and line chapters"}>
       <p className="classical-nav-title">{heading ?? (locale === "zh" ? "经传对读" : "Read the sources")}</p>
       {chapters.map((item) => <button type="button" key={item.key} aria-pressed={chapter.key === item.key} aria-controls={`${id}-chapter`} onClick={() => selectChapter(item.key)}>
-        <span className="classical-chapter-number">{item.lineNo ? String(item.lineNo).padStart(2, "0") : item.key.includes("use") ? "用" : "卦"}</span>
+        <span className="classical-chapter-number">{item.lineNo ? String(item.lineNo).padStart(2, "0") : item.key.includes("use") ? (locale === "zh" ? "用" : "Use") : (locale === "zh" ? "卦" : "Text")}</span>
         <span>{item.title}</span>
         {item.marked ? <span className="classical-moving-label">{locale === "zh" ? "取用" : "Focus"}</span> : null}
       </button>)}
@@ -82,6 +84,7 @@ export function ClassicalReader({ chapters, locale, initialChapter, heading }: {
       </header>
       <div className="classical-source-switches" role="group" aria-label={locale === "zh" ? "选择对读来源" : "Choose sources to compare"}>
         {sources.map((source) => <button key={source.key} type="button" aria-pressed={shownSources.includes(source)} onClick={() => {
+          if (singleSource) { setSelectedSource(source.key); return }
           if (shownSources.length === 1 && shownSources[0].key === source.key) return
           setHiddenSources((current) => current.includes(source.key) ? current.filter((key) => key !== source.key) : [...current, source.key])
         }}><Check size={13} aria-hidden="true" /><span>{sourceName(source, locale)}</span></button>)}

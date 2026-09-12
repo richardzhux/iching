@@ -28,7 +28,7 @@ type SolarTerm = NonNullable<MetaphysicsChart["next_solar_term"]>
 type ConsumerLifeKline = NonNullable<MetaphysicsChart["consumer"]>["life_kline"]
 type BaziChartViewProps =
   | { chart: MetaphysicsChart; locale: Locale; mode: "current"; generatedAt?: never; onCompare?: never }
-  | { chart: MetaphysicsChart; locale: Locale; mode: "birth"; generatedAt: string; subjectName: string; onCompare?: () => void }
+  | { chart: MetaphysicsChart; locale: Locale; mode: "birth"; generatedAt: string; subjectName: string; onCompare?: () => void; actions?: ReactNode }
 
 function hasAvailableStatistics(chart: MetaphysicsChart) {
   return !chart.statistics.status || chart.statistics.status === "available"
@@ -276,7 +276,7 @@ export function BaziChartView(props: BaziChartViewProps) {
   const resultGeneratedAt = generatedAt
 
   if (chart.birth_profile.hour_uncertain) {
-    return <UncertainBaziView chart={chart} locale={locale} subjectName={subjectName} generatedAt={resultGeneratedAt} calculationRule={calculationRule} exportTargetId={exportTargetId} markdown={markdown} />
+    return <UncertainBaziView chart={chart} locale={locale} subjectName={subjectName} generatedAt={resultGeneratedAt} calculationRule={calculationRule} exportTargetId={exportTargetId} markdown={markdown} actions={props.actions} />
   }
 
   if (chart.consumer?.identity) {
@@ -302,25 +302,26 @@ export function BaziChartView(props: BaziChartViewProps) {
       onYearChange={(year) => { setSelectedYear(year.year); setSelectedMonthIndex(0) }}
       onMonthChange={(month) => setSelectedMonthIndex(month.index)}
       onCompare={props.onCompare}
+      actions={props.actions}
     />
   }
 
   return (
     <section className="chart-report space-y-8" aria-label={locale === "zh" ? "八字排盘结果" : "BaZi chart result"}>
-      <div data-export-exclude className="flex justify-end">
+      <header className="chart-result-heading flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{locale === "zh" ? "八字命盘" : "BaZi chart"}{subjectName ? ` · ${subjectName}` : ""}</h2><div data-export-exclude className="chart-result-actions flex flex-wrap items-center gap-2">{props.actions}
         <ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出命盘" : "Export chart"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘图片生成失败，请重试。" : "Chart image could not be generated. Try again."} safeBaseFilename={`bazi-${chart.birth_profile.input_date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败，请改用下载。" : "Copy failed. Use the download instead."} />
-      </div>
+        <ChartAssetExportButton targetId={tableExportTargetId} label={locale === "zh" ? "单独导出四柱表" : "Export pillar table"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "四柱表导出失败。" : "Pillar table export failed."} safeBaseFilename={`bazi-pillars-${chart.birth_profile.input_date}`} />
+      </div></header>
+
+      <ReportChapter id="bazi-chart" title={locale === "zh" ? "命盘" : "Chart"} intro={locale === "zh" ? "四柱、十神、藏干与神煞按列对照；左侧字段固定，手机可横向滑动。" : "Compare pillars, Ten Gods, hidden stems, and Shen Sha by column. The field column stays visible on mobile."}>
+        <div id={tableExportTargetId}><BaziProfessionalTable chart={chart} locale={locale} /></div>
+      </ReportChapter>
 
       <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={resultGeneratedAt} trustNote={trustNote} />
 
       <DisplayModeControl mode={displayMode} locale={locale} onChange={changeDisplayMode} />
 
       <ChartSectionNav locale={locale} mode={displayMode} />
-
-      <ReportChapter id="bazi-chart" title={locale === "zh" ? "命盘" : "Chart"} intro={locale === "zh" ? "四柱、十神、藏干与神煞按列对照；左侧字段固定，手机可横向滑动。" : "Compare pillars, Ten Gods, hidden stems, and Shen Sha by column. The field column stays visible on mobile."}>
-        <div data-export-exclude className="mb-3 flex justify-end"><ChartAssetExportButton targetId={tableExportTargetId} label={locale === "zh" ? "单独导出四柱表" : "Export pillar table"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "四柱表导出失败。" : "Pillar table export failed."} safeBaseFilename={`bazi-pillars-${chart.birth_profile.input_date}`} /></div>
-        <div id={tableExportTargetId}><BaziProfessionalTable chart={chart} locale={locale} /></div>
-      </ReportChapter>
 
       <ReportChapter id="bazi-synthesis" title={locale === "zh" ? "核心判断" : "Key findings"}>
         <BaziSynthesisPanel chart={chart} locale={locale} />
@@ -374,14 +375,14 @@ export function BaziChartView(props: BaziChartViewProps) {
   )
 }
 
-type ConsumerTab = "identity" | "kline" | "chart" | "simulation" | "evidence"
+type ConsumerTab = "identity" | "kline" | "simulation" | "evidence"
 
 function BaziConsumerResult({
   chart, locale, subjectName, generatedAt, calculationRule, currentCycleText, trustNote,
   exportTargetId, tableExportTargetId, markdown, periodCycles, currentYear,
   selectedCycleIndex, selectedYear, selectedMonthIndex, periodLoadingIndex, periodError,
   onCycleChange, onYearChange, onMonthChange,
-  onCompare,
+  onCompare, actions,
 }: {
   chart: MetaphysicsChart
   locale: Locale
@@ -404,6 +405,7 @@ function BaziConsumerResult({
   onYearChange: (year: PeriodYear) => void
   onMonthChange: (month: PeriodMonth) => void
   onCompare?: () => void
+  actions?: ReactNode
 }) {
   const [tab, setTab] = useState<ConsumerTab>("identity")
   const workspaceRef = useRef<HTMLElement>(null)
@@ -449,15 +451,13 @@ function BaziConsumerResult({
     .filter((item) => achievementStates.has(item.state) && item.member_ids.length > 1) as MetaphysicsAchievement[]
   const tabs: AnalysisDestination<ConsumerTab>[] = locale === "zh"
     ? [
-      { key: "identity", label: "命盘总览", description: "重点与四类主题" },
-      { key: "chart", label: "四柱结构", description: "四柱、五行、十神与神煞", count: `${chart.shen_sha.length} 项神煞 · ${chart.structure.structural_relations.length} 组结构关系` },
+      { key: "identity", label: "命盘与格局", description: "四柱、格局与主题解读" },
       { key: "simulation", label: "历法模拟", description: "完整分布与结构出现率", count: `${(chart.theme_profiles ?? []).reduce((sum, item) => sum + (item.comparisons?.length ?? 0), 0)} 项结构分布 · 四类主题` },
       { key: "kline", label: "运限与时间线", description: "大运、流年、流月联动", count: `${periodCycles.length} 段大运 · ${lifeKline.series.length} 条主题时间线` },
       { key: "evidence", label: "格局与依据", description: "成格路径、救应与古籍", count: `${consumer.claims?.length ?? 0} 条判断 · 可追溯原文` },
     ]
     : [
-      { key: "identity", label: "Overview", description: "Findings across four themes" },
-      { key: "chart", label: "Pillar structure", description: "Elements, Ten Gods, Shen Sha" },
+      { key: "identity", label: "Chart & pattern", description: "Four pillars and theme readings" },
       { key: "simulation", label: "Simulation", description: "Distributions and incidence" },
       { key: "kline", label: "Periods & timeline", description: "Cycles, years, and months" },
       { key: "evidence", label: "Pattern & evidence", description: "Formation and classical sources" },
@@ -502,7 +502,9 @@ function BaziConsumerResult({
   }
 
   return <section ref={workspaceRef} className="chart-report autumn-chart-workspace min-w-0 space-y-6" aria-label={locale === "zh" ? "八字命盘结果" : "BaZi result"}>
-    <ShareExportMenu
+    <header className="chart-result-heading flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0"><h2 className="text-xl font-semibold">{locale === "zh" ? "八字命盘" : "BaZi chart"}{subjectName ? ` · ${subjectName}` : ""}</h2><p className="mt-1 text-xs text-muted-foreground">{chart.birth_profile.input_date} · {chart.bazi}</p></div>
+      <div data-export-exclude className="chart-result-actions flex flex-wrap items-center gap-2">{actions}<ShareExportMenu
       chart={chart}
       locale={locale}
       markdown={markdown}
@@ -511,13 +513,16 @@ function BaziConsumerResult({
       klineCardId={klineCardId}
       fullReportId={exportTargetId}
       pillarTableId={tableExportTargetId}
-    />
+    /></div></header>
 
-    {tab === "identity" || tab === "kline" ? <ThemeSelector value={selectedTheme} locale={locale} onChange={setSelectedTheme} /> : null}
+    {tab === "kline" ? <ThemeSelector value={selectedTheme} locale={locale} onChange={setSelectedTheme} /> : null}
 
     <AnalysisNavigation items={tabs} value={tab} onChange={openView} label={locale === "zh" ? "八字结果主导航" : "BaZi result navigation"} />
 
-    {tab === "identity" ? <div className="autumn-overview-workspace"><div className="min-w-0 space-y-6">
+    {tab === "identity" ? <div id="bazi-overview" className="space-y-6">
+      <BaziProfessionalTable chart={chart} locale={locale} />
+      <ThemeSelector value={selectedTheme} locale={locale} onChange={setSelectedTheme} />
+      <div className="autumn-overview-workspace"><div className="min-w-0 space-y-6">
       {chart.birth_profile.hour_uncertain ? <BirthTimeSensitivity chart={chart} locale={locale} /> : null}
       <ConsumerIdentity
         profile={profile}
@@ -525,7 +530,12 @@ function BaziConsumerResult({
         selectedTheme={selectedTheme}
         comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined}
       />
-      </div><AnalysisMap items={nextSteps} onChange={openView} locale={locale} />
+      </div><AnalysisMap items={nextSteps} onChange={openView} locale={locale} /></div>
+      <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "神煞、五行与结构细节" : "Shen Sha, elements, and structure details"}</summary><div className="mt-6 space-y-7">
+        <ReportChapter title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ReportChapter>
+        <ReportChapter title={locale === "zh" ? "五行、十神与结构关系" : "Elements, Ten Gods, and relationships"}><BaziStatistics chart={chart} locale={locale} currentYear={currentYear} /></ReportChapter>
+      </div></details>
+      <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "出生资料与排盘规则" : "Birth details and chart rules"}</summary><div className="mt-6 space-y-7"><BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />{hasAvailableStatistics(chart) ? <ComparisonUniverseBar statistics={chart.statistics} locale={locale} /> : <StatisticsUnavailable locale={locale} />}<p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {baziRuleVersionSummary(chart, locale)}</p></div></details>
     </div> : null}
 
     {tab === "simulation" ? (hasAvailableStatistics(chart) ? <BaziSimulationExplorer chart={chart} locale={locale} /> : <StatisticsUnavailable locale={locale} />) : null}
@@ -542,13 +552,6 @@ function BaziConsumerResult({
       <BaziPeriodInsightPanel cycle={selectedCycle} year={selectedYearRecord} month={selectedMonthRecord} selectedTheme={selectedTheme} locale={locale} /></div>
     </div> : null}
 
-    {tab === "chart" ? <div className="space-y-9">
-      <details><summary>{locale === "zh" ? "出生资料与排盘口径" : "Birth details and calculation method"} · {subjectName || chart.bazi}</summary><BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} /></details>
-      <ReportChapter title={locale === "zh" ? "四柱命盘" : "Four pillars"} intro={locale === "zh" ? "四柱、十神、藏干、神煞与状态集中在同一张专业表。" : "Pillars, Ten Gods, hidden stems, and Shen Sha in one table."}><BaziProfessionalTable chart={chart} locale={locale} /></ReportChapter>
-      <ReportChapter title={locale === "zh" ? "神煞全表" : "Shen Sha"}><ShenShaPanel chart={chart} locale={locale} /></ReportChapter>
-      <ReportChapter title={locale === "zh" ? "五行、十神与结构关系" : "Elements, Ten Gods, and relationships"}><BaziStatistics chart={chart} locale={locale} currentYear={currentYear} /></ReportChapter>
-      <details className="rounded-2xl border border-border/60 bg-surface px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-primary">{locale === "zh" ? "查看排盘规则与原始统计" : "Chart rules and raw statistics"}</summary><div className="mt-6 space-y-7">{hasAvailableStatistics(chart) ? <ComparisonUniverseBar statistics={chart.statistics} locale={locale} /> : null}{hasAvailableStatistics(chart) ? null : <StatisticsUnavailable locale={locale} />}<p className="text-xs leading-5 text-muted-foreground">{Object.values(chart.birth_profile.engines).join(" · ")} · {baziRuleVersionSummary(chart, locale)}</p></div></details>
-    </div> : null}
     <BaziExportCanvas exportTargetId={exportTargetId} chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} consumerProfile={profile} lifeKline={lifeKline} periodCycles={periodCycles} />
     <BaziConsumerShareCanvases
       chart={chart}
@@ -594,7 +597,7 @@ function ShareExportMenu({
 }) {
   const date = chart.birth_profile.input_date
   return (
-    <details data-export-exclude className="relative ml-auto w-fit max-w-full">
+    <details data-export-exclude className="chart-share-menu relative w-fit max-w-full">
       <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-xl border border-border/60 bg-surface px-4 py-2.5 text-sm font-semibold shadow-sm transition hover:border-primary/45 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
         <Share2 aria-hidden="true" className="size-4" />
         {locale === "zh" ? "分享与导出" : "Share & export"}
@@ -844,10 +847,10 @@ function BaziPatternSummary({ chart, locale, staticMode = false }: { chart: Meta
   )
 }
 
-function UncertainBaziView({ chart, locale, subjectName, generatedAt, calculationRule, exportTargetId, markdown }: { chart: MetaphysicsChart; locale: Locale; subjectName: string; generatedAt: string; calculationRule: string; exportTargetId: string; markdown: string }) {
+function UncertainBaziView({ chart, locale, subjectName, generatedAt, calculationRule, exportTargetId, markdown, actions }: { chart: MetaphysicsChart; locale: Locale; subjectName: string; generatedAt: string; calculationRule: string; exportTargetId: string; markdown: string; actions?: ReactNode }) {
   return <>
     <section className="chart-report space-y-7" aria-label={locale === "zh" ? "时辰待定八字分析" : "BaZi analysis with uncertain hour"}>
-      <div className="flex justify-end"><ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出稳定分析" : "Export stable analysis"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "图片生成失败，请重试。" : "Image generation failed. Try again."} safeBaseFilename={`bazi-stable-${chart.birth_profile.input_date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败" : "Copy failed"} /></div>
+      <header className="chart-result-heading flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{locale === "zh" ? "八字命盘 · 时辰待定" : "BaZi chart · uncertain hour"}</h2><div data-export-exclude className="chart-result-actions flex flex-wrap items-center gap-2">{actions}<ChartExportButton targetId={exportTargetId} markdown={markdown} label={locale === "zh" ? "导出稳定分析" : "Export stable analysis"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "图片生成失败，请重试。" : "Image generation failed. Try again."} safeBaseFilename={`bazi-stable-${chart.birth_profile.input_date}`} copyLabel={locale === "zh" ? "复制 Markdown" : "Copy Markdown"} copySuccess={locale === "zh" ? "Markdown 已复制" : "Markdown copied"} copyError={locale === "zh" ? "复制失败" : "Copy failed"} /></div></header>
       <UncertainBaziContent chart={chart} locale={locale} subjectName={subjectName} generatedAt={generatedAt} calculationRule={calculationRule} />
     </section>
     <div aria-hidden="true" inert className="chart-export-stage">

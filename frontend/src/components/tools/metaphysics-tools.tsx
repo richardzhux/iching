@@ -131,6 +131,18 @@ function hasCurrentBaziReference(chart: MetaphysicsChart) {
     && Boolean(chart.structure?.patterns?.rule_coverage)
 }
 
+function hasCurrentBaziPeriods(chart: MetaphysicsChart) {
+  // Current labels change at exact solar-term and dayun boundaries, not January 1.
+  if (chart.birth_profile?.dayun?.status !== "available") return true
+  const now = Date.now()
+  const containsNow = (period: { start_timestamp?: string; end_timestamp?: string } | null | undefined) =>
+    Boolean(period?.start_timestamp && period.end_timestamp
+      && Date.parse(period.start_timestamp) <= now && now < Date.parse(period.end_timestamp))
+  return containsNow(chart.period_layers?.current?.year)
+    && containsNow(chart.period_layers?.current?.month)
+    && containsNow(chart.period_layers?.dayun?.find((cycle) => cycle.is_current))
+}
+
 function requestFromSavedForm(form: PersistedChartForm): Parameters<typeof calculateMetaphysicsChart>[0] {
   const lunar = form.baziCalendar === "lunar"
   const [year, month, day] = form.lunarBirthDate.split("-").map(Number)
@@ -153,6 +165,7 @@ type PersistedMetaphysicsWorkspace = {
     form: PersistedChartForm
     chartId: string | null
     subjectId: string | null
+    sourceRecordUpdatedAt?: string
   }
   ziwei?: {
     normalizedInput: ZiweiNormalizedInput
@@ -579,7 +592,7 @@ export function MetaphysicsTools() {
     const workspace = readPersistedWorkspace()
     const savedBazi = workspace.bazi
     if (savedBazi && (savedBazi.result?.chart?.derived_schema_version ?? 0) >= 3 && hasCompleteBaziArchiveChart(savedBazi.result.chart)) {
-      if (hasCurrentBaziReference(savedBazi.result.chart)) setBirthResult(savedBazi.result)
+      if (hasCurrentBaziReference(savedBazi.result.chart) && hasCurrentBaziPeriods(savedBazi.result.chart)) setBirthResult(savedBazi.result)
       else {
         setBirthLoading(true)
         void calculateMetaphysicsChart(requestFromSavedForm(savedBazi.form)).then((chart) => {
@@ -637,6 +650,7 @@ export function MetaphysicsTools() {
   }, [])
 
   useEffect(() => {
+    if (activeTab !== "current") return
     let cancelled = false
     let timer: number | undefined
     const load = async () => {
@@ -658,7 +672,7 @@ export function MetaphysicsTools() {
       cancelled = true
       if (timer !== undefined) window.clearTimeout(timer)
     }
-  }, [timezone])
+  }, [timezone, activeTab])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -789,9 +803,17 @@ export function MetaphysicsTools() {
       const snapshot = record.result_snapshot as { chart?: MetaphysicsChart; generated_at?: string; subject_name?: string }
       if (!snapshot.chart) throw new Error(locale === "zh" ? "八字命盘快照不完整。" : "The BaZi snapshot is incomplete.")
       let chart = snapshot.chart
+      // Reuse a locally refreshed archive only after checking its server revision.
+      const cached = readPersistedWorkspace().bazi
+      if (cached?.chartId === record.id && cached.sourceRecordUpdatedAt === record.updated_at
+        && hasCompleteBaziArchiveChart(cached.result.chart)
+        && hasCurrentBaziReference(cached.result.chart) && hasCurrentBaziPeriods(cached.result.chart)) {
+        chart = cached.result.chart
+      }
       const calculationRequest = record.input_snapshot.calculation_request as Parameters<typeof calculateMetaphysicsChart>[0] | undefined
       const snapshotSchemaVersion = Math.max(record.schema_version ?? 0, chart.derived_schema_version ?? 0)
-      if (snapshotSchemaVersion < 6 || !hasCurrentBaziReference(chart)) {
+      const requiresRuleUpgrade = snapshotSchemaVersion < 6 || !hasCurrentBaziReference(chart)
+      if (requiresRuleUpgrade || !hasCurrentBaziPeriods(chart)) {
         if (!calculationRequest && chart.birth_profile?.hour_uncertain) {
           setBirthResult(null)
           setIncompleteBaziRecord({ kind: "hour-missing", subjectName: snapshot.subject_name ?? subjectName, birthTimestamp: record.subject.birth_local_timestamp })
@@ -803,7 +825,7 @@ export function MetaphysicsTools() {
         }
         if (!calculationRequest) throw new Error(locale === "zh" ? "旧命盘缺少可重算的原始参数。" : "This legacy chart lacks the original calculation inputs.")
         chart = await calculateMetaphysicsChart({ ...calculationRequest, reference_timestamp: new Date().toISOString(), include_period_details: false })
-        toast.info(locale === "zh" ? "已按新版规则临时补算；原档案仍保留旧结果，重新保存后升级。" : "Recomputed with the new rules for this view. The stored legacy result remains unchanged until you save again.")
+        if (requiresRuleUpgrade) toast.info(locale === "zh" ? "已按新版规则临时补算；原档案仍保留旧结果，重新保存后升级。" : "Recomputed with the new rules for this view. The stored legacy result remains unchanged until you save again.")
       }
       if (!hasCompleteBaziArchiveChart(chart)) {
         setBirthResult(null)
@@ -825,6 +847,7 @@ export function MetaphysicsTools() {
         form: restoredForm,
         chartId: record.id,
         subjectId: record.subject_id,
+        sourceRecordUpdatedAt: record.updated_at,
       })
     } else {
       const snapshot = record.result_snapshot as {
@@ -1331,8 +1354,7 @@ export function MetaphysicsTools() {
           {incompleteBaziRecord ? <aside role="alert" className="rounded-xl border border-border/60 bg-surface p-4"><h2 className="text-sm font-semibold">{incompleteBaziRecord.kind === "corrupt" ? (locale === "zh" ? "这份命盘档案不完整" : "This chart archive is incomplete") : (locale === "zh" ? "这份旧档案缺少准确时辰" : "This legacy record lacks an exact birth hour")}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{incompleteBaziRecord.subjectName || (locale === "zh" ? "匿名命主" : "Anonymous")} · {incompleteBaziRecord.birthTimestamp}</p><p className="mt-2 text-xs leading-5 text-muted-foreground">{incompleteBaziRecord.kind === "corrupt" ? (locale === "zh" ? "为避免显示残缺或错误内容，旧快照未被打开。请核对下方出生资料并重新排盘。" : "The saved snapshot was not opened to avoid showing partial or incorrect content. Check the birth details below and recalculate.") : (locale === "zh" ? "完整四柱、运限、神煞和统计暂不展示。请在下方补充准确出生时间后重新生成。" : "The full chart, periods, Shen Sha, and statistics are withheld. Add an exact birth time below to recalculate.")}</p></aside> : null}
           {birthResult ? (
             <>
-              <ChartPersistenceBar copy={copy} isSaving={savingType === "bazi"} isSaved={Boolean(activeBaziChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => { const saved = readPersistedWorkspace().bazi; if (saved) applyPersistedForm(saved.form); setBaziEditorOpen(true) }} onNew={() => startNewChart("bazi")} />
-              <BaziChartView chart={displayBirthChart ?? birthResult.chart} generatedAt={birthResult.generatedAt} subjectName={birthResult.subjectName} locale={locale} mode="birth" onCompare={() => openComparison("bazi")} />
+              <BaziChartView actions={<><Button type="button" size="icon-sm" variant="ghost" title={copy.current} aria-label={copy.current} onClick={() => changeActiveTab("current")}><CalendarClock className="size-4" /></Button><ChartPersistenceBar copy={copy} isSaving={savingType === "bazi"} isSaved={Boolean(activeBaziChartId)} isAuthenticated={Boolean(auth.user)} onEdit={() => { const saved = readPersistedWorkspace().bazi; if (saved) applyPersistedForm(saved.form); setBaziEditorOpen(true) }} onNew={() => startNewChart("bazi")} /></>} chart={displayBirthChart ?? birthResult.chart} generatedAt={birthResult.generatedAt} subjectName={birthResult.subjectName} locale={locale} mode="birth" onCompare={() => openComparison("bazi")} />
             </>
           ) : null}
           <details data-export-exclude open={baziEditorOpen} onToggle={(event) => setBaziEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
@@ -1349,8 +1371,7 @@ export function MetaphysicsTools() {
           </div>
         </TabsContent>
         <TabsContent value="ziwei" className="mt-4 space-y-4">
-          {ziweiResult ? <ChartPersistenceBar copy={copy} isSaving={savingType === "ziwei" || ziweiPeriodSavePending} isSaved={Boolean(activeZiweiChartId) && !ziweiPeriodSaveError} saveError={ziweiPeriodSaveError} isAuthenticated={Boolean(auth.user)} onEdit={ziweiResult.archiveMode === "standard" ? () => { const saved = readPersistedWorkspace().ziwei; if (saved) applyPersistedForm(saved.form); setZiweiEditorOpen(true) } : undefined} onNew={() => startNewChart("ziwei")} /> : null}
-          {ziweiResult ? <ZiweiChartView chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} consumer={displayZiweiConsumer ?? ziweiResult.consumer} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} statistics={ziweiResult.statistics} statisticsStatus={ziweiResult.statisticsStatus} statisticsError={ziweiResult.statisticsError} archiveMode={ziweiResult.archiveMode} onHoroscopeDateChange={changeZiweiHoroscopeDate} onCreateStandardCopy={createStandardZiweiCopy} onCompare={() => openComparison("ziwei")} /> : null}
+          {ziweiResult ? <ZiweiChartView actions={<ChartPersistenceBar copy={copy} isSaving={savingType === "ziwei" || ziweiPeriodSavePending} isSaved={Boolean(activeZiweiChartId) && !ziweiPeriodSaveError} saveError={ziweiPeriodSaveError} isAuthenticated={Boolean(auth.user)} onEdit={ziweiResult.archiveMode === "standard" ? () => { const saved = readPersistedWorkspace().ziwei; if (saved) applyPersistedForm(saved.form); setZiweiEditorOpen(true) } : undefined} onNew={() => startNewChart("ziwei")} />} chart={ziweiResult.chart} horoscope={ziweiResult.horoscope} consumer={displayZiweiConsumer ?? ziweiResult.consumer} horoscopeDate={ziweiResult.horoscopeDate} generatedAt={ziweiResult.generatedAt} locale={locale} provenance={ziweiResult.provenance} subjectName={ziweiResult.subjectName} statistics={ziweiResult.statistics} statisticsStatus={ziweiResult.statisticsStatus} statisticsError={ziweiResult.statisticsError} archiveMode={ziweiResult.archiveMode} onHoroscopeDateChange={changeZiweiHoroscopeDate} onCreateStandardCopy={createStandardZiweiCopy} onCompare={() => openComparison("ziwei")} /> : null}
           {!ziweiResult || ziweiResult.archiveMode === "standard" ? <details id="ziwei-edit-details" data-export-exclude open={ziweiEditorOpen} onToggle={(event) => setZiweiEditorOpen(event.currentTarget.open)} className="border-t border-border/60 pt-4">
             <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{ziweiResult ? copy.editDetails : copy.ziweiBasicSettings}</summary>
             <div className="mt-4 space-y-4">
@@ -1413,8 +1434,8 @@ function ChartPersistenceBar({ copy, isSaving, isSaved, saveError = false, isAut
 }) {
   const status = isSaving ? copy.savingCloud : saveError ? copy.saveFailed : isSaved ? copy.savedCloud : copy.loginToSave
   return (
-    <div data-export-exclude className="flex flex-col gap-3 border-y border-border/60 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+    <div data-export-exclude className="chart-persistence-actions">
+      <p className="chart-save-status flex items-center gap-2 text-xs text-muted-foreground">
         {isSaving ? <Loader2 className="size-3.5 animate-spin text-primary" /> : isSaved ? <Check className="size-3.5 text-primary" /> : <Cloud className="size-3.5" />}
         {status}
       </p>
