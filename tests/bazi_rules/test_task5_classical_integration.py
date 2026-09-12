@@ -246,6 +246,47 @@ def test_every_lifecycle_reference_is_path_local_to_its_pattern() -> None:
             assert by_id[rescue_id].stage == "rescue"
 
 
+def test_source_zhao_example_uses_hour_blade_without_becoming_month_blade() -> None:
+    # 論偏官: 有煞無食制而用刃當者，如戊辰甲寅戊寅戊午趙員外命是也。
+    pillars = [
+        {"label": label, "stem": text[0], "branch": text[1], "text": text}
+        for label, text in zip("年月日时", ("戊辰", "甲寅", "戊寅", "戊午"))
+    ]
+    result = evaluate_pattern_set(
+        build_rule_evaluation_context(build_bazi_fact_graph(pillars)),
+        load_packaged_shen_registry(),
+    )
+    killing = result.by_id("seven_killings")
+    assert killing.candidate is TruthValue.TRUE
+    assert killing.status == "formed"
+    assert next(path for path in killing.paths if path.path_id == "killing_blade_no_output").formation_truth is TruthValue.TRUE
+    assert result.by_id("yang_blade").candidate is TruthValue.FALSE
+
+
+@pytest.mark.parametrize(
+    ("pattern_id", "texts"),
+    (
+        ("month_prosperity", ("丙子", "庚寅", "甲辰", "甲子")),
+        ("month_robbery", ("乙丑", "辛巳", "己卯", "己巳")),
+    ),
+)
+def test_lu_robbery_killing_control_accepts_adjacent_actual_control(
+    pattern_id: str, texts: tuple[str, ...],
+) -> None:
+    # 祿劫用煞必須制伏: actual control is required; adjacency is not prohibited.
+    pillars = [
+        {"label": label, "stem": text[0], "branch": text[1], "text": text}
+        for label, text in zip("年月日时", texts)
+    ]
+    context = build_rule_evaluation_context(build_bazi_fact_graph(pillars))
+    registry = load_packaged_shen_registry()
+    path = next(
+        path for path in evaluate_pattern_set(context, registry).by_id(pattern_id).paths
+        if path.path_id == "killing_control"
+    )
+    assert path.formation_truth is TruthValue.TRUE
+
+
 def test_task4_direct_officer_registry_is_only_extended_by_candidate_pair() -> None:
     registry = load_packaged_shen_registry()
     direct_officer_ids = {

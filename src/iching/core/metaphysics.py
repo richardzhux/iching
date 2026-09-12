@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 import sxtwl
 from lunar_python import Lunar as LunarCalendar
 from lunar_python import Solar as SolarCalendar
+from lunar_python.eightchar import LiuNian
 
 from iching.core.bazi_patterns import assess_patterns
 from iching.core.bazi_rules.adapter import (
@@ -1216,7 +1217,15 @@ def _dayun_payload(
             or cycle_index == period_cycle_index
         )
         expand_next_cycle = cycle_is_current
-        for liu_nian in cycle.getLiuNian():
+        annual_periods = cycle.getLiuNian()
+        sampled_years = {period.getYear() for period in annual_periods}
+        # The library assigns whole calendar years to each cycle. Between
+        # Li Chun and an exact cycle handoff, the active year can belong to
+        # the neighboring library cycle while this cycle is still active.
+        if cycle_is_current and reference_year not in sampled_years:
+            annual_periods.append(LiuNian(cycle, reference_year - cycle.getStartYear()))
+            annual_periods.sort(key=lambda period: period.getYear())
+        for liu_nian in annual_periods:
             year_start, year_end, month_boundaries = flow_boundaries(liu_nian.getYear())
             year_is_current = cycle_is_current and year_start <= reference < year_end
             year_ganzhi = liu_nian.getGanZhi()
@@ -1363,7 +1372,16 @@ def _dayun_payload(
             ),
             "years": years,
         }
-        kline_cycles.append(cycle_payload)
+        # Keep one original sample per year in the experimental activity
+        # baseline; the extra current-period view must not duplicate a year.
+        kline_cycles.append({
+            **cycle_payload,
+            "years": [
+                {**year, "is_current": year["year"] == reference_year}
+                for year in years
+                if year["year"] in sampled_years
+            ],
+        })
         cycles.append(
             cycle_payload if should_expand_cycle else {**cycle_payload, "years": []}
         )
@@ -1450,10 +1468,6 @@ def build_metaphysics_chart(
         if use_true_solar_time
         else (effective_local, 0.0)
     )
-    pillar_date = calculation_time
-    if day_boundary == "forward" and calculation_time.hour >= 23:
-        pillar_date = calculation_time + timedelta(days=1)
-
     calendar_facts = calculate_calendar_facts(
         calculation_time,
         timezone_name=timezone_name,
@@ -1462,7 +1476,9 @@ def build_metaphysics_chart(
     )
     if calendar_facts.quality["status"] == "conflict":
         raise ValueError("这个出生时间正处于换柱敏感区，请确认出生时间后继续。")
-    solar_day = sxtwl.fromSolar(pillar_date.year, pillar_date.month, pillar_date.day)
+    # The lunar birth date describes the entered civil date. The selected
+    # BaZi day boundary and solar-clock correction only affect the pillars.
+    solar_day = sxtwl.fromSolar(local.year, local.month, local.day)
     year_gz = calendar_facts.year_gz
     month_gz = calendar_facts.month_gz
     day_gz = calendar_facts.day_gz

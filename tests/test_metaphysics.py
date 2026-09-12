@@ -184,6 +184,7 @@ def test_late_zi_hour_day_boundary_is_explicit() -> None:
     assert forward_day["pillars"][2]["text"] == "乙丑"
     assert current_day["pillars"][3]["branch"] == "子"
     assert forward_day["pillars"][3]["branch"] == "子"
+    assert current_day["lunar_date"] == forward_day["lunar_date"] == "2023年冬月二十"
 
 
 def test_true_solar_time_and_invalid_timezone() -> None:
@@ -240,6 +241,13 @@ def test_current_dayun_changes_at_the_exact_start_instant() -> None:
     after_current = next(item for item in after["period_layers"]["dayun"] if item["is_current"])
     assert before_current["index"] == 1
     assert after_current["index"] == 2
+    for chart, current_cycle in ((before, before_current), (after, after_current)):
+        assert chart["period_layers"]["current"]["year"]["year"] == 2018
+        assert chart["period_layers"]["current"]["month"]["ganzhi"] == "甲寅"
+        assert next(year for year in current_cycle["years"] if year["is_current"])["year"] == 2018
+        for series in chart["consumer"]["life_kline"]["series"]:
+            years = [point["year"] for point in series["points"]]
+            assert len(years) == len(set(years))
 
 
 def test_compact_periods_cover_an_older_users_current_and_next_dayun() -> None:

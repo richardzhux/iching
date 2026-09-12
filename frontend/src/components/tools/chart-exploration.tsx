@@ -14,12 +14,11 @@ export function AnalysisNavigation<K extends string>({ items, value, onChange, l
   </nav>
 }
 
-export function AnalysisMap<K extends string>({ items, onChange, locale, statistics }: { items: AnalysisDestination<K>[]; onChange: (key: K) => void; locale: "zh" | "en"; statistics?: MetaphysicsStatistics | null }) {
-  return <aside className="autumn-analysis-map" aria-label={locale === "zh" ? "命盘分析地图" : "Chart analysis map"}>
-    <p className="kicker">{locale === "zh" ? "继续探索这张盘" : "EXPLORE THIS CHART"}</p>
-    <h2>{locale === "zh" ? "从结论，走进依据。" : "Follow the evidence."}</h2>
+export function AnalysisMap<K extends string>({ items, onChange, locale }: { items: AnalysisDestination<K>[]; onChange: (key: K) => void; locale: "zh" | "en" }) {
+  return <aside className="autumn-analysis-map" aria-label={locale === "zh" ? "继续了解命盘" : "Explore the reading"}>
+    <p className="kicker">{locale === "zh" ? "接着了解" : "EXPLORE FURTHER"}</p>
+    <h2>{locale === "zh" ? "变化与依据" : "Changes and evidence"}</h2>
     <div>{items.map((item) => <button type="button" key={item.key} onClick={() => onChange(item.key)}><span><strong>{item.label}</strong><small>{item.description}</small>{item.count ? <em>{item.count}</em> : null}</span><ArrowUpRight aria-hidden="true" className="size-4 shrink-0" /></button>)}</div>
-    {statistics && (!statistics.status || statistics.status === "available") ? <p className="autumn-analysis-footnote"><strong>{statistics.baseline.unique_state_count?.toLocaleString()}</strong> {locale === "zh" ? "个历法状态作为结构对照" : "calendar states in the structural reference"}<br />{statistics.baseline.start.slice(0, 4)}–{statistics.baseline.end.slice(0, 4)}</p> : null}
   </aside>
 }
 

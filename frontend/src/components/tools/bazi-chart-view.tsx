@@ -449,19 +449,25 @@ function BaziConsumerResult({
     .filter((item) => achievementStates.has(item.state) && item.member_ids.length > 1) as MetaphysicsAchievement[]
   const tabs: AnalysisDestination<ConsumerTab>[] = locale === "zh"
     ? [
-      { key: "identity", label: "命盘总览", description: "结论与人生路径" },
+      { key: "identity", label: "命盘总览", description: "重点与四类主题" },
       { key: "chart", label: "四柱结构", description: "四柱、五行、十神与神煞", count: `${chart.shen_sha.length} 项神煞 · ${chart.structure.structural_relations.length} 组结构关系` },
       { key: "simulation", label: "历法模拟", description: "完整分布与结构出现率", count: `${(chart.theme_profiles ?? []).reduce((sum, item) => sum + (item.comparisons?.length ?? 0), 0)} 项结构分布 · 四类主题` },
       { key: "kline", label: "运限与时间线", description: "大运、流年、流月联动", count: `${periodCycles.length} 段大运 · ${lifeKline.series.length} 条主题时间线` },
       { key: "evidence", label: "格局与依据", description: "成格路径、救应与古籍", count: `${consumer.claims?.length ?? 0} 条判断 · 可追溯原文` },
     ]
     : [
-      { key: "identity", label: "Overview", description: "Reading and life paths" },
+      { key: "identity", label: "Overview", description: "Findings across four themes" },
       { key: "chart", label: "Pillar structure", description: "Elements, Ten Gods, Shen Sha" },
       { key: "simulation", label: "Simulation", description: "Distributions and incidence" },
       { key: "kline", label: "Periods & timeline", description: "Cycles, years, and months" },
       { key: "evidence", label: "Pattern & evidence", description: "Formation and classical sources" },
     ]
+  const nextSteps = tabs.filter((item) => item.key === "kline" || item.key === "evidence").map((item) => ({
+    ...item,
+    label: item.key === "kline"
+      ? (locale === "zh" ? "这一阶段有哪些变化？" : "What changes in this period?")
+      : (locale === "zh" ? "这些判断从何而来？" : "What supports these findings?"),
+  }))
   const selectedCycle = periodCycles.find((cycle) => cycle.index === selectedCycleIndex)
   const selectedYearRecord = selectedCycle?.years.find((year) => year.year === selectedYear)
   const selectedMonthRecord = selectedYearRecord?.months.find((month) => month.index === selectedMonthIndex)
@@ -483,7 +489,7 @@ function BaziConsumerResult({
     try {
       const expanded = await calculateMetaphysicsChart({ ...request, include_period_details: true, period_cycle_index: null })
       if (requestGeneration !== fullLifeRequestGeneration.current) return false
-      if (!expanded.consumer?.life_kline.series.some((series) => series.points.length > 10)) throw new Error(locale === "zh" ? "完整人生走势暂时未生成。" : "The full-life series is not available yet.")
+      if (!expanded.consumer?.life_kline.series.some((series) => series.points.length > 10)) throw new Error(locale === "zh" ? "完整范围的结构走势暂时未生成。" : "The full-range structural activity series is not available yet.")
       setLifeKline(expanded.consumer.life_kline)
       return true
     } catch (cause) {
@@ -519,7 +525,7 @@ function BaziConsumerResult({
         selectedTheme={selectedTheme}
         comparisonAction={onCompare ? { label: locale === "zh" ? "双人命盘比较" : "Compare two charts", onClick: onCompare } : undefined}
       />
-      </div><AnalysisMap items={tabs.filter((item) => item.key !== "identity")} onChange={openView} locale={locale} statistics={chart.statistics} />
+      </div><AnalysisMap items={nextSteps} onChange={openView} locale={locale} />
     </div> : null}
 
     {tab === "simulation" ? (hasAvailableStatistics(chart) ? <BaziSimulationExplorer chart={chart} locale={locale} /> : <StatisticsUnavailable locale={locale} />) : null}
@@ -527,7 +533,7 @@ function BaziConsumerResult({
     {tab === "evidence" ? <div className="space-y-8"><BaziPatternSummary chart={chart} locale={locale} /><BaziSynthesisPanel chart={chart} locale={locale} /><BaziDiagnosticWorkspace chart={chart} locale={locale} /><ReportChapter title={locale === "zh" ? "结构组合" : "Structure combinations"}><MetaphysicsAchievements achievements={achievements} locale={locale} /></ReportChapter></div> : null}
 
     {tab === "kline" ? <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4"><p className="text-sm text-muted-foreground">{locale === "zh" ? "四类主题的阶段活跃度，可展开完整人生范围。" : "Explore activity across four themes and the full-life range."}</p>{selectedTheme === "overall" && chart.birth_profile.period_query ? <button type="button" disabled={fullLifeLoading} onClick={async () => { if (await loadFullLifeKline()) { setOverviewFullLife(true); setSelectedTheme("career") } }} className="rounded-lg border border-border px-4 py-2 text-sm text-primary">{fullLifeLoading ? (locale === "zh" ? "正在展开…" : "Expanding…") : (locale === "zh" ? "展开完整人生时间线" : "Expand full-life timeline")}</button> : null}</div>
+      <div className="flex items-center justify-between gap-4"><p className="text-sm text-muted-foreground">{locale === "zh" ? "四类主题的阶段活跃度，可展开完整时间范围。" : "Explore activity across four themes and the full time range."}</p>{selectedTheme === "overall" && chart.birth_profile.period_query ? <button type="button" disabled={fullLifeLoading} onClick={async () => { if (await loadFullLifeKline()) { setOverviewFullLife(true); setSelectedTheme("career") } }} className="rounded-lg border border-border px-4 py-2 text-sm text-primary">{fullLifeLoading ? (locale === "zh" ? "正在展开…" : "Expanding…") : (locale === "zh" ? "展开完整时间范围" : "Expand full time range")}</button> : null}</div>
       <details className="rounded-3xl border border-dashed border-primary/40 bg-surface p-5"><summary className="cursor-pointer font-semibold">Experimental · {locale === "zh" ? "结构活跃度走势" : "Structural activity timeline"}</summary><div className="mt-5">
       {selectedTheme === "overall" ? <OverallThemeTimeline lifeKline={lifeKline} locale={locale} currentYear={currentYear} onSelectTheme={setSelectedTheme} /> : <LifeKlineChart key={`${klineChartIdentity}-${selectedTheme}-${overviewFullLife}`} initialFullLife={overviewFullLife} lifeKline={lifeKline} locale={locale} currentYear={currentYear} initialSeriesKey={selectedTheme} fullLifeLoading={fullLifeLoading} onRequestFullLife={chart.birth_profile.period_query ? loadFullLifeKline : undefined} onSeriesChange={(key) => setSelectedTheme(normalizeThemeKey(String(key)))} onYearChange={selectKlineYear} />}
       {fullLifeError ? <p role="alert" className="text-sm text-destructive">{fullLifeError}</p> : null}
@@ -594,14 +600,14 @@ function ShareExportMenu({
         {locale === "zh" ? "分享与导出" : "Share & export"}
       </summary>
       <div className="custom-scrollbar absolute right-0 z-30 mt-2 max-h-[min(70vh,42rem)] w-[min(92vw,32rem)] space-y-4 overflow-y-auto rounded-2xl border border-border/70 bg-background p-4 shadow-xl">
-        <ExportMenuRow title={locale === "zh" ? "身份卡" : "Identity card"} description={locale === "zh" ? "命格、四条路径与十二月预览" : "Pattern, four paths, and the 12-month preview"}>
-          <ChartAssetExportButton targetId={identityCardId} label={locale === "zh" ? "导出身份卡" : "Export identity card"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "身份卡生成失败。" : "Identity card could not be generated."} safeBaseFilename={`bazi-identity-${date}`} />
+        <ExportMenuRow title={locale === "zh" ? "命盘摘要" : "Chart summary"} description={locale === "zh" ? "命盘重点与四类主题解读" : "Key findings and readings across four themes"}>
+          <ChartAssetExportButton targetId={identityCardId} label={locale === "zh" ? "导出命盘摘要" : "Export chart summary"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "命盘摘要生成失败。" : "Chart summary could not be generated."} safeBaseFilename={`bazi-identity-${date}`} />
         </ExportMenuRow>
         <ExportMenuRow title={locale === "zh" ? "稀有结构组合" : "Rare combinations"} description={locale === "zh" ? "可分享的组合、状态与出现率" : "Shareable combinations, state, and incidence"}>
           <ChartAssetExportButton targetId={achievementCardId} label={locale === "zh" ? "导出组合卡" : "Export combination card"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "组合卡生成失败。" : "Combination card could not be generated."} safeBaseFilename={`bazi-combinations-${date}`} />
         </ExportMenuRow>
-        <ExportMenuRow title={locale === "zh" ? "未来窗口" : "Future window"} description={locale === "zh" ? "当前十年走势与月份驱动" : "Current ten-year trend and monthly drivers"}>
-          <ChartAssetExportButton targetId={klineCardId} label={locale === "zh" ? "导出 K 线" : "Export K-line"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "K 线图片生成失败。" : "K-line image could not be generated."} safeBaseFilename={`bazi-kline-${date}`} />
+        <ExportMenuRow title={locale === "zh" ? "结构活跃度（实验）" : "Structural activity (experimental)"} description={locale === "zh" ? "结构活跃度曲线与月份线索" : "Structural activity curves and monthly signals"}>
+          <ChartAssetExportButton targetId={klineCardId} label={locale === "zh" ? "导出活跃度走势" : "Export activity timeline"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "活跃度走势图片生成失败。" : "Activity timeline image could not be generated."} safeBaseFilename={`bazi-kline-${date}`} />
         </ExportMenuRow>
         <ExportMenuRow title={locale === "zh" ? "四柱表" : "Four-pillar table"} description={locale === "zh" ? "适合单独保存的专业排盘表" : "A standalone professional pillar table"}>
           <ChartAssetExportButton targetId={pillarTableId} label={locale === "zh" ? "导出四柱表" : "Export pillar table"} loadingLabel={locale === "zh" ? "正在生成…" : "Generating…"} errorLabel={locale === "zh" ? "四柱表导出失败。" : "Pillar table export failed."} safeBaseFilename={`bazi-pillars-${date}`} />
@@ -1240,7 +1246,7 @@ function BaziExportCanvas({ exportTargetId, chart, locale, subjectName, calculat
         {exportedConsumerProfile ? <ConsumerIdentity profile={exportedConsumerProfile} locale={locale} /> : <BaziIdentitySummary chart={chart} locale={locale} subjectName={subjectName} calculationRule={calculationRule} currentCycleText={currentCycleText} generatedAt={generatedAt} trustNote={trustNote} />}
         {chart.consumer?.achievements?.some((item) => item.member_ids.length > 1) ? <ExportSection title={locale === "zh" ? "稀有结构组合" : "Rare structure combinations"}><MetaphysicsAchievements achievements={chart.consumer.achievements.filter((item) => item.member_ids.length > 1)} locale={locale} /></ExportSection> : null}
         <ExportSection title={locale === "zh" ? "格局判断链" : "Pattern reasoning"}><BaziPatternSummary chart={chart} locale={locale} staticMode /></ExportSection>
-        {lifeKline ? <ExportSection title={locale === "zh" ? "人生 K 线" : "Life K-line"}><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} staticMode /></ExportSection> : null}
+        {lifeKline ? <ExportSection title={locale === "zh" ? "结构活跃度（实验）" : "Structural activity (experimental)"}><LifeKlineChart lifeKline={lifeKline} locale={locale} currentYear={currentYearInTimeZone(chart.timezone)} staticMode /></ExportSection> : null}
         <ExportSection title={locale === "zh" ? "四柱命盘" : "Four pillars"}><BaziProfessionalTable chart={chart} locale={locale} /></ExportSection>
         <ExportSection title={locale === "zh" ? "核心判断" : "Key findings"}><BaziSynthesisPanel chart={chart} locale={locale} staticMode /></ExportSection>
         {periodCycles?.length ? <ExportSection title={locale === "zh" ? "运限" : "Periods"}><BaziPeriodExportSummary cycles={periodCycles} chart={chart} locale={locale} /></ExportSection> : null}

@@ -33,6 +33,8 @@ const IZTRO_MAX_DATE = "2100-12-31"
 const TIMEZONES = ["Asia/Shanghai", "Asia/Hong_Kong", "Asia/Taipei", "Asia/Singapore", "Asia/Tokyo", "America/Los_Angeles", "America/New_York", "Europe/London"]
 const ZIWEI_STANDARD_CONFIG_ID = "ziwei-standard-v1"
 const METAPHYSICS_WORKSPACE_KEY = "iching-metaphysics-workspace-v1"
+// Keep cached charts aligned with the rule bundle and reference shipped in this release.
+const BAZI_PATTERN_DIGEST = "89dbfcc7eadd340e9d2d8f101d23f6236ff5ab5babd211b18754bad2b8dcd3a9"
 
 const STANDARD_ZIWEI_RULES = {
   algorithm: "default",
@@ -124,6 +126,8 @@ type PersistedChartForm = {
 
 function hasCurrentBaziReference(chart: MetaphysicsChart) {
   return chart.statistics?.baseline?.id?.startsWith("bazi-calendar-1950-2030-g5-") === true
+    && chart.rule_versions?.pattern_digest === BAZI_PATTERN_DIGEST
+    && chart.statistics.baseline.pattern_bundle_digest === BAZI_PATTERN_DIGEST
     && Boolean(chart.structure?.patterns?.rule_coverage)
 }
 
@@ -203,12 +207,17 @@ function isSupportedHoroscopeDate(value: string) {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
 }
 
-function normalizeCalendarDate(value: string) {
+function normalizeCalendarDate(value: string, calendar: "solar" | "lunar" = "solar") {
   const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(value)
   if (!match) return null
   const month = Number(match[2])
   const day = Number(match[3])
   if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  if (calendar === "solar") {
+    const date = new Date(0)
+    date.setUTCFullYear(Number(match[1]), month - 1, day)
+    if (date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
+  }
   return `${match[1]}-${pad(month)}-${pad(day)}`
 }
 
@@ -257,7 +266,7 @@ function normalizedZiweiInputFromRecord(record: MetaphysicsChartRecord, form: Re
   const legacySolarBirth = typeof form.birth_time === "string" ? form.birth_time : subjectTimestamp
   const rawDate = storedInput?.date ?? (calendar === "lunar" ? form.lunar_birth_date : legacySolarBirth.slice(0, 10)) ?? subjectTimestamp.slice(0, 10)
   const rawTime = storedInput?.time ?? (calendar === "lunar" ? form.lunar_birth_time : typeof form.birth_time === "string" ? form.birth_time.slice(11, 16) : null) ?? subjectTimestamp.slice(11, 16)
-  const date = typeof rawDate === "string" ? normalizeCalendarDate(rawDate) : null
+  const date = typeof rawDate === "string" ? normalizeCalendarDate(rawDate, calendar) : null
   const time = typeof rawTime === "string" ? normalizeExactTime(rawTime) : null
   const horoscopeDateValue = storedInput?.horoscopeDate ?? form.horoscope_date ?? fallbackHoroscopeDate
   const normalizedHoroscopeDate = typeof horoscopeDateValue === "string" && isSupportedHoroscopeDate(horoscopeDateValue) ? horoscopeDateValue : null
@@ -270,6 +279,9 @@ function normalizedZiweiInputFromRecord(record: MetaphysicsChartRecord, form: Re
 }
 
 async function instantiateStandardZiwei(input: ZiweiNormalizedInput, locale: "en" | "zh") {
+  if (!normalizeCalendarDate(input.date, input.calendar) || !normalizeExactTime(input.time) || !isSupportedHoroscopeDate(input.horoscopeDate)) {
+    throw new Error(locale === "zh" ? "出生日期、时间或运限日期无效，请修改资料后重新排盘。" : "The birth date, time, or transit date is invalid. Edit the details and generate the chart again.")
+  }
   const { astro } = await import("iztro")
   const options = {
     type: input.calendar,
@@ -296,7 +308,7 @@ export function MetaphysicsTools() {
   const auth = useAuthContext()
   const router = useRouter()
   const loadedChartRef = useRef<string | null>(null)
-  const [activeTab, setActiveTab] = useState<"current" | "bazi" | "ziwei">("current")
+  const [activeTab, setActiveTab] = useState<"current" | "bazi" | "ziwei">("bazi")
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai")
   const [currentChart, setCurrentChart] = useState<MetaphysicsChart | null>(null)
   const [currentLoading, setCurrentLoading] = useState(true)
@@ -380,7 +392,7 @@ export function MetaphysicsTools() {
   const copy = locale === "zh" ? {
     subjectName: "命主称呼",
     title: "八字与紫微命盘",
-    subtitle: "查看原局结构、古籍依据与历法出现率。",
+    subtitle: "输入出生信息，先看命盘重点，再查看四柱、阶段变化与依据。",
     current: "当前时令",
     bazi: "八字排盘",
     ziwei: "紫微斗数",
@@ -442,7 +454,7 @@ export function MetaphysicsTools() {
   } : {
     subjectName: "Chart name",
     title: "BaZi & Zi Wei Charts",
-    subtitle: "Explore chart structures, classical sources, and calendar incidence.",
+    subtitle: "Enter your birth details, start with the key findings, then explore the chart, periods, and sources.",
     current: "Current Time",
     bazi: "BaZi",
     ziwei: "Zi Wei Dou Shu",
@@ -498,7 +510,7 @@ export function MetaphysicsTools() {
     loginToSave: "Sign in to save and reopen this chart",
     saveFailed: "The chart was generated, but cloud saving failed. Try again later.",
     loadedChart: "Private chart opened.",
-    exactTimeRequired: "An exact birth hour unlocks your full identity, four theme paths, and Life K-line.",
+    exactTimeRequired: "An exact birth hour is used to check the four pillars, pattern conditions, and complete period layers.",
     standardRules: "Standard chart rules",
     standardRulesBody: "The standard method is already selected for you",
   }
@@ -579,9 +591,11 @@ export function MetaphysicsTools() {
           setBirthResult(result)
           updatePersistedWorkspace("bazi", { ...savedBazi, result })
         }).catch(() => {
-          applyPersistedForm(savedBazi.form)
+          const requestedTab = new URLSearchParams(window.location.search).get("tab")
+          const isActiveTab = requestedTab !== "ziwei" && requestedTab !== "current"
+          if (isActiveTab) applyPersistedForm(savedBazi.form)
           setBaziEditorOpen(true)
-          toast.error(locale === "zh" ? "旧命盘暂未更新成功；原资料已保留，可重新排盘。" : "The earlier chart could not be refreshed. Its inputs are preserved; calculate again to retry.")
+          if (isActiveTab) toast.error(locale === "zh" ? "旧命盘暂未更新成功；原资料已保留，可重新排盘。" : "The earlier chart could not be refreshed. Its inputs are preserved; calculate again to retry.")
         }).finally(() => setBirthLoading(false))
       }
       setActiveBaziChartId(savedBazi.chartId)
@@ -613,11 +627,14 @@ export function MetaphysicsTools() {
         })
         requestZiweiStatistics(statisticsChart, saved.generatedAt)
       }).catch(() => {
-        updatePersistedWorkspace("ziwei", null)
+        const isActiveTab = new URLSearchParams(window.location.search).get("tab") === "ziwei"
+        if (isActiveTab) applyPersistedForm(saved.form)
+        setZiweiEditorOpen(true)
+        if (isActiveTab) toast.error(locale === "zh" ? "紫微命盘暂未恢复成功；原资料已保留，可修改后重新排盘。" : "The Zi Wei chart could not be restored. Its inputs are preserved; edit them and try again.")
       })
     }
     const requestedTab = new URLSearchParams(window.location.search).get("tab")
-    const selected = requestedTab === "ziwei" ? workspace.ziwei : requestedTab === "bazi" ? workspace.bazi : null
+    const selected = requestedTab === "ziwei" ? workspace.ziwei : requestedTab !== "current" ? workspace.bazi : null
     if (selected?.form) applyPersistedForm(selected.form)
   // Restore once per page load. Locale-specific Zi Wei reconstruction is intentionally fixed to the mounted locale.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1111,7 +1128,7 @@ export function MetaphysicsTools() {
       toast.error(copy.invalidHoroscopeDate)
       return
     }
-    const date = normalizeCalendarDate(ziweiCalendar === "lunar" ? lunarBirthDate : birthTime.slice(0, 10))
+    const date = normalizeCalendarDate(ziweiCalendar === "lunar" ? lunarBirthDate : birthTime.slice(0, 10), ziweiCalendar)
     const time = normalizeExactTime(ziweiCalendar === "lunar" ? lunarBirthTime : birthTime.slice(11, 16))
     if (!date || !time) {
       toast.error(locale === "zh" ? "请输入有效日期和准确到分钟的出生时间。" : "Enter a valid date and exact birth time to the minute.")

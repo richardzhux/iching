@@ -3,7 +3,7 @@ import { ziweiLifeStars, ziweiFeatureIds, ziweiLifeFeatureLabel, ZIWEI_BASELINE_
 import type { ConsumerProfile, MetaphysicsChart, MetaphysicsStatistics, ThemeComparison } from "@/types/api"
 import type { IFunctionalAstrolabe } from "iztro/lib/astro/FunctionalAstrolabe"
 import type { IFunctionalHoroscope } from "iztro/lib/astro/FunctionalHoroscope"
-import { canonicalZiweiPalaceName, canonicalZiweiStarName } from "@/lib/ziwei-terms"
+import { canonicalZiweiPalaceName, canonicalZiweiStarName, canonicalZiweiTransformationName } from "@/lib/ziwei-terms"
 
 type Locale = "en" | "zh"
 
@@ -232,18 +232,49 @@ export function buildZiweiMarkdown(
   const allowed = new Set(ziweiFeatureIds(chart))
   const compatible = statistics?.status === "available" && statistics.baseline.id === ZIWEI_BASELINE_ID
   const metrics = compatible ? statistics.rarity_metrics.filter((metric) => allowed.has(metric.feature_id)) : []
+  const starDetails = (star: IFunctionalAstrolabe["palaces"][number]["majorStars"][number]) => [
+    canonicalZiweiStarName(star.name, locale),
+    star.brightness ? `（${star.brightness}）` : "",
+    star.mutagen ? ` · ${canonicalZiweiTransformationName(star.mutagen, locale)}` : "",
+  ].join("")
+  const periods = [
+    { label: zh ? "大限" : "Decadal", ...horoscope.decadal },
+    { label: zh ? "流年" : "Yearly", ...horoscope.yearly },
+    { label: zh ? "流月" : "Monthly", ...horoscope.monthly },
+    { label: zh ? "流日" : "Daily", ...horoscope.daily },
+    { label: zh ? "流时 · 00:00" : "Hourly · 00:00", ...horoscope.hourly },
+  ]
   return [
     `# ${subjectName.trim() || (zh ? "匿名命盘" : "Anonymous chart")} · ${zh ? "紫微命宫" : "Zi Wei life palace"}`,
     "", `${zh ? "出生日期" : "Birth date"}: ${chart.solarDate}`,
+    `${zh ? "出生农历" : "Lunar birth date"}: ${chart.lunarDate}`,
+    `${zh ? "出生时辰" : "Birth time"}: ${[chart.time, chart.timeRange].filter(Boolean).join(" · ")}`,
+    `${zh ? "性别与五行局" : "Gender and five-element class"}: ${[chart.gender, chart.fiveElementsClass].filter(Boolean).join(" · ")}`,
     ...(context?.archiveMode && context.archiveMode !== "standard" ? ["", zh ? "> 旧档案保留原始排盘设置。" : "> Legacy archive retains its original settings."] : []),
     "", `## ${zh ? "命宫主星" : "Life-palace major stars"}`, "",
     ...stars.map((star) => `- ${canonicalZiweiStarName(star.name, locale)} · ${star.brightness_label}`),
+    "", zh ? "庙、旺等亮度标签描述星曜在所处宫位的传统状态，解读时需结合其他星曜与四化。" : "Brightness labels describe a star’s traditional state in its palace and are read alongside the other stars and transformations.",
     ...(!stars.length ? [zh ? "命宫无十四主星；不借入对宫星，也不代表命运较差。" : "No major stars; opposite-palace stars are not borrowed, and this is not a life grade."] : []),
     "", `## ${zh ? "命宫出现率" : "Life-palace frequencies"}`, "",
     ...(metrics.length ? metrics.map((metric) => `- ${ziweiLifeFeatureLabel(metric.feature_id, chart, locale)}: ${metric.status === "unsupported" ? "—" : metric.display_percentage}`) : [zh ? "暂无兼容的统计参考。" : "No compatible reference available."]),
     "", zh ? "> 1950—2029 年固定历法参考，按时段持续小时加权；不是人口出生分布，出现率不代表吉凶。" : "> Fixed 1950–2029 calendar reference weighted by civil hours; not a population distribution or fortune score.",
     "", `## ${zh ? "原始十二宫" : "Original twelve palaces"}`, "",
-    ...chart.palaces.map((palace) => `- ${canonicalZiweiPalaceName(palace.name, locale)} · ${palace.heavenlyStem}${palace.earthlyBranch}: ${palace.majorStars.map((star) => `${canonicalZiweiStarName(star.name, locale)} ${star.brightness || ""}`).join(" / ") || "—"}`),
-    "", `${zh ? "所选运限日期" : "Selected period date"}: ${horoscope.solarDate}`,
+    ...chart.palaces.flatMap((palace) => [
+      `### ${canonicalZiweiPalaceName(palace.name, locale)} · ${palace.heavenlyStem}${palace.earthlyBranch}${palace.isBodyPalace ? ` · ${zh ? "身宫" : "Body palace"}` : ""}`,
+      "",
+      `- ${zh ? "主星" : "Major stars"}: ${palace.majorStars.map(starDetails).join(" / ") || (zh ? "空宫（无十四主星）" : "Empty palace (no major stars)")}`,
+      `- ${zh ? "辅星" : "Minor stars"}: ${palace.minorStars.map(starDetails).join(" / ") || "—"}`,
+      `- ${zh ? "杂曜" : "Other stars"}: ${palace.adjectiveStars.map(starDetails).join(" / ") || "—"}`,
+      "",
+    ]),
+    `## ${zh ? "所选运限" : "Selected periods"}`, "",
+    `${zh ? "查看日期 · 阳历" : "Selected date · solar calendar"}: ${horoscope.solarDate}`,
+    `${zh ? "运限农历" : "Lunar period date"}: ${horoscope.lunarDate}`, "",
+    ...periods.map((period) => {
+      const natalPalace = chart.palaces.find((palace) => palace.index === period.index)
+      const placement = natalPalace ? canonicalZiweiPalaceName(natalPalace.name, locale) : "—"
+      const transformations = period.mutagen?.map((star, index) => `${canonicalZiweiTransformationName(["化禄", "化权", "化科", "化忌"][index], locale)} ${canonicalZiweiStarName(star, locale)}`).join(" / ") || "—"
+      return `- ${period.label} · ${period.heavenlyStem}${period.earthlyBranch} · ${zh ? `本层命宫落本命${placement}` : `Life palace in natal ${placement}`} · ${transformations}`
+    }),
   ].join("\n")
 }

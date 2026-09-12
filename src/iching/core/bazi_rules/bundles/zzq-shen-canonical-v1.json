@@ -1,6 +1,6 @@
 {
   "authority_layer": "shen_core",
-  "bundle_digest": "bac491fb41eaede8257667913722a9026698bc32b0fb57ce76b9de0bb32cc1b3",
+  "bundle_digest": "89dbfcc7eadd340e9d2d8f101d23f6236ff5ab5babd211b18754bad2b8dcd3a9",
   "bundle_id": "zzq-shen-canonical-v1",
   "exclusions": [
     {
@@ -1795,14 +1795,34 @@
               {
                 "children": [
                   {
+                    "children": [
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.day.branch",
+                        "value": "午"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.hour.branch",
+                        "value": "午"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.month.branch",
+                        "value": "午"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.year.branch",
+                        "value": "午"
+                      }
+                    ],
+                    "op": "any"
+                  },
+                  {
                     "op": "fact_equals",
                     "path": "day_master.stem",
                     "value": "丙"
-                  },
-                  {
-                    "op": "fact_equals",
-                    "path": "month_command.branch",
-                    "value": "午"
                   }
                 ],
                 "op": "all"
@@ -1810,44 +1830,34 @@
               {
                 "children": [
                   {
-                    "op": "fact_equals",
-                    "path": "day_master.stem",
-                    "value": "壬"
+                    "children": [
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.day.branch",
+                        "value": "午"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.hour.branch",
+                        "value": "午"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.month.branch",
+                        "value": "午"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.year.branch",
+                        "value": "午"
+                      }
+                    ],
+                    "op": "any"
                   },
-                  {
-                    "op": "fact_equals",
-                    "path": "month_command.branch",
-                    "value": "子"
-                  }
-                ],
-                "op": "all"
-              },
-              {
-                "children": [
-                  {
-                    "op": "fact_equals",
-                    "path": "day_master.stem",
-                    "value": "庚"
-                  },
-                  {
-                    "op": "fact_equals",
-                    "path": "month_command.branch",
-                    "value": "酉"
-                  }
-                ],
-                "op": "all"
-              },
-              {
-                "children": [
                   {
                     "op": "fact_equals",
                     "path": "day_master.stem",
                     "value": "戊"
-                  },
-                  {
-                    "op": "fact_equals",
-                    "path": "month_command.branch",
-                    "value": "午"
                   }
                 ],
                 "op": "all"
@@ -1855,14 +1865,104 @@
               {
                 "children": [
                   {
-                    "op": "fact_equals",
-                    "path": "day_master.stem",
-                    "value": "甲"
+                    "children": [
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.day.branch",
+                        "value": "卯"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.hour.branch",
+                        "value": "卯"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.month.branch",
+                        "value": "卯"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.year.branch",
+                        "value": "卯"
+                      }
+                    ],
+                    "op": "any"
                   },
                   {
                     "op": "fact_equals",
-                    "path": "month_command.branch",
-                    "value": "卯"
+                    "path": "day_master.stem",
+                    "value": "甲"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.day.branch",
+                        "value": "子"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.hour.branch",
+                        "value": "子"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.month.branch",
+                        "value": "子"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.year.branch",
+                        "value": "子"
+                      }
+                    ],
+                    "op": "any"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "壬"
+                  }
+                ],
+                "op": "all"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.day.branch",
+                        "value": "酉"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.hour.branch",
+                        "value": "酉"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.month.branch",
+                        "value": "酉"
+                      },
+                      {
+                        "op": "fact_equals",
+                        "path": "pillars.year.branch",
+                        "value": "酉"
+                      }
+                    ],
+                    "op": "any"
+                  },
+                  {
+                    "op": "fact_equals",
+                    "path": "day_master.stem",
+                    "value": "庚"
                   }
                 ],
                 "op": "all"
@@ -2257,7 +2357,7 @@
       "predicate": {
         "children": [
           {
-            "adjacent": false,
+            "adjacent": null,
             "controlled_gods": [
               "七杀"
             ],
@@ -2319,7 +2419,7 @@
       "predicate": {
         "children": [
           {
-            "adjacent": false,
+            "adjacent": null,
             "controlled_gods": [
               "七杀"
             ],
@@ -2723,10 +2823,10 @@
       ]
     }
   ],
-  "source_bundle_digest": "97897a4a99cb70ecca1b40938fd198059794425b8e1e85c8055e6b8b88f17777",
+  "source_bundle_digest": "e8aeaf33643258c23536e0059fc84f64c9a5c0eb4d7e559c7832b34c7a50d66a",
   "source_provenance": [
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -2758,7 +2858,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -2790,7 +2890,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -2840,7 +2940,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -2890,7 +2990,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -2940,7 +3040,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -2972,7 +3072,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3004,7 +3104,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3036,7 +3136,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3068,7 +3168,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3100,7 +3200,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3150,7 +3250,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3200,7 +3300,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3232,7 +3332,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3264,7 +3364,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3296,7 +3396,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3328,7 +3428,7 @@
       "text_type": "damage"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3360,7 +3460,7 @@
       "text_type": "damage"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3392,7 +3492,7 @@
       "text_type": "damage"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3424,7 +3524,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3456,7 +3556,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3488,7 +3588,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3520,7 +3620,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3558,7 +3658,7 @@
       "text_type": "rescue"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3590,7 +3690,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3640,7 +3740,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3690,7 +3790,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3722,7 +3822,7 @@
       "text_type": "failure"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3754,7 +3854,7 @@
       "text_type": "failure"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3786,7 +3886,7 @@
       "text_type": "failure"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3818,7 +3918,7 @@
       "text_type": "failure"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3862,7 +3962,7 @@
       "text_type": "formation"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3894,7 +3994,7 @@
       "text_type": "rescue"
     },
     {
-      "corpus_artifact_digest": "4fe32efa2951ada1f072a9266e4239dc5c9d2a896d692ebc4c3122af2ad4ed35",
+      "corpus_artifact_digest": "f979fd1af775ca6ed3c80772bd48e92ecd1d3817046c0b2883c49c82a07db9ef",
       "corpus_manifest_digest": "fe1f1fb8923bfa8fe5a0f16cb58af1a9a7d6dc44555b76e152cc86636587eb5a",
       "layer": "shen_core",
       "production_eligible": true,
@@ -3968,7 +4068,7 @@
       "text_type": "formation"
     }
   ],
-  "source_provenance_digest": "a7e355999b08dacc14a642a48123aed471441a72f3273f7ef5b84115c1dcf67a",
+  "source_provenance_digest": "2301955b45cef7f4f7dade034a6dfaeebc3c98791343add763d21ec8c692f83f",
   "special_review_gate": {
     "double_wealth_source_id": "zzq.prop.special.gate-double-wealth",
     "id": "zzq.special-review-gate-v1",
