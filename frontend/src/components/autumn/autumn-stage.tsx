@@ -232,6 +232,7 @@ export default function AutumnStage(props: AutumnStageProps) {
       rows.forEach((row, index) => {
         const value = values[index]
         const filled = value === 6 || value === 7 || value === 8 || value === 9
+        row.group.visible = filled || Boolean(current.onLineSelect)
         const moving = value === 6 || value === 9
         const yang = Boolean(value === 7 || value === 9) !== Boolean(current.changed && moving)
         if (row.value !== (value ?? 0)) {

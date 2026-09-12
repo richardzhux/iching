@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useWorkspaceStore, type JournalStatus } from "@/lib/store"
 
-export function HistoryDrawer() {
+export function HistoryDrawer({ compact = false }: { compact?: boolean }) {
   const { locale, messages } = useI18n()
   const history = useWorkspaceStore((state) => state.history)
   const journal = useWorkspaceStore((state) => state.journal)
@@ -69,7 +69,7 @@ export function HistoryDrawer() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" className="w-full rounded-md">
+        <Button variant={compact ? "ghost" : "outline"} className={compact ? "h-9 rounded-md px-2 text-xs text-muted-foreground" : "w-full rounded-md"}>
           {messages.workspace.history.trigger} ({history.length})
         </Button>
       </SheetTrigger>

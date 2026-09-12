@@ -1,10 +1,11 @@
-import { CastWorkspace } from "@/components/workspace/cast-workspace"
+import { redirect } from "next/navigation"
 import type { Metadata } from "next"
 import { defaultLocale, isLocale } from "@/i18n/config"
 import { getMessages } from "@/i18n/get-messages"
 
 type Props = {
   params: Promise<{ locale: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -17,6 +18,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default function WorkspacePage() {
-  return <CastWorkspace />
+export default async function WorkspacePage({ params, searchParams }: Props) {
+  const { locale } = await params
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(await searchParams)) {
+    for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, item)
+  }
+  const suffix = query.toString()
+  redirect(`/${isLocale(locale) ? locale : defaultLocale}${suffix ? `?${suffix}` : ""}`)
 }

@@ -297,7 +297,11 @@ export function CastForm({ config }: Props) {
             meihuaMode: "traditional",
             manualLines: "", castingTimestamp: undefined,
           }
-        : {}),
+        : current.presetTimestamp
+          ? { useCurrentTime: true, presetTimestamp: undefined, castingTimezone: undefined, castingTimestamp: undefined, manualLines: "" }
+          : !current.manualLines
+            ? { castingTimestamp: undefined }
+            : {}),
     })
     defaultsHydrated.current = true
   }, [config, locale, setForm, storeHydrated])
@@ -418,6 +422,11 @@ export function CastForm({ config }: Props) {
     if (tossing.current || mutation.isPending || methodKey === form.methodKey) return
     clearManualLines()
     updateForm("methodKey", methodKey)
+  }
+  function changeCastingTime(values: { useCurrentTime?: boolean; customTimestamp?: string }) {
+    if (tossing.current || mutation.isPending) return
+    clearManualLines()
+    setForm({ ...values, presetTimestamp: undefined, castingTimezone: undefined })
   }
   function editManualLine(index: number, value?: number) {
     if (tossing.current || mutation.isPending) return
@@ -681,7 +690,15 @@ export function CastForm({ config }: Props) {
               <option value="original">{locale === "zh" ? "项目原始分钟法" : "Original project / minute formula"}</option>
             </select>
             <p>{locale === "zh" ? ((form.meihuaMode ?? "traditional") === "traditional" ? "取年支、农历月日与时支；同日同一时辰，所得卦相同。" : "恢复最早版本的公历取数公式；同一分钟所得卦相同。") : ((form.meihuaMode ?? "traditional") === "traditional" ? "Year branch, lunar date and hour branch. The same date and hour branch produce the same cast." : "The project's original Gregorian formula. The same minute produces the same cast.")}</p>
-            <p className="meihua-clock">{locale === "zh" ? "起卦时间：" : "Cast time: "}{form.castingTimestamp || (!form.useCurrentTime ? form.presetTimestamp || form.customTimestamp : (locale === "zh" ? "点击取上卦时锁定" : "Set when you reveal the upper trigram"))}{form.castingTimezone ? ` · ${form.castingTimezone}` : ""}</p>
+            <label htmlFor="meihua-current-time" className="flex items-center justify-between gap-3">
+              <span>{messages.workspace.cast.useCurrentTime}</span>
+              <Switch id="meihua-current-time" checked={form.useCurrentTime} onCheckedChange={(checked) => changeCastingTime({ useCurrentTime: checked, ...(!checked ? { customTimestamp: formatLocalDateTime(new Date()) } : {}) })} />
+            </label>
+            {!form.useCurrentTime && <>
+              <label htmlFor="meihua-custom-time">{locale === "zh" ? "自定时间（本机时区）" : "Custom time (device timezone)"}</label>
+              <Input id="meihua-custom-time" type="datetime-local" value={form.customTimestamp} onChange={(event) => changeCastingTime({ customTimestamp: event.target.value })} />
+            </>}
+            <p className="meihua-clock">{locale === "zh" ? (form.castingTimestamp ? "本卦已锁定时间：" : form.useCurrentTime ? "时间来源：本机当前时间 · " : "时间来源：自定时间 · ") : (form.castingTimestamp ? "Locked cast time: " : form.useCurrentTime ? "Time source: device clock · " : "Time source: custom · ")}{form.castingTimestamp || (!form.useCurrentTime ? form.presetTimestamp || form.customTimestamp : (locale === "zh" ? "点击取上卦时锁定" : "Set when you reveal the upper trigram"))}{form.castingTimezone ? ` · ${form.castingTimezone}` : ""}</p>
           </div>}
           {isMeihuaMethod && <><MeihuaSteps locale={locale} step={visibleMeihuaStep} upper={upperTrigram} lower={lowerTrigram} moving={changingLine} /><ol className="sr-only" aria-label={locale === "zh" ? "卦象六爻，自下而上" : "Hexagram lines, bottom to top"}>{displayValues.map((value, index) => <li key={index}>{index + 1}: {value || "—"}</li>)}</ol></>}
           {isMeihuaMethod && preparedCast && <MeihuaCalculation cast={preparedCast} locale={locale} />}
@@ -945,22 +962,23 @@ export function CastForm({ config }: Props) {
                   </div>
                 )}
 
-                <div className="surface-soft space-y-3 rounded-lg p-4">
+                {!isMeihuaMethod && <div className="surface-soft space-y-3 rounded-lg p-4">
                   <p className="text-sm font-medium text-foreground">{messages.workspace.cast.timeLabel}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">{messages.workspace.cast.useCurrentTime}</span>
                     <Switch
                       checked={form.useCurrentTime}
-                      onCheckedChange={(checked) => { clearManualLines(); setForm({ useCurrentTime: checked, presetTimestamp: undefined, castingTimezone: undefined }) }}
+                      disabled={isTossing || mutation.isPending}
+                      onCheckedChange={(checked) => changeCastingTime({ useCurrentTime: checked })}
                     />
                   </div>
                   <Input
                     type="datetime-local"
                     value={form.customTimestamp}
-                    disabled={form.useCurrentTime}
-                    onChange={(event) => { clearManualLines(); setForm({ customTimestamp: event.target.value, presetTimestamp: undefined, castingTimezone: undefined }) }}
+                    disabled={form.useCurrentTime || isTossing || mutation.isPending}
+                    onChange={(event) => changeCastingTime({ customTimestamp: event.target.value })}
                   />
-                </div>
+                </div>}
               </div>
             </SheetContent>
           </Sheet>

@@ -14,7 +14,7 @@ export function PrimaryNavigation({ className, mobile = false }: Props) {
   const pathname = usePathname()
   const { messages, toLocalePath } = useI18n()
   const links = [
-    { href: "/app", label: messages.nav.workspace, matches: ["/app"] },
+    { href: "/", label: messages.nav.workspace, matches: ["/", "/app"] },
     { href: "/reading", label: messages.nav.reading, matches: ["/reading"] },
     { href: "/library", label: messages.nav.library, matches: ["/library", "/hexagram"] },
     { href: "/tools", label: messages.nav.method, matches: ["/tools"] },
@@ -33,7 +33,7 @@ export function PrimaryNavigation({ className, mobile = false }: Props) {
         const localizedHref = toLocalePath(href)
         const active = matches.some((route) => {
           const localizedRoute = toLocalePath(route)
-          return pathname === localizedRoute || pathname.startsWith(`${localizedRoute}/`)
+          return pathname === localizedRoute || (route !== "/" && pathname.startsWith(`${localizedRoute}/`))
         })
         return (
           <Link

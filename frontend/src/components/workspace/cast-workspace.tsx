@@ -10,7 +10,7 @@ import { useWorkspaceStore } from "@/lib/store"
 import { BookOpen, Loader2, RotateCw } from "lucide-react"
 
 export function CastWorkspace() {
-  const { messages, toLocalePath } = useI18n()
+  const { messages, locale, toLocalePath } = useI18n()
   const hasResult = useWorkspaceStore((state) => Boolean(state.result))
   const { data, isLoading, isFetching, error, refetch } = useConfigQuery()
   const errorDetail = error instanceof Error ? error.message : messages.common.unknownError
@@ -58,9 +58,6 @@ export function CastWorkspace() {
               {messages.workspace.configRetryCta}
             </Button>
             <Button asChild type="button" variant="outline" className="rounded-md">
-              <Link href={toLocalePath("/")}>{messages.workspace.sampleReadingCta}</Link>
-            </Button>
-            <Button asChild type="button" variant="outline" className="rounded-md">
               <Link href={toLocalePath("/library")}>
                 <BookOpen className="mr-2 size-4" />
                 {messages.workspace.libraryCta}
@@ -78,15 +75,14 @@ export function CastWorkspace() {
 
   return (
     <div>
-      <CastForm config={data} />
-      <div className="mx-auto max-w-5xl space-y-4 px-6 py-8">
-      {hasResult ? (
-        <Button asChild variant="outline" className="w-full rounded-lg">
-          <Link href={toLocalePath("/reading")}>{messages.workspace.viewLastResult}</Link>
-        </Button>
-      ) : null}
-      <HistoryDrawer />
+      <div className="autumn-workspace-toolbar">
+        <span>{locale === "zh" ? "起卦" : "Cast a hexagram"}</span>
+        <div>
+          {hasResult ? <Link className="autumn-link" href={toLocalePath("/reading")}>{messages.workspace.viewLastResult}</Link> : null}
+          <HistoryDrawer compact />
+        </div>
       </div>
+      <CastForm config={data} />
     </div>
   )
 }
