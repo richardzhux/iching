@@ -485,6 +485,35 @@ def test_chat_history_uses_owner_scoped_summaries_and_keeps_legacy_labels():
 # --------------------------------------------------------------------------- #
 
 
+def test_direction_and_next_step_name_the_hexagram_they_describe():
+    """They used to be one constant sentence per stance, identical for all 64."""
+    from datetime import datetime
+
+    from iching.services.session import SessionService
+
+    service = SessionService(history_limit=0)
+    summaries, actions = set(), set()
+    # 既济 / 泰 / 乾 — different hexagrams, same "no moving line" stance.
+    for lines in ([7, 8, 7, 8, 7, 8], [7, 7, 7, 8, 8, 8], [7, 7, 7, 7, 7, 7]):
+        brief = service.create_session(
+            topic="事业",
+            user_question="q",
+            method_key="x",
+            manual_lines=lines,
+            use_current_time=False,
+            timestamp=datetime(2024, 6, 10, 14, 0),
+            enable_ai=False,
+            locale="zh",
+        ).reading_brief
+        summaries.add(brief["direction"]["summary"])
+        actions.add(brief["actions"][0]["action"])
+
+    assert len(summaries) == 3, f"direction text repeats across hexagrams: {summaries}"
+    assert len(actions) == 3, f"next step repeats across hexagrams: {actions}"
+    # Each quotes its own 象傳 counsel.
+    assert any("自强不息" in item for item in actions)
+
+
 def test_reading_brief_is_written_in_the_requested_locale():
     from datetime import datetime
 
@@ -505,9 +534,12 @@ def test_reading_brief_is_written_in_the_requested_locale():
 
     assert "Four moving lines" in english["evidence"][0]["basis"]
     assert "static line" in english["key_passages"][0]["why_it_matters"]
-    assert english["direction"]["summary"].isascii()
     assert "四爻动" in chinese["evidence"][0]["basis"]
-    assert not chinese["direction"]["summary"].isascii()
+
+    # Prose follows the locale; hexagram names stay Chinese in both, so assert
+    # the sentence around the name rather than the whole string's script.
+    assert "moving" in english["direction"]["summary"]
+    assert "爻动" in chinese["direction"]["summary"]
 
 
 def test_ai_prompt_carries_the_locale_and_the_resolved_rule():

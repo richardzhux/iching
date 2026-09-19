@@ -206,7 +206,7 @@ def test_theme_and_signature_claims_keep_existing_provenance_and_comparison() ->
     profiles = deepcopy(structure["theme_profiles"])
     wealth = next(profile for profile in profiles if profile["theme"] == "财富")
     hidden_wealth = next(
-        evidence for evidence in wealth["evidence"] if evidence["family"] == "财星藏根"
+        evidence for evidence in wealth["evidence"] if evidence["family"] == "财星藏见"
     )
     hidden_wealth["rule_ids"] = ["bazi.rule.hidden-wealth"]
     hidden_wealth["source_ids"] = ["bazi.source.hidden-wealth"]

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
+import { motion, useReducedMotion } from "framer-motion"
 import { ChevronRight, Share2 } from "lucide-react"
 import { ChartExportButton } from "@/components/tools/chart-export-button"
 import { ChartAssetExportButton } from "@/components/tools/chart-asset-export-button"
@@ -20,7 +21,7 @@ import { OverallThemeTimeline, ThemeSelector } from "@/components/tools/theme-se
 import { baziRuleVersionSummary, buildBaziMarkdown } from "@/lib/chart-markdown"
 import { calculateMetaphysicsChart, fetchMetaphysicsPeriod, fetchPatternRuleSummary } from "@/lib/api"
 import { normalizeThemeKey, type ThemeKey } from "@/lib/executive-view"
-import type { DayunCycle, MetaphysicsChart, PatternRuleSourceLocator, PatternRuleSummary, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeComparison, ThemeProfile } from "@/types/api"
+import type { BaziDayMasterStrength, DayunCycle, MetaphysicsChart, PatternRuleSourceLocator, PatternRuleSummary, PeriodMonth, PeriodYear, RarityMetric, ShenShaHit, ThemeComparison, ThemeProfile } from "@/types/api"
 
 type Locale = "en" | "zh"
 type DisplayMode = "simple" | "study" | "professional"
@@ -920,13 +921,103 @@ function BaziIdentitySummary({ chart, locale, subjectName, calculationRule, curr
   )
 }
 
+/**
+ * Day-master strength as a dial, with the arithmetic on the face of it.
+ *
+ * The band is a house-weighted score (月令 / 通根 / 同异类) calibrated to the
+ * terciles of 3,000 charts, so a reader can see both where they landed and why,
+ * and disagree with the weighting if they want to.
+ */
+function DayMasterDial({ strength, locale }: { strength: BaziDayMasterStrength; locale: Locale }) {
+  const reduceMotion = useReducedMotion()
+  const [open, setOpen] = useState(false)
+  // Map roughly [-7, +13] onto a half-dial.
+  const clamped = Math.max(-7, Math.min(13, strength.score))
+  const fraction = (clamped + 7) / 20
+  const angle = -90 + fraction * 180
+  const bandLabel = locale === "zh"
+    ? strength.band
+    : ({ 偏强: "Strong", 中和: "Balanced", 偏弱: "Weak" } as Record<string, string>)[strength.band] ?? strength.band
+
+  const rows: Array<[string, number]> = [
+    [locale === "zh" ? "月令" : "Month command", strength.inputs.season_weight ?? 0],
+    [locale === "zh" ? "通根" : "Rooting", strength.inputs.root_weight ?? 0],
+    [locale === "zh" ? "同类" : "Supporting", strength.inputs.support_weight ?? 0],
+    [locale === "zh" ? "异类" : "Draining", strength.inputs.drain_weight ?? 0],
+  ]
+
+  return (
+    <article className="rounded-2xl border border-primary/30 bg-primary/[0.04] p-5 lg:col-span-2">
+      <div className="flex flex-wrap items-center gap-6">
+        <svg viewBox="0 0 140 84" className="h-24 w-40 shrink-0" role="img"
+          aria-label={`${locale === "zh" ? "日主强弱" : "Day master strength"}: ${bandLabel}, ${strength.score}`}>
+          <path d="M14 74 A56 56 0 0 1 126 74" fill="none" stroke="currentColor" strokeOpacity="0.16" strokeWidth="11" strokeLinecap="round" />
+          <path d="M14 74 A56 56 0 0 1 51 21" fill="none" stroke="currentColor" strokeOpacity="0.3" strokeWidth="11" strokeLinecap="round" />
+          <path d="M89 21 A56 56 0 0 1 126 74" fill="none" stroke="currentColor" strokeOpacity="0.3" strokeWidth="11" strokeLinecap="round" />
+          <motion.line
+            x1="70" y1="74" x2="70" y2="26"
+            stroke="currentColor" strokeWidth="3" strokeLinecap="round"
+            style={{ originX: "70px", originY: "74px" }}
+            initial={reduceMotion ? false : { rotate: -90, opacity: 0 }}
+            animate={{ rotate: angle, opacity: 1 }}
+            transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 60, damping: 14, delay: 0.15 }}
+          />
+          <circle cx="70" cy="74" r="4.5" fill="currentColor" />
+        </svg>
+        <div className="min-w-[12rem] flex-1">
+          <p className="text-xs font-semibold text-primary">{locale === "zh" ? "日主强弱" : "Day master"}</p>
+          <h3 className="mt-1 text-2xl font-semibold leading-8">
+            {strength.day_stem}{strength.element} · {bandLabel}
+          </h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {locale === "zh"
+              ? `月令${strength.month_status}，通根${strength.rooted_pillars.length}柱，计 ${strength.score}`
+              : `Month ${strength.month_status}, rooted in ${strength.rooted_pillars.length} pillar(s), score ${strength.score}`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            className="mt-2 text-sm font-semibold text-primary underline-offset-4 hover:underline"
+          >
+            {open
+              ? (locale === "zh" ? "收起算法" : "Hide the arithmetic")
+              : (locale === "zh" ? "这个分数怎么来的？" : "How is this scored?")}
+          </button>
+        </div>
+      </div>
+      <motion.div
+        initial={false}
+        animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }}
+        transition={reduceMotion ? { duration: 0 } : { duration: 0.25, ease: "easeOut" }}
+        className="overflow-hidden"
+      >
+        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-border/45 pt-4 text-sm sm:grid-cols-4">
+          {rows.map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="font-mono font-semibold">{value > 0 ? `+${value}` : value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+          {locale === "zh"
+            ? "权重为本项目自定，按 1950–2012 年三千张命盘的三分位校准，不代表任何单一流派定论。"
+            : "House weighting, calibrated to the terciles of 3,000 charts from 1950-2012. It is not any single school's verdict."}
+        </p>
+      </motion.div>
+    </article>
+  )
+}
+
 function BaziSynthesisPanel({ chart, locale, staticMode = false }: { chart: MetaphysicsChart; locale: Locale; staticMode?: boolean }) {
   const evidence = new Map(
     (chart.theme_profiles ?? []).flatMap((profile) => profile.evidence).map((item) => [item.id, item]),
   )
   const conclusions = chart.synthesis?.conclusions ?? []
+  const strength = chart.synthesis?.strength
   if (!conclusions.length) return <p className="text-sm text-muted-foreground">{locale === "zh" ? "按新版重新排盘后显示核心判断。" : "Recalculate with the current version to see key findings."}</p>
-  return <div className="grid gap-4 lg:grid-cols-2">{conclusions.map((item, index) => {
+  return <div className="grid gap-4 lg:grid-cols-2">{strength ? <DayMasterDial strength={strength} locale={locale} /> : null}{conclusions.map((item, index) => {
     const supporting = item.supporting_evidence_ids.map((id) => evidence.get(id)).filter(Boolean)
     const constraints = item.counter_evidence_ids.map((id) => evidence.get(id)).filter(Boolean)
     const evidenceContent = <div className="mt-3 space-y-3">{supporting.map((entry) => entry ? <div key={entry.id}><p className="text-sm font-medium">{entry.title}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{entry.detail}</p></div> : null)}{constraints.length ? <div className="rounded-xl bg-muted/35 px-3 py-2"><p className="text-xs font-semibold">{locale === "zh" ? "同时需要留意" : "Also consider"}</p>{constraints.map((entry) => entry ? <p key={entry.id} className="mt-1 text-xs leading-5 text-muted-foreground">{entry.title}：{entry.detail}</p> : null)}</div> : null}</div>

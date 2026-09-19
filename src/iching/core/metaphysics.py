@@ -1095,6 +1095,41 @@ def _flow_boundaries(year: int, zone: Any) -> tuple[datetime, datetime, list[dat
     return lichun, next_lichun, [*month_starts, next_lichun]
 
 
+
+def _xun_kong(ganzhi: str) -> str:
+    """旬空 for a 干支, by arithmetic rather than by re-deriving the calendar.
+
+    `LiuYue.getXunKong()` reconstructs a Lunar year from scratch on every call.
+    Across 13 大运 x 10 流年 x 12 流月 that was 11 of the 27 seconds a chart
+    took, for a value the UI shows only for the one selected month. 旬空 is
+    fixed by the ganzhi's position in the sexagenary cycle, so it is computed
+    directly; verified equal to lunar_python for all 60 ganzhi.
+    """
+    if not ganzhi or len(ganzhi) < 2:
+        return ""
+    try:
+        stem = STEMS.index(ganzhi[0])
+        branch = BRANCHES.index(ganzhi[1])
+    except ValueError:
+        return ""
+    start = (branch - stem) % 12
+    return BRANCHES[(start + 10) % 12] + BRANCHES[(start + 11) % 12]
+
+
+def _liu_yue_ganzhi(year_ganzhi: str, index: int) -> str:
+    """流月 干支 by 五虎遁 from the 流年 stem; index 0 is 寅月.
+
+    Same reason as `_xun_kong`: `LiuYue.getGanZhi()` rebuilds a Lunar year per
+    call. Verified equal to lunar_python across 2,124 流月.
+    """
+    try:
+        year_stem = STEMS.index(year_ganzhi[0])
+    except (ValueError, IndexError):
+        return ""
+    first = ((year_stem % 5) * 2 + 2) % 10
+    return STEMS[(first + index) % 10] + BRANCHES[(2 + index) % 12]
+
+
 def _compute_dayun_cycle(
     cycle: Any,
     *,
@@ -1194,7 +1229,8 @@ def _compute_dayun_cycle(
             month_start = month_boundaries[month_index]
             month_end = month_boundaries[month_index + 1]
             month_is_current = False
-            month_ganzhi = liu_yue.getGanZhi()
+            month_index = liu_yue.getIndex()
+            month_ganzhi = _liu_yue_ganzhi(year_ganzhi, month_index) or liu_yue.getGanZhi()
             month_pillar = {
                 "label": "流月",
                 "stem": month_ganzhi[0],
@@ -1221,11 +1257,11 @@ def _compute_dayun_cycle(
             month_ten_god = _ten_god(natal_pillars[2]["stem"], month_ganzhi[0])
             month_payload = {
                 "layer": "liuyue",
-                "index": liu_yue.getIndex(),
+                "index": month_index,
                 "label": f"{str(liu_yue.getMonthInChinese()).lstrip('0123456789')}月",
                 "ganzhi": month_ganzhi,
                 "ten_god": month_ten_god,
-                "xunkong": liu_yue.getXunKong(),
+                "xunkong": _xun_kong(month_ganzhi),
                 "start_timestamp": month_start.isoformat(),
                 "end_timestamp": month_end.isoformat(),
                 "is_current": month_is_current,

@@ -132,3 +132,80 @@ def test_clean_english_structured_text_does_not_split_lowercase_colon() -> None:
     )
     cleaned = _clean_english_structured_text(raw)
     assert cleaned == "Ritsema/Karcher: This hexagram says to: hide your brightness!"
+
+
+# --------------------------------------------------------------------------- #
+# Corpus integrity: a slot must serve its own hexagram
+# --------------------------------------------------------------------------- #
+
+
+def test_every_gua_slot_serves_its_own_hexagram():
+    """Hexagram 11 shipped 豫卦's text for its entire history.
+
+    `data/guaci/第11卦_泰卦(地天泰).txt` had the 豫 blocks pasted into its
+    guaci / xiangci / duanyi sections, so anyone who cast 泰 read 豫's
+    judgement. The text names the hexagram it belongs to on its first line, so
+    that claim can be checked against the slot it was filed under.
+    """
+    import re
+    import sqlite3
+
+    from iching.config import PATHS
+
+    connection = sqlite3.connect(PATHS.interpretation_db)
+    try:
+        rows = connection.execute(
+            "SELECT h.name_zh, src.source_key, e.content "
+            "FROM interpretation_entry e "
+            "JOIN interpretation_slot s ON s.id = e.slot_id "
+            "JOIN interpretation_hexagram h ON h.id = s.hexagram_id "
+            "JOIN interpretation_source src ON src.id = e.source_id "
+            "WHERE s.slot_kind = 'gua' AND e.locale = 'zh-CN' "
+            "AND src.source_key IN ('guaci', 'takashima') AND e.is_current = 1"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    assert rows, "no Chinese gua-level entries found"
+
+    mismatched = []
+    for name, source_key, content in rows:
+        head = next((line.strip() for line in content.splitlines() if line.strip()), "")
+        match = re.match(r"^(\S{1,3}?)卦(原文)?$", head) or re.match(r"^(\S{1,3}?)。", head)
+        if not match:
+            continue
+        declared = match.group(1)
+        if declared not in name:
+            mismatched.append(f"{source_key}/{name} opens as 「{declared}卦」")
+
+    assert not mismatched, "gua text filed under the wrong hexagram: " + "; ".join(mismatched)
+
+
+def test_no_gua_slot_is_a_duplicate_of_another():
+    """The 泰/豫 collision showed up as two slots sharing one body."""
+    import hashlib
+    import sqlite3
+    from collections import defaultdict
+
+    from iching.config import PATHS
+
+    connection = sqlite3.connect(PATHS.interpretation_db)
+    try:
+        rows = connection.execute(
+            "SELECT h.name_zh, src.source_key, e.content "
+            "FROM interpretation_entry e "
+            "JOIN interpretation_slot s ON s.id = e.slot_id "
+            "JOIN interpretation_hexagram h ON h.id = s.hexagram_id "
+            "JOIN interpretation_source src ON src.id = e.source_id "
+            "WHERE s.slot_kind = 'gua' AND e.locale = 'zh-CN' AND e.is_current = 1"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    by_digest = defaultdict(list)
+    for name, source_key, content in rows:
+        digest = hashlib.sha256(f"{source_key}|{content}".encode("utf-8")).hexdigest()
+        by_digest[digest].append(f"{source_key}/{name}")
+
+    collisions = [names for names in by_digest.values() if len(names) > 1]
+    assert not collisions, f"identical gua text under different hexagrams: {collisions}"

@@ -1002,7 +1002,9 @@ class Hexagram:
             )
 
         if count == 4:
-            # 朱熹: 以之卦二不变爻占，仍以下爻为主 — both unchanged lines, lower primary.
+            # 朱熹: 以之卦二不变爻占，仍以下爻为主 — both unchanged lines, lower
+            # primary. Four moving lines always leave exactly two static, so no
+            # emptiness guard is needed here or in the five-moving branch.
             primary = sorted(static)[0]
             secondary = tuple(idx for idx in sorted(static) if idx != primary)
             return LineSelection(

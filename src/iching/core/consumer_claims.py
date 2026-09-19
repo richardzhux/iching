@@ -146,7 +146,7 @@ _SIGNATURE_FAMILY_PRIORITY = {
     "夫妻宫": 1,
     "夫妻宫关系": 1,
     "财星明透": 1,
-    "财星藏根": 1,
+    "财星藏见": 1,
     "官杀": 2,
     "印星": 2,
     "食伤": 2,
@@ -156,6 +156,14 @@ _SIGNATURE_FAMILY_PRIORITY = {
     "干支关系": 4,
     "迁动": 4,
     "比劫": 4,
+    # Emitted by _theme_profiles but previously absent here, so they sorted
+    # below every mapped family regardless of how strong they were.
+    "配偶星明透": 1,
+    "配偶星藏见": 1,
+    "日干合": 2,
+    "食伤财星": 2,
+    "重复地支": 3,
+    "神煞": 5,
 }
 _FAMILY_METRICS = {
     "官杀": "officer_count",
@@ -165,11 +173,15 @@ _FAMILY_METRICS = {
     "通根": "root_pillar_count",
     "夫妻宫关系": "spouse_palace_relation_count",
     "财星明透": "visible_wealth_count",
-    "财星藏根": "hidden_wealth_count",
+    "财星藏见": "hidden_wealth_count",
     "干支关系": "relation_count",
     "迁动": "mobility_count",
     "冲刑害破": "pressure_relation_count",
     "五行分布": "concentrated_element_count",
+    "配偶星明透": "visible_spouse_count",
+    "配偶星藏见": "hidden_spouse_count",
+    "日干合": "day_stem_combine_count",
+    "重复地支": "repeated_branch_count",
 }
 
 

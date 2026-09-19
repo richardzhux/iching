@@ -757,10 +757,28 @@ export type BaziConclusion = {
   school_scope: string
   priority: number
   distribution_context?: string
+  /** Which metric this conclusion leads on, and how far from typical it sits. */
+  lead_metric?: string | null
+  lead_value?: number
+  strength_band?: string
+}
+
+export type BaziDayMasterStrength = {
+  day_stem: string
+  element: string
+  month_status: string
+  rooted_pillars: string[]
+  support_count: number
+  drain_count: number
+  score: number
+  band: string
+  method: string
+  inputs: Record<string, number>
 }
 
 export type BaziSynthesis = {
   method: string
+  strength?: BaziDayMasterStrength | null
   conclusions: BaziConclusion[]
 }
 

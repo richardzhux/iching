@@ -440,3 +440,189 @@ def test_solar_term_cache_reuses_years_across_windows_and_timezones(
         (term.index, term.instant_utc) for term in utc
     ]
     assert all(term.local_datetime.utcoffset().total_seconds() == 0 for term in utc)
+
+
+# --------------------------------------------------------------------------- #
+# Period expansion: arithmetic instead of re-deriving the calendar per month
+# --------------------------------------------------------------------------- #
+
+
+def test_xun_kong_matches_the_library_for_every_ganzhi():
+    """旬空 is fixed by position in the sexagenary cycle, so compute it."""
+    from lunar_python.util import LunarUtil
+
+    from iching.core.metaphysics import BRANCHES, STEMS, _xun_kong
+
+    for index in range(60):
+        ganzhi = STEMS[index % 10] + BRANCHES[index % 12]
+        assert _xun_kong(ganzhi) == LunarUtil.getXunKong(ganzhi), ganzhi
+
+
+def test_xun_kong_is_safe_on_junk_input():
+    from iching.core.metaphysics import _xun_kong
+
+    assert _xun_kong("") == ""
+    assert _xun_kong("x") == ""
+    assert _xun_kong("??") == ""
+
+
+def test_liu_yue_ganzhi_follows_wu_hu_dun():
+    """流月 stem comes from the 流年 stem by 五虎遁; index 0 is 寅月."""
+    from iching.core.metaphysics import _liu_yue_ganzhi
+
+    # 甲/己 year starts at 丙寅.
+    assert _liu_yue_ganzhi("甲子", 0) == "丙寅"
+    assert _liu_yue_ganzhi("己巳", 0) == "丙寅"
+    # 乙/庚 starts at 戊寅, 丙/辛 at 庚寅, 丁/壬 at 壬寅, 戊/癸 at 甲寅.
+    assert _liu_yue_ganzhi("乙丑", 0) == "戊寅"
+    assert _liu_yue_ganzhi("丙寅", 0) == "庚寅"
+    assert _liu_yue_ganzhi("丁卯", 0) == "壬寅"
+    assert _liu_yue_ganzhi("戊辰", 0) == "甲寅"
+    # The branch advances with the index and wraps at 子.
+    assert _liu_yue_ganzhi("甲子", 11) == "丁丑"
+    assert _liu_yue_ganzhi("", 0) == ""
+
+
+def test_month_expansion_matches_the_library_across_a_full_chart():
+    """The arithmetic path must reproduce lunar_python exactly, not approximately."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    import iching.core.metaphysics as metaphysics
+
+    zone = ZoneInfo("Asia/Shanghai")
+    moment = datetime(1990, 5, 12, 14, 30, tzinfo=zone)
+
+    def cycles(chart):
+        dayun = chart["period_layers"]["dayun"]
+        return dayun["cycles"] if isinstance(dayun, dict) else dayun
+
+    def build():
+        metaphysics._period_cache.clear()
+        metaphysics._period_cache_bytes = 0
+        return metaphysics.build_metaphysics_chart(
+            moment, timezone_name="Asia/Shanghai", gender="male"
+        )
+
+    fast = build()
+    original = metaphysics._liu_yue_ganzhi
+    try:
+        # Empty string makes the caller fall back to liu_yue.getGanZhi().
+        metaphysics._liu_yue_ganzhi = lambda year_ganzhi, index: ""
+        library = build()
+    finally:
+        metaphysics._liu_yue_ganzhi = original
+
+    compared = 0
+    for fast_cycle, library_cycle in zip(cycles(fast), cycles(library)):
+        for fast_year, library_year in zip(
+            fast_cycle.get("years", []), library_cycle.get("years", [])
+        ):
+            for fast_month, library_month in zip(
+                fast_year.get("months", []), library_year.get("months", [])
+            ):
+                assert fast_month["ganzhi"] == library_month["ganzhi"]
+                compared += 1
+
+    assert compared > 500, f"only compared {compared} months"
+
+
+# --------------------------------------------------------------------------- #
+# Synthesis: conclusions must vary with the chart
+# --------------------------------------------------------------------------- #
+
+
+def _sample_profiles(count: int = 300):
+    import random
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from iching.core.bazi_structure import build_structure_profile
+    from iching.core.calendar_engine import STEMS as CAL_STEMS
+    from iching.core.calendar_engine import calculate_calendar_facts
+    from iching.core.metaphysics import _pillar, _seasonal_status
+    from iching.core.shensha import evaluate_shensha
+
+    random.seed(17)
+    zone = ZoneInfo("Asia/Shanghai")
+    profiles = []
+    for _ in range(count):
+        moment = datetime(
+            random.randint(1955, 2012),
+            random.randint(1, 12),
+            random.randint(1, 28),
+            random.randint(0, 23),
+            random.randint(0, 59),
+            tzinfo=zone,
+        )
+        try:
+            facts = calculate_calendar_facts(
+                moment, timezone_name="Asia/Shanghai", day_boundary="forward", crosscheck=False
+            )
+        except Exception:
+            continue
+        day_stem = CAL_STEMS[facts.day_gz.tg]
+        pillars = [
+            _pillar("年", facts.year_gz, day_stem),
+            _pillar("月", facts.month_gz, day_stem),
+            _pillar("日", facts.day_gz, day_stem),
+            _pillar("时", facts.hour_gz, day_stem),
+        ]
+        profiles.append(
+            build_structure_profile(
+                pillars,
+                gender=random.choice(["male", "female"]),
+                shensha_hits=evaluate_shensha(pillars),
+                seasonal_status=_seasonal_status(pillars[1]["branch"]),
+            )
+        )
+    return profiles
+
+
+def test_no_single_conclusion_dominates_the_population():
+    """Measured over 2,000 charts the old synthesis gave five of six themes the
+    same headline for 90-100% of readers, because it branched on whether a
+    ten-god appeared anywhere across sixteen slots. A conclusion that fits
+    nearly everyone describes nobody."""
+    from collections import Counter, defaultdict
+
+    profiles = _sample_profiles()
+    assert len(profiles) > 250
+
+    per_theme = defaultdict(Counter)
+    for profile in profiles:
+        for conclusion in profile["synthesis"]["conclusions"]:
+            per_theme[conclusion["theme"]][conclusion["headline"]] += 1
+
+    total = len(profiles)
+    for theme, counter in per_theme.items():
+        top_share = counter.most_common(1)[0][1] / total
+        assert top_share < 0.45, (
+            f"{theme}: one headline covers {top_share:.0%} of charts "
+            f"({counter.most_common(1)[0][0]})"
+        )
+        assert len(counter) >= 3, f"{theme} only ever produces {len(counter)} headlines"
+
+
+def test_day_master_bands_actually_separate():
+    """At the first-guess cutoffs 53% of charts read 偏强, which is not a band."""
+    from collections import Counter
+
+    profiles = _sample_profiles()
+    bands = Counter(p["synthesis"]["strength"]["band"] for p in profiles)
+    total = sum(bands.values())
+    for band in ("偏强", "中和", "偏弱"):
+        share = bands[band] / total
+        assert 0.2 < share < 0.5, f"{band} covers {share:.0%} of charts"
+
+
+def test_conclusions_quote_the_numbers_they_rest_on():
+    profiles = _sample_profiles(40)
+    for profile in profiles:
+        for conclusion in profile["synthesis"]["conclusions"]:
+            if conclusion["id"].endswith("overall.strength"):
+                continue
+            body = conclusion["body"]
+            if conclusion["lead_metric"]:
+                assert "标准差" in body, body
+                assert "常见约" in body, body

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from itertools import combinations
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Optional
 
 
 ELEMENTS = ("木", "火", "土", "金", "水")
@@ -306,7 +306,10 @@ def build_structure_profile(
         roots=roots,
         element_layers=distributions["elements"],
     )
-    synthesis = build_consumer_synthesis(theme_profiles)
+    strength = day_master_strength(
+        pillars, seasonal_status=seasonal_status, roots=roots
+    )
+    synthesis = build_consumer_synthesis(theme_profiles, strength=strength)
     return {
         "day_master": {
             "stem": day_stem,
@@ -314,6 +317,7 @@ def build_structure_profile(
             "rooted": bool(roots),
             "root_pillars": roots,
             "month_status": seasonal_status.get(day_element, "—"),
+            "strength": strength,
         },
         "day_master_relations": _day_master_relations(pillars, day_stem),
         "layered_distribution": distributions,
@@ -323,95 +327,354 @@ def build_structure_profile(
     }
 
 
-def build_consumer_synthesis(profiles: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+#: 月令 weighting for the day master's element. A house scale, not canon: it is
+#: reported alongside every conclusion so a reader can disagree with it.
+_SEASON_WEIGHT = {"旺": 3.0, "相": 2.0, "休": -1.0, "囚": -2.0, "死": -3.0}
+_SUPPORT_GODS = {"比肩", "劫财", "正印", "偏印"}
+_DRAIN_GODS = {"食神", "伤官", "正财", "偏财", "正官", "七杀"}
+
+STRENGTH_BANDS = ("偏弱", "中和", "偏强")
+#: Tercile cutoffs of the score distribution over the reference sample.
+STRENGTH_LOWER_TERCILE = 0.24
+STRENGTH_UPPER_TERCILE = 4.18
+
+
+def day_master_strength(
+    pillars: list[Mapping[str, Any]],
+    *,
+    seasonal_status: Mapping[str, str],
+    roots: list[str],
+) -> dict[str, Any]:
+    """Score the day master 身强 / 身弱 and show the arithmetic.
+
+    The synthesis used to ask only whether a ten-god *appeared* anywhere across
+    eight stems and eight hidden stems. With sixteen slots in play almost every
+    family appears in almost every chart, so the conclusions were fixed text.
+    Strength is the discriminator 子平 actually turns on, so it is computed here
+    and drives the wording.
+    """
+    day_stem = str(pillars[2]["stem"])
+    day_element = STEM_ELEMENTS[day_stem]
+    season = str(seasonal_status.get(day_element, "—"))
+
+    support = drain = 0
+    for index, pillar in enumerate(pillars):
+        stem = str(pillar.get("stem", ""))
+        if index != 2 and stem in STEM_ELEMENTS:
+            god = _ten_god(day_stem, stem)
+            if god in _SUPPORT_GODS:
+                support += 1
+            elif god in _DRAIN_GODS:
+                drain += 1
+        for hidden in pillar.get("hidden_stems", ()) or ():
+            if not isinstance(hidden, Mapping):
+                continue
+            hidden_stem = str(hidden.get("stem", ""))
+            if hidden_stem not in STEM_ELEMENTS:
+                continue
+            god = _ten_god(day_stem, hidden_stem)
+            if god in _SUPPORT_GODS:
+                support += 1
+            elif god in _DRAIN_GODS:
+                drain += 1
+
+    score = _SEASON_WEIGHT.get(season, 0.0)
+    score += 1.4 * len(roots)
+    score += 0.5 * support
+    score -= 0.34 * drain
+
+    # Calibrated to the terciles of 3,000 charts sampled across 1950-2012
+    # (tools/measure_metric_scales.py). At the first-guess cutoff of +/-1.6 the
+    # band read 偏强 for 53% of charts, which tells a reader almost nothing. A
+    # band is only worth printing if it separates.
+    if score >= STRENGTH_UPPER_TERCILE:
+        band = "偏强"
+    elif score <= STRENGTH_LOWER_TERCILE:
+        band = "偏弱"
+    else:
+        band = "中和"
+
+    return {
+        "day_stem": day_stem,
+        "element": day_element,
+        "month_status": season,
+        "rooted_pillars": list(roots),
+        "support_count": support,
+        "drain_count": drain,
+        "score": round(score, 2),
+        "band": band,
+        "method": "house-weighted-月令-通根-同异类",
+        "inputs": {
+            "season_weight": _SEASON_WEIGHT.get(season, 0.0),
+            "root_weight": round(1.4 * len(roots), 2),
+            "support_weight": round(0.5 * support, 2),
+            "drain_weight": round(-0.34 * drain, 2),
+        },
+    }
+
+
+def _metric_values(profile: Mapping[str, Any]) -> dict[str, int]:
+    values: dict[str, int] = {}
+    for metric in profile.get("structure_metrics", ()) or ():
+        if isinstance(metric, Mapping):
+            try:
+                values[str(metric.get("metric_id"))] = int(metric.get("value") or 0)
+            except (TypeError, ValueError):
+                continue
+    return values
+
+
+def _metric_labels(profile: Mapping[str, Any]) -> dict[str, str]:
+    labels: dict[str, str] = {}
+    for metric in profile.get("structure_metrics", ()) or ():
+        if isinstance(metric, Mapping):
+            labels[str(metric.get("metric_id"))] = str(metric.get("label") or "")
+    return labels
+
+
+#: Which metric each theme's conclusion is allowed to lead on, and how to word
+#: it. `binary` metrics (神煞) are excluded: they fire on nearly every chart, so
+#: they carry no information about this chart in particular.
+_THEME_LEADS: dict[str, tuple[tuple[str, str, str], ...]] = {
+    "事业": (
+        ("officer_count", "责任与规则", "官杀{n}见，事业更容易长在明确的责任、标准与组织位置上"),
+        ("resource_count", "专业与背书", "印星{n}见，资历、学习与他人背书是主要的推进方式"),
+        ("output_count", "表达与产出", "食伤{n}见，把想法做成可见成果是主要的推进方式"),
+        ("mobility_count", "迁动与变化", "迁动信号{n}处，位置、城市或赛道的变化本身就是事业线索"),
+        ("relation_count", "协作与牵动", "事业相关干支关系{n}组，进展多由外部互动触发"),
+    ),
+    "财富": (
+        ("visible_wealth_count", "外显的资源", "财星明透{n}位，金钱与资源配置会直接进入日常判断"),
+        ("hidden_wealth_count", "内藏的积累", "财星藏于地支{n}处，财多靠时间、场景与经营慢慢显形"),
+        ("output_count", "以能力换取", "食伤{n}见，收入更依赖把能力持续转成产出"),
+        ("peer_count", "共享与分摊", "比劫{n}见，资源常在合作与分配中流动"),
+        ("relation_count", "互动中的财", "财富相关干支关系{n}组，财随关系起落"),
+    ),
+    "感情": (
+        ("visible_spouse_count", "明确的关系信号", "配偶星明透{n}位，对象与承诺方式通常感受得比较清楚"),
+        ("spouse_palace_relation_count", "夫妻宫被牵动", "夫妻宫参与{n}组关系，亲密关系会实际改变阶段选择"),
+        ("day_stem_combine_count", "日干有合", "日干{n}处成合，关系对本人的牵引明显"),
+        ("hidden_spouse_count", "藏而后显", "配偶星藏见{n}处，关系多在真实相处中逐步确认"),
+        ("relation_count", "互动密度", "感情相关干支关系{n}组"),
+    ),
+    "五行与承压结构": (
+        ("pressure_relation_count", "张力集中", "冲刑害破克{n}组，结构里的推拉比较集中"),
+        ("missing_element_count", "五行有缺", "{n}种五行未见，结构明显偏科"),
+        ("concentrated_element_count", "五行集中", "{n}种五行高度集中，力量偏向一处"),
+        ("repeated_branch_count", "地支重复", "{n}组地支重复，同一类场景反复出现"),
+        ("root_pillar_count", "根气可用", "日主通根{n}柱，遇变时有可依靠的基础"),
+    ),
+}
+
+_STRENGTH_CLAUSE = {
+    "事业": {
+        "偏强": "日主偏强，适合主动承担与对外争取。",
+        "中和": "日主中和，进退都有余地，看具体条件决定节奏。",
+        "偏弱": "日主偏弱，借力、协作与阶段性积累比硬扛更有效。",
+    },
+    "财富": {
+        "偏强": "日主偏强，能担财，扩张与经营的容量较大。",
+        "中和": "日主中和，量入为出，扩张与守成都不勉强。",
+        "偏弱": "日主偏弱，财重则身轻，控制规模比追求速度重要。",
+    },
+    "感情": {
+        "偏强": "日主偏强，关系中较主动，也需留出对方的空间。",
+        "中和": "日主中和，关系里的给予与接受较容易平衡。",
+        "偏弱": "日主偏弱，容易被关系牵动，先照顾自己的节奏。",
+    },
+    "五行与承压结构": {
+        "偏强": "日主偏强，抗压有余，注意不要把张力转成硬碰。",
+        "中和": "日主中和，压力来时调整空间较大。",
+        "偏弱": "日主偏弱，遇到集中压力时更需要外部支持与休整。",
+    },
+}
+
+
+#: Population mean and standard deviation for each ordinal metric,
+#: measured over 2,500 charts sampled uniformly across 1950-2012 by
+#: tools/measure_metric_scales.py. Raw counts are not comparable across
+#: metrics: 关系 counts average 5.3 while 日干合 averages 0.31, so ranking
+#: by raw value made 关系 the lead on ~70-90% of charts. Ranking by
+#: deviation from the population asks the question that matters — what is
+#: unusual about THIS chart.
+METRIC_SCALES: dict[str, dict[str, tuple[float, float]]] = {
+    "事业": {
+        "mobility_count": (0.885, 0.891),
+        "officer_count": (2.434, 1.227),
+        "output_count": (2.436, 1.233),
+        "relation_count": (5.258, 2.196),
+        "resource_count": (2.48, 1.236),
+    },
+    "五行与承压结构": {
+        "concentrated_element_count": (2.347, 0.716),
+        "missing_element_count": (0.188, 0.412),
+        "pressure_relation_count": (4.27, 1.884),
+        "repeated_branch_count": (0.432, 0.529),
+        "root_pillar_count": (1.873, 1.07),
+    },
+    "感情": {
+        "day_stem_combine_count": (0.313, 0.533),
+        "hidden_spouse_count": (1.86, 1.06),
+        "relation_count": (5.844, 2.17),
+        "spouse_palace_relation_count": (2.3, 1.152),
+        "visible_spouse_count": (0.61, 0.692),
+    },
+    "财富": {
+        "hidden_wealth_count": (1.875, 1.065),
+        "output_count": (2.436, 1.233),
+        "peer_count": (2.486, 1.276),
+        "relation_count": (5.43, 2.17),
+        "visible_wealth_count": (0.614, 0.705),
+    },
+}
+
+def metric_deviation(theme: str, metric_id: str, value: int) -> float:
+    """How far this chart sits from the population on one metric, in sd."""
+    mean, sd = METRIC_SCALES.get(theme, {}).get(metric_id, (0.0, 1.0))
+    return (float(value) - mean) / (sd or 1.0)
+
+
+def _lead_for(
+    theme: str, values: Mapping[str, int]
+) -> tuple[str, str, str, int, float] | None:
+    """The metric this chart is most unusual on, high or low.
+
+    Ranking by raw count let whichever metric happens to have the largest
+    natural scale win almost every time. Ranking by deviation surfaces what is
+    actually distinctive; a strongly *absent* signal is as informative as a
+    strongly present one, so the comparison is on magnitude.
+    """
+    candidates = _THEME_LEADS.get(theme, ())
+    best: tuple[str, str, str, int, float] | None = None
+    for metric_id, short, template in candidates:
+        count = int(values.get(metric_id, 0))
+        deviation = metric_deviation(theme, metric_id, count)
+        if best is None or abs(deviation) > abs(best[4]):
+            best = (metric_id, short, template, count, deviation)
+    # A chart sitting at the population average on everything has no lead.
+    if best is None or abs(best[4]) < 0.75:
+        return None
+    return best
+
+
+def build_consumer_synthesis(
+    profiles: Iterable[Mapping[str, Any]],
+    *,
+    strength: Optional[Mapping[str, Any]] = None,
+) -> dict[str, Any]:
+    """Conclusions driven by what this chart measures, not by what it contains.
+
+    The previous version branched on set membership — `{"官杀", "印星"} <=
+    families` — across all eight stems and their hidden stems. Sixteen slots
+    make almost every family present in almost every chart, so measured over
+    2,000 generated charts five of six conclusions were fixed text: 事业 read
+    the same for 90.1%, 感情 for 98.1%, 五行 for 99.4%, and both 整体
+    conclusions for 100%. Ordering made it worse: 通根 is present in 89.8% of
+    charts but its headline reached 0.6% of readers, because the 冲刑害破 branch
+    above it was true 99.4% of the time.
+
+    Now each theme leads on whichever of its ordinal metrics this chart is
+    actually highest on, and every conclusion is qualified by day-master
+    strength, which is the axis 子平 turns on.
+    """
     profile_list = list(profiles)
+    band = str((strength or {}).get("band") or "中和")
     conclusions: list[dict[str, Any]] = []
+
     for priority, profile in enumerate(profile_list, start=1):
         theme = str(profile.get("theme", ""))
         evidence = list(profile.get("evidence", ()))
-        families = {str(item.get("family", "")) for item in evidence}
-        if theme == "事业":
-            if {"官杀", "印星"} <= families:
-                headline = "事业更重专业可信度与责任承担"
-                body = "官杀与印星同时参与，职业发展更容易围绕规则、资质、责任与专业判断展开。"
-            elif "食伤" in families:
-                headline = "事业推进更依赖表达与成果输出"
-                body = "食伤结构较明确，解决问题、表达观点和把能力变成可见成果，是重要的职业抓手。"
-            else:
-                headline = "事业结构更重长期定位"
-                body = "月令与原局关系是主要背景，适合通过持续积累形成稳定的专业位置。"
-        elif theme == "财富":
-            if "财星明透" in families:
-                headline = "资源与现实结果是较外显的人生主题"
-                body = "财星见于明干，金钱、资源配置和结果意识更容易直接进入选择与行动。"
-            elif "财星藏根" in families:
-                headline = "财富结构更偏积累与兑现"
-                body = "财星主要藏于地支，资源主题存在，但更依赖时间、场景和持续经营逐步显现。"
-            else:
-                headline = "财富更依赖能力转化与节奏管理"
-                body = "原局财星并不外显，财富线索更多来自能力输出、关系结构与长期配置。"
-        elif theme == "感情":
-            if "夫妻宫关系" in families or "日干合" in families:
-                headline = "关系互动与选择变化感较强"
-                body = "夫妻宫或日干直接参与关系，亲密关系往往不是背景议题，而会真实影响阶段性选择。"
-            elif "配偶星明透" in families:
-                headline = "感情主题表达得更直接"
-                body = "传统配偶星见于明干，对关系对象、承诺方式和相处边界的感受通常更明确。"
-            else:
-                headline = "感情更看重实际相处与长期确认"
-                body = "关系信号主要藏于原局内部，重要关系通常需要在真实互动中逐渐确认。"
+        values = _metric_values(profile)
+        lead = _lead_for(theme, values)
+        strength_clause = _STRENGTH_CLAUSE.get(theme, {}).get(band, "")
+
+        if lead is None:
+            headline = f"{theme}：本盘各项都接近常见水平"
+            body = (
+                "这一主题的每项结构指标都落在常见区间，没有哪一条特别突出。"
+                f"{strength_clause}"
+            )
         else:
-            if "冲刑害破" in families:
-                headline = "五行结构中的推动与牵制都较明显"
-                body = "原局存在多组生克或冲合变化，面对压力时往往会通过调整环境、节奏和行动方式重新取得平衡。"
-            elif "通根" in families:
-                headline = "日主拥有可调用的根气支持"
-                body = "同类根气在地支出现，遇到变化时通常仍有可依靠的基础与恢复空间。"
+            metric_id, short, template, count, deviation = lead
+            high = deviation > 0
+            headline = f"{theme}：{short}{'偏多' if high else '偏少'}，是本盘最偏离常见值的一条"
+            mean = METRIC_SCALES.get(theme, {}).get(metric_id, (0.0, 1.0))[0]
+            if high:
+                body = template.format(n=count)
             else:
-                headline = "五行结构更依赖环境与阶段配合"
-                body = "原局的支持与制约较分散，外部环境和阶段节奏会明显影响结构如何发挥。"
-        supporting = [str(item.get("id", "")) for item in evidence if item.get("evidence_type") != "制约"][:4]
-        counter = [str(item.get("id", "")) for item in evidence if item.get("evidence_type") == "制约"][:2]
-        conclusions.append({
-            "id": f"bazi.conclusion.{priority}",
-            "theme": theme,
-            "headline": headline,
-            "body": body,
-            "supporting_evidence_ids": [item for item in supporting if item],
-            "counter_evidence_ids": [item for item in counter if item],
-            "school_scope": "现代子平通行分析",
-            "priority": priority,
-        })
-    all_evidence = [item for profile in profile_list for item in profile.get("evidence", ())]
-    relational = [
-        item for item in all_evidence
-        if item.get("family") in {"干支关系", "夫妻宫关系", "日干合", "冲刑害破", "迁动"}
-    ]
-    if relational:
-        conclusions.append({
-            "id": "bazi.conclusion.overall.relations",
-            "theme": "整体",
-            "headline": "命局变化会通过关系与环境被实际触发",
-            "body": "原局有多处干支联动，重要阶段往往不是单一因素起作用，而是关系、位置与行动节奏共同推动变化。",
-            "supporting_evidence_ids": [str(item.get("id", "")) for item in relational[:4] if item.get("id")],
-            "counter_evidence_ids": [],
-            "school_scope": "现代子平通行分析",
-            "priority": len(conclusions) + 1,
-        })
-    foundations = [item for item in all_evidence if item.get("family") in {"月令", "通根", "五行分布"}]
-    if foundations:
-        conclusions.append({
-            "id": "bazi.conclusion.overall.foundation",
-            "theme": "整体",
-            "headline": "月令与根气构成这张命盘的长期底色",
-            "body": "季节位置与日主根气决定了许多结构以怎样的节奏发挥，也是理解事业、财富和关系主题时最稳定的背景。",
-            "supporting_evidence_ids": [str(item.get("id", "")) for item in foundations[:4] if item.get("id")],
-            "counter_evidence_ids": [],
-            "school_scope": "现代子平通行分析",
-            "priority": len(conclusions) + 1,
-        })
+                body = f"{short}只计到 {count}，明显低于常见水平"
+            body += f"（常见约 {mean:g}，本盘 {count}，偏离 {deviation:+.1f} 个标准差）。"
+            if strength_clause:
+                body += strength_clause
+            # Name the next two by deviation, so the lead is visibly a ranking.
+            others = sorted(
+                (
+                    (
+                        abs(metric_deviation(theme, other_id, int(values.get(other_id, 0)))),
+                        other_short,
+                        int(values.get(other_id, 0)),
+                    )
+                    for other_id, other_short, *_ in _THEME_LEADS.get(theme, ())
+                    if other_id != metric_id
+                ),
+                reverse=True,
+            )[:2]
+            if others:
+                joined = "、".join(f"{label} {value}" for _, label, value in others)
+                body += f"其次偏离较大的是{joined}。"
+
+        supporting = [
+            str(item.get("id", "")) for item in evidence if item.get("evidence_type") != "制约"
+        ][:4]
+        counter = [
+            str(item.get("id", "")) for item in evidence if item.get("evidence_type") == "制约"
+        ][:2]
+        conclusions.append(
+            {
+                "id": f"bazi.conclusion.{priority}",
+                "theme": theme,
+                "headline": headline,
+                "body": body,
+                "lead_metric": lead[0] if lead else None,
+                "lead_value": lead[3] if lead else 0,
+                "strength_band": band,
+                "supporting_evidence_ids": [item for item in supporting if item],
+                "counter_evidence_ids": [item for item in counter if item],
+                "school_scope": "现代子平通行分析",
+                "priority": priority,
+            }
+        )
+
+    # One overall conclusion, written from the strength reading rather than
+    # fired on every chart regardless of content.
+    if strength:
+        month = str(strength.get("month_status") or "—")
+        roots = list(strength.get("rooted_pillars") or [])
+        root_text = "、".join(roots) + "柱" if roots else "四柱皆无"
+        conclusions.append(
+            {
+                "id": "bazi.conclusion.overall.strength",
+                "theme": "整体",
+                "headline": f"日主{strength.get('day_stem', '')}{strength.get('element', '')}，{band}",
+                "body": (
+                    f"日主五行在月令为{month}，通根见于{root_text}；"
+                    f"同类{strength.get('support_count', 0)}、异类{strength.get('drain_count', 0)}，"
+                    f"计得{strength.get('score', 0)}，归为{band}。"
+                    "此判断用于决定以上各主题该偏向主动还是借力，算法与权重一并给出，可自行复核。"
+                ),
+                "lead_metric": "day_master_strength",
+                "lead_value": strength.get("score", 0),
+                "strength_band": band,
+                "supporting_evidence_ids": [],
+                "counter_evidence_ids": [],
+                "school_scope": "房规加权（月令 / 通根 / 同异类）",
+                "priority": len(conclusions) + 1,
+            }
+        )
+
     return {
-        "method": "modern-ziping-common-v1",
+        "method": "modern-ziping-metric-led-v2",
+        "strength": dict(strength) if strength else None,
         "conclusions": conclusions,
     }
 
@@ -485,7 +748,7 @@ def _theme_profiles(
             if visible_wealth:
                 add("财星明透", "背景", "财星见于明干", "、".join(visible_wealth), "日主中心十神关系")
             if hidden_wealth:
-                add("财星藏根", "背景", "财星见于藏干", "、".join(hidden_wealth), "日主中心十神关系")
+                add("财星藏见", "背景", "财星见于藏干", "、".join(hidden_wealth), "日主中心十神关系")
             if any(god in all_gods for god in ("食神", "伤官")) and any(god in all_gods for god in ("正财", "偏财")):
                 add("食伤财星", "支持", "食伤与财星同见", "原局食伤与财星同见，价值创造与资源兑现相互衔接。", "十神生克关系")
             _add_god_evidence(add, all_gods, visible_gods, {"比肩", "劫财"}, "比劫", "财富")

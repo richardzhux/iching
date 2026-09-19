@@ -12,6 +12,7 @@ from iching.config import AppConfig, PATHS, build_app_config
 from iching.core.bazi import BaZiCalculator
 from iching.core.divination import AVAILABLE_METHODS, DivinationMethod
 from iching.core.hexagram import Hexagram, load_hexagram_definitions
+from iching.core.hexagram_essence import essence_for
 from iching.core.najia import derive_six_gods, rebase_relation
 from iching.core.time_utils import get_current_time
 from iching.integrations.ai import (
@@ -266,26 +267,68 @@ def _extract_ai_headline(ai_text: Optional[str]) -> Optional[str]:
 
 #: Direction keywords in both locales. The Chinese-only matcher meant an
 #: English reading always fell through to "observe".
-_DIRECTION_SUMMARIES = {
+#: A direction stem. On its own it is generic, so it is never rendered alone:
+#: `_compose_direction` fastens it to this hexagram's own image or counsel.
+_DIRECTION_STEMS = {
     "zh": {
-        "stop": "当前条件不支持继续加码。",
-        "wait": "条件尚未成熟，先等关键触发出现。",
-        "adjust": "先改变推进方式，再决定是否加速。",
-        "advance": "方向可行，按关键条件向前推进。",
-        "transforming": "旧局正在转换，下一步以新条件为准。",
-        "changing": "变化已经开始，先处理最关键的触发点。",
-        "observe": "先守住当前条件，等待明确变化。",
+        "stop": "此时不宜继续加码",
+        "wait": "条件未到，先等关键触发",
+        "adjust": "先改变推进方式，再谈加速",
+        "advance": "方向可行，可以按条件推进",
+        "transforming": "旧局正在整体转换",
+        "changing": "变化已经开始",
+        "observe": "先守住当前条件",
     },
     "en": {
-        "stop": "Conditions do not support committing further right now.",
-        "wait": "Not ripe yet; wait for the key trigger to appear.",
-        "adjust": "Change how you are pushing before deciding to accelerate.",
-        "advance": "The direction holds; move on the stated conditions.",
-        "transforming": "The old situation is turning over; judge the next step by the new conditions.",
-        "changing": "Change has started; handle the most important trigger first.",
-        "observe": "Hold the current position and wait for a clear move.",
+        "stop": "not the moment to commit further",
+        "wait": "the conditions are not in place yet",
+        "adjust": "change how you are pushing before accelerating",
+        "advance": "the direction holds",
+        "transforming": "the whole situation is turning over",
+        "changing": "the change has already started",
+        "observe": "hold the position you have",
     },
 }
+
+
+def _compose_direction(
+    kind: str,
+    locale: str,
+    *,
+    main_name: str,
+    changed_name: Optional[str],
+    essence: Optional[object] = None,
+    moving: Optional[List[int]] = None,
+) -> str:
+    """A direction line that could only have been written for this hexagram.
+
+    The old version returned one fixed sentence per kind, so every reading of
+    every hexagram with the same stance read identically. Name the hexagram,
+    quote its own 大象, and say which lines moved.
+    """
+    stem = _DIRECTION_STEMS[locale].get(kind, _DIRECTION_STEMS[locale]["observe"])
+    image = str(getattr(essence, "image", "") or "")
+    moving = moving or []
+
+    if locale == "en":
+        parts = [f"{main_name}: {stem}"]
+        if moving:
+            joined = ", ".join(str(item) for item in moving)
+            parts.append(f"line {joined} is moving" if len(moving) == 1 else f"lines {joined} are moving")
+        if changed_name:
+            parts.append(f"turning toward {changed_name}")
+        return "; ".join(parts) + "."
+
+    parts = [f"{main_name}：{stem}"]
+    if image:
+        parts.append(f"其象为{image}")
+    if moving:
+        joined = "、".join(str(item) for item in moving)
+        parts.append(f"第{joined}爻动")
+    if changed_name:
+        parts.append(f"趋向{changed_name}")
+    return "；".join(parts) + "。"
+
 
 _DIRECTION_TOKENS: Tuple[Tuple[str, Tuple[str, ...], str], ...] = (
     ("stop", ("不利", "停止", "止步", "不要推进", "do not", "don't", "avoid", "hold off", "unfavourable", "unfavorable"),
@@ -299,17 +342,40 @@ _DIRECTION_TOKENS: Tuple[Tuple[str, Tuple[str, ...], str], ...] = (
 )
 
 
-def _reading_direction(headline: str, stance: str, locale: str = "zh") -> Dict[str, str]:
+def _reading_direction(
+    headline: str,
+    stance: str,
+    locale: str = "zh",
+    *,
+    main_name: str = "",
+    changed_name: Optional[str] = None,
+    essence: Optional[object] = None,
+    moving: Optional[List[int]] = None,
+) -> Dict[str, str]:
     locale = normalize_locale(locale)
     normalized = str(headline or "").casefold()
+
+    def compose(kind: str, stem_key: str) -> Dict[str, str]:
+        return {
+            "kind": kind,
+            "summary": _compose_direction(
+                stem_key,
+                locale,
+                main_name=main_name or ("this hexagram" if locale == "en" else "本卦"),
+                changed_name=changed_name,
+                essence=essence,
+                moving=moving,
+            ),
+        }
+
     for kind, tokens, _ in _DIRECTION_TOKENS:
         if any(token.casefold() in normalized for token in tokens):
-            return {"kind": kind, "summary": _DIRECTION_SUMMARIES[locale][kind]}
-    if stance in {"transforming", "changing"}:
-        kind = "adjust" if stance == "transforming" else "adjust"
-        key = "transforming" if stance == "transforming" else "changing"
-        return {"kind": kind, "summary": _DIRECTION_SUMMARIES[locale][key]}
-    return {"kind": "observe", "summary": _DIRECTION_SUMMARIES[locale]["observe"]}
+            return compose(kind, kind)
+    if stance == "transforming":
+        return compose("adjust", "transforming")
+    if stance == "changing":
+        return compose("adjust", "changing")
+    return compose("observe", "observe")
 
 
 def _extract_ai_plain_language(ai_text: Optional[str]) -> Optional[str]:
@@ -872,31 +938,75 @@ def _build_archive_sources(source_passages: List[Dict[str, object]]) -> Dict[str
     }
 
 
-_FALLBACK_ACTION = {
-    "zh": {
-        "action": "先验证一个决定成败的条件，再决定是否加码。",
-        "cadence": "下一步",
-        "signal": "关键条件是否真实到位。",
-    },
-    "en": {
-        "action": "Test the one condition that decides this before committing further.",
-        "cadence": "Next step",
-        "signal": "Whether that condition is genuinely in place.",
-    },
-}
+def _fallback_action(
+    locale: str,
+    *,
+    main_name: str,
+    changed_name: Optional[str],
+    essence: Optional[object],
+    selection: Dict[str, object],
+) -> Dict[str, str]:
+    """A next step taken from this hexagram's own counsel.
 
-_FALLBACK_FOLLOWUPS = {
-    "zh": (
-        "这卦最关键的风险信号是什么？",
-        "如果我要推进，第一步应该做什么？",
-        "请把经典原文和现代建议逐条对照。",
-    ),
-    "en": (
-        "What is the clearest risk signal here?",
-        "If I go ahead, what is the first step?",
-        "Compare the classical text with the modern advice, point by point.",
-    ),
-}
+    The constant it replaces — "先验证一个决定成败的条件，再决定是否加码。" —
+    was true of any reading, so it told the reader nothing about theirs.
+    """
+    counsel = str(getattr(essence, "counsel", "") or "")
+    trend = str(getattr(essence, "trend", "") or "")
+    primary = selection.get("primary_line")
+    role = str(selection.get("line_role") or "")
+
+    if locale == "en":
+        if counsel:
+            action = f"Take {main_name}'s counsel 「{counsel}」 and turn it into one concrete move this week."
+        elif trend:
+            action = f"{main_name} reads: {trend}. Pick the one step that tests it."
+        else:
+            action = f"Test the single condition {main_name} turns on before committing further."
+        cadence = f"At line {primary}" if primary else "Next step"
+        signal = (
+            f"Whether the situation starts moving toward {changed_name}."
+            if changed_name
+            else f"Whether {main_name}'s own condition holds."
+        )
+        return {"action": action, "cadence": cadence, "signal": signal}
+
+    if counsel:
+        action = f"取{main_name}之教「{counsel}」，先把它落成本周一件具体的事。"
+    elif trend:
+        action = f"{main_name}的运势是「{trend}」，先做一件能验证它的事。"
+    else:
+        action = f"先验证{main_name}最吃紧的那一个条件，再决定是否加码。"
+    cadence = f"第{primary}爻（{role}）" if primary else "下一步"
+    signal = (
+        f"局面是否开始向{changed_name}移动。"
+        if changed_name
+        else f"{main_name}的本有条件是否仍然成立。"
+    )
+    return {"action": action, "cadence": cadence, "signal": signal}
+
+
+def _fallback_followups(
+    locale: str, *, main_name: str, changed_name: Optional[str], selection: Dict[str, object]
+) -> List[str]:
+    """Follow-up prompts that name this reading's own parts."""
+    primary = selection.get("primary_line")
+    if locale == "en":
+        prompts = [f"What is the main risk {main_name} points to?"]
+        if primary:
+            prompts.append(f"What does line {primary} ask me to do first?")
+        if changed_name:
+            prompts.append(f"What changes once this becomes {changed_name}?")
+        prompts.append(f"Read {main_name}'s classical text against the modern advice.")
+        return prompts[:3]
+    prompts = [f"{main_name}最吃紧的风险在哪里？"]
+    if primary:
+        prompts.append(f"第{primary}爻具体要我先做什么？")
+    if changed_name:
+        prompts.append(f"变为{changed_name}之后，哪一点会不一样？")
+    prompts.append(f"请把{main_name}的原文与现代建议逐条对照。")
+    return prompts[:3]
+
 
 _PERSONAL_CONTEXT_NOTE = {
     "zh": "本阶段只使用起卦时间八字；用户出生信息、大运/流年/流月将作为后续独立个人画像层接入。",
@@ -967,6 +1077,7 @@ def _build_reading_brief(
     najia_table: Dict[str, object],
     ai_analysis_text: Optional[str],
     locale: Optional[str] = None,
+    essence: Optional[object] = None,
 ) -> Dict[str, object]:
     locale = normalize_locale(locale)
     main = hex_overview.get("main_hexagram") if isinstance(hex_overview, dict) else {}
@@ -1018,13 +1129,31 @@ def _build_reading_brief(
     archive_sources = _build_archive_sources(source_passages)
 
     fallback_timing: List[Dict[str, object]] = []
-    fallback_actions = [dict(_FALLBACK_ACTION[locale])]
-    fallback_followups = list(_FALLBACK_FOLLOWUPS[locale])
+    fallback_actions = [
+        _fallback_action(
+            locale,
+            main_name=main_name,
+            changed_name=changed_name,
+            essence=essence,
+            selection=selection,
+        )
+    ]
+    fallback_followups = _fallback_followups(
+        locale, main_name=main_name, changed_name=changed_name, selection=selection
+    )
 
     return {
         "headline": headline,
         "stance": stance,
-        "direction": _reading_direction(headline, stance, locale),
+        "direction": _reading_direction(
+            headline,
+            stance,
+            locale,
+            main_name=main_name,
+            changed_name=changed_name,
+            essence=essence,
+            moving=moving,
+        ),
         "plain_language": plain,
         "evidence": evidence,
         "key_passages": key_passages,
@@ -1389,6 +1518,7 @@ class SessionService:
             najia_table=najia_table,
             ai_analysis_text=ai_analysis_text,
             locale=resolved_locale,
+            essence=essence_for(hexagram.name, self.interpretation_repo),
         )
         session_payload["reading_brief"] = reading_brief
 

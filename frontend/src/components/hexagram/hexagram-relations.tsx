@@ -7,6 +7,7 @@ import { withLocale } from "@/i18n/path"
 import { hexagramLines } from "@/lib/hexagram-library"
 import { relatedHexagramBinaries, type RelationKind } from "@/lib/hexagram-relations"
 import { HexagramGlyph } from "./hexagram-glyph"
+import { RelationMorph, relationLines } from "./relation-morph"
 
 const LABELS: Record<RelationKind, { zh: string; en: string; ruleZh: string; ruleEn: string }> = {
   main: { zh: "本卦", en: "Primary", ruleZh: "本次起卦所得的六爻，由初爻向上排列。", ruleEn: "The six cast lines, ordered from the first line upward." },
@@ -21,6 +22,10 @@ export function HexagramRelations({ values, locale }: { values: number[]; locale
   const relations = relatedHexagramBinaries(values)
   if (!relations.length) return null
   const current = relations.find((item) => item.kind === selected) ?? relations[0]
+  const primary = relations.find((item) => item.kind === "main")
+  const movingPositions = values
+    .map((value, index) => (value === 6 || value === 9 ? index + 1 : 0))
+    .filter(Boolean)
   return <section className="hexagram-relations" aria-label={locale === "zh" ? "本变互错综" : "Related hexagrams"}>
     <header><p className="kicker">{locale === "zh" ? "六爻之间" : "Six lines, related forms"}</p><h2>{locale === "zh" ? "本、变、互、错、综" : "The primary and its related forms"}</h2></header>
     <div className="hexagram-relation-choices" role="group" aria-label={locale === "zh" ? "选择关联卦" : "Select a related form"}>
@@ -32,8 +37,17 @@ export function HexagramRelations({ values, locale }: { values: number[]; locale
       </button>)}
     </div>
     <div className="hexagram-relation-explanation" aria-live="polite">
-      <p><strong>{LABELS[current.kind][locale]}</strong>{locale === "zh" ? LABELS[current.kind].ruleZh : LABELS[current.kind].ruleEn}</p>
-      {current.entry ? <Link href={withLocale(locale, `/hexagram/${current.entry.slug}`)}>{locale === "zh" ? `读${current.entry.shortNameZh}卦经文` : "Read this hexagram"} →</Link> : null}
+      <RelationMorph
+        primary={relationLines(primary?.binary)}
+        target={relationLines(current.binary ?? primary?.binary)}
+        kind={current.kind}
+        locale={locale}
+        movingPositions={movingPositions}
+      />
+      <div className="hexagram-relation-prose">
+        <p><strong>{LABELS[current.kind][locale]}</strong>{locale === "zh" ? LABELS[current.kind].ruleZh : LABELS[current.kind].ruleEn}</p>
+        {current.entry ? <Link href={withLocale(locale, `/hexagram/${current.entry.slug}`)}>{locale === "zh" ? `读${current.entry.shortNameZh}卦经文` : "Read this hexagram"} →</Link> : null}
+      </div>
     </div>
   </section>
 }

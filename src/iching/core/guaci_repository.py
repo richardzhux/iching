@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
 
-TOP_SECTION_ORDER = ["guaci", "xiangci", "duanyi", "zhaoyong", "fupeirong", "zongjie", "philos"]
+# "quefu" states, in the reading itself, that a commentary layer is missing
+# from the source rather than leaving the gap silent.
+TOP_SECTION_ORDER = ["guaci", "xiangci", "duanyi", "zhaoyong", "fupeirong", "quefu", "zongjie", "philos"]
 LINE_SECTION_ORDER = ["yaoci", "zhaoyong", "fupeirong", "var", "philos"]
 
 FILENAME_PATTERN = re.compile(r"^第(?P<number>\d+)卦_.*\((?P<name>.+)\)\.txt$")
