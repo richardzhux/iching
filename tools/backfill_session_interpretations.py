@@ -10,12 +10,12 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional
 
 from iching.config import build_app_config
-from iching.core.bazi import BaZiCalculator
+from iching.core.ganzhi import four_pillars
 from iching.core.hexagram import Hexagram, load_hexagram_definitions
 from iching.integrations.interpretation_repository import InterpretationRepository
 from iching.integrations.najia_repository import NajiaRepository
 from iching.integrations.supabase_client import SupabaseRestClient
-from iching.services.session import build_session_najia_payload
+from iching.services.session import READING_DAY_BOUNDARY, build_session_najia_payload
 
 
 @dataclass
@@ -123,9 +123,12 @@ def _compute_refreshed_snapshot(
         return None
 
     try:
-        bazi_calculator = BaZiCalculator(cast_time)
-        bazi_calculator.calculate()
-        day_stem = (bazi_calculator.last_components or {}).get("day_stem")
+        # Backfill reproduces what the reading was cast under, so it uses the
+        # same recorded 换日 rule rather than a second convention.
+        anchored = cast_time if cast_time.tzinfo else cast_time.astimezone()
+        day_stem = four_pillars(
+            anchored, day_boundary=READING_DAY_BOUNDARY
+        ).day_stem
     except Exception:
         return None
 

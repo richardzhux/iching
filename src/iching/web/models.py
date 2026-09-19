@@ -140,7 +140,8 @@ class MetaphysicsChartRequest(BaseModel):
     timezone: str = "Asia/Shanghai"
     longitude: Optional[float] = Field(default=None, ge=-180, le=180)
     use_true_solar_time: bool = False
-    day_boundary: Literal["current", "forward"] = "forward"
+    # One product-wide default (iching.core.ganzhi.DEFAULT_DAY_BOUNDARY).
+    day_boundary: Literal["current", "forward"] = "current"
     calendar_type: Literal["solar", "lunar"] = "solar"
     is_leap_month: bool = False
     gender: Optional[Literal["male", "female"]] = None

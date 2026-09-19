@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 from iching.config import AppConfig, PATHS, build_app_config
-from iching.core.bazi import BaZiCalculator
+from iching.core.ganzhi import DEFAULT_DAY_BOUNDARY, four_pillars, zi_hour_notice
 from iching.core.divination import AVAILABLE_METHODS, DivinationMethod
 from iching.core.hexagram import Hexagram, load_hexagram_definitions
 from iching.core.hexagram_essence import essence_for
@@ -32,6 +32,15 @@ from iching.integrations.reading_format import (
     split_fields,
 )
 from iching.integrations.najia_repository import NajiaEntry, NajiaRepository
+
+
+#: The 换日 rule a cast is recorded under. `current` (晚子时不换日) is what the
+#: product has always produced, so no existing reading changes meaning. It is
+#: named here rather than inherited from whichever library call came first, and
+#: it is written into every session so a stored reading states its own school.
+#: Inside 23:00–23:59 the reading also carries the other school's pillars, since
+#: that is a live disagreement and not ours to settle silently.
+READING_DAY_BOUNDARY = DEFAULT_DAY_BOUNDARY
 
 
 def _default_input(prompt: str) -> str:
@@ -236,6 +245,11 @@ class SessionResult:
     full_text: str = field(repr=False)
     #: Carried on the record so a follow-up answers in the reading's language.
     locale: str = "zh"
+    #: The 换日 school this reading was cast under, stated rather than implied.
+    day_boundary: str = READING_DAY_BOUNDARY
+    #: Present only when the cast fell inside 子时; carries both schools'
+    #: pillars when they disagree (23:00–23:59).
+    zi_hour: Optional[Dict[str, object]] = None
 
     def to_dict(self) -> Dict[str, object]:
         payload = asdict(self)
@@ -1405,11 +1419,18 @@ class SessionService:
 
         current_time_str = timestamp.strftime("%Y.%m.%d %H:%M")
 
-        bazi_calculator = BaZiCalculator(timestamp)
-        bazi_output, elements_output = bazi_calculator.calculate()
-        bazi_components = bazi_calculator.last_components or {}
-        bazi_detail = bazi_calculator.last_detail or []
-        day_stem = bazi_components.get("day_stem")
+        # A cast time is an instant, not testimony: no timezone to infer, no
+        # DST fold to resolve. It still has to be an explicit instant, so a
+        # naive timestamp is anchored to the server zone rather than silently
+        # read as whatever clock this process runs on.
+        pillar_time = timestamp if timestamp.tzinfo else timestamp.astimezone()
+        pillars = four_pillars(pillar_time, day_boundary=READING_DAY_BOUNDARY)
+        bazi_output = pillars.labelled_text
+        elements_output = pillars.elements_text
+        bazi_components = pillars.components
+        bazi_detail = pillars.detail
+        day_stem = pillars.day_stem
+        zi_hour = zi_hour_notice(pillar_time)
 
         hexagram = Hexagram(lines, self.definitions)
         hex_text, hex_sections, hex_overview = hexagram.to_text_package(
@@ -1461,6 +1482,8 @@ class SessionService:
         session_payload = {
             "session_id": session_id,
             "locale": resolved_locale,
+            "day_boundary": READING_DAY_BOUNDARY,
+            "zi_hour": zi_hour,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "topic": topic,
             "user_question": user_question,
@@ -1563,6 +1586,8 @@ class SessionService:
             ai_usage=session_payload.get("ai_usage"),
             full_text=full_text,
             locale=resolved_locale,
+            day_boundary=READING_DAY_BOUNDARY,
+            zi_hour=zi_hour,
         )
         self._history.append(result)
         return result

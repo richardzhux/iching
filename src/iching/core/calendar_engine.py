@@ -238,34 +238,20 @@ def calculate_calendar_facts(
     if day_boundary not in {"current", "forward"}:
         raise ValueError(f"未知换日规则: {day_boundary}")
 
-    terms = solar_terms_for_years(range(value.year - 2, value.year + 3), value.tzinfo)
-    # Solar-clock correction changes day/hour labels, not the physical instant
-    # at which the birth falls before or after an astronomical solar term.
+    # Derivation is shared with the reading path; this function keeps only the
+    # resolution, context and crosscheck that a birth chart needs on top of it.
+    from iching.core.ganzhi import four_pillars
+
+    pillars = four_pillars(
+        value, day_boundary=day_boundary, reference_instant=reference_instant
+    )
+    year_gz, month_gz, day_gz, hour_gz = pillars.pillars
+    previous = pillars.previous_term
+    following = pillars.next_term
+    previous_lichun = pillars.lichun_boundary
     instant = (reference_instant or value).astimezone(UTC)
-    previous = next(item for item in reversed(terms) if item.instant_utc <= instant)
-    following = next(item for item in terms if item.instant_utc > instant)
-    previous_lichun = next(
-        item for item in reversed(terms)
-        if item.index == 3 and item.instant_utc <= instant
-    )
-    previous_jie = next(
-        item for item in reversed(terms)
-        if item.index in JIE_MONTH_BRANCH and item.instant_utc <= instant
-    )
 
-    year_number = previous_lichun.local_datetime.year
-    year_gz = _year_ganzhi(year_number)
-    month_gz = _month_ganzhi(year_gz.tg, JIE_MONTH_BRANCH[previous_jie.index])
-
-    pillar_date = value
-    if day_boundary == "forward" and value.hour >= 23:
-        pillar_date = value + timedelta(days=1)
-    solar_day = sxtwl.fromSolar(pillar_date.year, pillar_date.month, pillar_date.day)
-    day_gz = _sxtwl_gz(solar_day.getDayGZ())
-    hour = 0 if day_boundary == "forward" and value.hour >= 23 else value.hour
-    hour_gz = _sxtwl_gz(solar_day.getHourGZ(hour))
-
-    expected = " ".join(item.text for item in (year_gz, month_gz, day_gz, hour_gz))
+    expected = pillars.text
     nearest_seconds = min(
         abs((instant - previous.instant_utc).total_seconds()),
         abs((following.instant_utc - instant).total_seconds()),

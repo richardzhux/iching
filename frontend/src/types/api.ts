@@ -633,6 +633,7 @@ export type MetaphysicsChart = {
   calculation_mode: string
   true_solar_correction_minutes: number
   day_boundary: string
+  zi_hour?: ZiHourNotice | null
   lunar_date: string
   pillars: MetaphysicsPillar[]
   bazi: string
@@ -712,7 +713,9 @@ export type MetaphysicsChart = {
       direction?: "forward" | "reverse"
       start?: { years: number; months: number; days: number; hours: number; solar_date: string }
       engine_bazi?: string
-      crosscheck_matches?: boolean
+      /** null when the birth clock is not lunar_python's fixed UTC+8 clock. */
+      crosscheck_matches?: boolean | null
+      crosscheck_comparable?: boolean
       cycles: DayunCycle[]
       current?: {
         as_of: string
@@ -1025,6 +1028,29 @@ export type BaziPillar = {
   branch: BaziElement
 }
 
+export type ZiHourOption = {
+  day_boundary: "current" | "forward"
+  label: string
+  bazi: string
+  day_pillar: string
+  hour_pillar: string
+  day_stem: string
+}
+
+/**
+ * Present when the calculation time falls in 子时 (23:00-01:00).
+ * `schools_disagree` is true only across 23:00-23:59; both schools place
+ * 00:00-01:00 on the new day, so there the notice states agreement rather
+ * than asking for a choice that does not exist.
+ */
+export type ZiHourNotice = {
+  in_zi_hour: boolean
+  half: string
+  schools_disagree: boolean
+  options: ZiHourOption[]
+  note: string
+}
+
 export type CastingProvenance = {
   method_key?: string
   method_label?: string
@@ -1038,6 +1064,8 @@ export type CastingProvenance = {
 export type SessionPayload = {
   summary_text: string
   casting_provenance?: CastingProvenance
+  day_boundary?: string
+  zi_hour?: ZiHourNotice | null
   hex_text: string
   hex_sections: HexSection[]
   hex_overview: HexOverview

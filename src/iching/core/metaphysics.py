@@ -26,6 +26,7 @@ from iching.core.bazi_rules.fact_graph import (
     build_bazi_fact_graph,
 )
 from iching.core.bazi_structure import build_structure_profile, structured_relations
+from iching.core.ganzhi import DEFAULT_DAY_BOUNDARY, zi_hour_notice
 from iching.core.calendar_engine import (
     ENGINE_VERSION as CALENDAR_ENGINE_VERSION,
     JIE_MONTH_BRANCH,
@@ -1439,6 +1440,13 @@ def _dayun_payload(
     eight_char = solar.getLunar().getEightChar()
     eight_char.setSect(1 if day_boundary == "forward" else 2)
     crosscheck_bazi = eight_char.toString()
+    # The sect is chosen for the BIRTH clock, but lunar_python is handed the
+    # fixed UTC+8 clock. For a birth outside that offset the two clocks can sit
+    # on opposite sides of 子时 — a Tokyo 00:00 is 23:00 CST — so the sect no
+    # longer corresponds and a mismatch here would say nothing about either
+    # engine. calendar_engine._crosscheck already refuses the same comparison
+    # for the same reason.
+    crosscheck_comparable = value.utcoffset() == timedelta(hours=8)
     sect = 2 if algorithm == "sect2" else 1
     yun = eight_char.getYun(1 if gender == "male" else 0, sect)
     reference = (
@@ -1556,8 +1564,11 @@ def _dayun_payload(
             "hours": yun.getStartHour(),
             "solar_date": first_dayun_start.strftime("%Y-%m-%d %H:%M:%S"),
         },
-        "engine_bazi": crosscheck_bazi,
-        "crosscheck_matches": crosscheck_bazi == expected_bazi,
+        "engine_bazi": crosscheck_bazi if crosscheck_comparable else None,
+        "crosscheck_comparable": crosscheck_comparable,
+        "crosscheck_matches": (
+            crosscheck_bazi == expected_bazi if crosscheck_comparable else None
+        ),
         "cycles": cycles,
         # Consumed and removed before API serialization. It keeps the personal
         # baseline fixed across the compact and full-life views.
@@ -1613,7 +1624,7 @@ def build_metaphysics_period(
     timezone_name: str = "Asia/Shanghai",
     longitude: Optional[float] = None,
     use_true_solar_time: bool = False,
-    day_boundary: str = "forward",
+    day_boundary: str = DEFAULT_DAY_BOUNDARY,
     calendar_type: str = "solar",
     is_leap_month: bool = False,
     gender: Optional[str] = None,
@@ -1679,7 +1690,7 @@ def build_metaphysics_chart(
     timezone_name: str = "Asia/Shanghai",
     longitude: Optional[float] = None,
     use_true_solar_time: bool = False,
-    day_boundary: str = "forward",
+    day_boundary: str = DEFAULT_DAY_BOUNDARY,
     calendar_type: str = "solar",
     is_leap_month: bool = False,
     gender: Optional[str] = None,
@@ -1864,6 +1875,13 @@ def build_metaphysics_chart(
         "calculation_mode": "true_solar" if use_true_solar_time else "standard_time",
         "true_solar_correction_minutes": round(correction_minutes, 2),
         "day_boundary": day_boundary,
+        # Tested against the calculation clock, not the civil one: true-solar
+        # correction can carry a 22:5x birth into 晚子时 or out of it, and the
+        # school dispute applies to the time actually used for the pillars.
+        "zi_hour": zi_hour_notice(
+            calculation_time,
+            reference_instant=local if use_true_solar_time else None,
+        ),
         "lunar_date": lunar_text,
         "pillars": pillars,
         "bazi": bazi_text,

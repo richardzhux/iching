@@ -10,6 +10,7 @@ import { BaziSimulationExplorer } from "@/components/tools/bazi-simulation-explo
 import { BaziDiagnosticWorkspace } from "@/components/tools/bazi-diagnostic-workspace"
 import { BaziPeriodInsightPanel } from "@/components/tools/bazi-period-insight-panel"
 import { ComparisonUniverseBar } from "@/components/tools/comparison-universe-bar"
+import { ZiHourChoice } from "@/components/tools/zi-hour-choice"
 import {
   ConsumerIdentity,
   type ConsumerIdentityProfile,
@@ -351,6 +352,12 @@ export function BaziChartView(props: BaziChartViewProps) {
       <DisplayModeControl mode={displayMode} locale={locale} onChange={changeDisplayMode} />
 
       <ChartSectionNav locale={locale} mode={displayMode} />
+
+      {chart.zi_hour ? (
+        <div className="mt-6">
+          <ZiHourChoice notice={chart.zi_hour} locale={locale} selected={chart.day_boundary === "forward" ? "forward" : "current"} />
+        </div>
+      ) : null}
 
       <ReportChapter id="bazi-synthesis" title={locale === "zh" ? "核心判断" : "Key findings"}>
         <BaziSynthesisPanel chart={chart} locale={locale} />

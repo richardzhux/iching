@@ -23,6 +23,7 @@ import type {
   CastingProvenance,
   HexSection,
   LineSelectionInfo,
+  ZiHourNotice,
   ReadingBrief,
   ReadingBriefKeyPassage,
   ReadingBriefSourcePassage,
@@ -177,6 +178,38 @@ function LineSelectionNote({ selection, provenance, locale }: {
           {provenance.description}
         </p>
       ) : null}
+    </div>
+  )
+}
+
+function ZiHourReadingNote({ notice, locale }: { notice: ZiHourNotice; locale: "zh" | "en" }) {
+  // The cast landed in 晚子时, where the two schools give different day pillars
+  // and therefore different 六神. The reading is recorded under one of them, so
+  // name it and show the alternative rather than let the choice stay invisible.
+  return (
+    <div className="space-y-2 rounded-lg border border-primary/35 bg-primary/[0.04] px-4 py-3 text-sm">
+      <p className="font-semibold text-primary">
+        {locale === "zh" ? "晚子时 · 两派日柱不同" : "Late Zi hour · the schools differ on the day pillar"}
+      </p>
+      <p className="text-muted-foreground">
+        {locale === "zh"
+          ? "起卦时间落在 23:00–24:00。本卦按「晚子时不换日」记录；另一派的日柱与六神起点如下，供对照。"
+          : "This cast falls between 23:00 and 24:00. It is recorded under the school where the day does not advance; the other school's day pillar is shown for comparison."}
+      </p>
+      <ul className="space-y-1">
+        {notice.options.map((option) => (
+          <li key={option.day_boundary} className="font-mono text-xs">
+            <span className="font-sans text-muted-foreground">
+              {locale === "zh" ? option.label : option.day_boundary === "forward" ? "Day advances" : "Day does not advance"}
+              {": "}
+            </span>
+            {option.bazi}
+            <span className="font-sans text-muted-foreground">
+              {locale === "zh" ? `（日主 ${option.day_stem}）` : ` (day master ${option.day_stem})`}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -1045,6 +1078,7 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
         </summary>
         <div className="space-y-6 pt-2">
           <LineSelectionNote selection={result.hex_overview.line_selection} provenance={result.casting_provenance} locale={locale} />
+          {result.zi_hour?.schools_disagree ? <ZiHourReadingNote notice={result.zi_hour} locale={locale} /> : null}
           <MechanicsInsightPanel
             result={result}
             brief={brief}

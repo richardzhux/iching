@@ -40,7 +40,9 @@ const STANDARD_ZIWEI_RULES = {
   algorithm: "default",
   astroType: "heaven",
   yearDivide: "exact",
-  dayBoundary: "forward",
+  // Matches iching.core.ganzhi.DEFAULT_DAY_BOUNDARY; the toggle stays,
+  // and 23:00-23:59 births are shown under both schools either way.
+  dayBoundary: "current",
   fixLeap: true,
 } as const
 

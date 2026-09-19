@@ -219,7 +219,12 @@ def test_lunar_input_converts_with_historical_timezone_and_crosschecks_engines()
     assert chart["birth_profile"]["converted_solar_date"] == "1986-05-29T00:00:00+09:00"
     assert chart["bazi"] == "丙寅 癸巳 癸酉 壬子"
     assert chart["birth_profile"]["dayun"]["status"] == "available"
-    assert chart["birth_profile"]["dayun"]["crosscheck_matches"] is True
+    # A Tokyo 00:00 birth is 23:00 on lunar_python's fixed UTC+8 clock, so the
+    # two clocks sit on opposite sides of 子时 and the sect chosen for the birth
+    # clock no longer corresponds. The crosscheck reports that it cannot
+    # compare rather than manufacturing a mismatch.
+    assert chart["birth_profile"]["dayun"]["crosscheck_comparable"] is False
+    assert chart["birth_profile"]["dayun"]["crosscheck_matches"] is None
     assert len(chart["birth_profile"]["dayun"]["cycles"]) == 13
 
 
@@ -626,3 +631,58 @@ def test_conclusions_quote_the_numbers_they_rest_on():
             if conclusion["lead_metric"]:
                 assert "标准差" in body, body
                 assert "常见约" in body, body
+
+
+def test_crosscheck_runs_when_the_clocks_are_comparable():
+    """It must still verify for the case it was built for: a CST birth."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from iching.core.metaphysics import build_metaphysics_chart
+
+    chart = build_metaphysics_chart(
+        datetime(2000, 5, 12, 14, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+        timezone_name="Asia/Shanghai",
+        gender="male",
+        include_period_details=False,
+    )
+    dayun = chart["birth_profile"]["dayun"]
+    assert dayun["crosscheck_comparable"] is True
+    assert dayun["crosscheck_matches"] is True
+
+
+def test_crosscheck_declines_during_china_dst():
+    """China ran DST 1986-1991; those births are +09:00, not the engine's clock."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from iching.core.metaphysics import build_metaphysics_chart
+
+    chart = build_metaphysics_chart(
+        datetime(1990, 5, 12, 14, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+        timezone_name="Asia/Shanghai",
+        gender="male",
+        include_period_details=False,
+    )
+    assert chart["birth_profile"]["dayun"]["crosscheck_comparable"] is False
+
+
+def test_zi_hour_notice_reaches_the_chart_payload():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from iching.core.metaphysics import build_metaphysics_chart
+
+    zone = ZoneInfo("Asia/Shanghai")
+    disputed = build_metaphysics_chart(
+        datetime(1990, 5, 12, 23, 30, tzinfo=zone),
+        timezone_name="Asia/Shanghai", gender="male", include_period_details=False,
+    )["zi_hour"]
+    assert disputed is not None and disputed["schools_disagree"] is True
+    assert len({option["day_pillar"] for option in disputed["options"]}) == 2
+
+    plain = build_metaphysics_chart(
+        datetime(1990, 5, 12, 14, 30, tzinfo=zone),
+        timezone_name="Asia/Shanghai", gender="male", include_period_details=False,
+    )["zi_hour"]
+    assert plain is None
