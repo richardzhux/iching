@@ -42,6 +42,8 @@ export type CastingPreview = {
   upper_trigram: number | null
   lower_trigram: number | null
   changing_line: number | null
+  /** Echo back on /sessions so the reading records a verified server cast. */
+  casting_token?: string | null
 }
 
 export type MetaphysicsPillar = {
@@ -849,6 +851,8 @@ export type HexSection = {
   content: string
   importance: "primary" | "secondary"
   visible_by_default: boolean
+  /** Role under the 取用 rule, so the UI can label without re-deriving it. */
+  line_role?: "primary" | "secondary" | "background"
 }
 
 export type HexLineInfo = {
@@ -862,6 +866,19 @@ export type HexLineInfo = {
   changed_line_type?: "yang" | "yin"
 }
 
+export type LineSelectionInfo = {
+  rule: string
+  rule_name: string
+  rule_detail: string
+  rule_name_en?: string
+  rule_detail_en?: string
+  primary_line: number | null
+  secondary_lines: number[]
+  primary_is_moving: boolean
+  /** 动爻 or 静爻 — four and five moving lines select a STATIC line. */
+  line_role: string
+}
+
 export type HexOverview = {
   lines: HexLineInfo[]
   main_hexagram: {
@@ -872,6 +889,7 @@ export type HexOverview = {
     name: string
     explanation: string
   } | null
+  line_selection?: LineSelectionInfo
 }
 
 export type NajiaMeta = {
@@ -989,8 +1007,19 @@ export type BaziPillar = {
   branch: BaziElement
 }
 
+export type CastingProvenance = {
+  method_key?: string
+  method_label?: string
+  line_source?: "server_cast" | "client_cast" | "manual" | "edited"
+  description?: string
+  verified?: boolean
+  meihua_mode?: string
+  matches_calculated_lines?: boolean
+}
+
 export type SessionPayload = {
   summary_text: string
+  casting_provenance?: CastingProvenance
   hex_text: string
   hex_sections: HexSection[]
   hex_overview: HexOverview
@@ -1029,6 +1058,9 @@ export type SessionRequest = {
   ai_reasoning?: string | null
   ai_verbosity?: string | null
   ai_tone?: string | null
+  locale?: "zh" | "en"
+  casting_token?: string | null
+  line_source?: "server_cast" | "client_cast" | "manual" | null
 }
 
 export type ChatMessage = {
@@ -1060,6 +1092,7 @@ export type ChatTurnPayload = {
   tone?: string | null
   model?: string | null
   restart?: boolean
+  locale?: "zh" | "en"
 }
 
 export type ChatTranscriptResponse = {

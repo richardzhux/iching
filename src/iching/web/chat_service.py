@@ -21,7 +21,12 @@ from iching.web.chat_state import SessionState, SessionStateStore
 
 
 from iching.integrations.ai_budget import use_ai_budget
-from iching.integrations.ai import _build_followup_session_context, CHAT_CONTINUATION_PROMPT, TONE_PROFILES
+from iching.integrations.ai import (
+    _build_followup_session_context,
+    build_chat_prompt,
+    TONE_PROFILES,
+)
+from iching.integrations.reading_format import normalize_locale
 from iching.web.ai_operations import (AIOperations, AIOperationLimitError, validate_ai_access,
     operation_id, new_budget, reservation_for, usage_tokens)
 
@@ -168,6 +173,24 @@ class ChatService:
             "messages": messages,
         }
 
+    def fetch_session_payload(self, *, session_id: str, user: SupabaseUser) -> Dict[str, object]:
+        """The stored SessionPayload for one of the caller's own readings.
+
+        Without this a reading lived only in the caller's browser state, so a
+        reading URL could not be reopened on another device or after a reset.
+        """
+        if not self.client.enabled:
+            raise RuntimeError("Supabase is not configured on the server.")
+        if not user.id:
+            raise ValueError("用户无效。")
+        record = self.client.fetch_session(session_id=session_id, user_id=user.id)
+        if not record:
+            raise LookupError("找不到该卦例，或它不属于当前账户。")
+        snapshot = record.get("payload_snapshot")
+        if not isinstance(snapshot, dict) or not snapshot.get("session_id"):
+            raise LookupError("该卦例缺少完整快照，无法重新打开。")
+        return snapshot
+
     def list_sessions(self, user: SupabaseUser) -> List[Dict[str, object]]:
         if not self.client.enabled:
             raise RuntimeError("Supabase is not configured on the server.")
@@ -231,7 +254,8 @@ class ChatService:
             raise
 
     def _prepare_followup(self, *, session_id, user, message, reasoning, verbosity,
-                          tone, model_override, restart, request_id, access_password):
+                          tone, model_override, restart, request_id, access_password,
+                          locale=None):
         validate_ai_access(access_password)
         request_id = operation_id(request_id)
         stripped = message.strip()
@@ -252,15 +276,21 @@ class ChatService:
         # Explicit context makes the provider's entire paid input measurable and bounded.
         # No hidden previous_response_id chain can silently expand the input budget.
         context["conversation_history"] = history[-20:]
+        # A follow-up answers in the locale the reader is using now, falling
+        # back to whatever the reading itself was generated in.
+        resolved_locale = normalize_locale(
+            locale if locale is not None else context.get("locale")
+        )
         applied = {
             "model_name": chosen_model,
             "reasoning_effort": reasoning if reasoning is not None else record.get("ai_reasoning"),
             "verbosity": verbosity if verbosity is not None else record.get("ai_verbosity"),
             "tone": tone if tone is not None else record.get("ai_tone"),
+            "locale": resolved_locale,
         }
         budget = new_budget()
         prompt = followup_prompt(context, stripped)
-        instructions = CHAT_CONTINUATION_PROMPT
+        instructions = build_chat_prompt(applied["locale"])
         if applied["tone"]:
             instructions += f"\n\n语气设定: {applied['tone']} —— {TONE_PROFILES.get(applied['tone'], '用户自定义语气')}"
         while len((prompt + instructions).encode()) > budget.max_input_bytes and context["conversation_history"]:
@@ -274,7 +304,8 @@ class ChatService:
         admitted = self.operations.admit(
             user_id=user.id, request_id=request_id, session_id=session_id, kind="chat",
             semantics={"message":message,"reasoning":reasoning,"verbosity":verbosity,
-                       "tone":tone,"model":model_override,"restart":restart},
+                       "tone":tone,"model":model_override,"restart":restart,
+                       "locale":resolved_locale},
             reserve=reservation_for(budget),
         )
         return {"request_id":request_id,"budget":budget,"admitted":admitted,
@@ -310,10 +341,11 @@ class ChatService:
         return {"assistant":assistant,"usage":usage}
 
     def send_followup(self, *, session_id, user, message, reasoning=None, verbosity=None,
-                      tone=None, model_override=None, restart=False, request_id=None, access_password=None):
+                      tone=None, model_override=None, restart=False, request_id=None,
+                      access_password=None, locale=None):
         prepared = self._prepare_followup(session_id=session_id,user=user,message=message,
             reasoning=reasoning,verbosity=verbosity,tone=tone,model_override=model_override,
-            restart=restart,request_id=request_id,access_password=access_password)
+            restart=restart,request_id=request_id,access_password=access_password,locale=locale)
         if prepared["admitted"]["status"] == "completed":
             cached = prepared["admitted"]["result"]
             return {"assistant":cached["assistant"],"usage":cached["usage"]}
@@ -327,10 +359,11 @@ class ChatService:
             raise
 
     def stream_followup(self, *, session_id, user, message, reasoning=None, verbosity=None,
-                        tone=None, model_override=None, restart=False, request_id=None, access_password=None):
+                        tone=None, model_override=None, restart=False, request_id=None,
+                        access_password=None, locale=None):
         prepared = self._prepare_followup(session_id=session_id,user=user,message=message,
             reasoning=reasoning,verbosity=verbosity,tone=tone,model_override=model_override,
-            restart=restart,request_id=request_id,access_password=access_password)
+            restart=restart,request_id=request_id,access_password=access_password,locale=locale)
         if prepared["admitted"]["status"] == "completed":
             cached = prepared["admitted"]["result"]
             return iter([{"type":"completed","assistant":cached["assistant"],"usage":cached["usage"]}])

@@ -8,6 +8,11 @@ from typing import Any, Callable, Dict, Iterator, Optional
 
 from iching.core.najia import derive_six_gods, rebase_relation
 from iching.integrations.ai_budget import AICallBudget, get_ai_budget
+from iching.integrations.reading_format import (
+    LANGUAGE_RULE,
+    build_system_prompt,
+    normalize_locale,
+)
 
 from openai import BadRequestError, OpenAI
 
@@ -78,61 +83,9 @@ TONE_PROFILES: Dict[str, str] = {
 }
 
 
-SYSTEM_PROMPT_PRO = """
-你是资深《易》学占断顾问。目标是给出清晰、可验证、可执行的判断，优先让普通用户听得懂。
-
-【硬性规则】
-- 只依据输入会话数据推断；信息不足就明确写“信息不足”，不得编造。
-- 保持明确立场，避免空泛套话与两头下注。
-- 允许给出直接建议，避免冗余合规口吻。
-- 不输出 JSON、代码块、表格或多级列表。
-- 输出为简体中文 Markdown，只使用标题与顶层 `- ` 列表，禁止嵌套列表。
-
-【核心推断方法】
-1) 先判动爻并按动爻数量规则取主断：
-   - 无动爻：取卦辞断（本卦为主，错/综/互参照）。
-   - 一爻动：动爻爻辞为主，卦辞为辅。
-   - 两爻动：一阴一阳取阴爻；同阴或同阳取上动爻。
-   - 三爻动：取中间动爻。
-   - 四爻动：在两静爻中取下静爻。
-   - 五爻动：取唯一静爻。
-   - 六爻全动：乾坤用“用九/用六”，其余取变卦卦辞。
-2) 本卦为主，变/错/综/互为辅；互卦看过程，错综看反向牵制。
-3) 结合纳甲、六亲、六神、世应、五行旺衰判断主客强弱、用忌与阻力来源。
-4) 应期必须给主次窗口，并写明触发条件。
-
-【输出结构（严格按顺序）】
-# 一句话结论
-- 一句话给出倾向（利成/延迟/不利）与核心原因。
-
-# 给普通人的解释
-- 1-2段，先说结果再说原因。
-- 每段至少出现一句“换成大白话：...”。
-
-# 证据短链
-- 3-5条，每条必须使用：
-  `- 结论：...｜依据：...｜白话：...`
-- 依据必须来自动爻、卦辞/爻辞、纳甲/五行中的至少一项。
-
-# 应期与条件
-- `- 主应期：...｜条件：...｜置信度：...%`
-- `- 次应期：...｜条件：...｜置信度：...%`
-- 置信度必须绑定条件，不允许裸数字。
-
-# 行动建议
-- 给3条建议，每条都必须包含：
-  `- 动作：...｜节奏：...｜观察指标：...`
-
-# 风险与转折信号
-- 给2-4条可观察信号，说明何时转强或转弱。
-
-# 继续追问
-- 给3个用户可以直接点击继续问的问题。
-- 每条必须是短问题，不要超过28个汉字。
-
-# 最终判断
-- 用两句话收束：最终结论 + 下一步最重要动作。
-"""
+#: Kept as the Chinese rendering so existing callers and stored prompts
+#: keep working; new call sites pass a locale to :func:`build_system_prompt`.
+SYSTEM_PROMPT_PRO = build_system_prompt("zh")
 
 
 def _normalized_najia_for_ai(data: Dict[str, Any]) -> Any:
@@ -178,7 +131,62 @@ def _normalized_najia_for_ai(data: Dict[str, Any]) -> Any:
     return sanitized
 
 
+def _line_selection_line(data: Dict[str, Any]) -> Optional[str]:
+    """Hand the model the resolved 取用 rule instead of making it re-derive one."""
+    overview = data.get("hex_overview")
+    selection = overview.get("line_selection") if isinstance(overview, dict) else None
+    if not isinstance(selection, dict):
+        return None
+    name = str(selection.get("rule_name") or "")
+    detail = str(selection.get("rule_detail") or "")
+    if not name:
+        return None
+    text = f"取用(Line selection): {name} · {detail}"
+    primary = selection.get("primary_line")
+    if primary is not None:
+        text += f"；主爻第{primary}爻（{selection.get('line_role') or ''}）"
+        secondary = selection.get("secondary_lines") or []
+        if secondary:
+            text += "，并参第" + "、".join(str(item) for item in secondary) + "爻"
+    return text
+
+
+def _classical_sections_block(data: Dict[str, Any], *, limit: int = 8) -> Optional[str]:
+    """The classical passages this reading actually selected.
+
+    ``hex_text`` carries only the ``guaci`` slot, so Takashima — integrated at
+    the line-slot level and shown to the reader — never reached the model. Send
+    the sections the 取用 rule marked visible, primary first, bounded so the
+    input budget stays predictable.
+    """
+    sections = data.get("hex_sections")
+    if not isinstance(sections, list):
+        return None
+    rank = {"primary": 0, "secondary": 1, "background": 2}
+    chosen = [
+        item
+        for item in sections
+        if isinstance(item, dict)
+        and item.get("visible_by_default")
+        and item.get("content")
+        and item.get("source") != "guaci"  # already in hex_text
+    ]
+    chosen.sort(key=lambda item: rank.get(str(item.get("line_role") or "background"), 3))
+    if not chosen:
+        return None
+    blocks = []
+    for item in chosen[:limit]:
+        title = str(item.get("title") or item.get("slot_key") or "")
+        label = str(item.get("source_label") or item.get("source") or "")
+        content = str(item.get("content") or "").strip()
+        if len(content) > 1800:
+            content = content[:1800].rstrip() + "…"
+        blocks.append(f"【{label}｜{title}】\n{content}")
+    return "本次取用的其他经典文本（高岛易断等）:\n" + "\n\n".join(blocks)
+
+
 def _build_prompt(data: Dict[str, Any]) -> str:
+    locale = normalize_locale(data.get("locale"))
     blocks = []
     if topic := data.get("topic"):
         blocks.append(f"本次占卜主题: {topic}")
@@ -190,12 +198,16 @@ def _build_prompt(data: Dict[str, Any]) -> str:
         blocks.append(f"起卦时间: {current_time}")
     if lines := data.get("lines"):
         blocks.append(f"爻值(自下而上，6=老阴,7=少阳,8=少阴,9=老阳): {lines}")
+    if selection_line := _line_selection_line(data):
+        blocks.append(selection_line)
     if bazi := data.get("bazi_output"):
         blocks.append("八字计算:\n" + str(bazi))
     if elements := data.get("elements_output"):
         blocks.append("五行分析:\n" + str(elements))
     if text := data.get("hex_text"):
         blocks.append("卦辞解释（含本卦/变卦/错/综/互 + guaci）:\n" + str(text))
+    if classical := _classical_sections_block(data):
+        blocks.append(classical)
     najia_data = _normalized_najia_for_ai(data)
     if najia_data:
         try:
@@ -232,7 +244,17 @@ def _build_prompt(data: Dict[str, Any]) -> str:
     elif verbosity == "high":
         verbosity_note = "输出篇幅: 详尽。充分展开背景、推理与建议。"
 
-    blocks.append("请严格遵循系统中的固定输出结构，先给明确结论，再给证据短链与可执行动作。")
+    blocks.append(
+        "Follow the fixed output structure in the system instructions exactly: "
+        "the conclusion first, then the evidence chain and the actionable steps."
+        if locale == "en"
+        else "请严格遵循系统中的固定输出结构，先给明确结论，再给证据短链与可执行动作。"
+    )
+    blocks.append(
+        "Write the entire answer in English."
+        if locale == "en"
+        else "全文使用简体中文作答。"
+    )
     if reasoning_note:
         blocks.append(reasoning_note)
     if verbosity_note:
@@ -244,13 +266,40 @@ def _build_prompt(data: Dict[str, Any]) -> str:
     return "\n\n".join(blocks)
 
 
-CHAT_CONTINUATION_PROMPT = (
-    "You are continuing a single, already-completed I Ching reading. Do not recast or change the hexagram. "
-    "Ground all answers in the hexagram, the classical text and payload from the initial analysis, and your own prior "
-    "explanation in this thread. Treat each user message as a follow-up about the same situation; if the user wanders "
-    "off to unrelated topics, gently redirect back to this reading.\n\n"
-    + SYSTEM_PROMPT_PRO.strip()
-)
+def build_chat_prompt(locale: Optional[str] = None) -> str:
+    """Instructions for a follow-up turn.
+
+    The initial reading's eight-section template used to be appended verbatim,
+    so "what about next month?" was told to emit a full formal reading complete
+    with 继续追问 and 最终判断. A follow-up answers the question asked and only
+    reaches for the full structure when the reader asks for another full pass.
+    """
+    resolved = normalize_locale(locale)
+    if resolved == "en":
+        return (
+            "You are continuing a single, already-completed I Ching reading. Do not recast or "
+            "change the hexagram. Ground every answer in the hexagram, the classical text and the "
+            "payload from the initial analysis, and in your own earlier explanation in this thread. "
+            "Treat each message as a follow-up about the same situation; if the reader wanders to an "
+            "unrelated topic, steer gently back to this reading.\n\n"
+            "Answer the question that was asked, at its own length. Do not reproduce the full "
+            "eight-section reading structure unless the reader explicitly asks for another complete "
+            "reading. Keep a clear position, cite the line or text you are relying on, and say "
+            "plainly when the data does not settle the question.\n\n"
+            + LANGUAGE_RULE["en"]
+        )
+    return (
+        "你正在继续一次已经完成的占断。不要重新起卦或改变卦象。"
+        "所有回答都要依据该卦象、经典文本、初次分析的会话数据，以及你在本轮对话中已经给出的解释。"
+        "把每条消息都当作同一件事的追问；如果用户跑题，温和地带回本卦。\n\n"
+        "只回答被问到的问题，长度随问题而定。除非用户明确要求再做一次完整解读，"
+        "否则不要重复输出完整的八段结构。保持明确立场，指明所依据的爻位或原文，"
+        "数据不足时直说。\n\n"
+        + LANGUAGE_RULE["zh"]
+    )
+
+
+CHAT_CONTINUATION_PROMPT = build_chat_prompt("zh")
 
 
 @dataclass(slots=True)
@@ -317,6 +366,7 @@ def start_analysis(
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
     tone: Optional[str] = None,
+    locale: Optional[str] = None,
 ) -> Optional[AIResponseData]:
     if not interactive:
         # Non-interactive callers are responsible for pre-validating access.
@@ -336,6 +386,8 @@ def start_analysis(
 
     if tone and not data.get("ai_tone"):
         data["ai_tone"] = tone
+    resolved_locale = normalize_locale(locale or data.get("locale"))
+    data["locale"] = resolved_locale
 
     choose_model = model_selector or _interactive_model_selector
     model_name = normalize_model_name(model_hint or (choose_model() if interactive else DEFAULT_MODEL))
@@ -349,7 +401,7 @@ def start_analysis(
     response = _request_openai_response(
         client=client,
         model_name=model_name,
-        instructions=SYSTEM_PROMPT_PRO.strip(),
+        instructions=build_system_prompt(resolved_locale).strip(),
         user_input=user_prompt,
         reasoning=reasoning_payload,
         verbosity=selected_verbosity,
@@ -376,6 +428,7 @@ def continue_analysis(
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
     tone: Optional[str] = None,
+    locale: Optional[str] = None,
 ) -> AIResponseData:
     if not previous_response_id:
         raise ValueError("previous_response_id is required for follow-up calls.")
@@ -389,7 +442,7 @@ def continue_analysis(
     selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
     reasoning_payload = selected_reasoning
 
-    instruction_block = CHAT_CONTINUATION_PROMPT
+    instruction_block = build_chat_prompt(locale)
     if tone:
         descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
         instruction_block += f"\n\n语气设定: {tone} —— {descriptor}"
@@ -428,6 +481,7 @@ def continue_analysis_from_session(
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
     tone: Optional[str] = None,
+    locale: Optional[str] = None,
 ) -> AIResponseData:
     stripped = message.strip()
     if not stripped:
@@ -446,7 +500,7 @@ def continue_analysis_from_session(
     selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
     reasoning_payload = selected_reasoning
 
-    instruction_block = CHAT_CONTINUATION_PROMPT
+    instruction_block = build_chat_prompt(locale)
     if tone:
         descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
         instruction_block += f"\n\n语气设定: {tone} —— {descriptor}"
@@ -490,6 +544,7 @@ def stream_continue_analysis(
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
     tone: Optional[str] = None,
+    locale: Optional[str] = None,
 ) -> Iterator[Dict[str, Any]]:
     if not previous_response_id:
         raise ValueError("previous_response_id is required for follow-up calls.")
@@ -501,6 +556,7 @@ def stream_continue_analysis(
         reasoning_effort=reasoning_effort,
         verbosity=verbosity,
         tone=tone,
+        locale=locale,
     )
 
 
@@ -513,6 +569,7 @@ def stream_continue_analysis_from_session(
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
     tone: Optional[str] = None,
+    locale: Optional[str] = None,
 ) -> Iterator[Dict[str, Any]]:
     stripped = message.strip()
     if not stripped:
@@ -532,6 +589,7 @@ def stream_continue_analysis_from_session(
         reasoning_effort=reasoning_effort,
         verbosity=verbosity,
         tone=tone,
+        locale=locale,
     )
 
 
@@ -544,6 +602,7 @@ def _stream_analysis(
     reasoning_effort: Optional[str],
     verbosity: Optional[str],
     tone: Optional[str],
+    locale: Optional[str] = None,
 ) -> Iterator[Dict[str, Any]]:
     resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
     if not resolved_api_key:
@@ -552,7 +611,7 @@ def _stream_analysis(
     resolved_model = normalize_model_name(model_name) or DEFAULT_MODEL
     selected_reasoning = _normalize_reasoning(resolved_model, reasoning_effort)
     selected_verbosity = _normalize_verbosity(resolved_model, verbosity)
-    instructions = CHAT_CONTINUATION_PROMPT
+    instructions = build_chat_prompt(locale)
     if tone:
         descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
         instructions += f"\n\n语气设定: {tone} —— {descriptor}"
@@ -637,6 +696,8 @@ def _build_followup_session_context(data: Dict[str, Any]) -> str:
         blocks.append("五行:\n" + str(elements))
     if hex_text := data.get("hex_text"):
         blocks.append("卦象与卦辞:\n" + str(hex_text))
+    if classical := _classical_sections_block(data, limit=4):
+        blocks.append(classical)
     najia_data = _normalized_najia_for_ai(data)
     if najia_data:
         try:
@@ -849,6 +910,7 @@ def analyze_session(
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
     tone: Optional[str] = None,
+    locale: Optional[str] = None,
 ) -> Optional[str]:
     result = start_analysis(
         data,

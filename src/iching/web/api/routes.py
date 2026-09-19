@@ -19,6 +19,7 @@ from iching.core.bazi_rules.registry import load_packaged_shen_registry
 from iching.core.metaphysics import build_metaphysics_chart, build_metaphysics_period
 from iching.core.metaphysics_statistics import lookup_statistics
 from iching.core.pattern_product_catalog import pattern_library
+from iching.web.casting_provenance import sign_cast
 from iching.web.chat_service import ChatRateLimitError
 from iching.web.chart_service import ChartArchiveService
 from iching.web.models import (
@@ -165,9 +166,11 @@ def prepare_cast(payload: CastingPreviewRequest) -> CastingPreviewResponse:
     if payload.method_key == "s":
         trace = [ShicaoMethod.calculate_line_trace() for _ in range(6)]
         steps = [[change["after"] for change in line] for line in trace]
+        lines = [line_steps[-1] // 4 for line_steps in steps]
         return CastingPreviewResponse(
             method_key="s", timestamp=payload.timestamp,
-            lines=[line_steps[-1] // 4 for line_steps in steps], yarrow_steps=steps, yarrow_trace=trace,
+            lines=lines, yarrow_steps=steps, yarrow_trace=trace,
+            casting_token=sign_cast("s", lines, payload.timestamp.isoformat()),
         )
     try:
         from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -179,10 +182,12 @@ def prepare_cast(payload: CastingPreviewRequest) -> CastingPreviewResponse:
                 raise ValueError("未知时区") from exc
             timestamp = timestamp.replace(tzinfo=zone) if timestamp.tzinfo is None else timestamp.astimezone(zone)
         upper, lower, moving, inputs = MeihuaMethod.calculate_time(timestamp, payload.meihua_mode)
+        lines = MeihuaMethod._construct_hexagram(upper, lower, moving)
         return CastingPreviewResponse(
             method_key="m", timestamp=timestamp, meihua_mode=payload.meihua_mode, calculation_inputs=inputs,
-            lines=MeihuaMethod._construct_hexagram(upper, lower, moving),
+            lines=lines,
             upper_trigram=upper, lower_trigram=lower, changing_line=moving,
+            casting_token=sign_cast("m", lines, timestamp.isoformat()),
         )
     except (ValueError, OverflowError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -607,6 +612,7 @@ def create_chat_message(
             restart=payload.restart,
             request_id=str(payload.request_id) if payload.request_id else None,
             access_password=payload.access_password,
+            locale=payload.locale,
         )
     except SupabaseAuthError as exc:
         raise HTTPException(
@@ -661,6 +667,7 @@ def stream_chat_message(
             restart=payload.restart,
             request_id=str(payload.request_id) if payload.request_id else None,
             access_password=payload.access_password,
+            locale=payload.locale,
         )
     except SupabaseAuthError as exc:
         raise HTTPException(
@@ -728,6 +735,36 @@ def list_sessions(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         ) from exc
     return SessionHistoryResponse(sessions=items)
+
+
+@router.get("/sessions/{session_id}", response_model=SessionPayload)
+def read_session(
+    session_id: str,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    chat_service=Depends(_get_chat_service),
+) -> SessionPayload:
+    """Reopen a stored reading by id, so a reading URL is shareable."""
+    token = _parse_bearer(authorization)
+    try:
+        user = chat_service.authenticate(token)
+        snapshot = chat_service.fetch_session_payload(session_id=session_id, user=user)
+    except SupabaseAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
+        ) from exc
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    return SessionPayload.model_validate(snapshot)
 
 
 @router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)

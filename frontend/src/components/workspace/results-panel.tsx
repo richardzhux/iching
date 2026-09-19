@@ -20,7 +20,9 @@ import { chapterTitle } from "@/lib/classical-text"
 import { sourceDisplayLabel } from "@/lib/source-labels"
 import type {
   BaziPillar,
+  CastingProvenance,
   HexSection,
+  LineSelectionInfo,
   ReadingBrief,
   ReadingBriefKeyPassage,
   ReadingBriefSourcePassage,
@@ -137,6 +139,45 @@ export function ResultsPanel() {
       </div>
       <button type="button" className="reading-chat-launcher" onClick={() => { setChatOpen(true); setMobileChatOpen(true); document.getElementById("reading-meaning")?.scrollIntoView({ block: "start", behavior: "smooth" }) }}><MessageSquare size={17} />{locale === "zh" ? "追问" : "Ask"}</button>
     </motion.div>
+  )
+}
+
+function LineSelectionNote({ selection, provenance, locale }: {
+  selection?: LineSelectionInfo
+  provenance?: CastingProvenance
+  locale: "zh" | "en"
+}) {
+  if (!selection && !provenance) return null
+  const roleEn = selection?.primary_is_moving ? "moving line" : "static line"
+  return (
+    <div className="space-y-2 rounded-lg border border-border/50 bg-surface px-4 py-3 text-sm">
+      {selection ? (
+        <p>
+          <span className="font-semibold">{locale === "zh" ? "取用：" : "Line selection: "}</span>
+          {locale === "zh"
+            ? `${selection.rule_name} · ${selection.rule_detail}`
+            : `${selection.rule_name_en ?? selection.rule_name} · ${selection.rule_detail_en ?? selection.rule_detail}`}
+          {selection.primary_line != null ? (
+            <>
+              {locale === "zh"
+                ? `；主爻为第 ${selection.primary_line} 爻（${selection.line_role}）`
+                : `; primary line ${selection.primary_line} (${roleEn})`}
+              {selection.secondary_lines.length
+                ? locale === "zh"
+                  ? `，并参第 ${selection.secondary_lines.join("、")} 爻`
+                  : `, read alongside line ${selection.secondary_lines.join(", ")}`
+                : null}
+            </>
+          ) : null}
+        </p>
+      ) : null}
+      {provenance?.description ? (
+        <p className="text-muted-foreground">
+          <span className="font-semibold text-foreground">{locale === "zh" ? "六爻来源：" : "Line provenance: "}</span>
+          {provenance.description}
+        </p>
+      ) : null}
+    </div>
   )
 }
 
@@ -1003,6 +1044,7 @@ function HexResultBlock({ result, brief, onSourceSelect }: { result: SessionPayl
           <span className="ml-auto hidden text-sm text-primary group-open:inline">{locale === "zh" ? "收起" : "Close"}</span>
         </summary>
         <div className="space-y-6 pt-2">
+          <LineSelectionNote selection={result.hex_overview.line_selection} provenance={result.casting_provenance} locale={locale} />
           <MechanicsInsightPanel
             result={result}
             brief={brief}

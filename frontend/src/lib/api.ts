@@ -219,9 +219,17 @@ export async function sendChatMessage(
       tone: payload.tone ?? undefined,
       model: payload.model ?? undefined,
       restart: payload.restart ?? undefined,
+      locale: payload.locale ?? undefined,
     }),
   })
   return handleResponse<ChatTurnResponse>(response)
+}
+
+export async function fetchSession(sessionId: string, token: string): Promise<SessionPayload> {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/sessions/${sessionId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  return handleResponse<SessionPayload>(response)
 }
 
 export async function streamChatMessage(
@@ -249,6 +257,7 @@ export async function streamChatMessage(
       tone: payload.tone ?? undefined,
       model: payload.model ?? undefined,
       restart: payload.restart ?? undefined,
+      locale: payload.locale ?? undefined,
     }),
     signal: options.signal,
   })

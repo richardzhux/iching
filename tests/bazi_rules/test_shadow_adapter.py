@@ -119,15 +119,11 @@ def test_canonical_authority_is_added_without_mutating_legacy_values() -> None:
         fact_graph=build_bazi_fact_graph(pillars),
     )
 
-    assert set(result) == {
-        *legacy,
-        "source_backed_shadow",
-        "source_backed_authority",
-    }
+    added = {"rule_coverage", "source_backed_shadow", "source_backed_authority"}
+
+    assert set(result) == {*legacy, *added}
     assert {
-        key: value
-        for key, value in result.items()
-        if key not in {"source_backed_shadow", "source_backed_authority"}
+        key: value for key, value in result.items() if key not in added
     } == legacy
     assert result["source_backed_shadow"]["authoritative"] is False
     assert result["source_backed_authority"]["authoritative"] is True

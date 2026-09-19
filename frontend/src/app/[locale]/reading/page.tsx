@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { ReadingWorkspace } from "@/components/workspace/reading-workspace"
 import { defaultLocale, isLocale } from "@/i18n/config"
 
@@ -12,5 +13,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default function ReadingPage() {
-  return <ReadingWorkspace />
+  // useSearchParams (the ?session= deep link) needs a Suspense boundary.
+  return <Suspense fallback={null}><ReadingWorkspace /></Suspense>
 }

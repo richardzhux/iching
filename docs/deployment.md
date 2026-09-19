@@ -18,6 +18,7 @@
    - `SUPABASE_URL` & `SUPABASE_SERVICE_KEY` – required for chat persistence + Supabase Auth validation.
    - Optional quotas: `ICHING_CHAT_TOKEN_LIMIT` (tokens per session, default 150000), `ICHING_CHAT_MESSAGE_LIMIT` (per-message char cap, default 10000), and `ICHING_USER_SESSION_LIMIT` (saved sessions per user, default 500).
    - Session cache/env tuning: `ICHING_SESSION_CACHE_LIMIT` (default 100), `ICHING_SESSION_CACHE_TTL_SECONDS` (default 6h), and `ICHING_ANON_USER_ID` (UUID used before a user logs in).
+   - `ICHING_CASTING_SECRET` – shared secret signing casting previews. Set the same value on every instance so a reading cast on one worker still verifies on another; without it, provenance degrades to `manual` instead of `server_cast`.
    - Any data paths you override from `AppConfig` (defaults work for relative paths).
 5. **Scaling**
    - Minimum instance size: 512 MB RAM is enough; CPU optimized if AI traffic grows.

@@ -289,7 +289,8 @@ function ThemeMap({
 }
 
 export function BaziDiagnosticWorkspace({ chart, locale }: { chart: MetaphysicsChart; locale: Locale }) {
-  const claims = chart.consumer?.claims ?? []
+  // `?? []` minted a fresh array each render, so the memo below never hit.
+  const claims = useMemo(() => chart.consumer?.claims ?? [], [chart.consumer?.claims])
   const hero = claims.find((claim) => claim.slot === "hero")
   const primary = chart.structure?.patterns?.primary ?? null
   const lifecycle = useMemo(() => buildLifecycle(primary, claims, locale), [claims, locale, primary])

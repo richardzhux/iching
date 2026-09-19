@@ -252,6 +252,7 @@ Open: `http://localhost:3000`
 - `ICHING_SESSION_CACHE_LIMIT` (default `100`)
 - `ICHING_SESSION_CACHE_TTL_SECONDS` (default `21600`)
 - `ICHING_INTERPRETATION_DB` (default `data/interpretations.db`)
+- `ICHING_CASTING_SECRET` — signs `/api/casting/preview` results so a stored reading records whether its six lines were cast by the server, tossed in the browser, hand-entered, or edited after the cast. Unset, each process signs with an ephemeral key and cross-process casts record as unverified rather than as edits.
 
 ### Frontend
 - `NEXT_PUBLIC_API_BASE_URL`

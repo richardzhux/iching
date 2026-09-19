@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { createSession, fetchConfig, fetchMetaphysicsCharts, fetchSessionHistory } from "@/lib/api"
+import { createSession, fetchConfig, fetchMetaphysicsCharts, fetchSession, fetchSessionHistory } from "@/lib/api"
 import type { SessionPayload, SessionRequest } from "@/types/api"
 
 export function useConfigQuery() {
@@ -22,6 +22,22 @@ export function useSessionMutation(options?: SessionMutationOptions) {
     mutationFn: (payload: SessionRequest) => createSession(payload, options?.accessToken ?? undefined),
     onSuccess: options?.onSuccess,
     onError: options?.onError,
+  })
+}
+
+/** Reopen one stored reading by id, so a reading URL is shareable. */
+export function useSessionQuery(sessionId: string | null, accessToken: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["session", sessionId, accessToken],
+    queryFn: () => {
+      if (!sessionId || !accessToken) {
+        throw new Error("Authentication required to open this reading.")
+      }
+      return fetchSession(sessionId, accessToken)
+    },
+    enabled: enabled && Boolean(sessionId) && Boolean(accessToken),
+    retry: false,
+    staleTime: Infinity,
   })
 }
 

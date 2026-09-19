@@ -533,3 +533,38 @@ def test_package_exports_task5_runtime_contracts() -> None:
     assert bazi_rules.evaluate_pattern_set is evaluate_pattern_set
     assert bazi_rules.load_packaged_shen_registry is load_packaged_shen_registry
     assert bazi_rules.OverlayDescriptor.__name__ == "OverlayDescriptor"
+
+
+def test_every_packaged_overlay_pins_the_current_canonical_digest() -> None:
+    """Editing the canonical bundle without re-pinning its overlays breaks them.
+
+    Commit 0ac38b4 changed the canonical rules and left both overlay
+    descriptors pinned to the previous digest, which made
+    ``load_packaged_classical_authorities`` raise for every caller. Compare the
+    shipped JSON directly so the drift is reported as a mismatch rather than as
+    a loader exception.
+    """
+    import json
+    from importlib import resources
+
+    from iching.core.bazi_rules.authority import (
+        _OVERLAY_RESOURCES,
+        load_packaged_shen_registry,
+    )
+
+    canonical = load_packaged_shen_registry()
+    stale: dict[str, str] = {}
+    for layer, filename in _OVERLAY_RESOURCES.items():
+        payload = json.loads(
+            resources.files("iching.core.bazi_rules")
+            .joinpath("bundles", filename)
+            .read_text(encoding="utf-8")
+        )
+        assert payload["base_bundle_id"] == canonical.bundle_id
+        if payload["base_bundle_digest"] != canonical.bundle_digest:
+            stale[layer] = payload["base_bundle_digest"]
+
+    assert not stale, (
+        f"overlays pinned to a stale canonical digest: {stale}; "
+        f"canonical is now {canonical.bundle_digest}"
+    )

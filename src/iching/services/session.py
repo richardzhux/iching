@@ -22,6 +22,14 @@ from iching.integrations.ai import (
     start_analysis,
 )
 from iching.integrations.interpretation_repository import InterpretationRepository
+from iching.integrations.reading_format import (
+    field_value,
+    first_body_line,
+    is_heading,
+    normalize_locale,
+    parse_sections,
+    split_fields,
+)
 from iching.integrations.najia_repository import NajiaEntry, NajiaRepository
 
 
@@ -225,6 +233,8 @@ class SessionResult:
     ai_response_id: Optional[str]
     ai_usage: Optional[Dict[str, int]]
     full_text: str = field(repr=False)
+    #: Carried on the record so a follow-up answers in the reading's language.
+    locale: str = "zh"
 
     def to_dict(self) -> Dict[str, object]:
         payload = asdict(self)
@@ -240,93 +250,73 @@ def _compact_text(value: object, *, limit: int = 180) -> str:
 
 
 def _extract_ai_headline(ai_text: Optional[str]) -> Optional[str]:
-    if not ai_text:
-        return None
-    lines = [line.strip() for line in ai_text.splitlines() if line.strip()]
-    for index, line in enumerate(lines):
-        normalized = line.lstrip("#").strip()
-        if normalized in {"一句话结论", "最终判断"}:
-            for candidate in lines[index + 1 :]:
-                cleaned = candidate.lstrip("-•0123456789. ").strip()
-                if cleaned and not cleaned.startswith("#"):
-                    return _compact_text(cleaned, limit=96)
-    for line in lines:
-        if line.startswith("#"):
+    """First line of the conclusion section, in whichever locale it came back."""
+    headline = first_body_line(ai_text, "headline") or first_body_line(ai_text, "final")
+    if headline:
+        return _compact_text(headline, limit=96)
+    for line in (ai_text or "").splitlines():
+        stripped = line.strip()
+        if not stripped or is_heading(stripped):
             continue
-        cleaned = line.lstrip("-•0123456789. ").strip()
+        cleaned = stripped.lstrip("-•0123456789. ").strip()
         if cleaned:
             return _compact_text(cleaned, limit=96)
     return None
 
 
-def _reading_direction(headline: str, stance: str) -> Dict[str, str]:
-    normalized = str(headline or "")
-    if any(token in normalized for token in ("不利", "停止", "止步", "不要推进")):
-        return {"kind": "stop", "summary": "当前条件不支持继续加码。"}
-    if any(token in normalized for token in ("延迟", "等待", "暂缓", "待时")):
-        return {"kind": "wait", "summary": "条件尚未成熟，先等关键触发出现。"}
-    if any(token in normalized for token in ("调整", "转向", "改变", "修正")):
-        return {"kind": "adjust", "summary": "先改变推进方式，再决定是否加速。"}
-    if any(token in normalized for token in ("利成", "推进", "可行", "有利")):
-        return {"kind": "advance", "summary": "方向可行，按关键条件向前推进。"}
-    if stance == "transforming":
-        return {"kind": "adjust", "summary": "旧局正在转换，下一步以新条件为准。"}
-    if stance == "changing":
-        return {"kind": "adjust", "summary": "变化已经开始，先处理最关键的触发点。"}
-    return {"kind": "observe", "summary": "先守住当前条件，等待明确变化。"}
+#: Direction keywords in both locales. The Chinese-only matcher meant an
+#: English reading always fell through to "observe".
+_DIRECTION_SUMMARIES = {
+    "zh": {
+        "stop": "当前条件不支持继续加码。",
+        "wait": "条件尚未成熟，先等关键触发出现。",
+        "adjust": "先改变推进方式，再决定是否加速。",
+        "advance": "方向可行，按关键条件向前推进。",
+        "transforming": "旧局正在转换，下一步以新条件为准。",
+        "changing": "变化已经开始，先处理最关键的触发点。",
+        "observe": "先守住当前条件，等待明确变化。",
+    },
+    "en": {
+        "stop": "Conditions do not support committing further right now.",
+        "wait": "Not ripe yet; wait for the key trigger to appear.",
+        "adjust": "Change how you are pushing before deciding to accelerate.",
+        "advance": "The direction holds; move on the stated conditions.",
+        "transforming": "The old situation is turning over; judge the next step by the new conditions.",
+        "changing": "Change has started; handle the most important trigger first.",
+        "observe": "Hold the current position and wait for a clear move.",
+    },
+}
+
+_DIRECTION_TOKENS: Tuple[Tuple[str, Tuple[str, ...], str], ...] = (
+    ("stop", ("不利", "停止", "止步", "不要推进", "do not", "don't", "avoid", "hold off", "unfavourable", "unfavorable"),
+     "当前条件不支持继续加码。"),
+    ("wait", ("延迟", "等待", "暂缓", "待时", "wait", "delay", "postpone", "not yet"),
+     "条件尚未成熟，先等关键触发出现。"),
+    ("adjust", ("调整", "转向", "改变", "修正", "adjust", "pivot", "change course", "rework"),
+     "先改变推进方式，再决定是否加速。"),
+    ("advance", ("利成", "推进", "可行", "有利", "proceed", "advance", "go ahead", "favourable", "favorable"),
+     "方向可行，按关键条件向前推进。"),
+)
+
+
+def _reading_direction(headline: str, stance: str, locale: str = "zh") -> Dict[str, str]:
+    locale = normalize_locale(locale)
+    normalized = str(headline or "").casefold()
+    for kind, tokens, _ in _DIRECTION_TOKENS:
+        if any(token.casefold() in normalized for token in tokens):
+            return {"kind": kind, "summary": _DIRECTION_SUMMARIES[locale][kind]}
+    if stance in {"transforming", "changing"}:
+        kind = "adjust" if stance == "transforming" else "adjust"
+        key = "transforming" if stance == "transforming" else "changing"
+        return {"kind": kind, "summary": _DIRECTION_SUMMARIES[locale][key]}
+    return {"kind": "observe", "summary": _DIRECTION_SUMMARIES[locale]["observe"]}
 
 
 def _extract_ai_plain_language(ai_text: Optional[str]) -> Optional[str]:
-    if not ai_text:
-        return None
-    lines = [line.strip() for line in ai_text.splitlines()]
-    capture = False
-    collected: List[str] = []
-    for line in lines:
-        heading = line.lstrip("#").strip()
-        if heading == "给普通人的解释":
-            capture = True
-            continue
-        if capture and line.startswith("#"):
-            break
-        if capture and line:
-            collected.append(line.lstrip("-• ").strip())
-    if collected:
-        return _compact_text(" ".join(collected), limit=260)
+    lines = parse_sections(ai_text).get("plain_language") or []
+    if lines:
+        return _compact_text(" ".join(lines), limit=260)
     return None
-
-
-def _extract_ai_section_lines(ai_text: Optional[str], headings: set[str]) -> List[str]:
-    if not ai_text:
-        return []
-    capture = False
-    collected: List[str] = []
-    for raw_line in ai_text.splitlines():
-        line = raw_line.strip()
-        heading = line.lstrip("#").strip()
-        if heading in headings:
-            capture = True
-            continue
-        if capture and line.startswith("#"):
-            break
-        if not capture or not line:
-            continue
-        cleaned = line.lstrip("-• ").strip()
-        if cleaned:
-            collected.append(cleaned)
-    return collected
-
-
-def _field_value(parts: List[str], labels: set[str]) -> str:
-    for part in parts:
-        for label in labels:
-            prefix = f"{label}："
-            if part.startswith(prefix):
-                return part[len(prefix) :].strip()
-            prefix = f"{label}:"
-            if part.startswith(prefix):
-                return part[len(prefix) :].strip()
-    return ""
 
 
 def _parse_confidence(value: str, default: int) -> int:
@@ -338,11 +328,15 @@ def _parse_confidence(value: str, default: int) -> int:
 
 def _extract_ai_timing(ai_text: Optional[str]) -> List[Dict[str, object]]:
     items: List[Dict[str, object]] = []
-    for line in _extract_ai_section_lines(ai_text, {"应期与条件", "Timing and conditions"}):
-        parts = [part.strip() for part in line.split("｜") if part.strip()]
-        window = _field_value(parts, {"主应期", "次应期", "窗口", "Window"}) or (parts[0] if parts else "")
-        condition = _field_value(parts, {"条件", "Condition"})
-        confidence = _parse_confidence(_field_value(parts, {"置信度", "Confidence"}), 55)
+    for line in parse_sections(ai_text).get("timing") or []:
+        parts = split_fields(line)
+        window = field_value(parts, ("主应期", "次应期", "窗口", "Window", "Timing")) or (
+            parts[0] if parts else ""
+        )
+        condition = field_value(parts, ("条件", "Condition", "Trigger"))
+        confidence = _parse_confidence(
+            field_value(parts, ("置信度", "Confidence")), 55
+        )
         if window and condition:
             items.append(
                 {
@@ -356,11 +350,11 @@ def _extract_ai_timing(ai_text: Optional[str]) -> List[Dict[str, object]]:
 
 def _extract_ai_actions(ai_text: Optional[str]) -> List[Dict[str, object]]:
     items: List[Dict[str, object]] = []
-    for line in _extract_ai_section_lines(ai_text, {"行动建议", "Actions"}):
-        parts = [part.strip() for part in line.split("｜") if part.strip()]
-        action = _field_value(parts, {"动作", "Action"}) or (parts[0] if parts else "")
-        cadence = _field_value(parts, {"节奏", "Cadence"})
-        signal = _field_value(parts, {"观察指标", "指标", "Signal"})
+    for line in parse_sections(ai_text).get("actions") or []:
+        parts = split_fields(line)
+        action = field_value(parts, ("动作", "Action", "Step")) or (parts[0] if parts else "")
+        cadence = field_value(parts, ("节奏", "Cadence", "When"))
+        signal = field_value(parts, ("观察指标", "指标", "Signal", "Watch"))
         if action:
             items.append(
                 {
@@ -373,14 +367,13 @@ def _extract_ai_actions(ai_text: Optional[str]) -> List[Dict[str, object]]:
 
 
 def _extract_ai_risks(ai_text: Optional[str]) -> List[str]:
-    lines = _extract_ai_section_lines(ai_text, {"风险与转折信号", "Risk signals"})
+    lines = parse_sections(ai_text).get("risks") or []
     return [_compact_text(line, limit=150) for line in lines if line][:4]
 
 
 def _extract_ai_followups(ai_text: Optional[str]) -> List[str]:
-    lines = _extract_ai_section_lines(ai_text, {"继续追问", "后续追问", "Continue with"})
     prompts = []
-    for line in lines:
+    for line in parse_sections(ai_text).get("followups") or []:
         cleaned = line.strip().strip("。")
         if cleaned:
             prompts.append(_compact_text(cleaned, limit=60))
@@ -398,20 +391,132 @@ def _source_id_for_section(section: Dict[str, object]) -> str:
     return f"{slot_key}::{source}"
 
 
-def _basis_for_lines(lines: List[int], main_name: str, changed_name: Optional[str]) -> str:
-    moving = _moving_positions(lines)
-    if not moving:
-        return "无动爻，取本卦卦辞为主"
-    if len(moving) == 6:
-        if all(value == 9 for value in lines) and "乾" in main_name:
-            return "六爻全动，乾卦取用九"
-        if all(value == 6 for value in lines) and "坤" in main_name:
-            return "六爻全动，坤卦取用六"
-        return f"六爻全动，取变卦卦辞为主（{changed_name or '变卦'}）"
-    if len(moving) == 1:
-        return f"第{moving[0]}爻动，取动爻为主"
-    joined = "、".join(str(position) for position in moving)
-    return f"第{joined}爻动，按动爻组合取主断"
+_BRIEF_COPY = {
+    "zh": {
+        "rule_basis": "主断依据",
+        "rule_plain": "先确定本次阅读该看卦辞、动爻、用九/用六，还是变卦，再把文本和纳甲作为校验。",
+        "najia": "纳甲参照",
+        "najia_plain": "用纳甲表观察主客、阻力与触发点，作为经典文本之外的结构化参照。",
+        "najia_basis": "纳甲六亲/六神",
+        "time": "时间气象",
+        "time_basis": "起卦时间八字",
+        "classic": "经典文本",
+        "changed_context": "这段只作为变化后的场景参照，帮助确认趋势落点，不替代本卦主断。",
+        "all_moving": "全爻动时不把六爻平均展开，而是用这一段统摄整卦的变化方式。",
+        "gua_context": "这段描述本卦的总体格局，用来判断当前局面的底色、边界和主方向。",
+        "static_primary": "这段对应本次取用的静爻，描述变化之中没有被牵动、可以立足的位置。",
+        "moving_primary": "这段对应本次取用的动爻，描述事情正在变化的位置、触发点与应对姿态。",
+        "background_reason": "这段保留为本卦背景，用来校准取用判断的语境。",
+        "no_moving_reason": "本卦无动爻，卦辞就是本次判断的核心依据。",
+        "all_moving_reason": "六爻全动时需要用统摄性的全动规则，而不是把所有爻辞同时堆给用户。",
+    },
+    "en": {
+        "rule_basis": "Basis of the judgement",
+        "rule_plain": (
+            "First settle whether this reading rests on the hexagram statement, a "
+            "moving line, 用九/用六, or the changed hexagram; then use the text and "
+            "Najia as a cross-check."
+        ),
+        "najia": "Najia cross-reference",
+        "najia_plain": (
+            "The Najia table shows subject and object, resistance and trigger points, "
+            "as a structured check beside the classical text."
+        ),
+        "najia_basis": "Najia six relatives / six spirits",
+        "time": "Time and season",
+        "time_basis": "BaZi of the casting moment",
+        "classic": "Classical text",
+        "changed_context": (
+            "This passage is context for the situation after the change. It confirms "
+            "where the trend lands; it does not replace the main judgement."
+        ),
+        "all_moving": (
+            "With every line moving, the six lines are not read one by one; this "
+            "passage governs the change as a whole."
+        ),
+        "gua_context": (
+            "This passage describes the overall shape of the present hexagram: the "
+            "tone, the boundaries and the main direction."
+        ),
+        "static_primary": (
+            "This is the static line the rule selects: the ground that is not being "
+            "moved, and can be stood on."
+        ),
+        "moving_primary": (
+            "This is the moving line the rule selects: where the situation is "
+            "changing, what triggers it, and how to meet it."
+        ),
+        "background_reason": (
+            "Kept as background for the present hexagram, to calibrate the selected line."
+        ),
+        "no_moving_reason": (
+            "No lines are moving, so the hexagram statement is the core evidence."
+        ),
+        "all_moving_reason": (
+            "With every line moving the reading needs one governing rule, not all six "
+            "line texts at once."
+        ),
+    },
+}
+
+
+def _line_selection(hex_overview: Dict[str, object]) -> Dict[str, object]:
+    """The 取用 rule as resolved by :class:`Hexagram`, never re-derived here.
+
+    This used to be recomputed from ``lines`` in three places, each with its own
+    idea of the rule, which is how a static line ended up described as 动爻.
+    """
+    selection = hex_overview.get("line_selection") if isinstance(hex_overview, dict) else None
+    return selection if isinstance(selection, dict) else {}
+
+
+def _basis_for_lines(
+    lines: List[int],
+    main_name: str,
+    changed_name: Optional[str],
+    selection: Optional[Dict[str, object]] = None,
+    locale: str = "zh",
+) -> str:
+    selection = selection or {}
+    locale = normalize_locale(locale)
+    rule = str(selection.get("rule") or "")
+    if locale == "en":
+        rule_name = str(selection.get("rule_name_en") or selection.get("rule_name") or "")
+        detail = str(selection.get("rule_detail_en") or selection.get("rule_detail") or "")
+    else:
+        rule_name = str(selection.get("rule_name") or "")
+        detail = str(selection.get("rule_detail") or "")
+    primary = selection.get("primary_line")
+    role = str(selection.get("line_role") or "")
+    secondary = [str(item) for item in (selection.get("secondary_lines") or [])]
+
+    if not rule:  # Overview predates the structured selection.
+        moving = _moving_positions(lines)
+        if not moving:
+            return "无动爻，取本卦卦辞为主"
+        joined = "、".join(str(position) for position in moving)
+        return f"第{joined}爻动，按动爻组合取主断"
+
+    if locale == "en":
+        role_en = "moving line" if selection.get("primary_is_moving") else "static line"
+        if rule == "all-changed":
+            return f"{rule_name} — {detail} ({changed_name or 'changed hexagram'})"
+        if primary is None:
+            return f"{rule_name} — {detail}"
+        text = f"{rule_name} — {detail}; primary line {primary} ({role_en})"
+        if secondary:
+            text += f", read alongside line {', '.join(secondary)}"
+        return text
+
+    if rule == "all-changed":
+        return f"{rule_name}，{detail}（{changed_name or '变卦'}）"
+    if primary is None:
+        return f"{rule_name}，{detail}"
+
+    text = f"{rule_name}，{detail}；主爻为第{primary}爻（{role}）"
+    if secondary:
+        text += f"，并参第{'、'.join(secondary)}爻"
+    return text
 
 
 def _build_evidence_items(
@@ -422,7 +527,11 @@ def _build_evidence_items(
     changed_name: Optional[str],
     najia_table: Dict[str, object],
     bazi_output: str,
+    selection: Optional[Dict[str, object]] = None,
+    locale: str = "zh",
 ) -> List[Dict[str, object]]:
+    locale = normalize_locale(locale)
+    copy = _BRIEF_COPY[locale]
     primary_sections = [
         section
         for section in hex_sections
@@ -431,16 +540,16 @@ def _build_evidence_items(
     primary_source_ids = [_source_id_for_section(section) for section in primary_sections[:3]]
     items: List[Dict[str, object]] = [
         {
-            "conclusion": "主断依据",
-            "basis": _basis_for_lines(lines, main_name, changed_name),
-            "plain": "先确定本次阅读该看卦辞、动爻、用九/用六，还是变卦，再把文本和纳甲作为校验。",
+            "conclusion": copy["rule_basis"],
+            "basis": _basis_for_lines(lines, main_name, changed_name, selection, locale),
+            "plain": copy["rule_plain"],
             "source_ids": primary_source_ids,
         }
     ]
 
     for section in primary_sections[:3]:
-        title = str(section.get("title") or section.get("hexagram_name") or "经典文本")
-        source_label = str(section.get("source_label") or section.get("source") or "经典文本")
+        title = str(section.get("title") or section.get("hexagram_name") or copy["classic"])
+        source_label = str(section.get("source_label") or section.get("source") or copy["classic"])
         source_id = _source_id_for_section(section)
         if section.get("line_key") == "all":
             if "乾" in str(section.get("hexagram_name") or main_name):
@@ -464,9 +573,9 @@ def _build_evidence_items(
         relation = sample.get("main_relation") or sample.get("god") or "六亲六神"
         items.append(
             {
-                "conclusion": "纳甲参照",
-                "basis": f"纳甲六亲/六神｜{relation}",
-                "plain": "用纳甲表观察主客、阻力与触发点，作为经典文本之外的结构化参照。",
+                "conclusion": copy["najia"],
+                "basis": f"{copy['najia_basis']}｜{relation}",
+                "plain": copy["najia_plain"],
                 "source_ids": [],
             }
         )
@@ -474,8 +583,8 @@ def _build_evidence_items(
     if bazi_output:
         items.append(
             {
-                "conclusion": "时间气象",
-                "basis": "起卦时间八字",
+                "conclusion": copy["time"],
+                "basis": copy["time_basis"],
                 "plain": _compact_text(bazi_output, limit=120),
                 "source_ids": [],
             }
@@ -543,17 +652,37 @@ def _sort_key_sections(sections: List[Dict[str, object]]) -> List[Dict[str, obje
     )
 
 
-def _key_passage_plain(section: Dict[str, object]) -> str:
+def _key_passage_plain(
+    section: Dict[str, object],
+    selection: Optional[Dict[str, object]] = None,
+    locale: str = "zh",
+) -> str:
+    selection = selection or {}
+    locale = normalize_locale(locale)
+    copy = _BRIEF_COPY[locale]
     hex_type = str(section.get("hexagram_type") or "")
     section_kind = str(section.get("section_kind") or "")
     line_key = section.get("line_key")
+    line_role = str(section.get("line_role") or "")
+    is_moving = bool(selection.get("primary_is_moving", True))
+
     if hex_type == "changed":
-        return "这段只作为变化后的场景参照，帮助确认趋势落点，不替代本卦主断。"
+        return copy["changed_context"]
     if line_key == "all":
-        return "全爻动时不把六爻平均展开，而是用这一段统摄整卦的变化方式。"
+        return copy["all_moving"]
     if section_kind == "line":
-        return "这段对应本次被选中的爻位，描述事情正在变化的位置、触发点与应对姿态。"
-    return "这段描述本卦的总体格局，用来判断当前局面的底色、边界和主方向。"
+        if line_role == "secondary":
+            if locale == "en":
+                return (
+                    "A line the rule reads alongside the primary one, filling in what a "
+                    "single line cannot show."
+                )
+            role = str(selection.get("line_role") or "动爻")
+            return f"这段是本次并参的爻位，与主{role}一起看，用来补足单爻看不全的部分。"
+        # A four- or five-moving reading selects a STATIC line; calling it a
+        # moving line told the reader the opposite of what the rule did.
+        return copy["moving_primary"] if is_moving else copy["static_primary"]
+    return copy["gua_context"]
 
 
 def _key_passage_reason(
@@ -562,25 +691,65 @@ def _key_passage_reason(
     lines: List[int],
     main_name: str,
     changed_name: Optional[str],
+    selection: Optional[Dict[str, object]] = None,
+    locale: str = "zh",
 ) -> str:
-    moving = _moving_positions(lines)
+    selection = selection or {}
+    locale = normalize_locale(locale)
+    copy = _BRIEF_COPY[locale]
+    rule = str(selection.get("rule") or "")
+    if locale == "en":
+        rule_name = str(selection.get("rule_name_en") or selection.get("rule_name") or "")
+        detail = str(selection.get("rule_detail_en") or selection.get("rule_detail") or "")
+    else:
+        rule_name = str(selection.get("rule_name") or "")
+        detail = str(selection.get("rule_detail") or "")
+    role = str(selection.get("line_role") or "动爻")
     hex_type = str(section.get("hexagram_type") or "")
     section_kind = str(section.get("section_kind") or "")
     line_key = section.get("line_key")
+    line_role = str(section.get("line_role") or "")
+
+    if locale == "en":
+        role_en = "moving line" if selection.get("primary_is_moving", True) else "static line"
+        if hex_type == "changed":
+            return (
+                f"The changed hexagram {changed_name or ''} sits in the second layer as "
+                "background; it does not take the primary evidence slot."
+            ).strip()
+        if rule == "none" and section_kind == "top":
+            return copy["no_moving_reason"]
+        if line_key == "all":
+            if rule == "all-use":
+                return (
+                    "Every line is moving in 乾/坤, so tradition reads 用九/用六 as the "
+                    "single governing judgement."
+                )
+            return copy["all_moving_reason"]
+        if section_kind == "line":
+            if line_role == "secondary":
+                return f"{rule_name} — {detail}. This line is read alongside, to calibrate the primary one."
+            if rule:
+                return f"{rule_name} — {detail}. This is the {role_en} the rule selects."
+            return f"This is the {role_en} the rule selects."
+        return copy["background_reason"]
 
     if hex_type == "changed":
         return f"变卦{changed_name or ''}只放在第二层，说明变化后的背景，不抢主证据位置。"
-    if not moving and section_kind == "top":
-        return "本卦无动爻，卦辞就是本次判断的核心依据。"
+    if rule == "none" and section_kind == "top":
+        return copy["no_moving_reason"]
     if line_key == "all":
-        if all(value == 9 for value in lines) and "乾" in main_name:
-            return "乾卦六爻全动，传统以用九为总断，不逐爻平均分散判断。"
-        if all(value == 6 for value in lines) and "坤" in main_name:
-            return "坤卦六爻全动，传统以用六为总断，不逐爻平均分散判断。"
-        return "六爻全动时需要用统摄性的全动规则，而不是把所有爻辞同时堆给用户。"
+        if rule == "all-use":
+            head = "乾卦" if "乾" in main_name else "坤卦" if "坤" in main_name else "本卦"
+            return f"{head}六爻全动，传统以用九、用六为总断，不逐爻平均分散判断。"
+        return copy["all_moving_reason"]
     if section_kind == "line":
-        return "这是本次取用的动爻，代表问题真正发生变化的关键位置。"
-    return "这段保留为本卦背景，用来校准动爻判断的语境。"
+        if line_role == "secondary":
+            return f"{rule_name}的规则是{detail}，这一爻并参，用来校准主爻的判断。"
+        if rule:
+            return f"{rule_name}，{detail}；这是本次取用的{role}。"
+        return f"这是本次取用的{role}。"
+    return copy["background_reason"]
 
 
 def _build_key_passages(
@@ -589,7 +758,10 @@ def _build_key_passages(
     lines: List[int],
     main_name: str,
     changed_name: Optional[str],
+    selection: Optional[Dict[str, object]] = None,
+    locale: str = "zh",
 ) -> List[Dict[str, object]]:
+    locale = normalize_locale(locale)
     sections = [section for section in hex_sections if section.get("content")]
     moving = _moving_positions(lines)
 
@@ -641,7 +813,8 @@ def _build_key_passages(
     for section in _sort_key_sections(candidates)[:4]:
         source = str(section.get("source") or "unknown")
         source_label = str(section.get("source_label") or source)
-        title = str(section.get("title") or section.get("hexagram_name") or "关键段落")
+        default_title = "Key passage" if locale == "en" else "关键段落"
+        title = str(section.get("title") or section.get("hexagram_name") or default_title)
         hexagram_name = str(section.get("hexagram_name") or "")
         slot_key = str(section.get("slot_key") or f"{hexagram_name}:{section.get('section_kind') or 'slot'}")
         excerpt = _compact_text(section.get("content"), limit=360)
@@ -662,12 +835,14 @@ def _build_key_passages(
                 "content": excerpt,
                 "quote": excerpt,
                 "excerpt": excerpt,
-                "plain_language": _key_passage_plain(section),
+                "plain_language": _key_passage_plain(section, selection, locale),
                 "why_it_matters": _key_passage_reason(
                     section=section,
                     lines=lines,
                     main_name=main_name,
                     changed_name=changed_name,
+                    selection=selection,
+                    locale=locale,
                 ),
                 "citation": "｜".join(part for part in [source_label, hexagram_name, title] if part),
                 "visible_by_default": bool(section.get("visible_by_default")),
@@ -697,6 +872,87 @@ def _build_archive_sources(source_passages: List[Dict[str, object]]) -> Dict[str
     }
 
 
+_FALLBACK_ACTION = {
+    "zh": {
+        "action": "先验证一个决定成败的条件，再决定是否加码。",
+        "cadence": "下一步",
+        "signal": "关键条件是否真实到位。",
+    },
+    "en": {
+        "action": "Test the one condition that decides this before committing further.",
+        "cadence": "Next step",
+        "signal": "Whether that condition is genuinely in place.",
+    },
+}
+
+_FALLBACK_FOLLOWUPS = {
+    "zh": (
+        "这卦最关键的风险信号是什么？",
+        "如果我要推进，第一步应该做什么？",
+        "请把经典原文和现代建议逐条对照。",
+    ),
+    "en": (
+        "What is the clearest risk signal here?",
+        "If I go ahead, what is the first step?",
+        "Compare the classical text with the modern advice, point by point.",
+    ),
+}
+
+_PERSONAL_CONTEXT_NOTE = {
+    "zh": "本阶段只使用起卦时间八字；用户出生信息、大运/流年/流月将作为后续独立个人画像层接入。",
+    "en": (
+        "This stage uses only the BaZi of the casting moment. Birth details and "
+        "the Da Yun / annual / monthly layers arrive later as a separate profile."
+    ),
+}
+
+
+def _fallback_plain_language(
+    *,
+    locale: str,
+    user_question: Optional[str],
+    user_context: Optional[str],
+    method_name: str,
+    main_name: str,
+    changed_name: Optional[str],
+    moving: List[int],
+) -> str:
+    """Plain-language summary when the model did not supply one."""
+    if locale == "en":
+        question_part = f"On \u201c{user_question}\u201d: " if user_question else ""
+        context_part = (
+            f" Background given: {_compact_text(user_context, limit=120)}."
+            if user_context
+            else ""
+        )
+        moving_part = (
+            " No lines are moving, so read the situation as it stands."
+            if not moving
+            else f" {len(moving)} line(s) are moving, so the trigger points matter most."
+        )
+        becoming = f", becoming {changed_name}" if changed_name else ""
+        return (
+            f"{question_part}This reading used {method_name} and produced "
+            f"{main_name}{becoming}.{context_part}{moving_part}"
+        )
+    question_part = f"\u56f4\u7ed5\u201c{user_question}\u201d\uff0c" if user_question else ""
+    context_part = (
+        f"\u5df2\u77e5\u80cc\u666f\u662f\uff1a{_compact_text(user_context, limit=120)}\u3002"
+        if user_context
+        else ""
+    )
+    moving_part = (
+        "\u672c\u5366\u65e0\u52a8\u723b\uff0c\u91cd\u70b9\u770b\u5f53\u524d\u5c40\u52bf\u672c\u8eab\u3002"
+        if not moving
+        else f"\u672c\u6b21\u6709{len(moving)}\u4e2a\u52a8\u723b\uff0c\u91cd\u70b9\u770b\u53d8\u5316\u4e2d\u7684\u89e6\u53d1\u70b9\u3002"
+    )
+    becoming = f"\uff0c\u53d8\u4e3a{changed_name}" if changed_name else ""
+    return (
+        f"{question_part}\u672c\u6b21\u7528{method_name}\u8d77\u5f97{main_name}"
+        f"{becoming}\u3002{context_part}{moving_part}"
+    )
+
+
 def _build_reading_brief(
     *,
     topic: str,
@@ -710,26 +966,27 @@ def _build_reading_brief(
     hex_overview: Dict[str, object],
     najia_table: Dict[str, object],
     ai_analysis_text: Optional[str],
+    locale: Optional[str] = None,
 ) -> Dict[str, object]:
+    locale = normalize_locale(locale)
     main = hex_overview.get("main_hexagram") if isinstance(hex_overview, dict) else {}
     changed = hex_overview.get("changed_hexagram") if isinstance(hex_overview, dict) else {}
     main_name = str((main or {}).get("name") or "本卦")
     changed_name = str((changed or {}).get("name") or "") if changed else None
+    selection = _line_selection(hex_overview)
     moving = _moving_positions(lines)
     ai_headline = _extract_ai_headline(ai_analysis_text)
     headline = ai_headline or f"{topic}｜{main_name}" + (f"之{changed_name}" if changed_name else "")
     plain = _extract_ai_plain_language(ai_analysis_text)
     if not plain:
-        question_part = f"围绕“{user_question}”，" if user_question else ""
-        context_part = f"已知背景是：{_compact_text(user_context, limit=120)}。" if user_context else ""
-        moving_part = (
-            "本卦无动爻，重点看当前局势本身。"
-            if not moving
-            else f"本次有{len(moving)}个动爻，重点看变化中的触发点。"
-        )
-        plain = (
-            f"{question_part}本次用{method_name}起得{main_name}"
-            f"{('，变为' + changed_name) if changed_name else ''}。{context_part}{moving_part}"
+        plain = _fallback_plain_language(
+            locale=locale,
+            user_question=user_question,
+            user_context=user_context,
+            method_name=method_name,
+            main_name=main_name,
+            changed_name=changed_name,
+            moving=moving,
         )
 
     if not moving:
@@ -746,6 +1003,8 @@ def _build_reading_brief(
         changed_name=changed_name,
         najia_table=najia_table,
         bazi_output=bazi_output,
+        selection=selection,
+        locale=locale,
     )
     source_passages = _build_source_passages(hex_sections)
     key_passages = _build_key_passages(
@@ -753,25 +1012,19 @@ def _build_reading_brief(
         lines=lines,
         main_name=main_name,
         changed_name=changed_name,
+        selection=selection,
+        locale=locale,
     )
     archive_sources = _build_archive_sources(source_passages)
 
     fallback_timing: List[Dict[str, object]] = []
-    fallback_actions = [{
-        "action": "先验证一个决定成败的条件，再决定是否加码。",
-        "cadence": "下一步",
-        "signal": "关键条件是否真实到位。",
-    }]
-    fallback_followups = [
-        "这卦最关键的风险信号是什么？",
-        "如果我要推进，第一步应该做什么？",
-        "请把经典原文和现代建议逐条对照。",
-    ]
+    fallback_actions = [dict(_FALLBACK_ACTION[locale])]
+    fallback_followups = list(_FALLBACK_FOLLOWUPS[locale])
 
     return {
         "headline": headline,
         "stance": stance,
-        "direction": _reading_direction(headline, stance),
+        "direction": _reading_direction(headline, stance, locale),
         "plain_language": plain,
         "evidence": evidence,
         "key_passages": key_passages,
@@ -780,7 +1033,7 @@ def _build_reading_brief(
         "personal_context": {
             "status": "reserved",
             "current_scope": "casting_time_bazi_only",
-            "note": "本阶段只使用起卦时间八字；用户出生信息、大运/流年/流月将作为后续独立个人画像层接入。",
+            "note": _PERSONAL_CONTEXT_NOTE[locale],
             "future_profile_fields": ["birth_datetime", "birth_place", "timezone", "gender_optional"],
         },
         "timing": _extract_ai_timing(ai_analysis_text) or fallback_timing,
@@ -999,6 +1252,7 @@ class SessionService:
         ai_reasoning: Optional[str] = None,
         ai_verbosity: Optional[str] = None,
         ai_tone: Optional[str] = "normal",
+        locale: Optional[str] = None,
         api_key: Optional[str] = None,
         interactive: bool = False,
         input_func: Callable[[str], str] = _default_input,
@@ -1073,9 +1327,11 @@ class SessionService:
         else:
             verbosity_level = None
 
+        resolved_locale = normalize_locale(locale)
         session_id = str(uuid4())
         session_payload = {
             "session_id": session_id,
+            "locale": resolved_locale,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "topic": topic,
             "user_question": user_question,
@@ -1110,6 +1366,7 @@ class SessionService:
                 reasoning_effort=reasoning_effort,
                 verbosity=verbosity_level,
                 tone=tone_profile,
+                locale=resolved_locale,
             )
             if ai_result:
                 ai_analysis_text = ai_result.text
@@ -1131,6 +1388,7 @@ class SessionService:
             hex_overview=hex_overview,
             najia_table=najia_table,
             ai_analysis_text=ai_analysis_text,
+            locale=resolved_locale,
         )
         session_payload["reading_brief"] = reading_brief
 
@@ -1174,6 +1432,7 @@ class SessionService:
             ai_response_id=session_payload.get("ai_response_id"),
             ai_usage=session_payload.get("ai_usage"),
             full_text=full_text,
+            locale=resolved_locale,
         )
         self._history.append(result)
         return result

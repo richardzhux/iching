@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Tuple
@@ -17,6 +18,148 @@ HexagramDefinition = Tuple[str, str]
 
 QIAN_NAMES = {"乾为天", "乾卦"}
 KUN_NAMES = {"坤为地", "坤卦"}
+# 用九 / 用六 belong to 乾 and 坤 by structure, not by whatever the index file
+# happens to call them. Matching on the name silently lost the rule whenever a
+# definition file used a variant spelling.
+USE_LINE_BINARIES = {"111111", "000000"}
+
+#: How many lines each rule draws on, and whether the primary line is a moving
+#: one. Four and five moving lines resolve to a *static* line.
+LINE_RULE_LABELS = {
+    "none": ("无动爻", "取本卦卦辞为主"),
+    "one-moving": ("一爻动", "取该动爻爻辞为主"),
+    "two-moving": ("二爻动", "一阴一阳取阴爻，同阴同阳取上动爻为主，另一动爻并参"),
+    "three-moving": ("三爻动", "取中间动爻为主，其余二动爻并参"),
+    "four-moving": ("四爻动", "取二静爻，以下静爻为主"),
+    "five-moving": ("五爻动", "取唯一静爻"),
+    "all-use": ("六爻全动", "乾坤取用九、用六"),
+    "all-changed": ("六爻全动", "取变卦卦辞为主"),
+}
+
+LINE_RULE_LABELS_EN = {
+    "none": ("No moving lines", "read the hexagram statement of the present hexagram"),
+    "one-moving": ("One moving line", "read that line's text"),
+    "two-moving": (
+        "Two moving lines",
+        "one yin and one yang takes the yin line; two alike takes the upper, "
+        "with the other read alongside",
+    ),
+    "three-moving": (
+        "Three moving lines",
+        "take the middle moving line, with the other two read alongside",
+    ),
+    "four-moving": (
+        "Four moving lines",
+        "take the two unchanged lines, the lower one primary",
+    ),
+    "five-moving": ("Five moving lines", "take the single unchanged line"),
+    "all-use": ("All six lines moving", "乾/坤 take 用九 / 用六"),
+    "all-changed": (
+        "All six lines moving",
+        "read the hexagram statement of the changed hexagram",
+    ),
+}
+
+
+@dataclass(frozen=True, slots=True)
+class LineSelection:
+    """Which line carries the reading, and what kind of line it is.
+
+    ``strategy`` is the legacy value the text builders consume: ``None`` for no
+    moving lines, ``"all"`` for 用九/用六, ``"all-move-other"`` for a full change
+    in any other hexagram, otherwise a zero-based line index.
+    """
+
+    rule: str
+    strategy: Optional[object]
+    primary: Optional[int] = None
+    secondary: Tuple[int, ...] = ()
+    primary_is_moving: bool = False
+
+    @property
+    def primary_line_no(self) -> Optional[int]:
+        """The primary line as a 1-based position, or ``None``."""
+        return None if self.primary is None else self.primary + 1
+
+    @property
+    def secondary_line_nos(self) -> Tuple[int, ...]:
+        return tuple(index + 1 for index in self.secondary)
+
+    @property
+    def rule_name(self) -> str:
+        return LINE_RULE_LABELS.get(self.rule, ("", ""))[0]
+
+    @property
+    def rule_detail(self) -> str:
+        return LINE_RULE_LABELS.get(self.rule, ("", ""))[1]
+
+    @property
+    def rule_name_en(self) -> str:
+        return LINE_RULE_LABELS_EN.get(self.rule, ("", ""))[0]
+
+    @property
+    def rule_detail_en(self) -> str:
+        return LINE_RULE_LABELS_EN.get(self.rule, ("", ""))[1]
+
+    @property
+    def line_role(self) -> str:
+        """``动爻`` or ``静爻`` — what the selected line actually is."""
+        if self.primary is None:
+            return ""
+        return "动爻" if self.primary_is_moving else "静爻"
+
+    def describes_line(self, line_no: int) -> bool:
+        return line_no == self.primary_line_no or line_no in self.secondary_line_nos
+
+
+#: The corpus attaches a per-line note of the form
+#: ``六四爻动变得周易第43卦：泽天夬。…`` to every line slot. It describes the
+#: hexagram you reach when *that one line* moves, so it is only true for a
+#: single-moving-line reading of that line. In every other configuration the
+#: page ends up asserting one 变卦 in its header and a different one in the
+#: body, and the model is fed the contradiction too.
+_CHANGE_NOTE = re.compile(
+    r"(?:^|\n)[^\n]{0,12}爻动变得周易第\d+卦[：:]\s*([^\s。，、；]+)[^\n]*(?:\n(?!\n)[^\n]*)*"
+)
+
+
+def drop_conflicting_change_note(content: Optional[str], changed_name: Optional[str]) -> Optional[str]:
+    """Remove single-line 变卦 notes that disagree with this reading's 变卦.
+
+    A note naming the hexagram this reading actually changes into is accurate
+    and stays. Flipping a different set of lines always yields a different
+    hexagram, so a name match is sufficient to prove the note consistent.
+    """
+    if not content or "爻动变得周易第" not in content:
+        return content
+
+    def replace(match: "re.Match[str]") -> str:
+        named = match.group(1)
+        if changed_name and named == changed_name:
+            return match.group(0)
+        return "\n" if match.group(0).startswith("\n") else ""
+
+    cleaned = _CHANGE_NOTE.sub(replace, content)
+    return re.sub(r"\n{3,}", "\n\n", cleaned).strip() or None
+
+
+def _section_line_role(entry: object, info: "LineSelection") -> str:
+    """Classify a section against the 取用 rule: primary, secondary, background."""
+    slot_kind = getattr(entry, "slot_kind", "")
+    line_key = getattr(entry, "line_key", None)
+    if slot_kind == "gua":
+        return "background"
+    if slot_kind == "use":
+        return "primary" if info.rule == "all-use" else "background"
+    try:
+        line_no = int(line_key)
+    except (TypeError, ValueError):
+        return "background"
+    if line_no == info.primary_line_no:
+        return "primary"
+    if line_no in info.secondary_line_nos:
+        return "secondary"
+    return "background"
 
 
 def load_hexagram_definitions(index_file: Path) -> Dict[str, HexagramDefinition]:
@@ -133,27 +276,40 @@ class Hexagram:
         interpretation_repo: Optional["InterpretationRepository"] = None,
     ) -> Tuple[str, List[Dict[str, object]], Dict[str, object]]:
         """Return the focused summary text, structured sections, and overview metadata."""
-        selection = self._select_line_strategy()
+        info = self.line_selection()
+        selection = info.strategy
         main_text, main_line_text, changed_header, changed_text = self._build_interpretation(
             guaci_path=guaci_path,
             selection=selection,
             interpretation_repo=interpretation_repo,
         )
         summary = self._compose_summary(
-            selection, main_text, main_line_text, changed_header, changed_text
+            info, main_text, main_line_text, changed_header, changed_text
         )
         sections = self._collect_sections(
             selection,
             guaci_path,
             takashima_path,
             interpretation_repo=interpretation_repo,
+            info=info,
         )
         overview = self._build_overview()
+        overview["line_selection"] = {
+            "rule": info.rule,
+            "rule_name": info.rule_name,
+            "rule_detail": info.rule_detail,
+            "rule_name_en": info.rule_name_en,
+            "rule_detail_en": info.rule_detail_en,
+            "primary_line": info.primary_line_no,
+            "secondary_lines": list(info.secondary_line_nos),
+            "primary_is_moving": info.primary_is_moving,
+            "line_role": info.line_role,
+        }
         return summary, sections, overview
 
     def _compose_summary(
         self,
-        selection: Optional[object],
+        info: "LineSelection",
         main_text: Optional[str],
         main_line_text: Optional[str],
         changed_header: Optional[str],
@@ -176,6 +332,17 @@ class Hexagram:
         if top_changed_line:
             chunks.append(top_changed_line)
 
+        # State the 取用 rule explicitly: which line the reading rests on and
+        # whether that line moved. Readers and the model both used to have to
+        # infer this, and the old labels inferred it wrongly.
+        basis = f"取用: {info.rule_name} · {info.rule_detail}"
+        if info.primary_line_no is not None:
+            basis += f"；主爻为第{info.primary_line_no}爻（{info.line_role}）"
+            if info.secondary_line_nos:
+                joined = "、".join(str(no) for no in info.secondary_line_nos)
+                basis += f"，并参第{joined}爻"
+        chunks.append(basis)
+
         chunks.append("────────────────────────")
 
         if main_text:
@@ -185,7 +352,14 @@ class Hexagram:
 
         if changed_text:
             if self.changed_hexagram:
-                label = "变卦详解" if selection == "all-move-other" else "变卦动爻"
+                # Four and five moving lines select a STATIC line, so the old
+                # unconditional "变卦动爻" named it as the very thing it is not.
+                if info.rule == "all-changed":
+                    label = "变卦详解"
+                elif info.primary_line_no is None:
+                    label = "变卦对读"
+                else:
+                    label = f"变卦第{info.primary_line_no}爻（本卦{info.line_role}）"
                 chunks.append(f"\n【{label}】\n{changed_text}")
             else:
                 if changed_header:
@@ -328,18 +502,26 @@ class Hexagram:
 
         if isinstance(selection, int):
             line_no = selection + 1
-            main_line_text = interpretation_repo.get_slot_content(
-                hexagram_name=self.name,
-                source_key="guaci",
-                slot_kind="line",
-                line_no=line_no,
-            )
-            if self.changed_hexagram:
-                changed_line = interpretation_repo.get_slot_content(
-                    hexagram_name=self.changed_hexagram.name,
+            changed_name = self.changed_hexagram.name if self.changed_hexagram else None
+            main_line_text = drop_conflicting_change_note(
+                interpretation_repo.get_slot_content(
+                    hexagram_name=self.name,
                     source_key="guaci",
                     slot_kind="line",
                     line_no=line_no,
+                ),
+                changed_name,
+            )
+            if self.changed_hexagram:
+                # The 变卦's own per-line note points somewhere else again.
+                changed_line = drop_conflicting_change_note(
+                    interpretation_repo.get_slot_content(
+                        hexagram_name=self.changed_hexagram.name,
+                        source_key="guaci",
+                        slot_kind="line",
+                        line_no=line_no,
+                    ),
+                    None,
                 )
                 if changed_line:
                     changed_header = (
@@ -355,10 +537,13 @@ class Hexagram:
         guaci_path: Optional[Path],
         takashima_path: Optional[Path],
         interpretation_repo: Optional["InterpretationRepository"] = None,
+        info: Optional["LineSelection"] = None,
     ) -> List[Dict[str, object]]:
         if interpretation_repo is not None:
             repo_sections = self._collect_sections_from_repository(
-                selection=selection, interpretation_repo=interpretation_repo
+                selection=selection,
+                interpretation_repo=interpretation_repo,
+                info=info or self.line_selection(),
             )
             if repo_sections:
                 return repo_sections
@@ -573,7 +758,9 @@ class Hexagram:
         *,
         selection: Optional[object],
         interpretation_repo: "InterpretationRepository",
+        info: Optional["LineSelection"] = None,
     ) -> List[Dict[str, object]]:
+        info = info or self.line_selection()
         main_entries = interpretation_repo.list_entries(
             hexagram_name=self.name,
             locale="zh-CN",
@@ -598,36 +785,35 @@ class Hexagram:
                 source_keys=("english_commentary",),
             )
 
-        selected_main_line: Optional[str] = None
+        # Lines the classical rule names: the primary one plus the secondaries
+        # that used to be computed and then dropped on the floor.
+        relevant_lines: set[str] = set()
         if selection == "all":
-            selected_main_line = "all"
+            relevant_lines.add("all")
         elif isinstance(selection, int):
-            selected_main_line = str(selection + 1)
+            relevant_lines.add(str(selection + 1))
+            relevant_lines.update(str(no) for no in info.secondary_line_nos)
 
-        selected_changed_line: Optional[str] = None
-        if selection == "all":
-            selected_changed_line = "all"
-        elif isinstance(selection, int):
-            selected_changed_line = str(selection + 1)
+        def line_is_relevant(entry: "InterpretationEntry") -> bool:
+            return entry.line_key in relevant_lines
+
+        def is_visible(entry: "InterpretationEntry", *, changed: bool) -> bool:
+            # english_commentary is the entire body of text an English reader
+            # gets. Hiding it by source left the English reading with zero
+            # visible passages while the Chinese one showed six.
+            if selection == "all-move-other":
+                return entry.slot_kind == "gua" if changed else False
+            if entry.slot_kind == "gua":
+                return not changed
+            return line_is_relevant(entry)
+
+        changed_name = self.changed_hexagram.name if self.changed_hexagram else None
 
         def is_visible_main(entry: "InterpretationEntry") -> bool:
-            if entry.source_key == "english_commentary":
-                return False
-            if selection == "all-move-other":
-                return False
-            if entry.slot_kind == "gua":
-                return True
-            return entry.line_key == selected_main_line
+            return is_visible(entry, changed=False)
 
         def is_visible_changed(entry: "InterpretationEntry") -> bool:
-            if entry.source_key == "english_commentary":
-                return False
-            if selection == "all-move-other":
-                return entry.slot_kind == "gua"
-            return bool(
-                entry.line_key == selected_changed_line
-                and selection != "all-move-other"
-            )
+            return is_visible(entry, changed=True)
 
         def title_for(entry: "InterpretationEntry", hex_type: str) -> str:
             prefix = "本卦" if hex_type == "main" else "变卦"
@@ -644,11 +830,13 @@ class Hexagram:
                     return f"{prefix} · 八卦象意 · 全动爻"
                 return f"{prefix} · 八卦象意 · 第{entry.line_key}爻"
             if entry.source_key == "english_commentary":
+                # An English reader saw "本卦 · English Commentary · Line 1".
+                english_prefix = "Present" if hex_type == "main" else "Becoming"
                 if entry.slot_kind == "gua":
-                    return f"{prefix} · English Commentary"
+                    return f"{english_prefix} · English Commentary"
                 if entry.slot_kind == "use":
-                    return f"{prefix} · English Commentary · All Moving Lines"
-                return f"{prefix} · English Commentary · Line {entry.line_key}"
+                    return f"{english_prefix} · English Commentary · All Moving Lines"
+                return f"{english_prefix} · English Commentary · Line {entry.line_key}"
             if entry.slot_kind == "gua":
                 return f"{prefix} · 卦辞总览"
             if entry.slot_kind == "use":
@@ -678,9 +866,15 @@ class Hexagram:
                         "section_kind": section_kind,
                         "line_key": entry.line_key,
                         "title": title_for(entry, hex_type),
-                        "content": entry.content,
+                        "content": drop_conflicting_change_note(
+                            entry.content,
+                            changed_name if hex_type == "main" else None,
+                        ),
                         "importance": "primary" if visible else "secondary",
                         "visible_by_default": visible,
+                        # "primary" | "secondary" | "background": lets callers
+                        # label a section without re-deriving the 取用 rule.
+                        "line_role": _section_line_role(entry, info),
                     }
                 )
 
@@ -754,38 +948,82 @@ class Hexagram:
             }
         return overview
 
-    def _select_line_strategy(self) -> Optional[object]:
-        moving_indices = [idx for idx, value in enumerate(self.lines) if value in (6, 9)]
-        count = len(moving_indices)
+    def line_selection(self) -> "LineSelection":
+        """Resolve which line (if any) carries this reading, and why.
+
+        Returns the full selection rather than a bare index so callers can tell
+        a moving line from a static one. Four and five moving lines select a
+        *static* line; labelling that line "动爻" was wrong in three places
+        downstream. ``secondary_indices`` carries the lines the classical rule
+        names alongside the primary one, which used to be discarded.
+        """
+        lines = self.lines
+        moving = [idx for idx, value in enumerate(lines) if value in (6, 9)]
+        static = [idx for idx, value in enumerate(lines) if value not in (6, 9)]
+        count = len(moving)
 
         if count == 0:
-            return None
+            return LineSelection(rule="none", strategy=None)
+
         if count == 6:
-            if self.name in QIAN_NAMES or self.name in KUN_NAMES:
-                return "all"
-            return "all-move-other"
+            if self.binary in USE_LINE_BINARIES:
+                return LineSelection(rule="all-use", strategy="all")
+            return LineSelection(rule="all-changed", strategy="all-move-other")
 
         if count == 1:
-            return moving_indices[0]
+            return LineSelection(
+                rule="one-moving", strategy=moving[0], primary=moving[0], primary_is_moving=True
+            )
 
         if count == 2:
-            first, second = moving_indices
-            values = [self.lines[first], self.lines[second]]
-            if set(values) == {6, 9}:
-                return first if self.lines[first] == 6 else second
-            return max(moving_indices)
+            first, second = moving
+            if {lines[first], lines[second]} == {6, 9}:
+                primary = first if lines[first] == 6 else second
+            else:
+                primary = max(moving)
+            secondary = tuple(idx for idx in moving if idx != primary)
+            return LineSelection(
+                rule="two-moving",
+                strategy=primary,
+                primary=primary,
+                secondary=secondary,
+                primary_is_moving=True,
+            )
 
         if count == 3:
-            return sorted(moving_indices)[1]
+            primary = sorted(moving)[1]
+            secondary = tuple(idx for idx in sorted(moving) if idx != primary)
+            return LineSelection(
+                rule="three-moving",
+                strategy=primary,
+                primary=primary,
+                secondary=secondary,
+                primary_is_moving=True,
+            )
 
         if count == 4:
-            static_indices = [idx for idx, value in enumerate(self.lines) if value not in (6, 9)]
-            if static_indices:
-                return sorted(static_indices)[0]
-            return None
+            # 朱熹: 以之卦二不变爻占，仍以下爻为主 — both unchanged lines, lower primary.
+            primary = sorted(static)[0]
+            secondary = tuple(idx for idx in sorted(static) if idx != primary)
+            return LineSelection(
+                rule="four-moving",
+                strategy=primary,
+                primary=primary,
+                secondary=secondary,
+                primary_is_moving=False,
+            )
 
         if count == 5:
-            static_indices = [idx for idx, value in enumerate(self.lines) if value not in (6, 9)]
-            return static_indices[0] if static_indices else None
+            primary = sorted(static)[0]
+            return LineSelection(
+                rule="five-moving",
+                strategy=primary,
+                primary=primary,
+                primary_is_moving=False,
+            )
 
-        return None
+        return LineSelection(rule="none", strategy=None)
+
+    def _select_line_strategy(self) -> Optional[object]:
+        """Legacy accessor: the bare strategy value used by the text builders."""
+        return self.line_selection().strategy

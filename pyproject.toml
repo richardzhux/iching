@@ -9,25 +9,31 @@ description = "I Ching core engine + FastAPI surface"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "click==8.4.1",
+  # Runtime for the API and the core engine. Anything only a script in tools/
+  # needs belongs in an optional extra, not here: this list is what
+  # `pip install -r requirements.txt` puts on the production host.
   "colorama==0.4.6",
-  "common==0.1.2",
-  "datas==0.2.9",
   "fastapi==0.136.3",
-  "graphviz==0.20.3",
   "httpx==0.28.1",
   "lunar_python==1.4.8",
   "openai==2.45.0",
   "pydantic==2.13.4",
   "psutil==7.0.0",
   "python-dotenv==1.2.2",
-  "selenium==4.44.0",
-  "streamlit==1.58.0",
   "uvicorn[standard]==0.48.0",
   "sxtwl==2.0.7",
-  "yue==0.0.1004",
   "urllib3>=2.7.0,<3",
 ]
+
+[project.optional-dependencies]
+# `tools/fileops/scrap.py` only.
+scraping = ["selenium==4.44.0"]
+# `src/iching/gui/app.py`, the local Streamlit front end.
+gui = ["streamlit==1.58.0"]
+# `tools/references/csdnbazi.py`, a one-off reference transcription. `common`,
+# `datas` and `yue` are low-reputation PyPI names; keep them off the API host.
+references = ["common==0.1.2", "datas==0.2.9", "yue==0.0.1004"]
+dev = ["pytest==9.0.3"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

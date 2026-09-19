@@ -46,6 +46,9 @@ class CastingPreviewResponse(BaseModel):
     method_key: Literal["s", "m"]
     timestamp: datetime
     lines: List[int]
+    #: Echo back on /sessions so the reading records that these exact lines
+    #: came from this server's cast rather than from hand entry.
+    casting_token: Optional[str] = None
     yarrow_steps: List[List[int]] = Field(default_factory=list)
     yarrow_trace: List[List[Dict[str, int]]] = Field(default_factory=list)
     meihua_mode: Optional[Literal["traditional", "original"]] = None
@@ -71,6 +74,9 @@ class SessionCreateRequest(BaseModel):
     ai_reasoning: Optional[str] = None
     ai_verbosity: Optional[str] = None
     ai_tone: Optional[str] = "normal"
+    locale: Literal["zh", "en"] = "zh"
+    casting_token: Optional[str] = Field(default=None, max_length=64)
+    line_source: Optional[Literal["server_cast", "client_cast", "manual"]] = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -98,6 +104,7 @@ class SessionCreateRequest(BaseModel):
 
 class SessionPayload(BaseModel):
     summary_text: str
+    casting_provenance: Dict[str, object] = Field(default_factory=dict)
     hex_text: str
     hex_sections: List[Dict[str, object]]
     hex_overview: Dict[str, object]
@@ -556,6 +563,7 @@ class ChatTurnRequest(BaseModel):
     tone: Optional[str] = None
     model: Optional[str] = None
     restart: bool = False
+    locale: Literal["zh", "en"] = "zh"
 
 
 class ChatMessage(BaseModel):

@@ -478,3 +478,103 @@ def test_chat_history_uses_owner_scoped_summaries_and_keeps_legacy_labels():
     assert [item["ai_enabled"] for item in result] == [True, False]
     assert all(item["summary_text"] == summary for item in result)
     assert all("payload_snapshot" not in item and "initial_ai_text" not in item for item in result)
+
+
+# --------------------------------------------------------------------------- #
+# Locale: the reading brief and the prompts follow the reader's language
+# --------------------------------------------------------------------------- #
+
+
+def test_reading_brief_is_written_in_the_requested_locale():
+    from datetime import datetime
+
+    from iching.services.session import SessionService
+
+    service = SessionService(history_limit=0)
+    kwargs = dict(
+        topic="事业",
+        user_question="Should I take the offer?",
+        method_key="x",
+        manual_lines=[9, 9, 9, 8, 9, 8],
+        use_current_time=False,
+        timestamp=datetime(2024, 6, 10, 14, 0),
+        enable_ai=False,
+    )
+    english = service.create_session(locale="en", **kwargs).reading_brief
+    chinese = service.create_session(locale="zh", **kwargs).reading_brief
+
+    assert "Four moving lines" in english["evidence"][0]["basis"]
+    assert "static line" in english["key_passages"][0]["why_it_matters"]
+    assert english["direction"]["summary"].isascii()
+    assert "四爻动" in chinese["evidence"][0]["basis"]
+    assert not chinese["direction"]["summary"].isascii()
+
+
+def test_ai_prompt_carries_the_locale_and_the_resolved_rule():
+    from datetime import datetime
+
+    from iching.integrations.ai import _build_prompt
+    from iching.services.session import SessionService
+
+    service = SessionService(history_limit=0)
+    result = service.create_session(
+        topic="事业",
+        user_question="q",
+        method_key="x",
+        manual_lines=[9, 8, 7, 8, 7, 8],
+        use_current_time=False,
+        timestamp=datetime(2024, 6, 10, 14, 0),
+        enable_ai=False,
+        locale="en",
+    )
+    prompt = _build_prompt(result.to_dict())
+
+    assert "Write the entire answer in English." in prompt
+    # The 取用 rule is handed over rather than re-derived by the model.
+    assert "取用(Line selection)" in prompt
+    # Takashima is shown to the reader, so the model sees it too.
+    assert "高岛易断" in prompt
+
+
+def test_system_prompt_language_follows_the_locale():
+    from iching.integrations.ai import build_system_prompt
+
+    assert "Write in English Markdown" in build_system_prompt("en")
+    assert "输出为简体中文 Markdown" in build_system_prompt("zh")
+
+
+def test_followup_prompt_does_not_demand_the_full_reading_template():
+    """A follow-up used to be told to emit all eight sections again."""
+    from iching.integrations.ai import build_chat_prompt
+
+    for locale in ("zh", "en"):
+        prompt = build_chat_prompt(locale)
+        assert "一句话结论" not in prompt
+        assert "Bottom line" not in prompt
+        assert "继续追问" not in prompt
+
+
+def test_brief_parser_reads_both_locales_and_both_pipe_forms():
+    from iching.services.session import (
+        _extract_ai_actions,
+        _extract_ai_headline,
+        _extract_ai_timing,
+    )
+
+    english = (
+        "# Bottom line\n- Proceed once the budget is signed off.\n\n"
+        "# Timing and conditions\n- Window: 6 weeks|Condition: budget approved|Confidence: 70%\n\n"
+        "# Actions\n- Action: confirm the owner|Cadence: this week|Signal: a dated approval\n"
+    )
+    chinese = (
+        "# 一句话结论\n- 利成，先确认预算。\n\n"
+        "# 应期与条件\n- 主应期：六周内｜条件：预算批复｜置信度：70%\n\n"
+        "# 行动建议\n- 动作：确认负责人｜节奏：本周｜观察指标：带日期的批复\n"
+    )
+
+    assert _extract_ai_headline(english).startswith("Proceed")
+    assert _extract_ai_timing(english)[0]["confidence"] == 70
+    assert _extract_ai_actions(english)[0]["cadence"] == "this week"
+    assert _extract_ai_headline(chinese).startswith("利成")
+    assert _extract_ai_timing(chinese)[0]["confidence"] == 70
+    assert _extract_ai_actions(chinese)[0]["cadence"] == "本周"

@@ -222,6 +222,10 @@ export function CastForm({ config }: Props) {
   const operation = useRef(0)
   const preparedCastRef = useRef<CastingPreview | null>(null)
   const [preparedCast, setPreparedCast] = useState<CastingPreview | null>(null)
+  // Declared provenance for the lines currently in the form. The server
+  // verifies a server cast against its own token and records the result, so a
+  // stored reading no longer looks identical whether it was cast or typed.
+  const lineSourceRef = useRef<"server_cast" | "client_cast" | "manual">("manual")
   const meihuaStepRef = useRef(0)
   const [meihuaStep, setMeihuaStep] = useState(0)
   const [ritualPhase, setRitualPhase] = useState(0)
@@ -393,6 +397,9 @@ export function CastForm({ config }: Props) {
       ai_reasoning: form.aiReasoning || null,
       ai_verbosity: form.aiVerbosity || null,
       ai_tone: form.aiTone,
+      locale,
+      casting_token: lineSourceRef.current === "server_cast" ? preparedCastRef.current?.casting_token ?? null : null,
+      line_source: lineSourceRef.current,
 	    }
 	    const retryPayload = { ...payload }
 	    delete retryPayload.access_password
@@ -422,6 +429,7 @@ export function CastForm({ config }: Props) {
     setLastCoinToss(null)
     preparedCastRef.current = null
     setPreparedCast(null)
+    lineSourceRef.current = "manual"
     meihuaStepRef.current = 0
     setMeihuaStep(0)
     setRitualPhase(0)
@@ -442,6 +450,8 @@ export function CastForm({ config }: Props) {
   }
   function editManualLine(index: number, value?: number) {
     if (tossing.current || mutation.isPending) return
+    // The token stays attached; the server will see the lines no longer match
+    // it and record the reading as edited rather than as a clean cast.
     const raw = useWorkspaceStore.getState().form.manualLines
     const values = Array.from({ length: 6 }, (_, i) => Number(raw[i]) || 0)
     values[index] = value ?? (values[index] === 7 ? 8 : values[index] === 9 ? 6 : values[index] === 6 ? 9 : 7)
@@ -453,6 +463,7 @@ export function CastForm({ config }: Props) {
     try { setForm({ castingTimestamp: castingTime() }) } catch (error) { toast.error((error as Error).message); return }
     tossing.current = true
     setIsTossing(true)
+    lineSourceRef.current = "client_cast"
     const result = coinLineValue()
     setLastCoinToss(result.coins)
     setTossId((value) => value + 1)
@@ -478,6 +489,7 @@ export function CastForm({ config }: Props) {
       if (token !== operation.current) return
       preparedCastRef.current = cast
       setPreparedCast(cast)
+      lineSourceRef.current = "server_cast"
       setForm({ castingTimestamp: cast.timestamp })
       setTossId((value) => value + 1)
       const finish = (continueCasting: boolean) => {

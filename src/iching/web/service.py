@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import tempfile
@@ -15,6 +16,10 @@ from iching.core.divination import MeihuaMethod
 from iching.integrations.ai import DEFAULT_MODEL, MODEL_ALIASES, MODEL_CAPABILITIES
 from iching.integrations.supabase_client import SupabaseRestClient, SupabaseUser
 from iching.services.session import SessionService
+from iching.web.casting_provenance import (
+    describe as describe_line_source,
+    resolve_line_source,
+)
 from iching.web.errors import AccessDeniedError
 from iching.web.models import (
     ConfigResponse,
@@ -43,6 +48,15 @@ class RateCounter:
 
 
 class RateLimiter:
+    """Coarse per-identity throttle held in this process only.
+
+    The authoritative AI quota is the Supabase ``admit_ai_operation`` ledger in
+    :mod:`iching.web.ai_operations`, which is atomic across workers. This
+    limiter is a cheap first line of defence: with several workers or serverless
+    instances each keeps its own counters, so the effective ceiling is the limit
+    times the instance count. Do not rely on it for billing.
+    """
+
     def __init__(self, max_attempts: int, max_ai_successes: int) -> None:
         self.max_attempts = max_attempts
         self.max_ai_successes = max_ai_successes
@@ -59,18 +73,27 @@ class RateLimiter:
             if counter.attempts > self.max_attempts:
                 raise RateLimitError("请求过于频繁，请明天再试。")
 
-    def ensure_ai_quota(self, ip: str) -> None:
+    def reserve_ai_slot(self, ip: str) -> None:
+        """Claim one AI slot, check and increment under a single lock.
+
+        Checking and incrementing separately let concurrent requests all pass
+        the check at ``limit - 1`` and then each increment, overshooting the
+        cap. Release the slot with :meth:`release_ai_slot` when the call does
+        not end up dispatching.
+        """
         normalized = self._normalize_ip(ip)
         with self._lock:
             counter = self._get_counter(normalized)
             if counter.ai_successes >= self.max_ai_successes:
                 raise RateLimitError("AI 请求达到每日上限，请明天再试。")
+            counter.ai_successes += 1
 
-    def record_ai_success(self, ip: str) -> None:
+    def release_ai_slot(self, ip: str) -> None:
         normalized = self._normalize_ip(ip)
         with self._lock:
-            counter = self._get_counter(normalized)
-            counter.ai_successes += 1
+            counter = self._counters.get(normalized)
+            if counter is not None and counter.ai_successes > 0:
+                counter.ai_successes -= 1
 
     def _get_counter(self, ip: str) -> RateCounter:
         today = datetime.now(timezone.utc).date().isoformat()
@@ -116,7 +139,8 @@ def _validate_ai_password(password: str | None) -> Tuple[bool, str]:
         return False, "OPENAI_PW environment variable is not set on the server."
     if not password:
         return False, "Access password is required when AI analysis is enabled."
-    if password != expected:
+    # Constant-time: a plain != leaks the shared secret's prefix through timing.
+    if not hmac.compare_digest(password.encode("utf-8"), expected.encode("utf-8")):
         return False, "Access password is invalid."
     return True, ""
 
@@ -188,27 +212,36 @@ class SessionRunner:
         if request.enable_ai:
             if not user_authenticated:
                 raise AccessDeniedError("登录后才能启用 AI 分析。")
-            self.rate_limiter.ensure_ai_quota(ai_identity)
             ok, message = _validate_ai_password(request.access_password)
             if not ok:
                 raise AccessDeniedError(message)
+            # Claimed before dispatch, released below if no analysis came back.
+            self.rate_limiter.reserve_ai_slot(ai_identity)
             ai_allowed = True
 
-        result = self.service.create_session(
-            topic=request.topic,
-            user_question=request.user_question,
-            user_context=request.user_context,
-            method_key=request.method_key,
-            use_current_time=request.use_current_time and request.method_key != "m",
-            timestamp=timestamp,
-            manual_lines=manual_lines,
-            enable_ai=ai_allowed,
-            ai_model=request.ai_model or DEFAULT_MODEL,
-            ai_reasoning=request.ai_reasoning,
-            ai_verbosity=request.ai_verbosity,
-            ai_tone=request.ai_tone,
-            interactive=False,
-        )
+        try:
+            result = self.service.create_session(
+                topic=request.topic,
+                user_question=request.user_question,
+                user_context=request.user_context,
+                method_key=request.method_key,
+                use_current_time=request.use_current_time and request.method_key != "m",
+                timestamp=timestamp,
+                manual_lines=manual_lines,
+                enable_ai=ai_allowed,
+                ai_model=request.ai_model or DEFAULT_MODEL,
+                ai_reasoning=request.ai_reasoning,
+                ai_verbosity=request.ai_verbosity,
+                ai_tone=request.ai_tone,
+                locale=request.locale,
+                interactive=False,
+            )
+        except BaseException:
+            if ai_allowed:
+                self.rate_limiter.release_ai_slot(ai_identity)
+            raise
+        if ai_allowed and not result.ai_analysis:
+            self.rate_limiter.release_ai_slot(ai_identity)
 
         archive_path = None
         if os.getenv("ICHING_WEB_ARCHIVE_ENABLED", "").lower() in {"1", "true", "yes"}:
@@ -231,12 +264,39 @@ class SessionRunner:
 
         raw_session = result.to_dict()
         safe_session = json.loads(json.dumps(raw_session, default=str))
+
+        # How the six lines actually arrived, recorded rather than assumed.
+        line_source = resolve_line_source(
+            method_key=request.method_key,
+            lines=list(result.lines),
+            timestamp=timestamp.isoformat() if timestamp else "",
+            casting_token=request.casting_token,
+            declared_source=request.line_source,
+        )
+        provenance = {
+            "method_key": request.method_key,
+            "method_label": result.method,
+            "line_source": line_source,
+            "description": describe_line_source(line_source, request.locale),
+            "verified": line_source == "server_cast",
+        }
+        if request.method_key == "m":
+            provenance["meihua_mode"] = request.meihua_mode
+            provenance["matches_calculated_lines"] = list(result.lines) == calculated_lines
+        safe_session["casting_provenance"] = provenance
+        summary.append(f"六爻来源: {provenance['description']}")
+
         if request.method_key == "m" and list(result.lines) == calculated_lines:
             safe_session["casting"] = dict(meihua_mode=request.meihua_mode, timestamp=timestamp.isoformat(), inputs=casting_inputs)
             summary.append("起卦算法: " + ("传统农历时辰法" if request.meihua_mode == "traditional" else "项目原始分钟法"))
+        elif request.method_key == "m":
+            # The Meihua metadata used to vanish silently when the reader
+            # edited a line; say what happened instead.
+            summary.append("起卦算法: 梅花时间起卦后已手动调整爻值")
 
         payload = SessionPayload(
             summary_text="\n".join(summary),
+            casting_provenance=provenance,
             hex_text=result.hex_text,
             hex_sections=result.hex_sections,
             hex_overview=result.hex_overview,
@@ -276,8 +336,6 @@ class SessionRunner:
                 initial_tokens=initial_tokens,
                 session_payload=safe_session,
             )
-            if request.enable_ai and ai_allowed:
-                self.rate_limiter.record_ai_success(ai_identity)
 
         should_snapshot = bool(user_authenticated) or bool(result.ai_response_id)
         if should_snapshot:

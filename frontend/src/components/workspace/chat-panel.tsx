@@ -209,6 +209,7 @@ export function ChatPanel({ session, embedded = false }: Props) {
       tone,
       model: selectedChatModel || null,
       restart: options.restart,
+      locale,
     }
     const nextItems: LocalChatMessage[] = []
     if (appendUser) nextItems.push({ localId: userLocalId, role: "user", content: trimmed, created_at: now, model: selectedChatModel })

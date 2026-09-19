@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pytest
 from fastapi.testclient import TestClient
 
 from iching.integrations.ai import AIResponseData
@@ -517,3 +518,130 @@ def test_session_state_requires_owner_and_does_not_revive_expired_entries():
     state.last_access = time.time() - store._ttl_seconds - 1
     assert store.get("reading", owner_id="alice") is None
     assert not store._sessions
+
+
+def test_reserve_ai_slot_never_overshoots_under_concurrency():
+    """Check-then-increment let every racing request pass at ``limit - 1``."""
+    import threading
+
+    from iching.web.service import RateLimiter, RateLimitError
+
+    limiter = RateLimiter(max_attempts=10_000, max_ai_successes=5)
+    granted: list[int] = []
+    barrier = threading.Barrier(20)
+
+    def claim() -> None:
+        barrier.wait()
+        try:
+            limiter.reserve_ai_slot("10.0.0.1")
+        except RateLimitError:
+            return
+        granted.append(1)
+
+    threads = [threading.Thread(target=claim) for _ in range(20)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert sum(granted) == 5
+
+
+def test_released_ai_slot_is_available_again():
+    from iching.web.service import RateLimiter, RateLimitError
+
+    limiter = RateLimiter(max_attempts=10_000, max_ai_successes=1)
+    limiter.reserve_ai_slot("10.0.0.2")
+    with pytest.raises(RateLimitError):
+        limiter.reserve_ai_slot("10.0.0.2")
+
+    limiter.release_ai_slot("10.0.0.2")
+    limiter.reserve_ai_slot("10.0.0.2")
+
+    # Releasing more than was claimed must not mint extra quota.
+    limiter.release_ai_slot("10.0.0.2")
+    limiter.release_ai_slot("10.0.0.2")
+    limiter.reserve_ai_slot("10.0.0.2")
+    with pytest.raises(RateLimitError):
+        limiter.reserve_ai_slot("10.0.0.2")
+
+
+def test_ai_password_check_is_constant_time(monkeypatch):
+    import hmac
+
+    from iching.web import service as service_module
+
+    monkeypatch.setenv("OPENAI_PW", "correct-horse")
+    calls: list[tuple[bytes, bytes]] = []
+    real = hmac.compare_digest
+
+    def spy(left, right):
+        calls.append((left, right))
+        return real(left, right)
+
+    monkeypatch.setattr(service_module.hmac, "compare_digest", spy)
+
+    assert service_module._validate_ai_password("correct-horse")[0] is True
+    assert service_module._validate_ai_password("correct-hors0")[0] is False
+    assert len(calls) == 2
+
+
+def test_casting_provenance_distinguishes_a_cast_from_a_hand_edit():
+    """A stored reading used to look identical whether cast or typed in."""
+    client = TestClient(app)
+    preview = client.post(
+        "/api/casting/preview",
+        json={"method_key": "s", "timestamp": "2024-06-10T14:00:00+08:00"},
+    ).json()
+    assert preview["casting_token"]
+
+    def cast(**overrides):
+        body = {
+            "topic": "事业",
+            "method_key": "s",
+            "use_current_time": False,
+            "timestamp": "2024-06-10T14:00:00+08:00",
+            "manual_lines": preview["lines"],
+            "enable_ai": False,
+        }
+        body.update(overrides)
+        response = client.post("/api/sessions", json=body)
+        assert response.status_code == 201, response.text
+        return response.json()["casting_provenance"]
+
+    verified = cast(casting_token=preview["casting_token"])
+    assert verified["line_source"] == "server_cast"
+    assert verified["verified"] is True
+
+    assert cast()["line_source"] == "manual"
+    assert cast(line_source="client_cast")["line_source"] == "client_cast"
+
+    edited_lines = list(preview["lines"])
+    edited_lines[0] = 6 if edited_lines[0] != 6 else 9
+    edited = cast(manual_lines=edited_lines, casting_token=preview["casting_token"])
+    assert edited["line_source"] == "edited"
+    assert edited["verified"] is False
+
+
+def test_casting_token_is_scoped_to_its_own_lines_and_method():
+    from iching.web.casting_provenance import sign_cast, verify_cast
+
+    token = sign_cast("s", [7, 8, 7, 8, 7, 8], "2024-06-10T14:00:00+08:00")
+    assert verify_cast(token, "s", [7, 8, 7, 8, 7, 8], "2024-06-10T14:00:00+08:00")
+    assert not verify_cast(token, "m", [7, 8, 7, 8, 7, 8], "2024-06-10T14:00:00+08:00")
+    assert not verify_cast(token, "s", [7, 8, 7, 8, 7, 9], "2024-06-10T14:00:00+08:00")
+    assert not verify_cast(token, "s", [7, 8, 7, 8, 7, 8], "2024-06-11T14:00:00+08:00")
+    assert not verify_cast(None, "s", [7, 8, 7, 8, 7, 8], "2024-06-10T14:00:00+08:00")
+
+
+def test_a_reading_can_be_reopened_by_id():
+    """Finding 10: the reading route needs a server-side session to fetch."""
+    routes = {getattr(route, "path", "") for route in app.routes}
+    assert "/api/sessions/{session_id}" in routes
+    get_routes = [
+        route
+        for route in app.routes
+        if getattr(route, "path", "") == "/api/sessions/{session_id}"
+        and "GET" in getattr(route, "methods", set())
+    ]
+    assert get_routes, "no GET handler for a single session"
