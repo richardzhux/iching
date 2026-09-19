@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, Iterable, Mapping
 
 
+from iching.core.bazi_structure import METRIC_SCALES, metric_deviation
+
 CONSUMER_CLAIMS_VERSION = "consumer-claims-2026.07-v1"
 
 CLAIM_THEME_ORDER = ("career", "wealth", "relationship", "rhythm")
@@ -649,14 +651,113 @@ def _metric_values(profile: Mapping[str, Any]) -> dict[str, int]:
     }
 
 
+#: Theme -> (metric, high label, low label). The path is chosen by which
+#: metric this chart deviates furthest from the population on, using the same
+#: scales the synthesis ranks with. Fixed cutoffs (`>= 4`, `>= 5`) put 62.5% of
+#: charts on one relationship path and 50.7% on one rhythm path; a label that
+#: broad is a category, not a reading.
+_PATH_AXES: dict[str, tuple[tuple[str, str, tuple[str, str], tuple[str, str]], ...]] = {
+    "wealth": (
+        ("财富", "visible_wealth_count",
+         ("visible_operation", "外显经营型"), ("capability_conversion", "能力转化型")),
+        ("财富", "hidden_wealth_count",
+         ("hidden_accumulation", "潜藏兑现型"), ("direct_exchange", "直接交换型")),
+        ("财富", "peer_count",
+         ("shared_resource", "协作分摊型"), ("independent_purse", "独立掌管型")),
+        ("财富", "output_count",
+         ("output_driven", "产出驱动型"), ("position_driven", "位置驱动型")),
+    ),
+    "relationship": (
+        ("感情", "spouse_palace_relation_count",
+         ("high_interaction", "高互动型"), ("low_disturbance", "低扰动型")),
+        ("感情", "day_stem_combine_count",
+         ("relational_pull", "关系牵引型"), ("self_anchored", "自我锚定型")),
+        ("感情", "visible_spouse_count",
+         ("explicit_signal", "明确表达型"), ("reserved_signal", "含蓄表达型")),
+        ("感情", "hidden_spouse_count",
+         ("progressive_bond", "渐进建立型"), ("fast_clarity", "快速确认型")),
+    ),
+    "rhythm": (
+        ("五行与承压结构", "pressure_relation_count",
+         ("adaptive_regulation", "敏感调节型"), ("low_friction", "低摩擦型")),
+        ("五行与承压结构", "concentrated_element_count",
+         ("concentrated_rhythm", "内稳外紧型"), ("dispersed_rhythm", "分散均摊型")),
+        ("五行与承压结构", "root_pillar_count",
+         ("rooted_recovery", "根气恢复型"), ("support_seeking", "借力恢复型")),
+        ("五行与承压结构", "missing_element_count",
+         ("uneven_field", "偏科补位型"), ("steady_recovery", "均衡恢复型")),
+    ),
+}
+
+_PATH_SENTENCES: dict[str, str] = {
+    "visible_operation": "资源与现实结果更容易直接进入选择、协作与行动。",
+    "capability_conversion": "财富更依赖专业能力与运限机会转化，并非由财星数量决定。",
+    "hidden_accumulation": "财星主要藏于地支，资源更偏长期积累与阶段兑现。",
+    "direct_exchange": "资源少有潜藏，进出较直接，节奏更看当下的交换条件。",
+    "shared_resource": "资源常在合作与分配中流动，分摊与共担是主要形态。",
+    "independent_purse": "资源边界清楚，较少与人共用，自己掌管的部分为主。",
+    "output_driven": "收入更依赖把能力持续变成产出。",
+    "position_driven": "收入更依赖位置与关系结构，而非单件产出。",
+    "high_interaction": "关系与生活选择联动较多，重要关系更容易推动阶段变化。",
+    "low_disturbance": "夫妻宫少被牵动，关系较少成为阶段变化的触发点。",
+    "relational_pull": "亲密关系在选择、合作与人生节奏中具有较强牵引力。",
+    "self_anchored": "日干少有合绊，关系中的自我节奏较稳定。",
+    "explicit_signal": "配偶星明透，对关系对象与承诺方式的感受通常比较清楚。",
+    "reserved_signal": "配偶星不显，关系意向多在具体相处中才显出来。",
+    "progressive_bond": "关系更适合通过理解、信任与共同经历逐步深化。",
+    "fast_clarity": "配偶星藏见不多，关系走向往往比较快就能看清。",
+    "adaptive_regulation": "结构变化较密集，需要在输出、休整与环境切换之间找到节奏。",
+    "low_friction": "结构冲刑较少，日常消耗平稳，节奏主要由自己安排。",
+    "concentrated_rhythm": "内在力量较集中，外部变化来临时更需要主动安排恢复。",
+    "dispersed_rhythm": "五行分布较均摊，少有一处独强，恢复方式也偏分散。",
+    "rooted_recovery": "日主通根较广，遇到消耗时有可依靠的底子。",
+    "support_seeking": "日主根气偏薄，恢复更依赖外部支持与阶段休整。",
+    "uneven_field": "五行明显偏科，长期要靠环境与习惯补位。",
+    "steady_recovery": "整体节奏适合稳定推进，并为阶段变化保留恢复空间。",
+}
+
+
+def _path_reason(theme_cn: str, metric_id: str, value: int, deviation: float) -> str:
+    """Name the count, the population average and the gap that chose this path."""
+    mean = METRIC_SCALES.get(theme_cn, {}).get(metric_id, (0.0, 1.0))[0]
+    label = _METRIC_LABELS_CN.get(metric_id, metric_id)
+    return f"{label} {value}（常见约 {mean:g}，偏离 {deviation:+.1f} 个标准差）"
+
+
+_METRIC_LABELS_CN = {
+    "visible_wealth_count": "财星明透",
+    "hidden_wealth_count": "财星藏见",
+    "peer_count": "比劫",
+    "output_count": "食伤",
+    "spouse_palace_relation_count": "夫妻宫关系",
+    "day_stem_combine_count": "日干合",
+    "visible_spouse_count": "配偶星明透",
+    "hidden_spouse_count": "配偶星藏见",
+    "pressure_relation_count": "冲刑害破克",
+    "concentrated_element_count": "集中五行",
+    "root_pillar_count": "通根柱位",
+    "missing_element_count": "未见五行",
+    "officer_count": "官杀",
+    "resource_count": "印星",
+    "relation_count": "干支关系",
+    "mobility_count": "迁动信号",
+}
+
+
 def _theme_path(
     theme: str,
     profile: Mapping[str, Any],
     primary: Mapping[str, Any],
 ) -> tuple[str, str, str]:
+    """Pick the path this chart is furthest from average on, and say why.
+
+    Career still follows the 格局, which is a genuine classical determination.
+    The other three used fixed thresholds on raw counts, which produced three
+    labels each and sixteen summary sentences for every chart ever cast.
+    """
     values = _metric_values(profile)
     if theme == "career":
-        return _CAREER_PATHS.get(
+        key, title, summary = _CAREER_PATHS.get(
             _pattern_key(primary),
             (
                 "self_directed",
@@ -664,59 +765,46 @@ def _theme_path(
                 "事业路径更依赖个人判断、持续行动与阶段机会。",
             ),
         )
-    if theme == "wealth":
-        if values.get("visible_wealth_count", 0) > 0:
-            return (
-                "visible_operation",
-                "外显经营型",
-                "资源与现实结果更容易直接进入选择、协作与行动。",
-            )
-        if values.get("hidden_wealth_count", 0) > 0:
-            return (
-                "hidden_accumulation",
-                "潜藏兑现型",
-                "财星主要藏于地支，资源更偏长期积累与阶段兑现。",
-            )
-        return (
-            "capability_conversion",
-            "能力转化型",
-            "财富更依赖专业能力、关系网络与运限机会转化，并非由单一财星数量决定。",
-        )
-    if theme == "relationship":
-        if values.get("spouse_palace_relation_count", 0) >= 4:
-            return (
-                "high_interaction",
-                "高互动型",
-                "关系与生活选择联动较多，重要关系更容易推动阶段变化。",
-            )
-        if values.get("day_stem_combine_count", 0) > 0:
-            return (
-                "relational_pull",
-                "关系牵引型",
-                "亲密关系在选择、合作与人生节奏中具有较强牵引力。",
-            )
-        return (
-            "progressive_bond",
-            "渐进建立型",
-            "关系更适合通过理解、信任与共同经历逐步深化。",
-        )
-    if values.get("pressure_relation_count", 0) >= 5:
-        return (
-            "adaptive_regulation",
-            "敏感调节型",
-            "结构变化较密集，需要在输出、休整与环境切换之间找到自己的节奏。",
-        )
-    if values.get("concentrated_element_count", 0) >= 2:
-        return (
-            "concentrated_rhythm",
-            "内稳外紧型",
-            "内在力量较集中，外部变化来临时更需要主动安排恢复与缓冲。",
-        )
-    return (
-        "steady_recovery",
-        "均衡恢复型",
-        "整体节奏更适合稳定推进，并为阶段变化保留恢复空间。",
-    )
+        lead = _lead_axis("事业", values, (
+            ("officer_count",), ("resource_count",), ("output_count",), ("mobility_count",),
+        ))
+        if lead:
+            metric_id, value, deviation = lead
+            summary = f"{summary}本盘最突出的是{_path_reason('事业', metric_id, value, deviation)}。"
+        return key, title, summary
+
+    axes = _PATH_AXES.get(theme, ())
+    best: tuple[str, str, int, float] | None = None
+    for theme_cn, metric_id, _high, _low in axes:
+        if metric_id not in values:
+            continue
+        value = int(values[metric_id])
+        deviation = metric_deviation(theme_cn, metric_id, value)
+        if best is None or abs(deviation) > abs(best[3]):
+            best = (theme_cn, metric_id, value, deviation)
+
+    if best is None:
+        return "steady_recovery", "均衡恢复型", _PATH_SENTENCES["steady_recovery"]
+
+    theme_cn, metric_id, value, deviation = best
+    axis = next(item for item in axes if item[1] == metric_id)
+    key, title = axis[2] if deviation >= 0 else axis[3]
+    summary = f"{_PATH_SENTENCES.get(key, '')}依据：{_path_reason(theme_cn, metric_id, value, deviation)}。"
+    return key, title, summary
+
+
+def _lead_axis(
+    theme_cn: str, values: Mapping[str, int], candidates: tuple[tuple[str], ...]
+) -> tuple[str, int, float] | None:
+    best: tuple[str, int, float] | None = None
+    for (metric_id,) in candidates:
+        if metric_id not in values:
+            continue
+        value = int(values[metric_id])
+        deviation = metric_deviation(theme_cn, metric_id, value)
+        if best is None or abs(deviation) > abs(best[2]):
+            best = (metric_id, value, deviation)
+    return best
 
 
 def _theme_claims(
@@ -917,7 +1005,7 @@ def _signature_claims(
             "ruleIds": rule_ids,
             "sourceIds": source_ids,
         }
-        candidates.append(((0, 0.0, claim["id"]), claim))
+        candidates.append(((0, 0.0, 0, claim["id"]), claim))
 
     active_paths = [
         path
@@ -977,7 +1065,7 @@ def _signature_claims(
                 "ruleIds": rule_ids,
                 "sourceIds": source_ids,
             }
-            candidates.append(((1, 0.0, claim["id"]), claim))
+            candidates.append(((1, 0.0, 0, claim["id"]), claim))
 
     active_rescue_ids = {
         str(rule_id)
@@ -1030,7 +1118,7 @@ def _signature_claims(
                 "ruleIds": rule_ids,
                 "sourceIds": source_ids,
             }
-            candidates.append(((2, 0.0, claim["id"]), claim))
+            candidates.append(((2, 0.0, 0, claim["id"]), claim))
 
     for profile in profiles:
         theme = _PROFILE_THEME_KEYS.get(str(profile.get("theme", "")))
@@ -1060,11 +1148,16 @@ def _signature_claims(
                 "sourceIds": _source_ids(evidence),
                 "_family": family,
             }
+            # Distinctiveness leads, family priority only breaks ties. Ranking
+            # by family first meant 月令 (priority 0) headed "这张盘的重点" on
+            # every chart whether or not it was remarkable, so the section
+            # routinely showed three values all labelled 常见.
             candidates.append(
                 (
                     (
-                        3 + importance_rank,
+                        3,
                         _comparison_same_mass(profile, family),
+                        importance_rank,
                         claim["id"],
                     ),
                     claim,

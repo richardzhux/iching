@@ -547,7 +547,11 @@ def _lead_for(
     candidates = _THEME_LEADS.get(theme, ())
     best: tuple[str, str, str, int, float] | None = None
     for metric_id, short, template in candidates:
-        count = int(values.get(metric_id, 0))
+        # A metric the profile never reported is missing data, not a measured
+        # zero; scoring it as zero makes a partial payload look extreme.
+        if metric_id not in values:
+            continue
+        count = int(values[metric_id])
         deviation = metric_deviation(theme, metric_id, count)
         if best is None or abs(deviation) > abs(best[4]):
             best = (metric_id, short, template, count, deviation)

@@ -92,8 +92,17 @@ def test_consumer_profile_keeps_empirical_scores_internal() -> None:
     wealth = next(
         subject for subject in profile["subjects"] if subject["key"] == "wealth"
     )
-    assert wealth["path_label"] == "潜藏兑现型"
-    assert wealth["path_summary"] == "财星主要藏于地支，资源更偏长期积累与阶段兑现。"
+    # The label used to be pinned to one string. It is now chosen by which
+    # metric the chart deviates furthest from the population on, so assert the
+    # contract instead: a wealth path is picked, and its summary shows the
+    # number it rests on rather than asserting a fixed sentence.
+    assert wealth["path_label"]
+    assert wealth["path_summary"]
+    assert "常见约" in wealth["path_summary"], wealth["path_summary"]
+    assert "标准差" in wealth["path_summary"], wealth["path_summary"]
+    # hidden_wealth_count is 1 against a population mean of 1.88, so the chart
+    # reads below average on the only wealth metric the fixture supplies.
+    assert "财星藏见 1" in wealth["path_summary"], wealth["path_summary"]
     assert not hasattr(consumer_module, "score_bazi_consumer_themes")
 
 

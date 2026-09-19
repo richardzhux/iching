@@ -796,3 +796,97 @@ def test_hero_provenance_binds_true_chart_facts_to_rules_and_sources() -> None:
         assert all(
             fact.get("path") or fact.get("matchIds") for fact in binding["factRefs"]
         )
+
+
+# --------------------------------------------------------------------------- #
+# Theme paths must vary with the chart
+# --------------------------------------------------------------------------- #
+
+
+def _sampled_theme_claims(count: int = 400):
+    import random
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from iching.core.bazi_patterns import assess_patterns
+    from iching.core.bazi_structure import build_structure_profile
+    from iching.core.calendar_engine import STEMS as CAL_STEMS
+    from iching.core.calendar_engine import calculate_calendar_facts
+    from iching.core.consumer_claims import _theme_claims
+    from iching.core.metaphysics import _pillar, _seasonal_status
+    from iching.core.shensha import evaluate_shensha
+
+    random.seed(31)
+    zone = ZoneInfo("Asia/Shanghai")
+    rows = []
+    for _ in range(count):
+        moment = datetime(
+            random.randint(1955, 2012), random.randint(1, 12), random.randint(1, 28),
+            random.randint(0, 23), random.randint(0, 59), tzinfo=zone,
+        )
+        try:
+            facts = calculate_calendar_facts(
+                moment, timezone_name="Asia/Shanghai", day_boundary="forward", crosscheck=False
+            )
+        except Exception:
+            continue
+        day_stem = CAL_STEMS[facts.day_gz.tg]
+        pillars = [
+            _pillar("年", facts.year_gz, day_stem),
+            _pillar("月", facts.month_gz, day_stem),
+            _pillar("日", facts.day_gz, day_stem),
+            _pillar("时", facts.hour_gz, day_stem),
+        ]
+        structure = build_structure_profile(
+            pillars,
+            gender=random.choice(["male", "female"]),
+            shensha_hits=evaluate_shensha(pillars),
+            seasonal_status=_seasonal_status(pillars[1]["branch"]),
+        )
+        rows.append(_theme_claims(structure["theme_profiles"], assess_patterns(pillars, structure)))
+    return rows
+
+
+def test_theme_paths_are_not_one_label_for_most_charts():
+    """Fixed thresholds put 62.5% of charts on 渐进建立型 and 50.7% on 内稳外紧型."""
+    from collections import Counter, defaultdict
+
+    rows = _sampled_theme_claims()
+    assert len(rows) > 300
+    per_theme = defaultdict(Counter)
+    for claims in rows:
+        for claim in claims:
+            per_theme[claim["theme"]][claim["title"]] += 1
+
+    total = len(rows)
+    for theme, counter in per_theme.items():
+        top_share = counter.most_common(1)[0][1] / total
+        assert top_share < 0.35, f"{theme}: {counter.most_common(1)[0][0]} covers {top_share:.0%}"
+        assert len(counter) >= 4, f"{theme} only produces {len(counter)} paths"
+
+
+def test_theme_summaries_cite_this_charts_numbers():
+    """16 fixed sentences covered every chart ever cast."""
+    rows = _sampled_theme_claims(120)
+    summaries = set()
+    for claims in rows:
+        for claim in claims:
+            summaries.add(claim["summary"])
+            assert "常见约" in claim["summary"], claim["summary"]
+            assert "标准差" in claim["summary"], claim["summary"]
+    assert len(summaries) > 100, f"only {len(summaries)} distinct summaries"
+
+
+def test_absent_metrics_are_not_scored_as_zero():
+    """A partial payload must not read as an extreme chart."""
+    from iching.core.consumer_claims import _theme_path
+
+    full = {"structure_metrics": [{"metric_id": "hidden_wealth_count", "value": 1}]}
+    key, title, summary = _theme_path("wealth", full, {})
+    # Only the supplied metric may be considered.
+    assert "财星藏见 1" in summary
+    assert "食伤" not in summary and "比劫" not in summary
+
+    empty = {"structure_metrics": []}
+    key, title, summary = _theme_path("wealth", empty, {})
+    assert key and title
