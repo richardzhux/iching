@@ -10,8 +10,10 @@ from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# Load environment variables from the project .env if available.
-load_dotenv(PROJECT_ROOT / ".env", override=False)
+# Local commands may use the developer's .env. Hosted builds and requests use
+# the platform environment exclusively; a stray local file must not override it.
+if not os.getenv("VERCEL"):
+    load_dotenv(PROJECT_ROOT / ".env", override=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +53,7 @@ class AppConfig:
     paths: PathConfig
     enable_ai: bool = True
     preferred_ai_model: Optional[str] = None
+    reference_read_only: bool = False
 
 
 def _expand(path_value: str | Path) -> Path:
@@ -103,7 +106,6 @@ def build_path_config() -> PathConfig:
         archive_complete_dir=archive_complete_dir,
         archive_acquittal_dir=archive_acquittal_dir,
     )
-    paths.ensure_directories()
     return paths
 
 
@@ -111,6 +113,7 @@ def build_app_config(
     *,
     enable_ai: bool | None = None,
     preferred_ai_model: Optional[str] = None,
+    reference_read_only: bool | None = None,
 ) -> AppConfig:
     """Load the full application configuration."""
     paths = build_path_config()
@@ -121,6 +124,12 @@ def build_app_config(
         preferred_ai_model=preferred_ai_model
         or os.getenv("ICHING_AI_MODEL")
         or None,
+        reference_read_only=(
+            os.getenv("ICHING_REFERENCE_READ_ONLY", "1" if os.getenv("VERCEL") else "0")
+            not in {"0", "false", "False"}
+            if reference_read_only is None
+            else reference_read_only
+        ),
     )
 
 

@@ -6,6 +6,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from iching.integrations.supabase_client import SupabaseRestClient, SupabaseUser
+from iching.web.chart_snapshots import decode_chart_snapshot
 from iching.web.models import MetaphysicsChartSaveRequest
 
 
@@ -170,7 +171,11 @@ class ChartArchiveService:
 
     @staticmethod
     def _record(chart: Dict[str, Any], subject: Dict[str, Any]) -> Dict[str, Any]:
-        return {**chart, "subject": subject}
+        record = {**chart, "subject": subject}
+        snapshot = chart.get("result_snapshot")
+        if isinstance(snapshot, dict):
+            record["result_snapshot"] = decode_chart_snapshot(snapshot)
+        return record
 
     @staticmethod
     def _clean_text(value: str | None) -> str | None:

@@ -8,6 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from iching.integrations.ai import DEFAULT_MODEL
+from iching.web.chart_snapshots import CHART_SNAPSHOT_STORAGE_BYTES, decode_chart_snapshot
 
 ALLOWED_LINE_VALUES = {6, 7, 8, 9}
 
@@ -475,10 +476,11 @@ class MetaphysicsChartSaveRequest(BaseModel):
         )
         if input_bytes > 262_144:
             raise ValueError("命盘输入快照不能超过 256 KB。")
-        if result_bytes > 2_097_152:
+        if result_bytes > CHART_SNAPSHOT_STORAGE_BYTES:
             raise ValueError("命盘结果快照不能超过 2 MB。")
+        decoded_snapshot = decode_chart_snapshot(self.result_snapshot)
         if self.chart_type == "bazi":
-            chart = self.result_snapshot.get("chart")
+            chart = decoded_snapshot.get("chart")
             derived_schema_version = (
                 chart.get("derived_schema_version") if isinstance(chart, dict) else None
             )

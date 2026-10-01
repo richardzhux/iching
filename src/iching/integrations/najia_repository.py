@@ -85,6 +85,17 @@ class NajiaRepository:
         assert self._by_top is not None
         return self._by_top.get(binary)
 
+    def validate(self) -> None:
+        """Check the packaged database before a hosted instance accepts traffic."""
+        self._ensure_loaded()
+        assert self._by_bottom is not None
+        expected = {f"{number:06b}" for number in range(64)}
+        if set(self._by_bottom) != expected or any(
+            {line.position for line in entry.lines} != set(range(1, 7))
+            for entry in self._by_bottom.values()
+        ):
+            raise RuntimeError("Packaged Najia database must contain 64 complete six-line hexagrams.")
+
     def _ensure_loaded(self) -> None:
         if self._by_bottom is not None and self._by_top is not None:
             return
@@ -97,7 +108,8 @@ class NajiaRepository:
         by_bottom: Dict[str, NajiaEntry] = {}
         by_top: Dict[str, NajiaEntry] = {}
 
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(self.db_path.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+            conn.execute("PRAGMA query_only = ON")
             conn.row_factory = sqlite3.Row
             hex_rows = conn.execute(
                 "SELECT id, name, palace, descriptor, binary_top_to_bottom, "

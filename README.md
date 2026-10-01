@@ -252,23 +252,26 @@ Open: `http://localhost:3000`
 - `ICHING_SESSION_CACHE_LIMIT` (default `100`)
 - `ICHING_SESSION_CACHE_TTL_SECONDS` (default `21600`)
 - `ICHING_INTERPRETATION_DB` (default `data/interpretations.db`)
-- `ICHING_CASTING_SECRET` — signs `/api/casting/preview` results so a stored reading records whether its six lines were cast by the server, tossed in the browser, hand-entered, or edited after the cast. Unset, each process signs with an ephemeral key and cross-process casts record as unverified rather than as edits.
+- `ICHING_CASTING_SECRET` — required on Vercel; use one stable server-only value across deployments and instances to verify `/api/casting/preview` results.
+- `ICHING_REFERENCE_READ_ONLY=1` and `ICHING_WEB_ARCHIVE_ENABLED=0` on hosted deployments. Reference SQLite is built and packaged; saved user data stays in Supabase.
 
 ### Frontend
-- `NEXT_PUBLIC_API_BASE_URL`
+- `NEXT_PUBLIC_API_BASE_URL` — empty in production for same-origin API requests; `http://localhost:8000` for local development.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ## Deployment Footprint
 
-- **Frontend**: Vercel (reads from `main`)
-- **Backend**: Render (FastAPI service)
+- **Frontend/backend**: one Vercel project with Next.js and FastAPI Services, configured by repository-root `vercel.json` (reads from `main`).
 - **Database/Auth**: Supabase
 
 Recommended production checks:
-1. Frontend `NEXT_PUBLIC_API_BASE_URL` points to active backend URL.
-2. Backend CORS (`ICHING_ALLOWED_ORIGINS`) includes frontend origin.
-3. Supabase and OpenAI secrets are set on backend environment.
+1. Vercel project root is the repository root; frontend service builds in `frontend/`.
+2. Same-origin `/api/health` and `/api/locations` reach FastAPI and Next.js respectively.
+3. Supabase, OpenAI, and casting secrets are encrypted server-only Production variables.
+4. Saved readings/charts reopen and AI request replay works across deployments.
+
+See [the deployment guide](docs/deployment.md) for configuration and rollback.
 
 ## Quality and Verification
 

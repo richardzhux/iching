@@ -5,6 +5,7 @@ from typing import List
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import JSONResponse
 
 from iching.web.api.routes import router
@@ -53,6 +54,30 @@ class RequestBodyLimitMiddleware:
         await self.app(scope, bounded_receive, send)
 
 
+class PrivateResponseMiddleware:
+    """Keep API responses out of browser and shared caches without buffering SSE."""
+
+    def __init__(self, app) -> None:
+        self.app = app
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def private_send(message):
+            if message["type"] == "http.response.start":
+                headers = [
+                    (key, value) for key, value in message.get("headers", [])
+                    if key.lower() != b"cache-control"
+                ]
+                headers.append((b"cache-control", b"private, no-store, no-transform"))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self.app(scope, receive, private_send)
+
+
 def _allowed_origins() -> List[str]:
     raw = os.getenv("ICHING_ALLOWED_ORIGINS", "")
     if not raw:
@@ -67,6 +92,8 @@ app = FastAPI(
 )
 
 app.add_middleware(RequestBodyLimitMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
+app.add_middleware(PrivateResponseMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

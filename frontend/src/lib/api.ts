@@ -21,6 +21,9 @@ import type {
 import { getApiBaseUrl } from "@/lib/env"
 
 const DEFAULT_TIMEOUT_MS = 30000
+const AI_TIMEOUT_MS = 180000
+const STREAM_STALL_TIMEOUT_MS = 120000
+const SNAPSHOT_COMPRESSION_THRESHOLD_BYTES = 256 * 1024
 
 type RequestOptions = RequestInit & { timeoutMs?: number }
 
@@ -142,10 +145,25 @@ export async function fetchPatternLibrary(patternId: string): Promise<PatternLib
 }
 
 export async function saveMetaphysicsChart(payload: MetaphysicsChartSavePayload, token: string): Promise<MetaphysicsChartRecord> {
+  const snapshotBytes = new TextEncoder().encode(JSON.stringify(payload.result_snapshot))
+  let snapshot = payload.result_snapshot
+  if (snapshotBytes.byteLength > SNAPSHOT_COMPRESSION_THRESHOLD_BYTES) {
+    if (typeof CompressionStream === "undefined") {
+      throw new Error("This browser cannot save a large chart. Update your browser and try again; the chart remains open.")
+    }
+    const compressedStream = new Blob([snapshotBytes]).stream().pipeThrough(new CompressionStream("gzip"))
+    const compressedBytes = new Uint8Array(await new Response(compressedStream).arrayBuffer())
+    let binary = ""
+    // Limit spread arguments so large snapshots cannot exhaust the JS stack.
+    for (let offset = 0; offset < compressedBytes.length; offset += 0x8000) {
+      binary += String.fromCharCode(...compressedBytes.subarray(offset, offset + 0x8000))
+    }
+    snapshot = { _encoding: "iching.chart-snapshot.gzip.v1", data: btoa(binary) }
+  }
   const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/metaphysics/charts`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, result_snapshot: snapshot }),
   })
   return handleResponse<MetaphysicsChartRecord>(response)
 }
@@ -185,6 +203,7 @@ export async function createSession(request: SessionRequest, token?: string): Pr
     method: "POST",
     headers,
     body: JSON.stringify(request),
+    timeoutMs: request.enable_ai ? AI_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
   })
   return handleResponse<SessionPayload>(response)
 }
@@ -206,6 +225,7 @@ export async function sendChatMessage(
 ): Promise<ChatTurnResponse> {
   const response = await fetchWithTimeout(`${getApiBaseUrl()}/api/sessions/${sessionId}/chat`, {
     method: "POST",
+    timeoutMs: AI_TIMEOUT_MS,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
@@ -241,77 +261,119 @@ export async function streamChatMessage(
     onDelta: (delta: string) => void
   },
 ): Promise<ChatTurnResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/api/sessions/${sessionId}/chat/stream`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      Accept: "text/event-stream",
-    },
-    body: JSON.stringify({
-      request_id: payload.request_id,
-      access_password: payload.access_password,
-      message: payload.message,
-      reasoning: payload.reasoning ?? undefined,
-      verbosity: payload.verbosity ?? undefined,
-      tone: payload.tone ?? undefined,
-      model: payload.model ?? undefined,
-      restart: payload.restart ?? undefined,
-      locale: payload.locale ?? undefined,
-    }),
-    signal: options.signal,
-  })
-  if (!response.ok) {
-    return handleResponse<ChatTurnResponse>(response)
+  const controller = new AbortController()
+  const signal = options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal
+  let timeoutReason: "total" | "stall" | null = null
+  const totalTimeoutId = setTimeout(() => {
+    timeoutReason = "total"
+    controller.abort()
+  }, AI_TIMEOUT_MS)
+  let stallTimeoutId: ReturnType<typeof setTimeout> | undefined
+  const resetStallTimeout = () => {
+    clearTimeout(stallTimeoutId)
+    stallTimeoutId = setTimeout(() => {
+      timeoutReason = "stall"
+      controller.abort()
+    }, STREAM_STALL_TIMEOUT_MS)
   }
-  if (!response.body) {
-    throw new Error("Streaming response body is unavailable.")
-  }
+  resetStallTimeout()
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
 
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ""
-  let completed: ChatTurnResponse | null = null
-
-  const consumeBlock = (block: string) => {
-    let eventType = "message"
-    const dataLines: string[] = []
-    for (const line of block.split("\n")) {
-      if (line.startsWith("event:")) eventType = line.slice(6).trim()
-      if (line.startsWith("data:")) dataLines.push(line.slice(5).trim())
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/sessions/${sessionId}/chat/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        Accept: "text/event-stream",
+      },
+      body: JSON.stringify({
+        request_id: payload.request_id,
+        access_password: payload.access_password,
+        message: payload.message,
+        reasoning: payload.reasoning ?? undefined,
+        verbosity: payload.verbosity ?? undefined,
+        tone: payload.tone ?? undefined,
+        model: payload.model ?? undefined,
+        restart: payload.restart ?? undefined,
+        locale: payload.locale ?? undefined,
+      }),
+      signal,
+    })
+    if (!response.ok) {
+      return await handleResponse<ChatTurnResponse>(response)
     }
-    if (!dataLines.length) return
-    const data = JSON.parse(dataLines.join("\n")) as Record<string, unknown>
-    if (eventType === "delta") {
-      options.onDelta(String(data.delta ?? ""))
-    } else if (eventType === "completed") {
-      completed = {
-        session_id: sessionId,
-        assistant: data.assistant as ChatMessage,
-        usage: (data.usage as Record<string, number>) ?? {},
+    if (!response.body) {
+      throw new Error("Streaming response body is unavailable.")
+    }
+
+    reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+    let completed: ChatTurnResponse | null = null
+
+    const consumeBlock = (block: string) => {
+      let eventType = "message"
+      const dataLines: string[] = []
+      for (const line of block.split("\n")) {
+        if (line.startsWith("event:")) eventType = line.slice(6).trim()
+        if (line.startsWith("data:")) dataLines.push(line.slice(5).trim())
       }
-    } else if (eventType === "error") {
-      throw new Error(String(data.detail ?? "AI stream failed."))
+      if (!dataLines.length) return
+      const data = JSON.parse(dataLines.join("\n")) as Record<string, unknown>
+      if (eventType === "delta") {
+        options.onDelta(String(data.delta ?? ""))
+      } else if (eventType === "completed") {
+        completed = {
+          session_id: sessionId,
+          assistant: data.assistant as ChatMessage,
+          usage: (data.usage as Record<string, number>) ?? {},
+        }
+      } else if (eventType === "error") {
+        throw new Error(String(data.detail ?? "AI stream failed."))
+      }
     }
-  }
 
-  while (true) {
-    const { done, value } = await reader.read()
-    buffer += decoder.decode(value, { stream: !done })
-    let boundary = buffer.indexOf("\n\n")
-    while (boundary >= 0) {
-      const block = buffer.slice(0, boundary).trim()
-      buffer = buffer.slice(boundary + 2)
-      if (block) consumeBlock(block)
-      boundary = buffer.indexOf("\n\n")
+    while (true) {
+      const { done, value } = await reader.read()
+      if (value?.length) resetStallTimeout()
+      buffer += decoder.decode(value, { stream: !done })
+      let boundary = buffer.indexOf("\n\n")
+      while (boundary >= 0) {
+        const block = buffer.slice(0, boundary).trim()
+        buffer = buffer.slice(boundary + 2)
+        if (block) consumeBlock(block)
+        // The server emits this only after saving the answer and settling usage.
+        if (completed) return completed
+        boundary = buffer.indexOf("\n\n")
+      }
+      if (done) break
     }
-    if (done) break
+    if (buffer.trim()) consumeBlock(buffer.trim())
+    if (!completed) {
+      throw new Error("AI stream ended before completion. Retry the same request to recover its result.")
+    }
+    return completed
+  } catch (error) {
+    if (timeoutReason && !options.signal?.aborted) {
+      const message = timeoutReason === "stall" ? "AI stream stopped responding." : "AI request timed out."
+      throw new Error(`${message} It may still be running; retry the same request to recover its result.`)
+    }
+    throw error
+  } finally {
+    clearTimeout(totalTimeoutId)
+    clearTimeout(stallTimeoutId)
+    controller.abort()
+    if (reader) {
+      try {
+        await reader.cancel()
+      } catch {
+        // Aborted fetch readers may already have closed with an error.
+      } finally {
+        reader.releaseLock()
+      }
+    }
   }
-  if (buffer.trim()) consumeBlock(buffer.trim())
-  if (!completed) {
-    throw new Error("AI stream ended before completion.")
-  }
-  return completed
 }
 
 export async function fetchSessionHistory(token: string): Promise<SessionHistoryResponse> {

@@ -1204,6 +1204,8 @@ class SessionService:
         self.config = config or build_app_config()
         self.definitions = load_hexagram_definitions(self.config.paths.gua_index_file)
         self.najia_repo = NajiaRepository(self.config.paths.najia_db)
+        if self.config.reference_read_only:
+            self.najia_repo.validate()
         self.interpretation_repo = InterpretationRepository(
             db_path=self.config.paths.interpretation_db,
             index_file=self.config.paths.gua_index_file,
@@ -1211,6 +1213,7 @@ class SessionService:
             takashima_dir=self.config.paths.takashima_dir,
             symbolic_dir=self.config.paths.symbolic_dir,
             english_structured_dir=self.config.paths.english_structured_dir,
+            read_only=self.config.reference_read_only,
         )
         self._history: deque[SessionResult] = deque(maxlen=max(0, history_limit))
 
@@ -1234,6 +1237,7 @@ class SessionService:
         from iching.services.logging import TeeLogger
 
         paths = self.config.paths
+        paths.ensure_directories()
         enable_ai = self.config.enable_ai if enable_ai is None else enable_ai
 
         while True:

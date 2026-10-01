@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import hmac
+import ipaddress
 import logging
 import os
 import re
@@ -134,7 +137,22 @@ _CALCULATION_ADMISSION = CalculationAdmission(
 
 
 def _admit_calculation(request: Request):
-    with _CALCULATION_ADMISSION.admit(_extract_ip(request)):
+    identity = _extract_ip(request)
+    with _CALCULATION_ADMISSION.admit(identity):
+        if os.getenv("VERCEL"):
+            secret = os.environ["ICHING_CASTING_SECRET"]
+            digest = hmac.new(secret.encode(), identity.encode(), hashlib.sha256).hexdigest()
+            try:
+                result = get_chat_service().client.rpc("admit_public_calculation", {
+                    "p_identity": digest,
+                    "p_limit": _CALCULATION_ADMISSION.requests_per_minute,
+                })
+            except Exception as exc:
+                logger.warning("Shared calculation admission unavailable: %s", type(exc).__name__)
+                raise HTTPException(status_code=503, detail="排盘服务暂时无法受理，请稍后重试。") from exc
+            if result.get("allowed") is not True:
+                raise HTTPException(status_code=429, detail="排盘请求过于频繁，请稍后重试。",
+                                    headers={"Retry-After": str(result.get("retry_seconds", 60))})
         yield
 
 
@@ -463,6 +481,14 @@ def delete_metaphysics_chart(
 
 
 def _extract_ip(request: Request) -> str:
+    # Vercel overwrites this header at ingress. Other hosts keep using the
+    # configured proxy-normalized peer and cannot opt in through a header.
+    if os.getenv("VERCEL"):
+        forwarded = request.headers.get("x-forwarded-for", "").strip()
+        try:
+            return str(ipaddress.ip_address(forwarded))
+        except ValueError:
+            pass
     # Proxy identity is normalized only by the server's configured trusted proxies.
     if request.client:
         return request.client.host

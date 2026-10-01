@@ -1,12 +1,5 @@
 const DEV_API_BASE_URL = "http://localhost:8000"
 
-export class PublicEnvError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = "PublicEnvError"
-  }
-}
-
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "")
 }
@@ -18,7 +11,8 @@ export function getApiBaseUrl() {
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new PublicEnvError("Missing NEXT_PUBLIC_API_BASE_URL for the public reading API.")
+    // Vercel routes the frontend and reading API on the same public domain.
+    return ""
   }
 
   return DEV_API_BASE_URL

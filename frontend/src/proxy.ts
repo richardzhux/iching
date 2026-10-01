@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { defaultLocale, isLocale, type Locale } from "./src/i18n/config"
+import { defaultLocale, isLocale, type Locale } from "./i18n/config"
 
 const PUBLIC_FILE = /\.(.*)$/
 
@@ -18,7 +18,7 @@ function resolveLocale(request: NextRequest): Locale {
   return localeFromAcceptLanguage(request.headers.get("accept-language"))
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (

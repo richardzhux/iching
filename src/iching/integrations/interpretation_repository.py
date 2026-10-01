@@ -265,17 +265,22 @@ class InterpretationRepository:
         takashima_dir: Path,
         symbolic_dir: Path,
         english_structured_dir: Path,
+        read_only: bool = False,
     ) -> None:
-        self.db_path = db_path
+        self.db_path = Path(db_path)
         self.index_file = index_file
         self.guaci_dir = guaci_dir
         self.takashima_dir = takashima_dir
         self.symbolic_dir = symbolic_dir
         self.english_structured_dir = english_structured_dir
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._ensure_schema()
-        self._seed_reference_data()
-        self.sync_from_files()
+        self.read_only = read_only
+        if read_only:
+            self.validate_reference_data()
+        else:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._ensure_schema()
+            self._seed_reference_data()
+            self.sync_from_files()
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -422,6 +427,8 @@ class InterpretationRepository:
         return content or None
 
     def sync_from_files(self) -> None:
+        if self.read_only:
+            raise PermissionError("Packaged interpretation data is read-only; rebuild it before deployment.")
         self._sync_source_from_directory(source_key="guaci", directory=self.guaci_dir)
         self._sync_source_from_directory(source_key="takashima", directory=self.takashima_dir)
         self._sync_symbolic_source(source_key="symbolic", directory=self.symbolic_dir)
@@ -434,10 +441,75 @@ class InterpretationRepository:
     # ------------------------------------------------------------------ #
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        if self.read_only:
+            if not self.db_path.is_file():
+                raise FileNotFoundError(
+                    f"Packaged interpretation database not found: {self.db_path}. "
+                    "Run scripts/build_vercel_backend.py before deployment."
+                )
+            conn = sqlite3.connect(self.db_path.resolve().as_uri() + "?mode=ro", uri=True)
+            conn.execute("PRAGMA query_only = ON")
+        else:
+            conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
+
+    def validate_reference_data(self) -> Dict[str, int]:
+        """Reject an omitted or incomplete build instead of serving empty readings."""
+        required_columns = {
+            "interpretation_hexagram": {"id", "name_zh", "binary_code"},
+            "interpretation_slot": {"id", "hexagram_id", "slot_kind", "line_no", "use_kind", "canonical_key"},
+            "interpretation_source": {"id", "source_key", "display_name"},
+            "interpretation_entry": {"id", "slot_id", "source_id", "locale", "content", "version", "status", "is_current"},
+        }
+        try:
+            with self._connect() as conn:
+                for table, required in required_columns.items():
+                    columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+                    if not required.issubset(columns):
+                        raise ValueError(f"{table} is missing required columns")
+                hexagrams = conn.execute("SELECT id, binary_code FROM interpretation_hexagram").fetchall()
+                if (
+                    {row["id"] for row in hexagrams} != set(range(1, 65))
+                    or {row["binary_code"] for row in hexagrams} != {f"{number:06b}" for number in range(64)}
+                ):
+                    raise ValueError("expected all 64 hexagrams")
+                slots = {row["canonical_key"] for row in conn.execute("SELECT canonical_key FROM interpretation_slot")}
+                expected_slots = {
+                    f"{number}.line.{line}"
+                    for number in range(1, 65)
+                    for line in range(1, 7)
+                } | {f"{number}.gua" for number in range(1, 65)} | {
+                    "1.use.yong_jiu", "2.use.yong_liu"
+                }
+                if slots != expected_slots:
+                    raise ValueError("expected 450 interpretation slots, including 用九 and 用六")
+                coverage: Dict[str, set[str]] = {}
+                rows = conn.execute(
+                    "SELECT src.source_key, slt.canonical_key FROM interpretation_entry ent "
+                    "JOIN interpretation_slot slt ON slt.id = ent.slot_id "
+                    "JOIN interpretation_source src ON src.id = ent.source_id "
+                    "WHERE ent.is_current = 1 AND ent.status = 'published' AND trim(ent.content) != '' "
+                    "AND ent.locale = CASE WHEN src.source_key = 'english_commentary' THEN 'en-US' ELSE 'zh-CN' END"
+                )
+                for row in rows:
+                    coverage.setdefault(row["source_key"], set()).add(row["canonical_key"])
+                expected_coverage = {
+                    "guaci": expected_slots,
+                    "takashima": expected_slots,
+                    "english_commentary": expected_slots - {"1.use.yong_jiu", "2.use.yong_liu"},
+                    "symbolic": {f"{number}.gua" for number in SYMBOLIC_HEXAGRAM_ID_BY_STEM.values()},
+                }
+                for source, required in expected_coverage.items():
+                    if not required.issubset(coverage.get(source, set())):
+                        raise ValueError(f"{source} commentary is incomplete")
+                return {source: len(coverage[source]) for source in expected_coverage}
+        except (sqlite3.DatabaseError, ValueError) as exc:
+            raise RuntimeError(
+                f"Invalid packaged interpretation database at {self.db_path}: {exc}. "
+                "Run scripts/build_vercel_backend.py before deployment."
+            ) from exc
 
     def _ensure_schema(self) -> None:
         with self._connect() as conn:

@@ -23,6 +23,71 @@ def test_healthcheck() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+    assert response.headers["cache-control"] == "private, no-store, no-transform"
+
+
+def test_large_chart_is_losslessly_gzipped_for_hosted_transport() -> None:
+    response = client.post("/api/tools/metaphysics", json={
+        "timestamp": "2024-02-10T12:00:00+08:00",
+        "timezone": "Asia/Shanghai", "gender": "female",
+        "reference_timestamp": "2026-10-01T12:00:00+08:00",
+    }, headers={"Accept-Encoding": "gzip"})
+    assert response.status_code == 200
+    assert response.headers["content-encoding"] == "gzip"
+    assert len(response.content) > 4_500_000  # HTTPX exposes the decoded JSON.
+    assert int(response.headers["content-length"]) < 4_500_000
+    chart = response.json()
+    assert chart["derived_schema_version"] == 7
+    assert chart["rule_versions"]["pattern_digest"]
+    assert chart["birth_profile"]["dayun"]
+    assert chart["period_layers"]
+
+
+def test_vercel_uses_only_platform_client_ip(monkeypatch) -> None:
+    from starlette.requests import Request
+
+    request = Request({"type": "http", "headers": [(b"x-forwarded-for", b"203.0.113.7")],
+                       "client": ("127.0.0.1", 8000)})
+    monkeypatch.delenv("VERCEL", raising=False)
+    assert routes._extract_ip(request) == "127.0.0.1"
+    monkeypatch.setenv("VERCEL", "1")
+    assert routes._extract_ip(request) == "203.0.113.7"
+    request = Request({"type": "http", "headers": [(b"x-forwarded-for", b"203.0.113.7, 1.2.3.4")],
+                       "client": ("127.0.0.1", 8000)})
+    assert routes._extract_ip(request) == "127.0.0.1"
+
+
+def test_vercel_shared_admission_across_workers(monkeypatch) -> None:
+    from types import SimpleNamespace
+    from starlette.requests import Request
+    from fastapi import HTTPException
+
+    counters = {}
+    calls = []
+    def rpc(name, payload):
+        assert name == "admit_public_calculation"
+        calls.append(payload)
+        identity = payload["p_identity"]
+        counters[identity] = counters.get(identity, 0) + 1
+        return {"allowed": counters[identity] <= 1, "retry_seconds": 17}
+
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("ICHING_CASTING_SECRET", "test-only-secret")
+    monkeypatch.setattr(routes, "get_chat_service", lambda: SimpleNamespace(client=SimpleNamespace(rpc=rpc)))
+    request = Request({"type": "http", "headers": [(b"x-forwarded-for", b"203.0.113.7")],
+                       "client": ("127.0.0.1", 8000)})
+    for worker in range(2):
+        monkeypatch.setattr(routes, "_CALCULATION_ADMISSION", routes.CalculationAdmission(requests_per_minute=1))
+        if worker == 0:
+            list(routes._admit_calculation(request))
+        else:
+            with pytest.raises(HTTPException) as error:
+                list(routes._admit_calculation(request))
+            assert error.value.status_code == 429
+            assert error.value.headers == {"Retry-After": "17"}
+    assert calls[0] == calls[1]
+    assert len(calls[0]["p_identity"]) == 64
+    assert "203.0.113.7" not in str(calls)
 
 
 def test_casting_preview_preserves_timestamp_and_meihua_orientation() -> None:
@@ -252,6 +317,8 @@ def test_chat_stream_endpoint_emits_sse_events() -> None:
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
+    assert "content-encoding" not in response.headers
+    assert response.headers["cache-control"] == "private, no-store, no-transform"
     assert "event: delta" in response.text
     assert '"delta": "先稳"' in response.text
     assert "event: completed" in response.text

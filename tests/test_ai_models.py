@@ -163,7 +163,9 @@ def test_stream_incomplete_response_records_usage_and_emits_available_text(monke
     assert budget.usage["total_tokens"] == 60
     assert captured["payload"]["max_output_tokens"] == 50
     assert captured["client"]["max_retries"] == 0
-    assert captured["client"]["timeout"] == 120.0
+    assert captured["client"]["timeout"].read == 120.0
+    assert captured["client"]["timeout"].connect == 10.0
+    assert captured["client"]["http_client"].is_closed
 
 
 def test_stream_missing_terminal_usage_cannot_emit_success(monkeypatch):
@@ -234,3 +236,214 @@ def test_later_known_rejection_cannot_release_earlier_ambiguous_dispatch():
     with pytest.raises(KnownRejection):
         _request_with_budget(SimpleNamespace(responses=SimpleNamespace(create=create)), budget)
     assert budget.dispatched is True
+
+
+def _network_stream(monkeypatch, chunks):
+    """Exercise the real SDK SSE decoder over the production transport wrapper."""
+    import httpx
+    from iching.integrations import ai, ai_budget
+
+    clock = [0.0]
+    monkeypatch.setattr(ai_budget, "monotonic", lambda: clock[0])
+    captured = {"dispatches": 0, "reads": 0, "closed": False}
+
+    class ProviderBytes(httpx.SyncByteStream):
+        def __iter__(self):
+            for elapsed, chunk in chunks:
+                captured["reads"] += 1
+                clock[0] += elapsed
+                yield chunk
+
+        def close(self):
+            captured["closed"] = True
+
+    def handle(request):
+        captured["dispatches"] += 1
+        captured["timeouts"] = request.extensions["timeout"]
+        return httpx.Response(200, headers={"Content-Type": "text/event-stream"}, stream=ProviderBytes())
+
+    transport_type = ai._DeadlineTransport
+    monkeypatch.setattr(ai, "_DeadlineTransport", lambda budget: transport_type(budget, httpx.MockTransport(handle)))
+    stream = ai._stream_analysis(user_input="fixture", previous_response_id=None, api_key="synthetic-test-key",
+        model_name="gpt-4.1", reasoning_effort=None, verbosity=None, tone=None)
+    return stream, captured
+
+
+def _sse(event):
+    import json
+    return ("data: " + json.dumps(event) + "\n\n").encode()
+
+
+def test_continuous_provider_chunks_cannot_extend_total_deadline(monkeypatch):
+    import pytest
+    from iching.integrations.ai_budget import AICallBudget, AIDeadlineExceeded, use_ai_budget
+
+    stream, captured = _network_stream(monkeypatch, [
+        (0.4, _sse({"type": "response.output_text.delta", "delta": "a"})),
+        (0.4, _sse({"type": "response.output_text.delta", "delta": "b"})),
+        (0.4, _sse({"type": "response.output_text.delta", "delta": "late"})),
+    ])
+    budget = AICallBudget(provider_total_seconds=1.0)
+    with use_ai_budget(budget):
+        assert next(stream)["delta"] == "a"
+        assert next(stream)["delta"] == "b"
+        with pytest.raises(AIDeadlineExceeded):
+            next(stream)
+    assert captured["dispatches"] == 1
+    assert captured["closed"]
+    assert budget.dispatched and budget.usage is None
+
+
+def test_dripping_sync_response_body_cannot_extend_total_deadline(monkeypatch):
+    import pytest
+    from iching.integrations import ai
+    from iching.integrations.ai_budget import AICallBudget, AIDeadlineExceeded
+
+    _, captured = _network_stream(monkeypatch, [(0.4, b" ")] * 20)
+    budget = AICallBudget(provider_total_seconds=1.0)
+    with ai._bounded_client("synthetic-test-key", budget) as client:
+        with pytest.raises(AIDeadlineExceeded):
+            _request_with_budget(client, budget)
+    assert captured["reads"] == 3
+    assert captured["dispatches"] == 1 and captured["closed"]
+    assert budget.dispatched and budget.usage is None
+
+
+def test_late_terminal_event_keeps_usage_before_deadline_failure(monkeypatch):
+    import pytest
+    from iching.integrations.ai_budget import AICallBudget, AIDeadlineExceeded, use_ai_budget
+
+    stream, captured = _network_stream(monkeypatch, [
+        (0.8, _sse({"type": "response.output_text.delta", "delta": "partial"})),
+        (0.4, _sse({"type": "response.completed", "response": {"id": "late-result", "usage": {"total_tokens": 17}}})),
+    ])
+    budget = AICallBudget(provider_total_seconds=1.0)
+    with use_ai_budget(budget), pytest.raises(AIDeadlineExceeded):
+        list(stream)
+    assert budget.response_id == "late-result"
+    assert budget.usage == {"total_tokens": 17}
+    assert budget.dispatched and captured["closed"] and captured["dispatches"] == 1
+
+
+def test_terminal_event_closes_provider_without_waiting_for_connection_end(monkeypatch):
+    from iching.integrations.ai_budget import AICallBudget, use_ai_budget
+
+    stream, captured = _network_stream(monkeypatch, [
+        (0.1, _sse({"type": "response.output_text.delta", "delta": "complete"})),
+        (0.1, _sse({"type": "response.completed", "response": {"id": "done", "usage": {"total_tokens": 9}}})),
+        (500.0, b"data: [DONE]\n\n"),
+    ])
+    budget = AICallBudget(provider_total_seconds=1.0)
+    with use_ai_budget(budget):
+        events = list(stream)
+    assert events[-1]["result"].text == "complete"
+    assert captured["reads"] == 2 and captured["closed"]
+    assert budget.usage == {"total_tokens": 9}
+
+
+def test_generator_cancellation_closes_provider_without_another_dispatch(monkeypatch):
+    from iching.integrations.ai_budget import AICallBudget, use_ai_budget
+
+    stream, captured = _network_stream(monkeypatch, [
+        (0.1, _sse({"type": "response.output_text.delta", "delta": "partial"})),
+        (0.1, _sse({"type": "response.output_text.delta", "delta": "unused"})),
+    ])
+    budget = AICallBudget()
+    with use_ai_budget(budget):
+        next(stream)
+        stream.close()
+    assert captured["reads"] == 1 and captured["closed"]
+    assert captured["dispatches"] == 1 and budget.dispatched and budget.usage is None
+
+
+def test_compatibility_retry_cannot_restart_exhausted_deadline(monkeypatch):
+    import httpx
+    import pytest
+    from openai import BadRequestError
+    from types import SimpleNamespace
+    from iching.integrations import ai_budget
+
+    clock = [0.0]
+    monkeypatch.setattr(ai_budget, "monotonic", lambda: clock[0])
+    calls = []
+
+    def create(**payload):
+        calls.append(payload)
+        clock[0] = 2.0
+        raise BadRequestError("reasoning unsupported", response=httpx.Response(400,
+            request=httpx.Request("POST", "https://api.openai.com/v1/responses")), body={})
+
+    budget = ai_budget.AICallBudget(provider_total_seconds=1.0)
+    with pytest.raises(ai_budget.AIDeadlineExceeded):
+        _request_with_budget(SimpleNamespace(responses=SimpleNamespace(create=create)), budget, reasoning="low")
+    assert len(calls) == 1
+    assert budget.dispatched is False
+
+
+def test_late_sync_response_preserves_usage_without_retry(monkeypatch):
+    import pytest
+    from types import SimpleNamespace
+    from iching.integrations import ai_budget
+
+    clock = [0.0]
+    monkeypatch.setattr(ai_budget, "monotonic", lambda: clock[0])
+    calls = []
+
+    def create(**payload):
+        calls.append(payload)
+        clock[0] = 2.0
+        return {"id": "late", "usage": {"total_tokens": 13}}
+
+    budget = ai_budget.AICallBudget(provider_total_seconds=1.0)
+    with pytest.raises(ai_budget.AIDeadlineExceeded):
+        _request_with_budget(SimpleNamespace(responses=SimpleNamespace(create=create)), budget)
+    assert len(calls) == 1 and budget.dispatched
+    assert budget.response_id == "late" and budget.usage == {"total_tokens": 13}
+
+
+def test_provider_read_stall_times_out_once_over_real_tcp(monkeypatch):
+    import httpx
+    import pytest
+    import threading
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from openai import APITimeoutError, DefaultHttpxClient, OpenAI
+    from iching.integrations import ai
+    from iching.integrations.ai_budget import AICallBudget
+
+    requests = []
+    release = threading.Event()
+
+    class StalledProvider(BaseHTTPRequestHandler):
+        def do_POST(self):
+            requests.append(self.path)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", "1")
+            self.end_headers()
+            release.wait(1.0)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), StalledProvider)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    monkeypatch.setattr(ai, "_PROVIDER_TIMEOUT", httpx.Timeout(0.03, connect=1.0, write=1.0, pool=1.0))
+    budget = AICallBudget()
+    try:
+        with DefaultHttpxClient(transport=ai._DeadlineTransport(budget), timeout=ai._PROVIDER_TIMEOUT,
+            trust_env=False) as http_client:
+            client = OpenAI(api_key="synthetic-test-key", base_url=f"http://127.0.0.1:{server.server_port}/v1",
+                max_retries=0, http_client=http_client)
+            started = time.monotonic()
+            with pytest.raises(APITimeoutError):
+                _request_with_budget(client, budget)
+            assert time.monotonic() - started < 0.6
+        assert requests == ["/v1/responses"]
+        assert budget.dispatched and budget.usage is None
+    finally:
+        release.set()
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)

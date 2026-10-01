@@ -40,6 +40,8 @@ LINE_SOURCES = ("server_cast", "client_cast", "manual", "edited")
 
 def _secret() -> bytes:
     configured = os.getenv("ICHING_CASTING_SECRET", "")
+    if os.getenv("VERCEL") and not configured:
+        raise RuntimeError("ICHING_CASTING_SECRET is required on Vercel.")
     return configured.encode("utf-8") if configured else _FALLBACK_SECRET
 
 

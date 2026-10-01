@@ -46,6 +46,7 @@ GRAPHS/
 # Raw source corpora (regenerable)
 /node_modules/
 .cache/classics/
+.vercel/
 data/eng/
 data/takashima/
 references/

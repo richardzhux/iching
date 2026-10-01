@@ -1,0 +1,32 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "frontend/",
+      "framework": "nextjs",
+      "installCommand": "npm ci",
+      "buildCommand": "npm run build"
+    },
+    "backend": {
+      "root": ".",
+      "framework": "fastapi",
+      "entrypoint": "app:app",
+      "buildCommand": "python scripts/build_vercel_backend.py",
+      "functions": {
+        "app.py": {
+          "maxDuration": 300,
+          "includeFiles": "{data/**,src/iching/**}",
+          "excludeFiles": "{frontend/**,tests/**,research/**,legacy/**,docs/**,tools/**,scripts/**,.git/**,.vercel/**,.venv/**,venv/**,node_modules/**,.cache/**,.env,.env.*,**/__pycache__/**,data/research-baselines/**,data/eng/**,data/takashima/**,references/**}"
+        }
+      }
+    }
+  },
+  "rewrites": [
+    {"source": "/api/locations", "destination": {"service": "frontend"}},
+    {"source": "/api/(.*)", "destination": {"service": "backend"}},
+    {"source": "/openapi.json", "destination": {"service": "backend"}},
+    {"source": "/docs(.*)", "destination": {"service": "backend"}},
+    {"source": "/redoc", "destination": {"service": "backend"}},
+    {"source": "/(.*)", "destination": {"service": "frontend"}}
+  ]
+}

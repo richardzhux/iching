@@ -1,20 +1,89 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from contextlib import contextmanager
 import json
 import os
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterator, Optional
 
+import httpx
+
 from iching.core.najia import derive_six_gods, rebase_relation
-from iching.integrations.ai_budget import AICallBudget, get_ai_budget
+from iching.integrations.ai_budget import AICallBudget, AIDeadlineExceeded, get_ai_budget
 from iching.integrations.reading_format import (
     LANGUAGE_RULE,
     build_system_prompt,
     normalize_locale,
 )
 
-from openai import BadRequestError, OpenAI
+from openai import BadRequestError, DefaultHttpxClient, OpenAI
+
+
+# A stalled read is bounded separately from the complete provider operation.
+# Preserve the 120s allowance for models that reason before producing a body.
+# A read started just before the 135s deadline can finish within about 255s,
+# leaving settlement headroom inside the Vercel function's 300s envelope.
+# The browser may enter recovery at 180s; the durable ledger blocks redispatch.
+_PROVIDER_TIMEOUT = httpx.Timeout(120.0, connect=10.0, write=10.0, pool=5.0)
+
+
+class _DeadlineByteStream(httpx.SyncByteStream):
+    def __init__(self, stream: httpx.SyncByteStream, budget: AICallBudget) -> None:
+        self.stream = stream
+        self.budget = budget
+        self.closed = False
+
+    def __iter__(self):
+        iterator = iter(self.stream)
+        try:
+            while True:
+                self.budget.remaining_seconds()
+                try:
+                    chunk = next(iterator)
+                except StopIteration:
+                    break
+                # Let the SDK decode this bounded read before another deadline
+                # check, so a terminal SSE event can preserve its usage.
+                yield chunk
+        finally:
+            self.close()
+
+    def close(self) -> None:
+        if not self.closed:
+            self.closed = True
+            self.stream.close()
+
+
+class _DeadlineTransport(httpx.BaseTransport):
+    def __init__(self, budget: AICallBudget, transport: httpx.BaseTransport | None = None) -> None:
+        self.budget = budget
+        self.transport = transport if transport is not None else httpx.HTTPTransport(retries=0, trust_env=False)
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        remaining = self.budget.remaining_seconds()
+        # HTTPX forwards these per-operation limits to its HTTP transport.
+        request.extensions["timeout"] = {
+            name: min(limit, remaining)
+            for name, limit in _PROVIDER_TIMEOUT.as_dict().items()
+        }
+        response = self.transport.handle_request(request)
+        response.stream = _DeadlineByteStream(response.stream, self.budget)
+        return response
+
+    def close(self) -> None:
+        self.transport.close()
+
+
+@contextmanager
+def _bounded_client(api_key: str, budget: AICallBudget):
+    # Explicit transport ownership also closes connections on generator
+    # cancellation. Disabling environment proxy mounts prevents bypassing it.
+    with DefaultHttpxClient(
+        transport=_DeadlineTransport(budget), timeout=_PROVIDER_TIMEOUT, trust_env=False
+    ) as http_client:
+        yield OpenAI(api_key=api_key, timeout=_PROVIDER_TIMEOUT, max_retries=0, http_client=http_client)
+
 
 MODEL_CAPABILITIES: Dict[str, Dict[str, Any]] = {
     "gpt-5.6-terra": {
@@ -396,16 +465,18 @@ def start_analysis(
     selected_verbosity = _normalize_verbosity(model_name, verbosity or data.get("ai_verbosity"))
     reasoning_payload = selected_reasoning
 
-    client = OpenAI(api_key=api_key, timeout=120.0, max_retries=0)
+    budget = get_ai_budget()
     user_prompt = _build_prompt(data)
-    response = _request_openai_response(
-        client=client,
-        model_name=model_name,
-        instructions=build_system_prompt(resolved_locale).strip(),
-        user_input=user_prompt,
-        reasoning=reasoning_payload,
-        verbosity=selected_verbosity,
-    )
+    with _bounded_client(api_key, budget) as client:
+        response = _request_openai_response(
+            client=client,
+            model_name=model_name,
+            instructions=build_system_prompt(resolved_locale).strip(),
+            user_input=user_prompt,
+            reasoning=reasoning_payload,
+            verbosity=selected_verbosity,
+            budget=budget,
+        )
     if response is None:
         return None
     text = _extract_response_text(response)
@@ -447,16 +518,18 @@ def continue_analysis(
         descriptor = TONE_PROFILES.get(tone, "用户自定义语气")
         instruction_block += f"\n\n语气设定: {tone} —— {descriptor}"
 
-    client = OpenAI(api_key=api_key, timeout=120.0, max_retries=0)
-    response = _request_openai_response(
-        client=client,
-        model_name=resolved_model,
-        instructions=instruction_block,
-        user_input=message,
-        reasoning=reasoning_payload,
-        verbosity=selected_verbosity,
-        previous_response_id=previous_response_id,
-    )
+    budget = get_ai_budget()
+    with _bounded_client(api_key, budget) as client:
+        response = _request_openai_response(
+            client=client,
+            model_name=resolved_model,
+            instructions=instruction_block,
+            user_input=message,
+            reasoning=reasoning_payload,
+            verbosity=selected_verbosity,
+            previous_response_id=previous_response_id,
+            budget=budget,
+        )
     if response is None:
         raise RuntimeError("OpenAI follow-up call failed to produce a response.")
 
@@ -511,15 +584,17 @@ def continue_analysis_from_session(
         f"用户追问：{stripped}"
     )
 
-    client = OpenAI(api_key=api_key, timeout=120.0, max_retries=0)
-    response = _request_openai_response(
-        client=client,
-        model_name=resolved_model,
-        instructions=instruction_block,
-        user_input=user_input,
-        reasoning=reasoning_payload,
-        verbosity=selected_verbosity,
-    )
+    budget = get_ai_budget()
+    with _bounded_client(api_key, budget) as client:
+        response = _request_openai_response(
+            client=client,
+            model_name=resolved_model,
+            instructions=instruction_block,
+            user_input=user_input,
+            reasoning=reasoning_payload,
+            verbosity=selected_verbosity,
+            budget=budget,
+        )
     if response is None:
         raise RuntimeError("OpenAI bootstrap follow-up call failed to produce a response.")
 
@@ -629,36 +704,44 @@ def _stream_analysis(
     if selected_verbosity:
         payload["text"] = {"verbosity": selected_verbosity}
 
-    client = OpenAI(api_key=resolved_api_key, timeout=120.0, max_retries=0)
-
     def generate() -> Iterator[Dict[str, Any]]:
         budget = get_ai_budget()
         _validate_input_budget(instructions.strip(), user_input, budget)
         payload["max_output_tokens"] = budget.max_output_tokens
         completed_response: Any = None
         parts: list[str] = []
+        budget.remaining_seconds()
         already_dispatched = budget.dispatched
-        budget.dispatched = True
         try:
-            with client.responses.create(**payload) as stream:
-                for event in stream:
-                    event_type = _response_field(event, "type", "")
-                    if event_type == "response.output_text.delta":
-                        delta = _response_field(event, "delta", "") or ""
-                        if delta:
-                            parts.append(delta)
-                            yield {"type": "delta", "delta": delta}
-                    elif event_type in {"response.completed", "response.incomplete", "response.failed"}:
-                        completed_response = _response_field(event, "response")
-                        _record_budget_response(completed_response, budget)
-                        if event_type == "response.failed":
+            with _bounded_client(resolved_api_key, budget) as client:
+                budget.dispatched = True
+                with client.responses.create(**payload) as stream:
+                    for event in stream:
+                        event_type = _response_field(event, "type", "")
+                        if event_type in {"response.completed", "response.incomplete", "response.failed"}:
+                            completed_response = _response_field(event, "response")
+                            _record_budget_response(completed_response, budget)
+                        budget.remaining_seconds()
+                        if event_type == "response.output_text.delta":
+                            delta = _response_field(event, "delta", "") or ""
+                            if delta:
+                                parts.append(delta)
+                                yield {"type": "delta", "delta": delta}
+                        elif event_type == "response.failed":
                             raise RuntimeError("OpenAI streaming response failed.")
-                    elif event_type == "error":
-                        raise RuntimeError("OpenAI streaming response failed.")
+                        elif event_type == "error":
+                            raise RuntimeError("OpenAI streaming response failed.")
+                        elif event_type in {"response.completed", "response.incomplete"}:
+                            # Terminal usage is sufficient for settlement; do
+                            # not wait for a separate connection-close event.
+                            break
         except Exception as exc:
             _mark_known_rejection(exc, budget, already_dispatched)
+            if isinstance(exc.__cause__, AIDeadlineExceeded):
+                raise exc.__cause__ from exc
             raise
 
+        budget.remaining_seconds()
         if completed_response is None or budget.usage is None:
             raise RuntimeError("OpenAI streaming response ended without terminal usage accounting.")
         text = "".join(parts).strip()
@@ -744,14 +827,18 @@ def _mark_known_rejection(exc: Exception, budget: AICallBudget, already_dispatch
 
 
 def _create_bounded_response(client, payload, budget: AICallBudget):
+    budget.remaining_seconds()
     already_dispatched = budget.dispatched
     budget.dispatched = True
     try:
         response = client.responses.create(**payload)
     except Exception as exc:
         _mark_known_rejection(exc, budget, already_dispatched)
+        if isinstance(exc.__cause__, AIDeadlineExceeded):
+            raise exc.__cause__ from exc
         raise
     _record_budget_response(response, budget)
+    budget.remaining_seconds()
     if _response_field(response, "status") == "failed":
         raise RuntimeError("OpenAI response failed.")
     if budget.usage is None:
@@ -768,8 +855,9 @@ def _request_openai_response(
     reasoning: Optional[str],
     verbosity: Optional[str],
     previous_response_id: Optional[str] = None,
+    budget: AICallBudget | None = None,
 ):
-    budget = get_ai_budget()
+    budget = budget if budget is not None else get_ai_budget()
     _validate_input_budget(instructions.strip(), user_input, budget)
 
     def build_payload(use_reasoning: bool, use_verbosity: bool) -> Dict[str, Any]:
