@@ -4,6 +4,8 @@ I Ching Studio is a modern I Ching decision platform that combines classical div
 
 It is built for serious, repeatable analysis: users can cast readings, inspect line-level evidence, continue multi-turn AI discussion, and persist full history across devices.
 
+Production runs at [iching.richardzhux.com](https://iching.richardzhux.com). One Vercel project deploys the Next.js frontend and Python FastAPI backend together; Supabase provides authentication and saved data. The Render service has been retired. Start with [local development](#local-development), [deployment instructions](docs/deployment.md), or [repository agent guidance](AGENTS.md).
+
 ## Product Snapshot
 
 - **Core value proposition**: trustworthy, evidence-linked I Ching analysis instead of generic chatbot-style ambiguity.
@@ -179,20 +181,36 @@ Operational note:
 
 ### Frontend
 - `frontend/` (Next.js 16 App Router, TypeScript)
-- Locale middleware and localized routes (`/en`, `/zh`)
+- Locale redirects in `frontend/src/proxy.ts` and localized routes (`/en`, `/zh`)
 - Workspace for casting + results + follow-up chat
 - Profile surface for auth and cloud history
+- Same-origin production API calls; `/api/locations` is a Next.js route.
 
 ### Backend
+- Root `app.py` exports the existing FastAPI application for Vercel Services.
 - `src/iching/web/api` (FastAPI routes and DTOs)
 - `SessionRunner` + `SessionService` as orchestration core
 - AI integration with model capability enforcement
 - Rate limiting and access password gate for AI usage
+- `scripts/build_vercel_backend.py` generates and validates immutable reference data before packaging; hosted requests use read-only SQLite.
 
 ### Data Layer
 - Najia lookup: `data/najia.db`
 - Interpretation retrieval: `data/interpretations.db` (generated)
 - Supabase for auth/session/chat persistence
+
+### Hosting and routing
+
+Repository-root `vercel.json` defines both services and their routing. Vercel's project root is the repository root; the frontend service has its own `frontend/` root.
+
+| Public path | Destination |
+| --- | --- |
+| `/en/*`, `/zh/*`, static assets | Next.js frontend |
+| `/api/locations` | Next.js location lookup |
+| Other `/api/*`, `/openapi.json`, `/docs*`, `/redoc` | FastAPI backend |
+| `/_next/image` | Vercel native image optimizer via `/_vercel/image` |
+
+Persistent user data and AI request accounting live in Supabase. Function-local caches and the deployed filesystem do not provide durable storage. Required source directories remain in the upload; repository-root exclusions in `.vercelignore` use leading slashes so `/tools/` cannot exclude nested frontend or Python runtime modules.
 
 ## API Surface
 
@@ -210,29 +228,32 @@ Primary endpoints:
 ## Local Development
 
 ### Prerequisites
-- Python 3.11+
-- Node.js 20+
+- Python 3.12, matching `.python-version` and production
+- Node.js 22.x, matching the Vercel project
 - npm
 
 ### Backend Setup
 
 ```bash
-pip install -r requirements.txt
-pip install -e .
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
 
 export ICHING_ALLOWED_ORIGINS=http://localhost:3000
-uvicorn iching.web.api.main:app --reload
+python -m uvicorn app:app --reload --port 8000
 ```
 
 ### Frontend Setup
 
 ```bash
 cd frontend
-npm install
+npm ci
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
 Open: `http://localhost:3000`
+
+Run the frontend in a second terminal while the API remains running. Local backend settings may be stored in the ignored repository-root `.env`; public browser settings may be stored in ignored `frontend/.env.local`. Server-only secrets belong exclusively in the backend environment. Vercel builds and requests use platform environment variables and do not load the local `.env`.
 
 ## Environment Variables
 
@@ -278,7 +299,7 @@ See [the deployment guide](docs/deployment.md) for configuration and rollback.
 Backend test baseline:
 
 ```bash
-pytest -q
+ICHING_ENABLE_AI=0 python -m pytest -q
 ```
 
 Frontend quality gates:
@@ -287,22 +308,36 @@ Frontend quality gates:
 cd frontend
 npm run lint
 npm run build
+npm run test:e2e -- e2e/journeys.spec.ts
 ```
+
+Playwright starts the built Next.js app on port 3100 unless `PLAYWRIGHT_BASE_URL` targets an existing server. The journey suite runs desktop and mobile projects; its API fixtures do not replace live backend acceptance checks. For a local production build, set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` at build time when testing against the separate local API. See [frontend instructions](frontend/README.md) for the complete workflow.
 
 ## Repository Layout
 
 ```text
 .
-├── data/
-├── docs/
-├── frontend/
-├── src/iching/
-├── tests/
-└── tools/
+├── AGENTS.md                    # Repository-specific working instructions
+├── app.py                       # Vercel FastAPI entrypoint
+├── vercel.json                  # Both services, routing, image configuration
+├── .vercelignore                # Upload boundary; root exclusions are anchored
+├── .python-version              # Production Python version
+├── requirements.txt             # FastAPI runtime dependencies
+├── pyproject.toml               # Python package and development extras
+├── data/                        # Tracked references; generated interpretations.db
+├── docs/                        # Deployment guide, schema, historical plans
+├── frontend/                    # Next.js application, public assets, browser tests
+├── scripts/build_vercel_backend.py
+├── src/iching/                  # Python engines, services, integrations, API
+├── tests/                       # Backend regression checks
+└── tools/                       # Local corpus preparation and maintenance
 ```
 
 ## References
 
-- `docs/deployment.md`
-- `docs/frontend-roadmap.md`
-- `docs/supabase-schema.sql`
+- [Deployment and rollback](docs/deployment.md)
+- [Frontend development](frontend/README.md)
+- [Agent instructions](AGENTS.md)
+- [Supabase schema](docs/supabase-schema.sql)
+- [Historical frontend roadmap](docs/frontend-roadmap.md)
+- [Migration plan and acceptance history](docs/render-to-vercel-migration-plan.md)

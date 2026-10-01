@@ -2,6 +2,8 @@
 
 Prepared October 1, 2026. Status: migration and public-domain acceptance complete; the user deleted the Render project and retired its $7/month compute service.
 
+This document preserves the original inspection, proposed implementation, and acceptance history. Use [docs/deployment.md](deployment.md) and [AGENTS.md](../AGENTS.md) for the current configuration and working instructions. The follow-up routing/image/mobile acceptance is recorded at the end; recurring monitoring was deleted at the user's request.
+
 ## Recommendation
 
 Move the existing FastAPI backend to Vercel, preserve its Python calculation engine, and keep the existing Supabase database and authentication. Prefer **one Vercel project using Services**, with Next.js and FastAPI deployed together at `iching.richardzhux.com`.
@@ -12,7 +14,7 @@ If Services fails a concrete compatibility check, deploy FastAPI as a second Ver
 
 The scope is this repository's backend. Account-wide Render retirement also requires identifying every other billable service and its owner before cancellation.
 
-## What the inspection established
+## What the pre-migration inspection established
 
 | Item | Current evidence | Migration consequence |
 | --- | --- | --- |
@@ -197,7 +199,7 @@ Gross recurring savings are $7/month, or $84/year, for the one reported Render b
 
 Use a cost acceptance threshold of less than $7/month incremental Vercel overage for this service. Review existing team spend alerts; an automatic team-wide pause affects the other sites too and needs an explicit choice. Keeping Render live for 48 hours of overlap costs approximately $0.47 at a $7/30-day illustrative rate.
 
-## Rollout sequence and completion gates
+## Original rollout sequence and completion gates
 
 1. **Inventory and preserve the current state.** Record Render service ID, deployed SHA, Python version, plan, build/start commands, environment names/overrides, disks, cron/workers, auto-deploy, custom domains, and actual charges. Inventory other Render services separately. Record Vercel root/framework settings, environment targets, aliases, and retained rollback deployment. Inspect Supabase auth redirects and the current backup/recovery route. Export any unique disk data. Gate: every durable datum and billed resource has a known owner and destination.
 
@@ -235,8 +237,14 @@ Hosting completion requires production to use Vercel, saved data and AI replay t
 
 The initial cutover used complete deployment `dpl_2YhNHuJyX2BxxX8BPn8GSDG2t9DN`, application source `36c449f`, on both `iching.richardzhux.com` and `iching1.vercel.app`. Public-domain acceptance passed authenticated readings, normal/full-life chart exact reconstruction, initial AI concurrent replay, streamed follow-up replay, and durable ledger settlement. No pending or uncertain AI operations remained. All 727 backend checks and 32 desktop/mobile journeys passed. Seventeen initial browser scripts contained no Render URL or private credential values; recent runtime logs showed no 5xx responses. Warm backend health/config requests were approximately 0.095/0.110 seconds in this sample. Exact peak memory and long-term incremental cost remain observation measurements.
 
-The automatic main-branch deployment `dpl_7Dfc2KGpoT8vP2aF3bB5Dirb6VET` (`06370c9`) passed cross-deployment chart/read recovery. Restoring the initial complete pair and returning to this main-branch deployment both succeeded. The temporary migration project was removed, including its duplicate credentials. The six-hour observation heartbeat was paused at the user's request; billing review is now manual.
+The automatic main-branch deployment `dpl_7Dfc2KGpoT8vP2aF3bB5Dirb6VET` (`06370c9`) passed cross-deployment chart/read recovery. Restoring the initial complete pair and returning to this main-branch deployment both succeeded. The temporary migration project was removed, including its duplicate credentials. The six-hour observation heartbeat was deleted at the user's request; billing review is now manual.
 
-The user deleted the Render project after production acceptance. The old backend returned 404 with `x-render-routing: no-server`, and the Vercel backend remained healthy. The user reported a free Hobby workspace with approximately $0.20 accrued for October before deletion. This is a final usage balance, separate from a recurring plan fee. Both complete Vercel pairs are retained for rollback; the old Render-dependent frontend is retired.
+The user deleted the Render project after production acceptance. The old backend returned 404 with `x-render-routing: no-server`, and the Vercel backend remained healthy. The user reported a free Hobby workspace with approximately $0.20 accrued for October before deletion. This is a final usage balance, separate from a recurring plan fee. The initial complete Vercel pairs were retained for rollback; the old Render-dependent frontend is retired. Those initial pairs predate the later tools/image repairs, so current rollback selection should use the deployment guide and a fresh retained-deployment inventory.
 
 Hosting migration and removal of the recurring Render compute charge are complete. Long-term Vercel cost/peak-memory monitoring is a manual follow-up at the user's request; it is not a measured monthly forecast or an active recurring automation.
+
+## Follow-up resource and mobile acceptance
+
+The user subsequently reported tools server-component requests and optimized artwork returning 404. Commit `93f882e` anchored repository-root `.vercelignore` exclusions so nested tools routes/modules remained in the upload, and configured native Vercel image optimization with the `/_next/image` rewrite. Commit `9e860ae` fixed mobile library grid sizing so the quick-navigation strip scrolls within the viewport. Deployment `dpl_CdakUfKiL526SM1UfKuW23xDaPsT` reached `READY` with both services and production aliases.
+
+The released application passed 149 public URLs, 149 server-component/navigation responses, 58 static assets, 12 responsive image variants, 48 desktop/mobile rendered route visits, real BaZi/Ziwei/statistics/manual-reading flows, 727 backend checks, and 36 desktop/mobile journeys. No unexpected resource 404s or application errors remained. The actual upload inventory included every required runtime source and public asset and excluded local secret files. This resource audit did not repeat paid AI generation; the original paid-provider acceptance remains recorded above.

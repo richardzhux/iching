@@ -1,6 +1,6 @@
 # Next.js + shadcn Frontend Roadmap
 
-The FastAPI backend is ready for consumption. Use this guide to stand up the new React experience.
+This is the historical frontend bootstrap roadmap. The application is implemented and now deploys with FastAPI in one repository-root Vercel Services project. Use [frontend/README.md](../frontend/README.md), [the deployment guide](deployment.md), and [AGENTS.md](../AGENTS.md) for current setup and maintenance; the scaffolding commands and proposed routes below record the original plan.
 
 ## 1. Bootstrap the project
 
