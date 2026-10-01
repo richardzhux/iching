@@ -43,7 +43,7 @@ export function HexagramQuickNav({ locale, mode, activeSlug }: Props) {
           <HexagramLinks locale={locale} mode={mode} activeSlug={activeSlug} compact={false} />
         </div>
       </nav>
-      <nav aria-label={label} className="autumn-library-index py-2 lg:hidden">
+      <nav aria-label={label} className="autumn-library-index min-w-0 py-2 lg:hidden">
         <div className="flex gap-1.5 overflow-x-auto pb-2">
           <HexagramLinks locale={locale} mode={mode} activeSlug={activeSlug} compact />
         </div>

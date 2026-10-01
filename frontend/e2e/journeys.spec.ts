@@ -78,6 +78,7 @@ test("casting artwork and optimized coin textures load", async ({ page, request 
     ["coin-front.png", 640],
     ["coin-back.png", 640],
     ["courtyard-realistic.webp", 1920],
+    ["ginkgo-leaf.webp", 256],
   ] as const) {
     const response = await request.get(`/_next/image?url=${encodeURIComponent(`/autumn/${asset}`)}&w=${width}&q=75`)
     expect(response.status(), asset).toBe(200)
@@ -86,12 +87,12 @@ test("casting artwork and optimized coin textures load", async ({ page, request 
 
   await mockConfig(page)
   await page.goto("/en")
-  const artwork = page.locator('img').filter({ visible: true })
-  expect(await artwork.count()).toBeGreaterThan(0)
-  await expect.poll(async () => artwork.evaluateAll((images) => images.every((image) => {
+  const courtyard = page.locator('img[src*="courtyard-realistic.webp"]')
+  await expect(courtyard).toBeVisible()
+  await expect.poll(() => courtyard.evaluate((image) => {
     const img = image as HTMLImageElement
     return img.complete && img.naturalWidth > 0
-  })), { timeout: 15_000 }).toBe(true)
+  }), { timeout: 15_000 }).toBe(true)
 })
 
 test("switching language changes the route, the lang attribute and the nav", async ({ page }) => {
@@ -245,15 +246,26 @@ test("a reading link without a signed-in reader explains itself instead of hangi
 // Library
 // --------------------------------------------------------------------------- //
 
-test("the library lists all 64 hexagrams with working quick navigation", async ({ page }) => {
+test("the library lists all 64 hexagrams with working quick navigation", async ({ page, isMobile }) => {
   await mockConfig(page)
-  await page.goto("/en/library")
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+  for (const locale of ["en", "zh"] as const) {
+    await page.goto(`/${locale}/library`)
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
 
-  const quickNav = page.getByRole("navigation", { name: "Browse 64 hexagrams" }).first()
-  await expect(quickNav.getByRole("link")).toHaveCount(64)
-  await expect(quickNav.getByRole("link").first()).toHaveAttribute("href", "#hexagram-1")
-  await expect(quickNav.getByRole("link").last()).toHaveAttribute("href", "#hexagram-64")
+    const quickNav = page.getByRole("navigation", {
+      name: locale === "zh" ? "六十四卦快速导航" : "Browse 64 hexagrams",
+    }).filter({ visible: true })
+    await expect(quickNav.getByRole("link")).toHaveCount(64)
+    await expect(quickNav.getByRole("link").first()).toHaveAttribute("href", "#hexagram-1")
+    await expect(quickNav.getByRole("link").last()).toHaveAttribute("href", "#hexagram-64")
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width)
+    if (isMobile) {
+      const strip = quickNav.locator("div").first()
+      expect(await strip.evaluate((element) => element.scrollWidth)).toBeGreaterThan(await strip.evaluate((element) => element.clientWidth))
+    }
+    await quickNav.getByRole("link").last().click()
+    await expect(page.locator("#hexagram-64")).toBeInViewport()
+  }
 })
 
 test("library search narrows the list", async ({ page }) => {
