@@ -33,7 +33,7 @@ Retain existing quota defaults unless deliberately changed: daily user tokens 30
 
 Browser variables are `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, optional `NEXT_PUBLIC_APP_NAME`, and **empty** `NEXT_PUBLIC_API_BASE_URL` in production. The empty base uses the same domain; do not set it to `/api`, because the client appends that prefix.
 
-Do not give arbitrary preview branches production service-role or paid-provider credentials. The protected `iching-migration-preview` project is the controlled migration validation environment. Other full-backend previews need an explicitly provisioned credential scope. Never upload `.env` files or store credentials in this guide.
+Do not give arbitrary preview branches production service-role or paid-provider credentials. The protected `iching-migration-preview` project was used for controlled validation and removed after two complete production deployments passed acceptance. Other full-backend previews need an explicitly provisioned credential scope. Never upload `.env` files or store credentials in this guide.
 
 ## Deploy and verify
 
@@ -56,17 +56,15 @@ Large chart responses use HTTP gzip. The browser losslessly compresses snapshots
 
 ## Live release
 
-October 1, 2026: the public production domains were promoted to complete deployment `dpl_2YhNHuJyX2BxxX8BPn8GSDG2t9DN` (application source `36c449f`). Authenticated archive, casting provenance, normal and full-life chart reconstruction, paid request replay, and real SSE passed through the public domain. Supabase data/auth stayed in the existing project. Backend regression checks: 727; desktop/mobile journeys: 32. This complete deployment is the initial Vercel rollback target.
+October 1, 2026: the public production domains were promoted to complete deployment `dpl_2YhNHuJyX2BxxX8BPn8GSDG2t9DN` (application source `36c449f`). Authenticated archive, casting provenance, normal and full-life chart reconstruction, paid request replay, and real SSE passed through the public domain. Supabase data/auth stayed in the existing project. Backend regression checks: 727; desktop/mobile journeys: 32. This complete deployment is the initial Vercel rollback target. The main-branch deployment `dpl_7Dfc2KGpoT8vP2aF3bB5Dirb6VET` (`06370c9`) also passed cross-deployment archive checks. Production was returned to it after successfully restoring and checking the initial Vercel pair.
 
 ## Rollback and Render retirement
 
-The historical retained deployment is `dpl_AJNtRDwmRavckiWEqYVcPXKRAZNB`, source `11ce5c9602d9eef7d56584d1c9cae4cafc4b3262`. It still uses Render. Resume Render before returning to that deployment if its compute has been suspended. Rebuilding old source also requires restoring the old `frontend` project root and Next.js dashboard preset.
+Use the complete Vercel pairs `dpl_2YhNHuJyX2BxxX8BPn8GSDG2t9DN` and `dpl_7Dfc2KGpoT8vP2aF3bB5Dirb6VET` for rollback. Restoring the first and returning to the main-branch pair were verified through public health/config requests. Supabase is unchanged, so saved user data does not need reverse migration. The historical deployment `dpl_AJNtRDwmRavckiWEqYVcPXKRAZNB` depends on the retired Render backend and is no longer a usable rollback target.
 
-Keep complete, verified Vercel frontend/backend pairs for rollback after Render retirement. Supabase is unchanged, so saved user data does not need reverse migration. The two October 1 admission migrations are compatible with the old host. The old Render application cannot decode newly compressed chart snapshots; use a retained complete Vercel pair for a full rollback. Resuming the historical Render deployment alone only restores its original reading/plain-chart behavior.
+The retired Render service was `srv-d47b67qli9vc738jnat0`, URL `https://iching-p9j9.onrender.com`, with one $7/month instance, no persistent disk, no secret files, and no linked environment groups. Its auto-deploy was switched off before source publication. The user deleted the entire Render project on October 1 after public-domain acceptance. The old backend subsequently returned 404 with `x-render-routing: no-server`, while Vercel health remained 200. The user reported a free Hobby workspace and approximately $0.20 of already accrued October usage. That accrued amount remains payable; the retired service no longer incurs its recurring compute charge. Render's Hobby workspace has no monthly plan fee.
 
-The migrated Render service is `srv-d47b67qli9vc738jnat0`, URL `https://iching-p9j9.onrender.com`, with one $7/month instance, no persistent disk, no secret files, and no linked environment groups. Its auto-deploy is off. Workspace billing showed one included service, a free Hobby workspace plan, and a $7 projected October service charge. Suspending this service stops further compute accrual; already accrued usage remains payable. Permanently deleting it removes the resume option.
-
-The user requested stopping the $7 charge after live acceptance. Suspend compute after production verification and retain the recoverable service as a free fallback. Observe production errors, SSE completion, ledger states, and incremental Vercel usage for 48 hours after cutover. Old open browser tabs can still contain the previous Render API URL; refresh them to load the migrated client.
+The proposed 48-hour recurring observation was turned off at the user's request. Future billing review is manual. Incremental Vercel usage still draws from the team's existing shared Pro credit; no zero-overage forecast is asserted. Old open browser tabs can still contain the previous Render API URL; refresh them to load the migrated client.
 
 ## Local development
 

@@ -1,6 +1,6 @@
 # Render to Vercel migration plan
 
-Prepared October 1, 2026. Status: production cutover and public-domain acceptance complete. Render suspension is the remaining billing step.
+Prepared October 1, 2026. Status: migration and public-domain acceptance complete; the user deleted the Render project and retired its $7/month compute service.
 
 ## Recommendation
 
@@ -231,8 +231,12 @@ Before retirement, the first rollback is restoring the retained Vercel frontend 
 
 New readings created on Vercel remain in the same Supabase database, so returning to Render does not require reverse-copying them. Verify schema compatibility and real reopen/chat behavior during the overlap. After compressed snapshots are saved, the historical Render backend is an incomplete chart rollback. Prefer a complete retained Vercel pair; restoring Render fully requires deploying the new snapshot decoder there before resuming its compute. After Render is deleted, rollback relies on retained Vercel deployments; older Render-dependent frontends are no longer usable rollback targets.
 
-The migration is complete when production has no Render requests, saved data and AI replay work across instances, measured costs meet the agreed threshold, the migrated Render compute charge has stopped, and every remaining Render charge has been either retired or explicitly assigned to another project.
+Hosting completion requires production to use Vercel, saved data and AI replay to work across instances, and retirement of Render compute. Those gates passed. The original long-term cost observation is a manual follow-up at the user's request; future monthly Vercel overage is not yet measured.
 
-The existing `iching` project now serves complete deployment `dpl_2YhNHuJyX2BxxX8BPn8GSDG2t9DN`, application source `36c449f`, on both `iching.richardzhux.com` and `iching1.vercel.app`. Public-domain acceptance passed authenticated readings, normal/full-life chart exact reconstruction, initial AI concurrent replay, streamed follow-up replay, and durable ledger settlement. No pending or uncertain AI operations remained. All 727 backend checks and 32 desktop/mobile journeys passed. Seventeen initial browser scripts contained no Render URL or private credential values; recent runtime logs showed no 5xx responses. Warm backend health/config requests were approximately 0.095/0.110 seconds in this sample. Exact peak memory and long-term incremental cost remain observation measurements.
+The initial cutover used complete deployment `dpl_2YhNHuJyX2BxxX8BPn8GSDG2t9DN`, application source `36c449f`, on both `iching.richardzhux.com` and `iching1.vercel.app`. Public-domain acceptance passed authenticated readings, normal/full-life chart exact reconstruction, initial AI concurrent replay, streamed follow-up replay, and durable ledger settlement. No pending or uncertain AI operations remained. All 727 backend checks and 32 desktop/mobile journeys passed. Seventeen initial browser scripts contained no Render URL or private credential values; recent runtime logs showed no 5xx responses. Warm backend health/config requests were approximately 0.095/0.110 seconds in this sample. Exact peak memory and long-term incremental cost remain observation measurements.
 
-Next action: suspend the exact Render service and confirm billing. Retain the complete deployment above for rollback.
+The automatic main-branch deployment `dpl_7Dfc2KGpoT8vP2aF3bB5Dirb6VET` (`06370c9`) passed cross-deployment chart/read recovery. Restoring the initial complete pair and returning to this main-branch deployment both succeeded. The temporary migration project was removed, including its duplicate credentials. The six-hour observation heartbeat was paused at the user's request; billing review is now manual.
+
+The user deleted the Render project after production acceptance. The old backend returned 404 with `x-render-routing: no-server`, and the Vercel backend remained healthy. The user reported a free Hobby workspace with approximately $0.20 accrued for October before deletion. This is a final usage balance, separate from a recurring plan fee. Both complete Vercel pairs are retained for rollback; the old Render-dependent frontend is retired.
+
+Hosting migration and removal of the recurring Render compute charge are complete. Long-term Vercel cost/peak-memory monitoring is a manual follow-up at the user's request; it is not a measured monthly forecast or an active recurring automation.
