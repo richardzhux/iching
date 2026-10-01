@@ -54,6 +54,10 @@ AI calls use a shared 135-second provider budget and preserve the 120-second sta
 
 Large chart responses use HTTP gzip. The browser losslessly compresses snapshots larger than 256 KiB into `iching.chart-snapshot.gzip.v1` envelopes before uploading. Supabase keeps the existing 2 MiB snapshot storage cap; the API reconstructs up to 32 MiB and validates the original schema/rule metadata. Legacy plain snapshots remain readable. SSE is excluded from compression. Live acceptance preserved a 25,395,733-byte full-life chart exactly, with a 1,175,542-byte response and a 1,535,827-byte save request.
 
+## Live release
+
+October 1, 2026: the public production domains were promoted to complete deployment `dpl_2YhNHuJyX2BxxX8BPn8GSDG2t9DN` (application source `36c449f`). Authenticated archive, casting provenance, normal and full-life chart reconstruction, paid request replay, and real SSE passed through the public domain. Supabase data/auth stayed in the existing project. Backend regression checks: 727; desktop/mobile journeys: 32. This complete deployment is the initial Vercel rollback target.
+
 ## Rollback and Render retirement
 
 The historical retained deployment is `dpl_AJNtRDwmRavckiWEqYVcPXKRAZNB`, source `11ce5c9602d9eef7d56584d1c9cae4cafc4b3262`. It still uses Render. Resume Render before returning to that deployment if its compute has been suspended. Rebuilding old source also requires restoring the old `frontend` project root and Next.js dashboard preset.

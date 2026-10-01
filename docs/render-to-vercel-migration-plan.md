@@ -1,6 +1,6 @@
 # Render to Vercel migration plan
 
-Prepared October 1, 2026. Status: implementation and protected full-stack acceptance complete; production cutover and Render suspension are in progress.
+Prepared October 1, 2026. Status: production cutover and public-domain acceptance complete. Render suspension is the remaining billing step.
 
 ## Recommendation
 
@@ -27,7 +27,7 @@ The scope is this repository's backend. Account-wide Render retirement also requ
 | Sample calculation | Two public calculations using the repository's synthetic 2024-02-10 test date returned 200, 507,833 bytes, schema 7, and the expected BaZi; elapsed times were 0.58s and 0.20s | This sample fits comfortably under Vercel's payload limit; it is not a cold-start or worst-case benchmark |
 | Native dependency | Official PyPI metadata for `sxtwl==2.0.7` lists Linux x86-64 wheels for Python 3.12 and 3.13; no 3.14 Linux wheel appeared in that release | Pin the Vercel deployment to Python 3.12 and prove installation/import in the actual Vercel build |
 
-The authenticated Render dashboard confirmed one service (`srv-d47b67qli9vc738jnat0`), deployment `dep-dan6kc7avr4c73a5arh0` at the baseline SHA, one $7/month 512 MB / 0.5 CPU instance, no persistent disk, no secret files, no linked environment groups, and no custom backend domain. Build: `pip install -r requirements.txt`; start: `pip install -e . && uvicorn iching.web.api.main:app --host 0.0.0.0 --port $PORT`. No backend path/model/quota overrides were configured. Auto-deploy was switched off before implementation could reach production. The workspace is free Hobby; billing showed this sole compute charge, $0.19 accrued, and a $7 projected October total. Existing Vercel project settings and production aliases were retrieved through the authenticated REST API. Team credit consumption and future traffic costs remain observation items.
+The authenticated Render dashboard confirmed one service (`srv-d47b67qli9vc738jnat0`), deployment `dep-dan6kc7avr4c73a5arh0` at the baseline SHA, one $7/month 512 MB / 0.5 CPU instance, no persistent disk, no secret files, no linked environment groups, and no custom backend domain. Build: `pip install -r requirements.txt`; start: `pip install -e . && uvicorn iching.web.api.main:app --host 0.0.0.0 --port $PORT`. No backend path/model/quota overrides were configured. Auto-deploy was switched off before implementation could reach production. The workspace is free Hobby; billing showed this sole compute charge, $0.19 accrued, and a $7 projected October total. Existing Vercel project settings and production aliases were retrieved through the authenticated REST API. Vercel billing for September 23–October 23 showed $9.85 of the shared $20 infrastructure credit used and $10.15 remaining. Future incremental traffic costs remain an observation item.
 
 ## Intended architecture
 
@@ -233,4 +233,6 @@ New readings created on Vercel remain in the same Supabase database, so returnin
 
 The migration is complete when production has no Render requests, saved data and AI replay work across instances, measured costs meet the agreed threshold, the migrated Render compute charge has stopped, and every remaining Render charge has been either retired or explicitly assigned to another project.
 
-Next action: validate the existing-project candidate, promote the public domain, verify production, suspend the exact Render service, and confirm billing.
+The existing `iching` project now serves complete deployment `dpl_2YhNHuJyX2BxxX8BPn8GSDG2t9DN`, application source `36c449f`, on both `iching.richardzhux.com` and `iching1.vercel.app`. Public-domain acceptance passed authenticated readings, normal/full-life chart exact reconstruction, initial AI concurrent replay, streamed follow-up replay, and durable ledger settlement. No pending or uncertain AI operations remained. All 727 backend checks and 32 desktop/mobile journeys passed. Seventeen initial browser scripts contained no Render URL or private credential values; recent runtime logs showed no 5xx responses. Warm backend health/config requests were approximately 0.095/0.110 seconds in this sample. Exact peak memory and long-term incremental cost remain observation measurements.
+
+Next action: suspend the exact Render service and confirm billing. Retain the complete deployment above for rollback.

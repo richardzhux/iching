@@ -53,10 +53,10 @@ npx shadcn-ui@latest add button input textarea select radio-group switch dialog 
 
 - `.env.local`
   ```
-  NEXT_PUBLIC_API_BASE_URL=https://<render-app>.onrender.com
+  NEXT_PUBLIC_API_BASE_URL=
   NEXT_PUBLIC_APP_NAME=I Ching Web
   ```
-- Add Vercel project, set `NEXT_PUBLIC_API_BASE_URL` to the Render URL (staging/prod).
+- Deploy Next.js and FastAPI together from the repository root. Keep `NEXT_PUBLIC_API_BASE_URL` empty for same-origin production requests; see `docs/deployment.md` for the current configuration.
 - CI: add GitHub Actions workflow to run `npm run lint && npm run build`.
 
 ## 7. Future enhancements
