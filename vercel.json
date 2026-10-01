@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "images": {
+    "sizes": [32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    "qualities": [75],
+    "formats": ["image/webp"],
+    "localPatterns": [{"pathname": "^/autumn/.*$", "search": ""}]
+  },
   "services": {
     "frontend": {
       "root": "frontend/",
@@ -22,6 +28,7 @@
     }
   },
   "rewrites": [
+    {"source": "/_next/image", "destination": "/_vercel/image"},
     {"source": "/api/locations", "destination": {"service": "frontend"}},
     {"source": "/api/(.*)", "destination": {"service": "backend"}},
     {"source": "/openapi.json", "destination": {"service": "backend"}},

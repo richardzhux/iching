@@ -46,6 +46,54 @@ test("an unprefixed path is redirected into a locale", async ({ page }) => {
   await expect(page).toHaveURL(/\/(en|zh)$/)
 })
 
+test("chart navigation loads both tools through client-side routes", async ({ page }) => {
+  await mockConfig(page)
+  const toolResponses: { url: string; status: number }[] = []
+  page.on("response", (response) => {
+    const url = new URL(response.url())
+    if (url.pathname.endsWith("/tools") && url.searchParams.has("_rsc")) {
+      toolResponses.push({ url: response.url(), status: response.status() })
+    }
+  })
+
+  for (const locale of ["en", "zh"] as const) {
+    await page.goto(`/${locale}/library`)
+    for (const tab of ["bazi", "ziwei"] as const) {
+      const link = page.locator(`a[href="/${locale}/tools?tab=${tab}"]`).filter({ visible: true }).first()
+      await link.click()
+      await expect(page).toHaveURL(new RegExp(`/${locale}/tools\\?tab=${tab}$`))
+      await expect(link).toHaveAttribute("aria-current", "page")
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+      await expect(page.locator('[role="tabpanel"][data-state="active"]')).toHaveAttribute("id", new RegExp(`${tab}$`))
+    }
+  }
+  expect(toolResponses.length, "chart navigation made server-component requests").toBeGreaterThan(0)
+  for (const response of toolResponses) {
+    expect(response.status, response.url).toBeLessThan(400)
+  }
+})
+
+test("casting artwork and optimized coin textures load", async ({ page, request }) => {
+  for (const [asset, width] of [
+    ["coin-front.png", 640],
+    ["coin-back.png", 640],
+    ["courtyard-realistic.webp", 1920],
+  ] as const) {
+    const response = await request.get(`/_next/image?url=${encodeURIComponent(`/autumn/${asset}`)}&w=${width}&q=75`)
+    expect(response.status(), asset).toBe(200)
+    expect(response.headers()["content-type"], asset).toMatch(/^image\//)
+  }
+
+  await mockConfig(page)
+  await page.goto("/en")
+  const artwork = page.locator('img').filter({ visible: true })
+  expect(await artwork.count()).toBeGreaterThan(0)
+  await expect.poll(async () => artwork.evaluateAll((images) => images.every((image) => {
+    const img = image as HTMLImageElement
+    return img.complete && img.naturalWidth > 0
+  })), { timeout: 15_000 }).toBe(true)
+})
+
 test("switching language changes the route, the lang attribute and the nav", async ({ page }) => {
   await mockConfig(page)
   await page.goto("/en")
